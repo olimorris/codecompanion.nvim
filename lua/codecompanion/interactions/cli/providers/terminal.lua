@@ -44,13 +44,12 @@ function Terminal.new(args)
 end
 
 ---Environment that lets an agent's hooks report back to this buffer via `$NVIM`
----@param bufnr number
----@param cmd string
+---@param opts { bufnr: number, cmd: string }
 ---@return table<string, string>
-local function hook_env(bufnr, cmd)
-  local env = { CODECOMPANION_CLI_BUFNR = tostring(bufnr) }
+local function build_hook_env(opts)
+  local env = { CODECOMPANION_CLI_BUFNR = tostring(opts.bufnr) }
 
-  local script = hooks.script_for(cmd)
+  local script = hooks.script_for(opts.cmd)
   if script then
     env.CODECOMPANION_HOOK = script
   end
@@ -69,7 +68,11 @@ function Terminal:start()
       self.chan = vim.fn.jobstart(cmd, {
         term = true,
         cwd = vim.fn.getcwd(),
-        env = vim.tbl_extend("force", hook_env(self.bufnr, self.agent.cmd), integrations.agent_env()),
+        env = vim.tbl_extend(
+          "force",
+          build_hook_env({ bufnr = self.bufnr, cmd = self.agent.cmd }),
+          integrations.agent_env()
+        ),
         on_exit = function(_, exit_code, _)
           log:debug("CLI agent exited with code %d", exit_code)
           self.chan = nil

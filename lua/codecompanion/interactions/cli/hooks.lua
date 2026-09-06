@@ -81,9 +81,14 @@ local function encode(value, indent)
 end
 
 ---@param path string
----@return table|nil settings Nil when the file could not be parsed
+---@return table|nil settings Nil when the file could not be read or parsed
 local function read_settings(path)
-  local contents = table.concat(vim.fn.readfile(path), "\n")
+  local ok, lines = pcall(vim.fn.readfile, path)
+  if not ok then
+    return nil
+  end
+
+  local contents = table.concat(lines, "\n")
   if vim.trim(contents) == "" then
     return {}
   end
@@ -99,7 +104,7 @@ end
 ---Drop the entries a previous install wrote, leaving the user's own hooks in place
 ---@param entries table[]
 ---@return table[]
-local function without_ours(entries)
+local function remove_our_entries(entries)
   return vim.tbl_filter(function(entry)
     for _, hook in ipairs(entry.hooks or {}) do
       if type(hook.command) == "string" and hook.command:find(CONSTANTS.MARKER, 1, true) then
@@ -125,24 +130,24 @@ end
 
 ---@param integration CodeCompanion.CLI.Hooks.Integration
 ---@return string
-local function settings_path(integration)
+local function get_settings_path(integration)
   return vim.fs.joinpath(vim.fn.expand("~"), integration.settings)
 end
 
 ---@param integration CodeCompanion.CLI.Hooks.Integration
 ---@return boolean
 local function install(integration)
-  local path = settings_path(integration)
+  local path = get_settings_path(integration)
 
   local settings = read_settings(path)
   if not settings then
-    utils.notify(string.format("Could not parse %s, so it has been left alone", path), vim.log.levels.ERROR)
+    utils.notify(string.format("Could not read or parse %s, so it has been left alone", path), vim.log.levels.ERROR)
     return false
   end
 
   settings.hooks = settings.hooks or {}
   for event, action in pairs(integration.hooks) do
-    local entries = without_ours(settings.hooks[event] or {})
+    local entries = remove_our_entries(settings.hooks[event] or {})
     table.insert(entries, build_entry(action))
     settings.hooks[event] = entries
   end
@@ -157,7 +162,7 @@ local function install(integration)
 end
 
 ---@return CodeCompanion.CLI.Hooks.Integration[]
-local function configured_integrations()
+local function get_configured_integrations()
   local found = {}
 
   for _, agent in pairs(config.interactions.cli.agents or {}) do
@@ -173,7 +178,7 @@ end
 ---Write the hooks each configured CLI agent needs in order to report its turns
 ---@return nil
 function M.install()
-  local integrations = configured_integrations()
+  local integrations = get_configured_integrations()
   if vim.tbl_isempty(integrations) then
     return utils.notify("None of your CLI agents have an integration", vim.log.levels.WARN)
   end
@@ -181,11 +186,11 @@ function M.install()
   -- An agent that has never run has no settings to merge into, and writing its config for it
   -- would leave a file the agent itself has never validated
   local ready = vim.tbl_filter(function(integration)
-    if files.exists(settings_path(integration)) then
+    if files.exists(get_settings_path(integration)) then
       return true
     end
     utils.notify(
-      string.format("%s was not found, so run %s once first", settings_path(integration), integration.name),
+      string.format("%s was not found, so run %s once first", get_settings_path(integration), integration.name),
       vim.log.levels.WARN
     )
     return false
@@ -195,7 +200,7 @@ function M.install()
     return
   end
 
-  local targets = vim.tbl_map(settings_path, ready)
+  local targets = vim.tbl_map(get_settings_path, ready)
   local prompt = string.format("Add CodeCompanion's hooks to:\n%s", table.concat(targets, "\n"))
   if vim.fn.confirm(prompt, "&Install\n&Cancel", 2) ~= 1 then
     return

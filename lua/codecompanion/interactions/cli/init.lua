@@ -33,7 +33,7 @@ local HOOK_EVENTS = {
 
 ---@param cli CodeCompanion.CLI
 ---@return table
-local function request_payload(cli)
+local function build_request_payload(cli)
   return {
     id = cli.request_id,
     bufnr = cli.bufnr,
@@ -51,7 +51,7 @@ end
 ---@return nil
 local function start_request(cli)
   cli.request_id = tostring(math.random(10000000))
-  utils.fire("RequestStarted", request_payload(cli))
+  utils.fire("RequestStarted", build_request_payload(cli))
 end
 
 ---@param cli CodeCompanion.CLI
@@ -62,7 +62,7 @@ local function finish_request(cli, status)
     return
   end
 
-  utils.fire("RequestFinished", vim.tbl_extend("force", request_payload(cli), { status = status }))
+  utils.fire("RequestFinished", vim.tbl_extend("force", build_request_payload(cli), { status = status }))
   cli.request_id = nil
 end
 
@@ -331,13 +331,18 @@ function CLI.hook(opts)
 
   -- The agent blocks on this call, so let it return before the listeners run
   vim.schedule(function()
+    local cli = clis[opts.bufnr]
+    if not cli then
+      return
+    end
+
     utils.fire(event, { bufnr = opts.bufnr, message = opts.message })
 
     -- A turn stays in flight while the agent waits on the user, so only its ends move the request
     if opts.event == "submitted" then
-      start_request(clis[opts.bufnr])
+      start_request(cli)
     elseif opts.event == "done" then
-      finish_request(clis[opts.bufnr], "success")
+      finish_request(cli, "success")
     end
   end)
 
