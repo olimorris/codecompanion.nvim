@@ -215,6 +215,8 @@ end
 ---Environment for agents CodeCompanion spawns, so they never claim the pane themselves
 ---@return table<string, string>
 function M.agent_env()
+  -- HERDR_ENV is herdr's master switch, so a spawned agent stops at its first guard and
+  -- CodeCompanion never has to track the rest of herdr's variables to stay ahead of it
   return { HERDR_ENV = "", HERDR_PANE_ID = "" }
 end
 
