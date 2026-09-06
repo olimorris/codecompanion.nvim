@@ -34,8 +34,8 @@ The events that are fired from within the plugin are:
 - `CodeCompanionCLISent` - Fired after data has been sent to a CLI buffer
 - `CodeCompanionCLISubmitted` - Fired when a CLI agent accepts a prompt, however it was typed. Requires [agent hooks](/configuration/cli#hooks)
 - `CodeCompanionCLIDone` - Fired when a CLI agent finishes a turn. Requires [agent hooks](/configuration/cli#hooks)
-- `CodeCompanionCLIBlocked` - Fired when a CLI agent is waiting on the user, with a `message` in the data payload. Requires [agent hooks](/configuration/cli#hooks)
-- `CodeCompanionCLIWorking` - Fired when a CLI agent resumes after waiting. Requires [agent hooks](/configuration/cli#hooks)
+- `CodeCompanionCLIApprovalRequested` - Fired when a CLI agent is waiting on the user, with a `message` in the data payload. Requires [agent hooks](/configuration/cli#hooks)
+- `CodeCompanionCLIApprovalFinished` - Fired when a CLI agent resumes after waiting. Requires [agent hooks](/configuration/cli#hooks)
 - `CodeCompanionContextChanged` - Fired when the context that a chat buffer follows, changes
 - `CodeCompanionFileEdited` - Fired after the LLM has edited or created a file; the data payload includes the `path` and what made the change (`tool`)
 - `CodeCompanionInlineStarted` - Fired at the start of the Inline interaction
