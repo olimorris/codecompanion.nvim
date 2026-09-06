@@ -39,6 +39,7 @@ local CONSTANTS = {
 }
 
 local herdr = nil ---@type string|nil
+local last_message = nil ---@type string|nil
 local last_state = nil ---@type string|nil
 
 ---herdr discards a sequence if it's not greater than the previous one
@@ -97,6 +98,7 @@ local function release()
   if not last_state then
     return
   end
+  last_message = nil
   last_state = nil
 
   -- Carries a sequence so herdr discards any report still in flight, which would re-attach the agent
@@ -150,11 +152,13 @@ local function update_herdr()
     return release()
   end
 
+  -- A blocked pane can change what it is waiting on, so the message decides this too
   local state, message = aggregate_in_flight_chats()
-  if state == last_state then
+  if state == last_state and message == last_message then
     return
   end
   last_state = state
+  last_message = message
 
   local args = {
     herdr,
@@ -286,10 +290,10 @@ function M.setup()
     resume({ bufnr = data.bufnr })
   end)
 
-  on({ "CodeCompanionCLIBlocked" }, function(data)
+  on({ "CodeCompanionCLIApprovalRequested" }, function(data)
     track({ bufnr = data.bufnr, state = "blocked", message = data.message })
   end)
-  on({ "CodeCompanionCLIWorking" }, function(data)
+  on({ "CodeCompanionCLIApprovalFinished" }, function(data)
     resume({ bufnr = data.bufnr })
   end)
 

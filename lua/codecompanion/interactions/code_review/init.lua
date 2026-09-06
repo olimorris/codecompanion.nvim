@@ -392,7 +392,7 @@ function M.setup()
   api.nvim_create_autocmd("User", {
     desc = "Snapshot the review baseline at the start of an agent's edits",
     group = group,
-    pattern = { "CodeCompanionChatSubmitted", "CodeCompanionCLISent" },
+    pattern = { "CodeCompanionChatSubmitted", "CodeCompanionCLISent", "CodeCompanionCLISubmitted" },
     callback = function()
       local root = baseline.get_root()
       if not root then
@@ -413,7 +413,7 @@ function M.setup()
   api.nvim_create_autocmd("User", {
     desc = "Re-baseline on the next prompt when the agent changed no files",
     group = group,
-    pattern = "CodeCompanionChatDone",
+    pattern = { "CodeCompanionChatDone", "CodeCompanionCLIDone" },
     callback = function()
       local root = baseline.get_root()
       if root and store.round_open(root) and baseline.worktree_matches(root) then

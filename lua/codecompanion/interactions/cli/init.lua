@@ -17,11 +17,54 @@ _G.codecompanion_cli_metadata = {}
 ---@field bufnr number
 ---@field id number
 ---@field provider CodeCompanion.CLI.Provider
+---@field request_id string|nil
 ---@field ui CodeCompanion.CLI.UI
 local CLI = {}
 
 local clis = {} ---@type table<number, CodeCompanion.CLI>
 local last_cli = nil ---@type CodeCompanion.CLI|nil
+
+local HOOK_EVENTS = {
+  approval_finished = "CLIApprovalFinished",
+  approval_requested = "CLIApprovalRequested",
+  done = "CLIDone",
+  submitted = "CLISubmitted",
+}
+
+---@param cli CodeCompanion.CLI
+---@return table
+local function request_payload(cli)
+  return {
+    id = cli.request_id,
+    bufnr = cli.bufnr,
+    interaction = "cli",
+    adapter = {
+      name = cli.agent_name,
+      formatted_name = cli.agent.description or cli.agent_name,
+      type = "cli",
+    },
+  }
+end
+
+---Open the request that statusline integrations pair with, so a CLI turn shows as in flight
+---@param cli CodeCompanion.CLI
+---@return nil
+local function start_request(cli)
+  cli.request_id = tostring(math.random(10000000))
+  utils.fire("RequestStarted", request_payload(cli))
+end
+
+---@param cli CodeCompanion.CLI
+---@param status "success"|"cancelled"
+---@return nil
+local function finish_request(cli, status)
+  if not cli.request_id then
+    return
+  end
+
+  utils.fire("RequestFinished", vim.tbl_extend("force", request_payload(cli), { status = status }))
+  cli.request_id = nil
+end
 
 ---Keymap callbacks for the CLI buffer
 local keymap_callbacks = {
@@ -236,6 +279,7 @@ end
 ---@return nil
 function CLI:close()
   self.provider:stop()
+  finish_request(self, "cancelled")
 
   pcall(api.nvim_del_augroup_by_id, self.aug)
 
@@ -274,6 +318,30 @@ end
 ---@return boolean
 function CLI.is_visible()
   return CLI.get_visible() ~= nil
+end
+
+---Hook into a CLI agent
+---@param opts { bufnr: number, event: "submitted"|"done"|"approval_requested"|"approval_finished", message?: string }
+---@return string
+function CLI.hook(opts)
+  local event = HOOK_EVENTS[opts.event]
+  if not event or not clis[opts.bufnr] then
+    return ""
+  end
+
+  -- The agent blocks on this call, so let it return before the listeners run
+  vim.schedule(function()
+    utils.fire(event, { bufnr = opts.bufnr, message = opts.message })
+
+    -- A turn stays in flight while the agent waits on the user, so only its ends move the request
+    if opts.event == "submitted" then
+      start_request(clis[opts.bufnr])
+    elseif opts.event == "done" then
+      finish_request(clis[opts.bufnr], "success")
+    end
+  end)
+
+  return ""
 end
 
 ---Toggle the CLI terminal buffer
