@@ -1,5 +1,5 @@
 *codecompanion.txt*
-                              For NVIM v0.11    Last change: 2026 September 03
+                              For NVIM v0.11    Last change: 2026 September 07
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -528,6 +528,7 @@ The plugin has five core commands:
 - `CodeCompanion` - Open the inline interaction
 - `CodeCompanionChat` - Open a chat buffer
 - `CodeCompanionCLI` - Open a CLI interaction
+- `CodeCompanionCLI Install` - Write CodeCompanion's hooks into your CLI agents' settings
 - `CodeCompanionCmd` - Generate a command in the command-line
 - `CodeCompanionActions` - Open the `Action Palette`
 
@@ -2802,6 +2803,20 @@ opts = { default_tools = { "my_tool", "my_tool_group" } }, } } } })`
 This also works for |codecompanion-configuration-extensions|.
 
 
+LIMITING TOOL OUTPUT
+
+To prevent the output from a tool exceeding the context window of a model,
+CodeCompanion will look to use the lower of a specified `max_output_tokens`
+limit or a model's own prompt limit. Should the tool exceed the limit,
+CodeCompanion will truncate the output and notify the LLM in the response.
+
+The limit can be configured with:
+
+`lua {6} require("codecompanion").setup({ interactions = { chat = { tools = {
+opts = { max_output_tokens = 30000, -- Truncate a tool's output above this many
+tokens }, } } } })`
+
+
 LLM JUDGE
 
 When |codecompanion-usage-chat-buffer-agents-tools-yolo-mode| is on, tools are
@@ -3121,6 +3136,29 @@ You can define multiple agents and switch between them:
 <
 
 Then use `:CodeCompanionCLI agent=codex <prompt>` to use a specific agent.
+
+
+HOOKS ~
+
+CLI interactions can integrate with agents that support hooks, enabling the
+CodeCompanion event system to react to the agent in realtime. Without this,
+features that need to know where a turn starts and ends, such as the
+|codecompanion-usage-code-review|, are limited.
+
+Currently, CodeCompanion only supports Claude Code
+<https://code.claude.com/docs/en/hooks>.
+
+
+INSTALLING
+
+In order to integrate CodeCompanion with the supported coding agents, inside
+Neovim, run:
+
+>
+    :CodeCompanionCLI Install
+<
+
+- In the case of Claude Code, hooks are added to `~/.claude/settings.json`
 
 
 PROVIDERS ~
@@ -4919,7 +4957,10 @@ for the tool.
 <
 
 **Options:** - `adapter` The adapter used to fetch, process and format the
-webpage's content (Default: `jina`)
+webpage's content (Default: `jina`). The MarkItDown
+<https://github.com/microsoft/markitdown> adapter is also available as an
+alternative, configurable via
+|codecompanion-usage-chat-buffer-slash-commands-fetch|.
 
 
 FILE_SEARCH
@@ -5690,9 +5731,26 @@ prompting the same LLM to summarize the chat history into a concise format.
 The `fetch` slash command allows you to add the contents of a URL to the chat
 buffer. By default, the plugin uses the awesome and powerful jina.ai
 <https://jina.ai> to parse the page's content and convert it into plain text.
-For convenience, the slash command will cache the output to disk and prompt the
-user if they wish to restore from the cache, should they look to fetch the same
-URL.
+You can also use the markitdown <https://github.com/microsoft/markitdown>
+adapter for the same purpose, which adds support for local files and various
+document formats like pdf, docx, etc. For convenience, the slash command will
+cache the output to disk and prompt the user if they wish to restore from the
+cache, should they look to fetch the same URL.
+
+The markitdown adapter runs the `markitdown` CLI, timing out at two minutes.
+This can be modified with:
+
+>lua
+    require("codecompanion").setup({
+      adapters = {
+        http = {
+          extend = {
+            markitdown = { opts = { timeout = 300000 } }, -- milliseconds
+          },
+        },
+      },
+    })
+<
 
 
 /FILE ~
@@ -6244,6 +6302,11 @@ When you start a review, the diff between that baseline and the repo's files is
 produced. As the baseline lives in git and the review comments are persisted to
 disk, your progress is stored across sessions and Neovim instances.
 
+That snapshot is taken on the first prompt in any editing round. If you prompt
+again before reviewing the code then the baseline stays at the exact same point
+it was at, prior. The result of this is that you never lose sight of what's
+been edited by an agent as the edits accumulate.
+
 
   [!IMPORTANT] Snapshots are produced against an index owned by CodeCompanion, so
   `git add` never runs against the user's index. This means a user's staged
@@ -6260,9 +6323,9 @@ COMMANDS ~
   :CodeCompanionCodeReview Accept     Accept the current hunk, keeping it
                                       out of future reviews
 
-  :CodeCompanionCodeReview All        As above, but include every change
-                                      since the baseline - accepted hunks
-                                      and files beyond the agent's
+  :CodeCompanionCodeReview All        As above, but also include the
+                                      hunks you've accepted and the files
+                                      you've ignored
 
   :CodeCompanionCodeReview Approve    Approve everything up to now,
                                       advancing the baseline
@@ -6376,16 +6439,17 @@ of the next review by itself.
 
 SCOPING
 
-By default a review only covers the files an agent edited **through
-CodeCompanion's tools**. Append `All` to widen it to every change since the
-baseline:
+A review covers **every change since the baseline**, whoever made it and
+however it was made. An agent that edits with a shell command, or hands the
+work to a sub-agent, is reviewed the same as one using CodeCompanion's own
+tools.
+
+Accepted hunks and ignored files are the only things held back. Append `All` to
+bring them in too:
 
 >
     :CodeCompanionCodeReview All
 <
-
-That includes your own edits, edits from outside of Neovim, hunks you've
-accepted and files you've ignored.
 
 
 DIFFING ~
@@ -6438,7 +6502,7 @@ running in a separate terminal:
 
 1. `:CodeCompanionCodeReview Start` before the agent begins
 2. Let the agent work
-3. `:CodeCompanionCodeReview All` to review everything since the baseline
+3. `:CodeCompanionCodeReview` to review everything since the baseline
 4. Leave comments with `:CodeCompanionCodeReview Comment`, as normal
 5. `:CodeCompanionCodeReview Share` to begin sharing with the agent. Your comments move to a `review.md` file, the baseline advances, and the file's path is copied to your clipboard
 6. Paste the path into the agent:
@@ -6446,9 +6510,6 @@ running in a separate terminal:
 >
     Please action my code review: /path/to/review.md
 <
-
-`All` is required because CodeCompanion can only attribute a change to an agent
-when it goes through CodeCompanion's own tools or interactions.
 
 
   [!TIP] The `review.md` path is static at a repository level. Therefore, in a
@@ -6510,6 +6571,10 @@ The events that are fired from within the plugin are:
 - `CodeCompanionCLIClosed` - Fired after a CLI buffer has been closed
 - `CodeCompanionCLIHidden` - Fired after a CLI buffer has been hidden
 - `CodeCompanionCLISent` - Fired after data has been sent to a CLI buffer
+- `CodeCompanionCLISubmitted` - Fired when a CLI agent accepts a prompt, however it was typed. Requires |codecompanion-configuration-cli-hooks|
+- `CodeCompanionCLIDone` - Fired when a CLI agent finishes a turn. Requires |codecompanion-configuration-cli-hooks|
+- `CodeCompanionCLIApprovalRequested` - Fired when a CLI agent is waiting on the user, with a `message` in the data payload. Requires |codecompanion-configuration-cli-hooks|
+- `CodeCompanionCLIApprovalFinished` - Fired when a CLI agent resumes after waiting. Requires |codecompanion-configuration-cli-hooks|
 - `CodeCompanionContextChanged` - Fired when the context that a chat buffer follows, changes
 - `CodeCompanionFileEdited` - Fired after the LLM has edited or created a file; the data payload includes the `path` and what made the change (`tool`)
 - `CodeCompanionInlineStarted` - Fired at the start of the Inline interaction
@@ -6518,9 +6583,9 @@ The events that are fired from within the plugin are:
 - `CodeCompanionMCPServerReady` - Fired when an MCP server is ready for requests
 - `CodeCompanionMCPServerClosed` - Fired when an MCP server is closed
 - `CodeCompanionMCPServerToolsLoaded` - Fired when tools are loaded for an MCP server
-- `CodeCompanionRequestStarted` - Fired at the start of any API request
+- `CodeCompanionRequestStarted` - Fired at the start of any API request, and at the start of a CLI agent's turn when |codecompanion-configuration-cli-hooks| are wired up
 - `CodeCompanionRequestStreaming` - Fired at the start of a streaming API request
-- `CodeCompanionRequestFinished` - Fired at the end of any API request
+- `CodeCompanionRequestFinished` - Fired at the end of any API request, and at the end of a CLI agent's turn when |codecompanion-configuration-cli-hooks| are wired up
 - `CodeCompanionToolAdded` - Fired when a tool has been added to a chat
 - `CodeCompanionToolApprovalRequested` - Fired when a tool is requesting approval to run
 - `CodeCompanionToolApprovalFinished` - Fired when a user has actioned an approval request

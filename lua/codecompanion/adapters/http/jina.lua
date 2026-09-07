@@ -3,6 +3,7 @@ local log = require("codecompanion.utils.log")
 ---@class CodeCompanion.AdapterArgs
 return {
   name = "jina",
+  formatted_name = "Jina",
   opts = {
     stream = false,
   },

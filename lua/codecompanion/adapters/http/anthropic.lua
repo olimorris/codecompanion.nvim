@@ -375,7 +375,7 @@ return {
 
       local context_management = nil
       if self.opts.can_manage_context then
-        local helpers = require("codecompanion.interactions.chat.helpers")
+        local helpers = require("codecompanion.interactions.chat.helpers.context")
         local editing_trigger = helpers.trigger_context_management(self, { operation = "editing" })
 
         context_management = {

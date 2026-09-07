@@ -364,4 +364,49 @@ T["apply"]["does nothing when the token count is below all thresholds"] = functi
   h.eq(child.lua_get("_G.before"), child.lua_get("_G.chat.messages"))
 end
 
+T["auto submit"] = MiniTest.new_set({
+  hooks = {
+    pre_case = function()
+      child.lua([==[
+        _G.summarised = false
+        package.loaded["codecompanion.interactions.background"] = {
+          new = function()
+            return {
+              ask = function(_, _, opts)
+                _G.summarised = true
+                opts.on_done({ output = { content = "Summary" } })
+              end,
+            }
+          end,
+        }
+
+        require("codecompanion.config").interactions.chat.opts.context_management = {
+          enabled = true,
+          editing = { trigger = 999999, exclude_tools = {}, keep_cycles = 3 },
+          compaction = { trigger = 10, min_token_savings = 1 },
+        }
+
+        local big_chunk = string.rep("payload ", 3000)
+        _G.chat.cycle = 3
+        _G.chat.messages = {
+          { role = "user", content = big_chunk, _meta = { cycle = 1, id = 1 }, opts = { visible = true } },
+          { role = "llm", content = big_chunk, _meta = { cycle = 1, id = 2 }, opts = { visible = true } },
+        }
+      ]==])
+    end,
+  },
+})
+
+T["auto submit"]["compacts when a tool loop pushes the chat over the threshold"] = function()
+  child.lua([[_G.chat:submit({ auto_submit = true })]])
+
+  h.is_true(child.lua_get("_G.summarised"))
+end
+
+T["auto submit"]["DOES NOT compact when compaction itself resubmits"] = function()
+  child.lua([[_G.chat:submit({ auto_submit = true, after_compaction = true })]])
+
+  h.eq(false, child.lua_get("_G.summarised"))
+end
+
 return T

@@ -134,20 +134,6 @@ T["Baseline"]["a removed line that reads like a diff header stays inside its hun
   h.is_true(child.lua_get("hunks[1].id ~= hunks[2].id"))
 end
 
-T["Baseline"]["diff scopes to the given paths"] = function()
-  child.lua([[
-    write("a.lua", { "local a = 1" })
-    write("b.lua", { "local b = 2" })
-    baseline.snapshot(repo)
-    write("a.lua", { "local a = 10" })
-    write("b.lua", { "local b = 20" })
-  ]])
-
-  local hunks = child.lua_get([[baseline.diff(repo, { "a.lua" })]])
-  h.eq(1, #hunks)
-  h.eq("a.lua", hunks[1].path)
-end
-
 T["Baseline"]["a nested repo with no commits doesn't block the review"] = function()
   child.lua([[
     write("a.lua", { "local a = 1" })

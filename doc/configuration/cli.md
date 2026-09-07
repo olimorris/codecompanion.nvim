@@ -67,6 +67,22 @@ require("codecompanion").setup({
 
 Then use `:CodeCompanionCLI agent=codex <prompt>` to use a specific agent.
 
+## Hooks
+
+CLI interactions can integrate with agents that support hooks, enabling the CodeCompanion event system to react to the agent in realtime. Without this, features that need to know where a turn starts and ends, such as the [code review](/usage/code-review), are limited.
+
+Currently, CodeCompanion only supports [Claude Code](https://code.claude.com/docs/en/hooks).
+
+### Installing
+
+In order to integrate CodeCompanion with the supported coding agents, inside Neovim, run:
+
+```
+:CodeCompanionCLI Install
+```
+
+- In the case of Claude Code, hooks are added to `~/.claude/settings.json`
+
 ## Providers
 
 Providers determine how the CLI agent is run. The built-in `terminal` provider uses a Neovim terminal buffer with `jobstart()`:

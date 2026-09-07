@@ -957,6 +957,26 @@ require("codecompanion").setup({
 
 This also works for [extensions](/configuration/extensions).
 
+### Limiting Tool Output
+
+To prevent the output from a tool exceeding the context window of a model, CodeCompanion will look to use the lower of a specified `max_output_tokens` limit or a model's own prompt limit. Should the tool exceed the limit, CodeCompanion will truncate the output and notify the LLM in the response.
+
+The limit can be configured with:
+
+```lua {6}
+require("codecompanion").setup({
+  interactions = {
+    chat = {
+      tools = {
+        opts = {
+          max_output_tokens = 30000, -- Truncate a tool's output above this many tokens
+        },
+      }
+    }
+  }
+})
+```
+
 ### LLM Judge
 
 When [YOLO mode](/usage/chat-buffer/agents-tools#yolo-mode) is on, tools are auto-approved. Some tools (such as `run_command` and `delete_file`), by default, will always ask you first, owing to their destructive nature. The judge offers a middle ground: a background LLM judges the specific action and only interrupts you when it is judged to be unsafe.

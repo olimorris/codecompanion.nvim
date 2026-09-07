@@ -1,5 +1,5 @@
 local config = require("codecompanion.config")
-local helpers = require("codecompanion.interactions.chat.helpers")
+local helpers = require("codecompanion.interactions.chat.helpers.context")
 local log = require("codecompanion.utils.log")
 local tokens = require("codecompanion.utils.tokens")
 

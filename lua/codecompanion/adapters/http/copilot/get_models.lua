@@ -6,6 +6,7 @@ local M = {}
 ---@class CopilotModels
 ---@field formatted_name string
 ---@field vendor? string
+---@field meta? { context_window: number }
 ---@field opts { can_stream: boolean, can_use_tools: boolean, has_vision: boolean }
 
 ---Resolve the Copilot token to authenticate the models request with
@@ -50,6 +51,7 @@ local models_source = {
 ---@type CopilotModels
 local auto_model = {
   formatted_name = "Auto",
+  meta = { context_window = 12288 },
   opts = {
     can_stream = true,
     can_use_tools = true,

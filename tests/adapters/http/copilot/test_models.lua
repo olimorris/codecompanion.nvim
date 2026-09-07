@@ -88,6 +88,7 @@ T["copilot.models"]["choices() synchronous returns expected models"] = function(
   local expected = {
     auto = {
       formatted_name = "Auto",
+      meta = { context_window = 12288 },
       opts = { can_stream = true, can_use_tools = true, has_vision = true },
     },
     model1 = {
@@ -95,8 +96,7 @@ T["copilot.models"]["choices() synchronous returns expected models"] = function(
       description = "Model One",
       endpoint = "completions",
       formatted_name = "Model One",
-      limits = { context_window = 200000, max_output_tokens = 64000 },
-      meta = { context_window = 200000 },
+      meta = { context_window = 200000, max_output_tokens = 64000 },
       opts = { can_stream = true, can_use_tools = true, has_vision = true },
       vendor = "copilot",
     },
@@ -105,7 +105,6 @@ T["copilot.models"]["choices() synchronous returns expected models"] = function(
       description = "Model Two",
       endpoint = "completions",
       formatted_name = "Model Two",
-      limits = {},
       opts = {},
       vendor = "copilot",
     },
@@ -178,6 +177,7 @@ T["copilot.models"]["choices() async populates cache and returns later"] = funct
   local expected = {
     auto = {
       formatted_name = "Auto",
+      meta = { context_window = 12288 },
       opts = { can_stream = true, can_use_tools = true, has_vision = true },
     },
     model1 = {
@@ -185,8 +185,7 @@ T["copilot.models"]["choices() async populates cache and returns later"] = funct
       description = "Model One",
       endpoint = "completions",
       formatted_name = "Model One",
-      limits = { context_window = 200000, max_output_tokens = 64000 },
-      meta = { context_window = 200000 },
+      meta = { context_window = 200000, max_output_tokens = 64000 },
       opts = { can_stream = true, can_use_tools = true, has_vision = true },
       vendor = "copilot",
     },
@@ -195,7 +194,6 @@ T["copilot.models"]["choices() async populates cache and returns later"] = funct
       description = "Model Two",
       endpoint = "completions",
       formatted_name = "Model Two",
-      limits = {},
       opts = {},
       vendor = "copilot",
     },

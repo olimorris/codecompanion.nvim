@@ -32,6 +32,10 @@ The events that are fired from within the plugin are:
 - `CodeCompanionCLIClosed` - Fired after a CLI buffer has been closed
 - `CodeCompanionCLIHidden` - Fired after a CLI buffer has been hidden
 - `CodeCompanionCLISent` - Fired after data has been sent to a CLI buffer
+- `CodeCompanionCLISubmitted` - Fired when a CLI agent accepts a prompt, however it was typed. Requires [agent hooks](/configuration/cli#hooks)
+- `CodeCompanionCLIDone` - Fired when a CLI agent finishes a turn. Requires [agent hooks](/configuration/cli#hooks)
+- `CodeCompanionCLIApprovalRequested` - Fired when a CLI agent is waiting on the user, with a `message` in the data payload. Requires [agent hooks](/configuration/cli#hooks)
+- `CodeCompanionCLIApprovalFinished` - Fired when a CLI agent resumes after waiting. Requires [agent hooks](/configuration/cli#hooks)
 - `CodeCompanionContextChanged` - Fired when the context that a chat buffer follows, changes
 - `CodeCompanionFileEdited` - Fired after the LLM has edited or created a file; the data payload includes the `path` and what made the change (`tool`)
 - `CodeCompanionInlineStarted` - Fired at the start of the Inline interaction
@@ -40,9 +44,9 @@ The events that are fired from within the plugin are:
 - `CodeCompanionMCPServerReady` - Fired when an MCP server is ready for requests
 - `CodeCompanionMCPServerClosed` - Fired when an MCP server is closed
 - `CodeCompanionMCPServerToolsLoaded` - Fired when tools are loaded for an MCP server
-- `CodeCompanionRequestStarted` - Fired at the start of any API request
+- `CodeCompanionRequestStarted` - Fired at the start of any API request, and at the start of a CLI agent's turn when [hooks](/configuration/cli#hooks) are wired up
 - `CodeCompanionRequestStreaming` - Fired at the start of a streaming API request
-- `CodeCompanionRequestFinished` - Fired at the end of any API request
+- `CodeCompanionRequestFinished` - Fired at the end of any API request, and at the end of a CLI agent's turn when [hooks](/configuration/cli#hooks) are wired up
 - `CodeCompanionToolAdded` - Fired when a tool has been added to a chat
 - `CodeCompanionToolApprovalRequested` - Fired when a tool is requesting approval to run
 - `CodeCompanionToolApprovalFinished` - Fired when a user has actioned an approval request

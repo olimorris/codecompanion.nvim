@@ -2,6 +2,8 @@
 -- https://github.com/folke/sidekick.nvim
 
 local Queue = require("codecompanion.utils.queue")
+local hooks = require("codecompanion.interactions.cli.hooks")
+local integrations = require("codecompanion.integrations")
 local log = require("codecompanion.utils.log")
 
 local api = vim.api
@@ -41,6 +43,20 @@ function Terminal.new(args)
   return self
 end
 
+---Environment that lets an agent's hooks report back to this buffer via `$NVIM`
+---@param opts { bufnr: number, cmd: string }
+---@return table<string, string>
+local function build_hook_env(opts)
+  local env = { CODECOMPANION_CLI_BUFNR = tostring(opts.bufnr) }
+
+  local script = hooks.script_for_agent(opts.cmd)
+  if script then
+    env.CODECOMPANION_HOOK = script
+  end
+
+  return env
+end
+
 ---Start the terminal process and begin polling for readiness
 ---@return boolean
 function Terminal:start()
@@ -52,6 +68,11 @@ function Terminal:start()
       self.chan = vim.fn.jobstart(cmd, {
         term = true,
         cwd = vim.fn.getcwd(),
+        env = vim.tbl_extend(
+          "force",
+          build_hook_env({ bufnr = self.bufnr, cmd = self.agent.cmd }),
+          integrations.agent_env()
+        ),
         on_exit = function(_, exit_code, _)
           log:debug("CLI agent exited with code %d", exit_code)
           self.chan = nil
