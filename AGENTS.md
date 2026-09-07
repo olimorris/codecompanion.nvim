@@ -49,6 +49,7 @@ Core: `lua/codecompanion/`
 
 ### Testing
 
+- `make test_file FILE=` takes a single file (`tests/interactions/code_review/test_ui.lua`), never a directory. Run one file per invocation
 - When running `make test_file` tests, do not append `| tail -12` or similar to filter the output. This prevents the user's rules governing what can be auto-accepted, from applying
 - Chat buffer cursor position, scrolling and folds are verified by hand in real use. Don't add test cases for them, even alongside a fix. Ask first
 - Test the behaviour, not the obvious. A case that only proves a guard clause returns `false`, or that a value passes through a shared utility unchanged, earns nothing - cut it and keep the cases where the outcome could genuinely go either way

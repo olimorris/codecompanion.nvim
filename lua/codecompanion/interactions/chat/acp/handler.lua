@@ -11,6 +11,7 @@ local watch = require("codecompanion.interactions.shared.watch")
 ---@field output table Standard output message from the Agent
 ---@field reasoning table Reasoning output from the Agent
 ---@field tools table<string, table> Cache of tool calls by their ID
+---@field edits table<string, { path: string, line?: number }[]> Files each tool call has edited, by tool call ID
 ---@field ui_state table<string, table> Cache of tool call UI states (line_number, icon_id) by tool call ID
 ---@field _permission { queue: CodeCompanion.Queue, active: boolean, respond: function|nil } Internal state for managing permission requests
 local ACPHandler = {}
@@ -23,6 +24,7 @@ function ACPHandler.new(chat)
     output = {},
     reasoning = {},
     tools = {},
+    edits = {},
     ui_state = {},
     _permission = {
       active = false,
@@ -48,30 +50,22 @@ local function merge_tool_call(existing, incoming)
   return out
 end
 
----If a file has been edited, fire an event
----@param tool_call table The merged tool call
----@param adapter_name string
----@return nil
-local function file_edited(tool_call, adapter_name)
-  local fired = {}
-
-  -- Fire an event but only once per file
-  local function fire(path, line)
-    if type(path) ~= "string" or path == "" or fired[path] then
-      return
-    end
-    fired[path] = true
-    utils.fire("FileEdited", { path = path, tool = adapter_name, line = line })
-  end
+---The files a tool call update edits, alongside locations and diffs
+---@param tool_call table
+---@return { path: string, line?: number }[]
+local function touched_files(tool_call)
+  local touched = {}
 
   for _, location in ipairs(tool_call.locations or {}) do
-    fire(location.path, location.line)
+    table.insert(touched, { path = location.path, line = location.line })
   end
   for _, content in ipairs(tool_call.content or {}) do
     if content.type == "diff" then
-      fire(content.path)
+      table.insert(touched, { path = content.path })
     end
   end
+
+  return touched
 end
 
 ---Submit payload to ACP and handle streaming response
@@ -258,6 +252,49 @@ function ACPHandler:handle_thought_chunk(content)
   end
 end
 
+---Remember the files a tool call names, as a later update can arrive without them
+---@param id string
+---@param tool_call table
+---@return nil
+function ACPHandler:track_edits(id, tool_call)
+  local edits = self.edits[id] or {}
+
+  for _, file in ipairs(touched_files(tool_call)) do
+    local existing = vim.iter(edits):find(function(edit)
+      return edit.path == file.path
+    end)
+
+    if existing then
+      existing.line = existing.line or file.line
+    elseif type(file.path) == "string" and file.path ~= "" then
+      table.insert(edits, file)
+    end
+  end
+
+  self.edits[id] = edits
+end
+
+---Release a finished tool call's files, firing an event for each one it edited
+---@param id string
+---@param tool_call table
+---@return nil
+function ACPHandler:flush_edits(id, tool_call)
+  if tool_call.status ~= "completed" and tool_call.status ~= "failed" then
+    return
+  end
+
+  local edits = self.edits[id]
+  self.edits[id] = nil
+
+  if tool_call.status == "failed" or tool_call.kind ~= "edit" then
+    return
+  end
+
+  for _, file in ipairs(edits or {}) do
+    utils.fire("FileEdited", { path = file.path, tool = self.chat.adapter.name, line = file.line })
+  end
+end
+
 ---Output tool call to the chat
 ---@param tool_call table
 ---@return nil
@@ -267,6 +304,8 @@ function ACPHandler:process_tool_call(tool_call)
   local merged = merge_tool_call(self.tools[id], tool_call)
   tool_call = merged
 
+  self:track_edits(id, tool_call)
+
   -- Cache or cleanup
   if tool_call.status == "completed" then
     self.tools[id] = nil
@@ -274,9 +313,7 @@ function ACPHandler:process_tool_call(tool_call)
     self.tools[id] = merged
   end
 
-  if tool_call.status == "completed" and tool_call.kind == "edit" then
-    file_edited(tool_call, self.chat.adapter.name)
-  end
+  self:flush_edits(id, tool_call)
 
   -- Pending tool calls are awaiting approval or streaming input, so hold them
   -- back from the buffer until the agent moves them out of the pending state

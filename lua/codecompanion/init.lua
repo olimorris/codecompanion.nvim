@@ -430,6 +430,13 @@ CodeCompanion.cli = function(prompt_or_opts, opts)
   _last_toggle = "cli"
 end
 
+---Report a turn event from a CLI agent's hook system
+---@param opts { bufnr: number, event: "submitted"|"done" }
+---@return string
+CodeCompanion.cli_hook = function(opts)
+  return require("codecompanion.interactions.cli").hook(opts)
+end
+
 ---Toggle the CLI terminal buffer
 ---@param args? { agent?: string }
 ---@return nil

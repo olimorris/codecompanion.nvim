@@ -246,6 +246,7 @@ The plugin has five core commands:
 - `CodeCompanion` - Open the inline interaction
 - `CodeCompanionChat` - Open a chat buffer
 - `CodeCompanionCLI` - Open a CLI interaction
+- `CodeCompanionCLI Install` - Write CodeCompanion's hooks into your CLI agents' settings
 - `CodeCompanionCmd` - Generate a command in the command-line
 - `CodeCompanionActions` - Open the _Action Palette_
 

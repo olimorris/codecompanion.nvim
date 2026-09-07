@@ -227,39 +227,27 @@ function M.submit(root)
   return M.review_path(root)
 end
 
-local edited_files_path = branch_file("edited_files.txt")
+local round_path = branch_file("round")
 
----Return the files an agent has edited since the baseline, relative to the root
----@param root string
----@return string[]
-function M.edited(root)
-  return read_lines(edited_files_path(root))
-end
-
----Record a file an agent has edited, ignoring paths outside the repo
----@param root string
----@param filepath string An absolute path
----@return nil
-function M.track(root, filepath)
-  local relative = vim.fs.relpath(root, filepath)
-  if not relative then
-    return
-  end
-
-  local edited = M.edited(root)
-  if vim.list_contains(edited, relative) then
-    return
-  end
-
-  table.insert(edited, relative)
-  files.write_to_path(edited_files_path(root), table.concat(edited, "\n") .. "\n")
-end
-
----Forget the edited files for a repo
+---Mark a round of agent work as begun, so the baseline holds until it's reviewed
 ---@param root string
 ---@return nil
-function M.clear_edited(root)
-  delete(edited_files_path(root))
+function M.begin_round(root)
+  files.write_to_path(round_path(root), "")
+end
+
+---Has a round of agent work begun since the baseline was last advanced?
+---@param root string
+---@return boolean
+function M.round_open(root)
+  return files.exists(round_path(root))
+end
+
+---Close the round, so the next submission re-baselines
+---@param root string
+---@return nil
+function M.clear_round(root)
+  delete(round_path(root))
 end
 
 local accepted_path = branch_file("accepted.txt")
