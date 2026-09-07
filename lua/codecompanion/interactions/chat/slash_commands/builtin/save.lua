@@ -25,7 +25,7 @@ end
 ---@return nil
 function SlashCommand:execute()
   if vim.tbl_isempty(self.Chat.messages or {}) then
-    return utils.notify("Nothing to save — chat is empty", vim.log.levels.WARN)
+    return utils.notify("Nothing to save - chat is empty", vim.log.levels.WARN)
   end
   sessions.save(self.Chat)
 end

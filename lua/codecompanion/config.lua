@@ -536,15 +536,7 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
         },
         ["resume"] = {
           path = "interactions.chat.slash_commands.builtin.resume",
-          description = "Resume a previous ACP session",
-          ---@param opts { adapter: CodeCompanion.HTTPAdapter|CodeCompanion.ACPAdapter }
-          ---@return boolean
-          enabled = function(opts)
-            if opts.adapter and opts.adapter.type == "acp" then
-              return true
-            end
-            return false
-          end,
+          description = "Resume a previous session",
           opts = {
             contains_code = false,
             max_sessions = 500,
@@ -784,6 +776,7 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
           ipynb = true,
         },
 
+        autosave = true, -- Rewrite a saved session to disk after every response and on close
         blank_prompt = "", -- The prompt to use when the user doesn't provide a prompt
         completion_provider = providers.completion, -- blink|cmp|coc|default
         debounce = 150, -- Time to debounce user input (milliseconds)

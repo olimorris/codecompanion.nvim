@@ -2,6 +2,19 @@
 
 local M = {}
 
+local MAX_LENGTH = 50
+
+---Trim to MAX_LENGTH on a hyphen boundary so a slug never ends mid-word
+---@param slug string
+---@return string
+local function truncate(slug)
+  if #slug <= MAX_LENGTH then
+    return slug
+  end
+  local boundary = slug:sub(1, MAX_LENGTH + 1):match("^(.*)%-")
+  return (boundary and boundary ~= "") and boundary or slug:sub(1, MAX_LENGTH)
+end
+
 ---Convert a title into a filesystem-safe slug.
 ---Lowercase, ASCII alphanumerics + hyphens, collapsed and trimmed.
 ---@param title string
@@ -20,11 +33,10 @@ function M.slugify(title)
   if slug == "" then
     return "untitled"
   end
-  return slug
+  return truncate(slug)
 end
 
 ---Resolve a slug against an existing-slug check, appending `-2`, `-3` etc. on collision.
----The current slug (if any) is exempt — a session re-saving under its own slug keeps it.
 ---@param base string Base slug from slugify()
 ---@param exists fun(slug: string): boolean Predicate: is this slug taken on disk?
 ---@param current_slug? string The session's own existing slug (treated as available)

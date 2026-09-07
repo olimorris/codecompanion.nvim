@@ -217,6 +217,14 @@ CodeCompanion.chat = function(args)
   })
 end
 
+---Pick a saved session and restore it into a new chat buffer
+---@return nil
+CodeCompanion.sessions = function()
+  return require("codecompanion.interactions.chat.sessions").select({
+    buffer_context = get_context(api.nvim_get_current_buf()),
+  })
+end
+
 ---Refresh any of the caches used by the plugin
 ---@return nil
 CodeCompanion.chat_refresh_cache = function()

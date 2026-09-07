@@ -1,68 +1,183 @@
----Convert a Chat snapshot to and from the on-disk JSON form.
+---Convert a chat to and from its on-disk form.
 ---
----The schema version is pinned here. Bump `SCHEMA_VERSION` when the on-disk
----shape changes incompatibly, and add a migrator.
+---This is the only module that knows both the Chat class and the session file
+---format, so a change to either is absorbed here rather than on disk.
+
+local adapters = require("codecompanion.adapters")
+local config = require("codecompanion.config")
+local utils = require("codecompanion.utils")
+
+local fmt = string.format
 
 local M = {}
 
 M.SCHEMA_VERSION = 1
-M.UI_VERSION = 1
 
----Build the JSON-serializable table for a session.
----@param snapshot table A Chat snapshot (see Chat:snapshot)
----@param extra { slug: string, created_at?: string, updated_at: string }
----@return table
-function M.encode(snapshot, extra)
+---@param name string
+---@return string
+local function tool_id(name)
+  return fmt("<tool>%s</tool>", name)
+end
+
+---@param messages table[]
+---@return table[]
+local function encode_messages(messages)
+  local encoded = {}
+  for _, message in ipairs(messages or {}) do
+    local entry = {
+      role = message.role,
+      content = message.content,
+    }
+    if message.reasoning ~= nil then
+      entry.reasoning = vim.deepcopy(message.reasoning)
+    end
+    if message.tools ~= nil then
+      entry.tools = vim.deepcopy(message.tools)
+    end
+    if message.opts ~= nil then
+      entry.opts = { visible = message.opts.visible }
+    end
+    if message.context ~= nil then
+      entry.context = vim.deepcopy(message.context)
+    end
+    if message._meta and message._meta.tag ~= nil then
+      entry._meta = { tag = message._meta.tag }
+    end
+    table.insert(encoded, entry)
+  end
+  return encoded
+end
+
+---Tool and group names only; schemas are re-resolved from config on restore
+---@param registry CodeCompanion.Chat.ToolRegistry
+---@return { groups: table<string, string[]>, items: string[] }
+local function encode_tools(registry)
+  local items = vim.tbl_keys(registry and registry.in_use or {})
+  table.sort(items)
   return {
-    adapter = snapshot.adapter,
-    context_items = snapshot.context_items,
-    created_at = extra.created_at or extra.updated_at,
-    cwd = snapshot.cwd,
-    cycle = snapshot.cycle,
-    id = snapshot.id,
-    messages = snapshot.messages,
-    schema_version = M.SCHEMA_VERSION,
-    settings = snapshot.settings,
-    slug = extra.slug,
-    title = snapshot.title,
-    ui_version = M.UI_VERSION,
-    updated_at = extra.updated_at,
+    groups = vim.deepcopy(registry and registry.groups or {}),
+    items = items,
   }
 end
 
----Convert a decoded JSON table into args usable by `Chat.new`.
----Runtime-only message fields (cycle, id, estimated_tokens, sent, index) are
----left for the chat constructor / backfill to recompute.
----@param data table The decoded JSON
----@return table args Suitable for passing to `Chat.new`
-function M.to_chat_args(data)
-  local messages = {}
-  for _, msg in ipairs(data.messages or {}) do
-    local entry = {
-      role = msg.role,
-      content = msg.content,
-      reasoning = msg.reasoning,
-    }
-    if msg.tools then
-      entry.tools = msg.tools
-    end
-    if msg.opts then
-      entry.opts = { visible = msg.opts.visible }
-    end
-    if msg.context then
-      entry.context = msg.context
-    end
-    if msg._meta then
-      entry._meta = { tag = msg._meta.tag }
-    end
-    table.insert(messages, entry)
-  end
+---@param chat CodeCompanion.Chat
+---@return string
+local function get_cwd(chat)
+  local winid = vim.fn.bufwinid(chat.bufnr)
+  return winid ~= -1 and vim.fn.getcwd(winid) or vim.fn.getcwd()
+end
+
+---Build the two JSON records that make up a session on disk
+---@param chat CodeCompanion.Chat
+---@param opts { created_at: number, saved_at: number }
+---@return { meta: table, chat: table }
+function M.from_chat(chat, opts)
+  local adapter = chat.adapter
+  local model = adapter and adapter.schema and adapter.schema.model and adapter.schema.model.default
 
   return {
-    messages = messages,
-    settings = data.settings,
-    title = data.title,
+    meta = {
+      schema_version = M.SCHEMA_VERSION,
+      title = chat.title,
+      created_at = opts.created_at,
+      saved_at = opts.saved_at,
+      cwd = get_cwd(chat),
+    },
+    chat = {
+      schema_version = M.SCHEMA_VERSION,
+      adapter = adapter and adapter.name,
+      model = model,
+      cycle = chat.cycle,
+      settings = chat.settings and vim.deepcopy(chat.settings) or nil,
+      context_items = vim.deepcopy(chat.context_items or {}),
+      tools = encode_tools(chat.tool_registry),
+      messages = encode_messages(chat.messages),
+    },
   }
+end
+
+---Resolve the saved adapter, falling back to the default when it has gone away
+---@param record table
+---@return string|table
+local function resolve_adapter(record)
+  local name = record.adapter
+  if name and config.adapters.http and config.adapters.http[name] then
+    local adapter = adapters.resolve(name)
+    if record.model then
+      adapter = adapters.set_model({ adapter = adapter, model = record.model })
+    end
+    return adapter
+  end
+
+  if name then
+    utils.notify(fmt("Adapter '%s' is no longer configured. Using the default adapter", name), vim.log.levels.WARN)
+  end
+  return config.interactions.chat.adapter
+end
+
+---Convert a decoded `_chat.json` into args for `Chat.new`
+---@param record table
+---@return table
+function M.to_chat_args(record)
+  return {
+    adapter = resolve_adapter(record),
+    messages = encode_messages(record.messages),
+    settings = record.settings,
+  }
+end
+
+---@param chat CodeCompanion.Chat
+---@param name string
+---@return table|nil
+local function resolve_schema(chat, name)
+  local tool_config = config.interactions.chat.tools[name]
+  if not tool_config then
+    return nil
+  end
+
+  if tool_config._adapter_tool == true then
+    return { name = name, description = tool_config.description or "", _meta = { adapter_tool = true } }
+  end
+
+  local resolved = chat.tools.resolve(tool_config)
+  return resolved and resolved.schema or nil
+end
+
+---Re-register the saved tools against the current config
+---@param chat CodeCompanion.Chat
+---@param tools { groups?: table<string, string[]>, items?: string[] }
+---@return nil
+function M.restore_tools(chat, tools)
+  tools = tools or {}
+  local registry = chat.tool_registry
+  local missing = {}
+
+  for _, name in ipairs(tools.items or {}) do
+    local schema = resolve_schema(chat, name)
+    if schema then
+      registry.in_use[name] = true
+      registry.schemas[tool_id(name)] = schema
+    else
+      table.insert(missing, name)
+    end
+  end
+
+  for group, members in pairs(tools.groups or {}) do
+    if config.interactions.chat.tools.groups[group] then
+      registry.groups[group] = vim.tbl_filter(function(name)
+        return registry.in_use[name] == true
+      end, members)
+    else
+      table.insert(missing, group)
+    end
+  end
+
+  if not vim.tbl_isempty(missing) then
+    utils.notify(
+      fmt("These tools are no longer configured and were not restored: %s", table.concat(missing, ", ")),
+      vim.log.levels.WARN
+    )
+  end
 end
 
 return M
