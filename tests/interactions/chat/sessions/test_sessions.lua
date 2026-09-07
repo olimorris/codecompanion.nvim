@@ -284,7 +284,7 @@ end
 
 T["Sessions"]["truncates a long title on a word boundary"] = function()
   child.lua([[
-    _G.slug = require("codecompanion.interactions.chat.sessions.slug").slugify(
+    _G.slug = require("codecompanion.interactions.chat.sessions.utils.slug").slugify(
       "Figuring out why the parser drops the last message when restoring a session"
     )
   ]])

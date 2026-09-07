@@ -2,7 +2,7 @@ local config = require("codecompanion.config")
 local context = require("codecompanion.interactions.chat.context")
 local log = require("codecompanion.utils.log")
 local serializer = require("codecompanion.interactions.chat.sessions.serializer")
-local slug_utils = require("codecompanion.interactions.chat.sessions.slug")
+local slug = require("codecompanion.interactions.chat.sessions.utils.slug")
 local storage = require("codecompanion.interactions.chat.sessions.storage")
 local utils = require("codecompanion.utils")
 
@@ -22,15 +22,15 @@ end
 ---@param opts { title: string, created_at: number }
 ---@return string slug
 local function resolve_slug(chat, opts)
-  local base = slug_utils.slugify(opts.title)
+  local base = slug.slugify(opts.title)
   local entry = sessions[chat.id]
   local function exists(candidate)
     return storage.exists(storage.stem(opts.created_at, candidate))
   end
-  return slug_utils.disambiguate(base, exists, entry and entry.slug)
+  return slug.disambiguate(base, exists, entry and entry.slug)
 end
 
----Locate rendered context blocks via the markdown parser, so a fenced `> Context:` line is never mistaken for one.
+---Locate rendered context blocks via the markdown parser
 ---@param lines string[]
 ---@return { first: number, last: number }[]|nil
 local function find_context_blocks(lines)
@@ -70,7 +70,7 @@ local function find_context_blocks(lines)
   return blocks
 end
 
----Keep only the most recent rendered context block, dropping context the user already scrolled past.
+---Keep only the most recent context block, reducing duplication in the buffer
 ---@param lines string[]
 ---@return string[]
 local function prune_context_blocks(lines)
@@ -95,7 +95,7 @@ local function prune_context_blocks(lines)
   return kept
 end
 
----Write the current state of a tracked chat to disk.
+---Write the current state of a tracked chat to disk
 ---@param chat CodeCompanion.Chat
 ---@return boolean ok
 local function write_session(chat)
@@ -104,7 +104,7 @@ local function write_session(chat)
     return false
   end
 
-  local record = serializer.from_chat(chat, {
+  local session = serializer.from_chat(chat, {
     created_at = entry.created_at,
     saved_at = os.time(),
   })
@@ -112,14 +112,15 @@ local function write_session(chat)
   local ui_lines = api.nvim_buf_is_valid(chat.bufnr) and api.nvim_buf_get_lines(chat.bufnr, 0, -1, false) or nil
   local stem = storage.stem(entry.created_at, entry.slug)
 
-  local ok = storage.write(stem, record, ui_lines)
+  local ok = storage.write(stem, session, ui_lines)
   if ok then
     log:debug("[sessions] Wrote session %s for chat %d", stem, chat.id)
   end
+
   return ok
 end
 
----Attach the auto-save callbacks to a chat.
+---Attach the auto-save callbacks to a chat
 ---@param chat CodeCompanion.Chat
 local function attach_autosave(chat)
   chat:add_callback("on_completed", function(c)
@@ -135,7 +136,7 @@ local function attach_autosave(chat)
   end)
 end
 
----Save the chat as a session, prompting for a title on first call; later calls just write to disk.
+---Save the chat as a session
 ---@param chat CodeCompanion.Chat
 ---@param opts? { title?: string }
 ---@return nil
@@ -183,6 +184,7 @@ function M.save(chat, opts)
     return persist_with_title(prefill)
   end
 
+  -- Prompt for a title if none is provided
   vim.ui.input({ prompt = " Session Title " }, function(input)
     if input == nil then
       return
@@ -191,22 +193,22 @@ function M.save(chat, opts)
   end)
 end
 
----Restore a session from disk into a new chat buffer.
+---Restore a session from disk into a new chat buffer
 ---@param stem string
 ---@param opts? { buffer_context?: table }
 ---@return CodeCompanion.Chat|nil
 function M.load(stem, opts)
   opts = opts or {}
 
-  local record = storage.read(stem)
-  if not record then
-    return utils.notify("Could not read the session: " .. stem, vim.log.levels.ERROR)
+  local saved_chat = storage.read(stem)
+  if not saved_chat then
+    return utils.notify("Could not read the chat: " .. stem, vim.log.levels.ERROR)
   end
 
-  local args = serializer.to_chat_args(record.chat)
+  local args = serializer.to_chat_args(saved_chat.chat)
   args.buffer_context = opts.buffer_context or require("codecompanion.utils.context").get(api.nvim_get_current_buf())
   args.stop_context_insertion = true
-  args.title = record.meta.title
+  args.title = saved_chat.meta.title
 
   local messages = vim.deepcopy(args.messages)
 
@@ -217,14 +219,14 @@ function M.load(stem, opts)
 
   -- Chat.new's renderer drops the last message, expecting a submit re-parse, so restore it here
   chat.messages = messages
-  chat.cycle = record.chat.cycle or 1
-  chat.context_items = record.chat.context_items or {}
-  serializer.restore_tools(chat, record.chat.tools)
-  chat:set_title(record.meta.title)
+  chat.cycle = saved_chat.chat.cycle or 1
+  chat.context_items = saved_chat.chat.context_items or {}
+  serializer.restore_tools(chat, saved_chat.chat.tools)
+  chat:set_title(saved_chat.meta.title)
 
   -- The saved markdown already carries the context block, so replant rather than re-render
-  if record.ui_lines then
-    api.nvim_buf_set_lines(chat.bufnr, 0, -1, false, prune_context_blocks(record.ui_lines))
+  if saved_chat.ui_lines then
+    api.nvim_buf_set_lines(chat.bufnr, 0, -1, false, prune_context_blocks(saved_chat.ui_lines))
   end
   chat.context:create_folds()
 
@@ -234,7 +236,7 @@ function M.load(stem, opts)
 
   sessions[chat.id] = {
     autosave = autosave_enabled(),
-    created_at = record.meta.created_at,
+    created_at = saved_chat.meta.created_at,
     slug = (stem:gsub("^%d+T%d+%-", "")),
   }
   attach_autosave(chat)
@@ -243,7 +245,7 @@ function M.load(stem, opts)
   return chat
 end
 
----Every session on disk, newest first.
+---Every session on disk, newest first
 ---@return { stem: string, meta: table }[]
 function M.list()
   return storage.list()
@@ -260,7 +262,7 @@ function M.format(session)
   return "(" .. utils.make_relative(session.meta.saved_at) .. " ago) " .. title
 end
 
----Pick a session from disk and restore it into a new chat buffer.
+---Pick a session from disk and restore it into a new chat buffer
 ---@param opts? { buffer_context?: table, on_restored?: fun(chat: CodeCompanion.Chat) }
 ---@return nil
 function M.select(opts)
@@ -285,7 +287,7 @@ function M.select(opts)
   end)
 end
 
----Rename a tracked session by moving its files on disk.
+---Rename a tracked session by moving its files on disk
 ---@param chat CodeCompanion.Chat
 ---@param new_title string
 ---@return nil
@@ -306,13 +308,11 @@ function M._rename(chat, new_title)
   chat:set_title(new_title)
 end
 
----Disable auto-save for a chat (e.g. after `/fork` produces a new chat).
 ---@param chat_id number
 function M.untrack(chat_id)
   sessions[chat_id] = nil
 end
 
----Whether a chat is currently being tracked for auto-save.
 ---@param chat_id number
 ---@return boolean
 function M.is_tracked(chat_id)

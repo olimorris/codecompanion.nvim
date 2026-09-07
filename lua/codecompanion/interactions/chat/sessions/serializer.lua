@@ -48,7 +48,6 @@ local function encode_messages(messages)
   return encoded
 end
 
----Tool and group names only; schemas are re-resolved from config on restore
 ---@param registry CodeCompanion.Chat.ToolRegistry
 ---@return { groups: table<string, string[]>, items: string[] }
 local function encode_tools(registry)
@@ -76,27 +75,27 @@ function M.from_chat(chat, opts)
   local model = adapter and adapter.schema and adapter.schema.model and adapter.schema.model.default
 
   return {
-    meta = {
+    chat = {
+      adapter = adapter and adapter.name,
+      context_items = vim.deepcopy(chat.context_items or {}),
+      cycle = chat.cycle,
+      messages = encode_messages(chat.messages),
+      model = model,
       schema_version = M.SCHEMA_VERSION,
-      title = chat.title,
+      settings = chat.settings and vim.deepcopy(chat.settings) or nil,
+      tools = encode_tools(chat.tool_registry),
+    },
+    meta = {
+      cwd = get_cwd(chat),
       created_at = opts.created_at,
       saved_at = opts.saved_at,
-      cwd = get_cwd(chat),
-    },
-    chat = {
       schema_version = M.SCHEMA_VERSION,
-      adapter = adapter and adapter.name,
-      model = model,
-      cycle = chat.cycle,
-      settings = chat.settings and vim.deepcopy(chat.settings) or nil,
-      context_items = vim.deepcopy(chat.context_items or {}),
-      tools = encode_tools(chat.tool_registry),
-      messages = encode_messages(chat.messages),
+      title = chat.title,
     },
   }
 end
 
----Resolve the saved adapter, falling back to the default when it has gone away
+---Resolve the saved adapter, falling back to the default
 ---@param record table
 ---@return string|table
 local function resolve_adapter(record)
@@ -112,6 +111,7 @@ local function resolve_adapter(record)
   if name then
     utils.notify(fmt("Adapter '%s' is no longer configured. Using the default adapter", name), vim.log.levels.WARN)
   end
+
   return config.interactions.chat.adapter
 end
 
@@ -143,7 +143,7 @@ local function resolve_schema(chat, name)
   return resolved and resolved.schema or nil
 end
 
----Re-register the saved tools against the current config
+---Restore the saved tools against the config
 ---@param chat CodeCompanion.Chat
 ---@param tools { groups?: table<string, string[]>, items?: string[] }
 ---@return nil
