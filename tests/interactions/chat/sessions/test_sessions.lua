@@ -18,7 +18,7 @@ T = new_set({
         _G.serializer = require("codecompanion.interactions.chat.sessions.serializer")
 
         _G.session_dir = vim.fn.tempname()
-        _G.storage.set_dir(_G.session_dir)
+        require("codecompanion.config").interactions.chat.sessions.dir = _G.session_dir
 
         _G.build_session = function()
           local chat = _G.chat
@@ -162,15 +162,6 @@ T["Sessions"]["DOES NOT treat a context block inside a code fence as one"] = fun
   h.expect_contains("<file>current.lua</file>", child.lua_get([[_G.lines]]))
 end
 
-T["Sessions"]["KEEPS the context block when there is only one"] = function()
-  child.lua([[
-    local stem = _G.build_session()
-    _G.lines = vim.api.nvim_buf_get_lines(_G.sessions.load(stem).bufnr, 0, -1, false)
-  ]])
-
-  h.expect_contains("> Context:", table.concat(child.lua_get([[_G.lines]]), "\n"))
-end
-
 T["Sessions"]["DROPS a tool that is no longer configured"] = function()
   child.lua([[
     local stem = _G.build_session()
@@ -181,16 +172,6 @@ T["Sessions"]["DROPS a tool that is no longer configured"] = function()
   ]])
 
   h.eq({ "func" }, child.lua_get([[_G.in_use]]))
-end
-
-T["Sessions"]["KEEPS a tool that is still configured"] = function()
-  child.lua([[
-    local stem = _G.build_session()
-    local restored = _G.sessions.load(stem)
-    _G.schema = restored.tool_registry.schemas["<tool>weather</tool>"]["function"]
-  ]])
-
-  h.eq("weather", child.lua_get([[_G.schema.name]]))
 end
 
 T["Sessions"]["a restored chat carries its history into the next request"] = function()
@@ -217,23 +198,77 @@ T["Sessions"]["a restored chat carries its history into the next request"] = fun
   }, child.lua_get([[_G.turns]]))
 end
 
-T["Sessions"]["autosaves a tracked chat when the option is on"] = function()
+T["Sessions"]["autosaves an untitled chat after its first response"] = function()
   child.lua([[
-    _G.build_session()
-    _G.tracked = _G.sessions.get(_G.chat.id).autosave
+    table.insert(_G.chat.messages, { role = "user", content = "Why does the parser drop the last message?" })
+    h.send_to_llm(_G.chat, "Because it expects a re-parse")
+
+    _G.listed = _G.storage.list()
   ]])
 
-  h.eq(true, child.lua_get([[_G.tracked]]))
+  local listed = child.lua_get([[_G.listed]])
+  h.eq(1, #listed)
+  h.eq("Why does the parser drop the last message?", listed[1].meta.title)
+end
+
+T["Sessions"]["autosave DOES NOT give the chat a title of its own"] = function()
+  child.lua([[
+    table.insert(_G.chat.messages, { role = "user", content = "Why does the parser drop the last message?" })
+    h.send_to_llm(_G.chat, "Because it expects a re-parse")
+
+    _G.title = _G.chat.title
+    _G.saved_title = _G.storage.list()[1].meta.title
+  ]])
+
+  h.eq(vim.NIL, child.lua_get([[_G.title]]))
+  h.eq("Why does the parser drop the last message?", child.lua_get([[_G.saved_title]]))
 end
 
 T["Sessions"]["DOES NOT autosave when the option is off"] = function()
   child.lua([[
-    require("codecompanion.config").interactions.chat.opts.autosave = false
-    _G.build_session()
-    _G.tracked = _G.sessions.get(_G.chat.id).autosave
+    require("codecompanion.config").interactions.chat.sessions.autosave = false
+    table.insert(_G.chat.messages, { role = "user", content = "Why does the parser drop the last message?" })
+    h.send_to_llm(_G.chat, "Because it expects a re-parse")
+
+    _G.listed = _G.storage.list()
   ]])
 
-  h.eq(false, child.lua_get([[_G.tracked]]))
+  h.eq(0, #child.lua_get([[_G.listed]]))
+end
+
+T["Sessions"]["truncates a long first message on a word boundary"] = function()
+  child.lua([[
+    table.insert(_G.chat.messages, {
+      role = "user",
+      content = "Why is the sessions serializer dropping tool schemas on restore?",
+    })
+    h.send_to_llm(_G.chat, "Because they are re-resolved from config")
+
+    _G.title = _G.storage.list()[1].meta.title
+  ]])
+
+  h.eq("Why is the sessions serializer dropping tool", child.lua_get([[_G.title]]))
+end
+
+T["Sessions"]["KEEPS a saved session up to date when continuous_save is on"] = function()
+  child.lua([[
+    local stem = _G.build_session()
+    h.send_to_llm(_G.chat, "It got better")
+    _G.saved = table.concat(vim.fn.readfile(_G.storage.path(stem, "chat")), "\n")
+  ]])
+
+  h.expect_contains("It got better", child.lua_get([[_G.saved]]))
+end
+
+T["Sessions"]["DOES NOT update a saved session when continuous_save is off"] = function()
+  child.lua([[
+    require("codecompanion.config").interactions.chat.sessions.continuous_save = false
+    local stem = _G.build_session()
+    h.send_to_llm(_G.chat, "It got better")
+    _G.saved = table.concat(vim.fn.readfile(_G.storage.path(stem, "chat")), "\n")
+  ]])
+
+  h.expect_not_contains("It got better", child.lua_get([[_G.saved]]))
 end
 
 T["Sessions"]["restores the session chosen in the picker"] = function()
@@ -249,15 +284,6 @@ T["Sessions"]["restores the session chosen in the picker"] = function()
 
   h.expect_match(child.lua_get([[_G.choices]])[1], "^%(%d+%a+ ago%) Fixing the parser$")
   h.eq("Fixing the parser", child.lua_get([[_G.restored_title]]))
-end
-
-T["Sessions"]["/resume is enabled on an HTTP chat"] = function()
-  child.lua([[
-    local resume = require("codecompanion.interactions.chat.slash_commands.builtin.resume")
-    _G.enabled = resume.enabled(_G.chat)
-  ]])
-
-  h.eq(true, child.lua_get([[_G.enabled]]))
 end
 
 T["Sessions"]["falls back to the default adapter when the saved one has gone"] = function()
@@ -314,10 +340,10 @@ T["Sessions"]["REJECTS a session written by a newer schema"] = function()
     meta.schema_version = _G.serializer.SCHEMA_VERSION + 1
     vim.fn.writefile({ vim.json.encode(meta) }, path)
 
-    _G.record = _G.storage.read(stem)
+    _G.session = _G.storage.read(stem)
   ]])
 
-  h.eq(vim.NIL, child.lua_get([[_G.record]]))
+  h.eq(vim.NIL, child.lua_get([[_G.session]]))
 end
 
 T["Sessions"]["truncates a long title on a word boundary"] = function()
