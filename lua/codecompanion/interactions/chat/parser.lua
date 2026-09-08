@@ -165,7 +165,7 @@ function M.messages(chat, start_range)
     return { content = vim.trim(table.concat(content, "\n\n")) }
   end
 
-  -- Handle the case of a header being buried in a mardown code block
+  -- Handle the case of a header being buried in a markdown code block
   local full_root = chat.parsers.markdown:parse({ 0, -1 })[1]:root()
   if not get_enclosing_fence(full_root, start_range - 1) then
     return nil
