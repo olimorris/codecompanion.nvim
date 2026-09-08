@@ -18,7 +18,12 @@ T = new_set({
         _G.serializer = require("codecompanion.interactions.chat.sessions.serializer")
 
         _G.session_dir = vim.fn.tempname()
-        require("codecompanion.config").interactions.chat.sessions.save_dir = _G.session_dir
+        require("codecompanion.config").interactions.chat.sessions = {
+          enabled = true,
+          autosave = true,
+          continuous_save = true,
+          save_dir = _G.session_dir,
+        }
 
         _G.build_session = function()
           local chat = _G.chat
@@ -269,6 +274,46 @@ T["Sessions"]["DOES NOT update a saved session when continuous_save is off"] = f
   ]])
 
   h.expect_not_contains("It got better", child.lua_get([[_G.saved]]))
+end
+
+T["Sessions"]["/fork saves the forked chat when auto_save_session is on"] = function()
+  child.lua([[
+    local fork = require("codecompanion.interactions.chat.slash_commands.builtin.fork")
+    table.insert(_G.chat.messages, { role = "user", content = "Hello there" })
+
+    fork.new({ Chat = _G.chat, config = { opts = { auto_save_session = false } } }):output("Quiet fork")
+    _G.without = #_G.storage.list()
+
+    fork.new({ Chat = _G.chat, config = { opts = { auto_save_session = true } } }):output("Saved fork")
+    _G.with = _G.storage.list()
+  ]])
+
+  h.eq(0, child.lua_get([[_G.without]]))
+  h.eq(1, #child.lua_get([[_G.with]]))
+  h.eq("Saved fork", child.lua_get([[_G.with]])[1].meta.title)
+end
+
+T["Sessions"]["HIDES /save and /resume when sessions are turned off"] = function()
+  child.lua([[
+    local filter = require("codecompanion.interactions.chat.slash_commands.filter")
+    local slash_commands = require("codecompanion.config").interactions.chat.slash_commands
+    local http = { type = "http", name = "test_adapter" }
+
+    _G.on = vim.tbl_keys(filter.filter_enabled_slash_commands(slash_commands, { adapter = http }))
+
+    require("codecompanion.config").interactions.chat.sessions.enabled = false
+    -- The filter caches on the slash command config alone, so a live toggle has to say it moved
+    filter.refresh_cache()
+    _G.off = vim.tbl_keys(filter.filter_enabled_slash_commands(slash_commands, { adapter = http }))
+  ]])
+
+  local on = child.lua_get([[_G.on]])
+  local off = child.lua_get([[_G.off]])
+
+  h.expect_tbl_contains("save", on)
+  h.expect_tbl_contains("resume", on)
+  h.eq(false, vim.tbl_contains(off, "save"))
+  h.eq(false, vim.tbl_contains(off, "resume"))
 end
 
 T["Sessions"]["restores the session chosen in the picker"] = function()

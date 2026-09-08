@@ -48,9 +48,9 @@ end
 
 ---Append `-2`, `-3` and so on to a slug until it is one no other session holds
 ---@param base string
----@param opts { is_taken: fun(slug: string): boolean, own_slug?: string }
+---@param opts { is_taken: (fun(slug: string): boolean), own_slug?: string }
 ---@return string
-function M.disambiguate(base, opts)
+function M.make_unique(base, opts)
   if base == opts.own_slug or not opts.is_taken(base) then
     return base
   end

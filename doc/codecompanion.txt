@@ -2687,7 +2687,7 @@ Sessions can be configured with `sessions`:
             enabled = true,
             autosave = true,
             continuous_save = true,
-            dir = vim.fs.joinpath(vim.fn.stdpath("data"), "codecompanion", "sessions"),
+            save_dir = vim.fs.joinpath(vim.fn.stdpath("data"), "codecompanion", "sessions"),
           },
         },
       },
@@ -5852,6 +5852,25 @@ the current chat buffer, copying the message history and preserving tools and
 context in the process. This enables you to branch the conversation and
 experiment with different prompts, models or even adapters without losing the
 original conversation.
+
+To save every fork as a |codecompanion-configuration-chat-buffer-sessions| as
+soon as it's created:
+
+>lua
+    require("codecompanion").setup({
+      interactions = {
+        chat = {
+          slash_commands = {
+            ["fork"] = {
+              opts = {
+                auto_save_session = true,
+              },
+            },
+          },
+        },
+      },
+    })
+<
 
 
 /HELP ~

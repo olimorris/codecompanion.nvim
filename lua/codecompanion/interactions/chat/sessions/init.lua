@@ -40,7 +40,7 @@ end
 ---@return string slug
 local function resolve_slug(chat, opts)
   local entry = sessions[chat.id]
-  return slug.disambiguate(slug.slugify(opts.title), {
+  return slug.make_unique(slug.slugify(opts.title), {
     is_taken = function(candidate)
       return storage.exists(storage.stem({ created_at = opts.created_at, slug = candidate }))
     end,
@@ -127,10 +127,13 @@ local function write_session(chat)
     saved_at = os.time(),
     title = chat.title or entry.title,
   })
-  session.ui_lines = api.nvim_buf_is_valid(chat.bufnr) and api.nvim_buf_get_lines(chat.bufnr, 0, -1, false) or nil
 
   local stem = storage.stem({ created_at = entry.created_at, slug = entry.slug })
-  local ok = storage.write(stem, session)
+  local ok = storage.write(stem, {
+    chat = session.chat,
+    meta = session.meta,
+    ui_lines = api.nvim_buf_is_valid(chat.bufnr) and api.nvim_buf_get_lines(chat.bufnr, 0, -1, false) or nil,
+  })
   if ok then
     log:debug("[sessions] Wrote session %s for chat %d", stem, chat.id)
   end

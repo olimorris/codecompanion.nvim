@@ -92,6 +92,24 @@ Please note that these mappings may be different depending on your provider.
 
 The _fork_ slash command, specific to _http_ adapters, allows you to duplicate the current chat buffer, copying the message history and preserving tools and context in the process. This enables you to branch the conversation and experiment with different prompts, models or even adapters without losing the original conversation.
 
+To save every fork as a [session](/configuration/chat-buffer#sessions) as soon as it's created:
+
+```lua
+require("codecompanion").setup({
+  interactions = {
+    chat = {
+      slash_commands = {
+        ["fork"] = {
+          opts = {
+            auto_save_session = true,
+          },
+        },
+      },
+    },
+  },
+})
+```
+
 ## /help
 
 The _help_ slash command allows you to add content from a vim help file (`:h helpfile`), to the chat buffer, by searching for help tags. Currently this is only available for _Telescope_, _mini.pick_, _fzf_lua_ and _snacks.nvim_ providers. By default, the slash command will prompt you to trim a help file that is over 1,000 lines in length.

@@ -766,7 +766,7 @@ require("codecompanion").setup({
         enabled = true,
         autosave = true,
         continuous_save = true,
-        dir = vim.fs.joinpath(vim.fn.stdpath("data"), "codecompanion", "sessions"),
+        save_dir = vim.fs.joinpath(vim.fn.stdpath("data"), "codecompanion", "sessions"),
       },
     },
   },

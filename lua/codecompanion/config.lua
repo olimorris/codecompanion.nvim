@@ -465,6 +465,7 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
             return false
           end,
           opts = {
+            auto_save_session = false, -- Save the forked chat as a session straight away?
             contains_code = false,
           },
         },
@@ -537,6 +538,15 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
         ["resume"] = {
           path = "interactions.chat.slash_commands.builtin.resume",
           description = "Resume a previous session",
+          ---@param opts { adapter: CodeCompanion.HTTPAdapter|CodeCompanion.ACPAdapter }
+          ---@return boolean
+          enabled = function(opts)
+            -- ACP agents list their own sessions
+            if opts.adapter and opts.adapter.type == "acp" then
+              return true
+            end
+            return require("codecompanion.interactions.chat.sessions").enabled()
+          end,
           opts = {
             contains_code = false,
             max_sessions = 500,
@@ -556,6 +566,9 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
           ---@param opts { adapter: CodeCompanion.HTTPAdapter|CodeCompanion.ACPAdapter }
           ---@return boolean
           enabled = function(opts)
+            if not require("codecompanion.interactions.chat.sessions").enabled() then
+              return false
+            end
             if opts.adapter and opts.adapter.type == "http" then
               return true
             end
@@ -749,7 +762,7 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
         },
       },
       sessions = {
-        enabled = false, -- Allow chats to be saved to, and restored from, disk?
+        enabled = true, -- Allow chats to be saved to, and restored from, disk?
         autosave = false, -- Save a chat as a session once the LLM has responded for the first time?
         continuous_save = true, -- Once a chat is a session, save it again after every response and on close?
         save_dir = vim.fs.joinpath(vim.fn.stdpath("data") --[[@as string]], "codecompanion", "sessions"),
