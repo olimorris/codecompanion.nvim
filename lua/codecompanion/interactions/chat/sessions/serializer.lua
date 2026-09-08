@@ -68,7 +68,7 @@ end
 
 ---Build the two JSON records that make up a session on disk
 ---@param chat CodeCompanion.Chat
----@param opts { created_at: number, saved_at: number }
+---@param opts { created_at: number, saved_at: number, title: string }
 ---@return { meta: table, chat: table }
 function M.to_session(chat, opts)
   local adapter = chat.adapter
@@ -90,7 +90,7 @@ function M.to_session(chat, opts)
       created_at = opts.created_at,
       saved_at = opts.saved_at,
       schema_version = M.SCHEMA_VERSION,
-      title = chat.title,
+      title = opts.title,
     },
   }
 end

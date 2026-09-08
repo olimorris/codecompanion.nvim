@@ -20,12 +20,19 @@ local api = vim.api
 
 local M = {}
 
----@type table<number, { slug: string, created_at: number, autosave: boolean }>
+local MAX_TITLE_LENGTH = 50
+
+---@type table<number, { slug: string, created_at: number, title: string }>
 local sessions = {}
 
 ---@return boolean
 local function autosave_enabled()
-  return config.interactions.chat.opts.autosave ~= false
+  return config.interactions.chat.sessions.autosave
+end
+
+---@return boolean
+local function continuous_save_enabled()
+  return config.interactions.chat.sessions.continuous_save
 end
 
 ---@param chat CodeCompanion.Chat
@@ -118,6 +125,7 @@ local function write_session(chat)
   local session = serializer.to_session(chat, {
     created_at = entry.created_at,
     saved_at = os.time(),
+    title = chat.title or entry.title,
   })
   session.ui_lines = api.nvim_buf_is_valid(chat.bufnr) and api.nvim_buf_get_lines(chat.bufnr, 0, -1, false) or nil
 
@@ -130,20 +138,87 @@ local function write_session(chat)
   return ok
 end
 
----Attach the auto-save callbacks to a chat
+---Start tracking a chat as a session and write it out
 ---@param chat CodeCompanion.Chat
-local function attach_autosave(chat)
+---@param title string Used until the chat has a title of its own
+---@return boolean ok
+local function start_session(chat, title)
+  local created_at = os.time()
+  sessions[chat.id] = {
+    created_at = created_at,
+    slug = resolve_slug(chat, { title = title, created_at = created_at }),
+    title = title,
+  }
+
+  if not write_session(chat) then
+    sessions[chat.id] = nil
+    return false
+  end
+
+  utils.fire("ChatSessionSaved", { bufnr = chat.bufnr, id = chat.id, slug = sessions[chat.id].slug })
+  return true
+end
+
+---@param title string
+---@return string
+local function truncate_title(title)
+  if #title <= MAX_TITLE_LENGTH then
+    return title
+  end
+  local boundary = title:sub(1, MAX_TITLE_LENGTH + 1):match("^(.*)%s")
+  return vim.trim(boundary or title:sub(1, MAX_TITLE_LENGTH))
+end
+
+---Fall back to the opening question when a chat has no title of its own
+---@param chat CodeCompanion.Chat
+---@return string|nil
+local function get_title_from_message(chat)
+  for _, message in ipairs(chat.messages or {}) do
+    if message.role == config.constants.USER_ROLE and type(message.content) == "string" then
+      local title = vim.trim(message.content:gsub("%s+", " "))
+      if title ~= "" then
+        return truncate_title(title)
+      end
+    end
+  end
+end
+
+---@param chat CodeCompanion.Chat
+---@return boolean
+local function can_be_saved(chat)
+  return M.enabled() and (not chat.adapter or chat.adapter.type == "http")
+end
+
+---@param chat CodeCompanion.Chat
+---@return nil
+function M.register_chat_callbacks(chat)
   chat:add_callback("on_completed", function(c)
-    if sessions[c.id] and sessions[c.id].autosave then
-      write_session(c)
+    if not can_be_saved(c) then
+      return
+    end
+    if sessions[c.id] then
+      if continuous_save_enabled() then
+        write_session(c)
+      end
+    elseif autosave_enabled() then
+      start_session(c, get_title_from_message(c) or "Untitled")
     end
   end)
+
   chat:add_callback("on_closed", function(c)
-    if sessions[c.id] and sessions[c.id].autosave then
-      write_session(c)
-      sessions[c.id] = nil
+    if not sessions[c.id] then
+      return
     end
+    if continuous_save_enabled() then
+      write_session(c)
+    end
+    sessions[c.id] = nil
   end)
+end
+
+---@return boolean
+function M.enabled()
+  return config.interactions.chat.sessions.enabled
 end
 
 ---Save the chat as a session
@@ -153,6 +228,9 @@ end
 function M.save(chat, opts)
   opts = opts or {}
 
+  if not M.enabled() then
+    return utils.notify("Sessions are turned off", vim.log.levels.WARN)
+  end
   if chat.adapter and chat.adapter.type ~= "http" then
     return utils.notify("Sessions only support HTTP chats", vim.log.levels.WARN)
   end
@@ -174,18 +252,8 @@ function M.save(chat, opts)
     if chat.title ~= title then
       chat:set_title(title)
     end
-
-    local created_at = os.time()
-    sessions[chat.id] = {
-      autosave = autosave_enabled(),
-      created_at = created_at,
-      slug = resolve_slug(chat, { title = title, created_at = created_at }),
-    }
-    attach_autosave(chat)
-
-    if write_session(chat) then
+    if start_session(chat, title) then
       utils.notify("Session saved: " .. sessions[chat.id].slug)
-      utils.fire("ChatSessionSaved", { bufnr = chat.bufnr, id = chat.id, slug = sessions[chat.id].slug })
     end
   end
 
@@ -245,19 +313,21 @@ function M.load(stem, opts)
   chat.ui:follow()
 
   sessions[chat.id] = {
-    autosave = autosave_enabled(),
     created_at = saved_chat.meta.created_at,
     slug = (stem:gsub("^%d+T%d+%-", "")),
   }
-  attach_autosave(chat)
 
   utils.fire("ChatSessionRestored", { bufnr = chat.bufnr, id = chat.id, stem = stem })
   return chat
 end
 
----Every session on disk, newest first
+---List every session on disk, newest first
 ---@return { stem: string, meta: table }[]
 function M.list()
+  if not M.enabled() then
+    return {}
+  end
+
   return storage.list()
 end
 
@@ -330,7 +400,7 @@ function M.is_tracked(chat_id)
 end
 
 ---@param chat_id number
----@return { slug: string, created_at: number, autosave: boolean }|nil
+---@return { slug: string, created_at: number, title: string }|nil
 function M.get(chat_id)
   return sessions[chat_id]
 end

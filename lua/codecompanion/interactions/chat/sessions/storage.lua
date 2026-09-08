@@ -20,6 +20,7 @@
 ===============================================================================
 --]]
 
+local config = require("codecompanion.config")
 local files = require("codecompanion.utils.files")
 local log = require("codecompanion.utils.log")
 local serializer = require("codecompanion.interactions.chat.sessions.serializer")
@@ -27,13 +28,7 @@ local utils = require("codecompanion.utils")
 
 local M = {}
 
-local DEFAULT_DIR = vim.fs.joinpath(vim.fn.stdpath("data") --[[@as string]], "codecompanion", "sessions")
-
----Override the storage directory (used by tests)
----@type string|nil
-local override_dir = nil
-
----@type { sessions: { stem: string, meta: table }[], mtime: { sec: number, nsec: number }|nil }|nil
+---@type { dir: string, sessions: { stem: string, meta: table }[], mtime: { sec: number, nsec: number }|nil }|nil
 local cache = nil
 
 ---Drop the cached session list and tell anything listening that it moved on
@@ -45,13 +40,7 @@ end
 
 ---@return string
 function M.dir()
-  return override_dir or DEFAULT_DIR
-end
-
----@param path string|nil
-function M.set_dir(path)
-  override_dir = path
-  M.invalidate()
+  return config.interactions.chat.sessions.dir
 end
 
 ---@return nil
@@ -207,13 +196,15 @@ end
 ---Every session on disk, newest first. Reads only the meta files
 ---@return { stem: string, meta: table }[]
 function M.list()
+  local dir = M.dir()
+
   -- Another Neovim instance can modify sessions
-  local mtime = files.mtime(M.dir())
-  if cache and vim.deep_equal(cache.mtime, mtime) then
+  local mtime = files.mtime(dir)
+  if cache and cache.dir == dir and vim.deep_equal(cache.mtime, mtime) then
     return cache.sessions
   end
 
-  local meta_files = files.scan_directory(M.dir(), { patterns = "*_meta.json", max_depth = 0 })
+  local meta_files = files.scan_directory(dir, { patterns = "*_meta.json", max_depth = 0 })
   table.sort(meta_files, function(a, b)
     return a > b
   end)
@@ -227,7 +218,7 @@ function M.list()
     end
   end
 
-  cache = { sessions = sessions, mtime = mtime }
+  cache = { dir = dir, sessions = sessions, mtime = mtime }
   return sessions
 end
 
