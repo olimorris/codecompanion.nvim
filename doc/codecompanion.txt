@@ -2696,7 +2696,7 @@ Sessions can be configured with `sessions`:
 
 `autosave` decides whether a chat `becomes` a session, and `continuous_save`
 decides whether a session is `continuously updated`. The
-|codecompanion-usage-chat-buffer-sessions-saving| command can be used to
+|codecompanion-usage-chat-buffer-slash-commands-save| command can be used to
 manually save a session:
 
   ------------------------------------------------------------------------

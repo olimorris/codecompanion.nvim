@@ -59,6 +59,20 @@ local function encode_tools(registry)
   }
 end
 
+---The model as a plain string, or nil when the adapter has yet to settle on one
+---@param adapter CodeCompanion.HTTPAdapter
+---@return string|nil
+local function get_model(adapter)
+  local name = adapter and adapter.model and adapter.model.name
+  if type(name) == "string" then
+    return name
+  end
+
+  -- Adapters like Ollama make `default` a function that fetches the model list over HTTP
+  local default = adapter and adapter.schema and adapter.schema.model and adapter.schema.model.default
+  return type(default) == "string" and default or nil
+end
+
 ---@param chat CodeCompanion.Chat
 ---@return string
 local function get_cwd(chat)
@@ -72,7 +86,6 @@ end
 ---@return { meta: table, chat: table }
 function M.to_session(chat, opts)
   local adapter = chat.adapter
-  local model = adapter and adapter.schema and adapter.schema.model and adapter.schema.model.default
 
   return {
     chat = {
@@ -80,7 +93,7 @@ function M.to_session(chat, opts)
       context_items = vim.deepcopy(chat.context_items or {}),
       cycle = chat.cycle,
       messages = encode_messages(chat.messages),
-      model = model,
+      model = get_model(adapter),
       schema_version = M.SCHEMA_VERSION,
       settings = chat.settings and vim.deepcopy(chat.settings) or nil,
       tools = encode_tools(chat.tool_registry),

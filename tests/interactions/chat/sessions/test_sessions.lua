@@ -339,6 +339,21 @@ T["Sessions"]["falls back to the default adapter when the saved one has gone"] =
   h.eq("test_adapter", child.lua_get([[_G.args.adapter]]))
 end
 
+T["Sessions"]["saves a chat whose adapter resolves its model with a function"] = function()
+  child.lua([[
+    _G.chat.adapter.model = nil
+    _G.chat.adapter.schema.model.default = function()
+      return "fetched-over-http"
+    end
+
+    local stem = _G.build_session()
+    _G.saved = vim.json.decode(table.concat(vim.fn.readfile(_G.storage.path(stem, "chat")), "\n"))
+  ]])
+
+  h.eq(vim.NIL, child.lua_get([[_G.saved.model]]))
+  h.eq("test_adapter", child.lua_get([[_G.saved.adapter]]))
+end
+
 T["Sessions"]["restores the model the session was saved with"] = function()
   child.lua([[
     _G.args = _G.serializer.to_chat_args({ adapter = "test_adapter", model = "gpt-4o", messages = {} })

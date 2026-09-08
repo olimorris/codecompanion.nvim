@@ -773,7 +773,7 @@ require("codecompanion").setup({
 })
 ```
 
-`autosave` decides whether a chat *becomes* a session, and `continuous_save` decides whether a session is *continuously updated*. The [/save](/usage/chat-buffer/sessions#saving) command can be used to manually save a session:
+`autosave` decides whether a chat *becomes* a session, and `continuous_save` decides whether a session is *continuously updated*. The [/save](/usage/chat-buffer/slash-commands#save) command can be used to manually save a session:
 
 
 | `autosave` | `continuous_save` | Behaviour |
