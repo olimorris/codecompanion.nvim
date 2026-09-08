@@ -1,0 +1,21 @@
+{
+  "files": [
+    {
+      "path": "STYLE.md",
+      "description": "The style contract for this repository: comments, naming, functions, type annotations, tests, scope. Cite the relevant section when raising a style comment."
+    },
+    {
+      "path": "CONTRIBUTING.md",
+      "description": "What is accepted here and why, including the project's stance on AI-assisted contributions and the red flags to look for."
+    },
+    {
+      "path": "AGENTS.md",
+      "description": "Repository conventions and architecture map, also loaded by coding agents working in this repo."
+    },
+    {
+      "path": ".codecompanion/tests/mini_test_testing.md",
+      "description": "How Mini.Test is used here, with the child Neovim process setup",
+      "scope": ["tests/**"]
+    }
+  ]
+}
