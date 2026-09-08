@@ -283,10 +283,10 @@ function UI:is_following()
     return true
   end
 
-  -- Or if the last line is folded away and the cursor sits on that fold's header line.
-  -- Trailing blank lines are trimmed under the cursor, and when the tail of the
-  -- buffer is a closed tool fold, the clamp displaces the cursor to the fold's
-  -- header rather than the last line (e.g. multi-line MCP tool output)
+  -- Or if the very last lines are folded and the cursor sits on them.
+  --
+  -- In this case, the cursor is visually at the bottom of the chat, but programmatically
+  -- it's on the header line of the fold.
   if line_count > 0 then
     local ok_fold, fold_start = pcall(api.nvim_win_call, self.winnr, function()
       return vim.fn.foldclosed(line_count)
