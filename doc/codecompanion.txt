@@ -1,5 +1,5 @@
 *codecompanion.txt*
-                              For NVIM v0.11    Last change: 2026 September 06
+                              For NVIM v0.11    Last change: 2026 September 08
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -2672,6 +2672,74 @@ for information on how to use Slash Commands.
 Credit to @lazymaniac <https://github.com/lazymaniac> for the inspiration
 <https://github.com/olimorris/codecompanion.nvim/discussions/958> for the
 custom slash command example.
+
+
+SESSIONS ~
+
+A session is a chat saved to disk that can be resumed at a later point in time.
+Sessions can be configured with `sessions`:
+
+>lua
+    require("codecompanion").setup({
+      interactions = {
+        chat = {
+          sessions = {
+            enabled = true,
+            autosave = true,
+            continuous_save = true,
+            dir = vim.fs.joinpath(vim.fn.stdpath("data"), "codecompanion", "sessions"),
+          },
+        },
+      },
+    })
+<
+
+`autosave` decides whether a chat `becomes` a session, and `continuous_save`
+decides whether a session is `continuously updated`. The
+|codecompanion-usage-chat-buffer-sessions-saving| command can be used to
+manually save a session:
+
+  ------------------------------------------------------------------------
+  autosave             continuous_save                  Behaviour
+  -------------------- -------------------------------- ------------------
+  true                 true                             Every chat is
+                                                        saved once the LLM
+                                                        has responded, and
+                                                        is continuously
+                                                        updated
+
+  true                 false                            Every chat is
+                                                        saved initially
+                                                        but not updated
+                                                        until the user
+                                                        triggers /save
+
+  false                true                             Nothing is saved
+                                                        until the user
+                                                        triggers /save,
+                                                        after which it is
+                                                        continuously
+                                                        updated
+
+  false                false                            Nothing is saved
+                                                        until the user
+                                                        triggers /save,
+                                                        and each /save is
+                                                        a snapshot
+  ------------------------------------------------------------------------
+An autosaved chat is named based on the user's opening message. If the
+|codecompanion-configuration-chat-buffer-background-callbacks| background
+callback is enabled, the LLM's title is used instead.
+
+Setting `enabled = false` removes `/save`, the session list in `/resume` and
+the action palette entry.
+
+Sessions can be restored with `/resume` the chat, from the action palette, or
+with:
+
+>lua
+    require("codecompanion").sessions()
+<
 
 
 SYNCING BUFFERS/FILES ~
@@ -5844,15 +5912,30 @@ track of different conversations via `open chats` in the
 
 /RESUME ~
 
-The `resume` slash command is specific to
-|codecompanion-configuration-adapters-acp| adapters that support the
-`session/list` capability. It allows you to resume a previous session by
-listing your past sessions and restoring the selected one into the chat buffer.
-The conversation history is rendered so you can continue where you left off.
+The `resume` slash command lists your past chat sessions and restores the
+selected one into the chat buffer.
+
+What it lists depends on the adapter. On an
+|codecompanion-configuration-adapters-acp| adapter that supports the
+`session/list` capability, it asks the agent for its own sessions. On an
+|codecompanion-configuration-adapters-http| adapter, it lists the
+|codecompanion-configuration-chat-buffer-sessions| saved to disk.
 
 
   [!NOTE] The `/resume` command must be used before sending any messages. It is
   only available on a fresh chat buffer.
+
+/SAVE ~
+
+The `save` slash command is specific to
+|codecompanion-configuration-adapters-http| adapters. It saves the chat to disk
+as a |codecompanion-configuration-chat-buffer-sessions|, which you can restore
+later with `/resume`. You'll be asked for a title if the chat doesn't already
+have one.
+
+Chats are saved automatically by default, so `/save` is for when you want to
+name one yourself or save it before the LLM has responded.
+
 
 /SHARE ~
 
@@ -6558,6 +6641,9 @@ The events that are fired from within the plugin are:
 - `CodeCompanionChatRestored` - Fired after a chat has been restored to an editable state (e.g. when `on_before_submit` prevents submission)
 - `CodeCompanionChatAdapter` - Fired after the adapter has been set in the chat
 - `CodeCompanionChatModel` - Fired after the model has been set in the chat
+- `CodeCompanionChatSessionSaved` - Fired after a chat has been saved to disk as a session, with `slug` in the data payload
+- `CodeCompanionChatSessionRestored` - Fired after a session has been restored from disk, with `stem` in the data payload
+- `CodeCompanionChatSessionsChanged` - Fired after a session has been written or deleted, so the list on disk has moved on
 - `CodeCompanionCLICreated` - Fired after a CLI buffer has been created for the first time
 - `CodeCompanionCLIOpened` - Fired after a CLI buffer has been opened
 - `CodeCompanionCLIClosed` - Fired after a CLI buffer has been closed

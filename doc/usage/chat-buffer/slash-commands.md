@@ -122,10 +122,18 @@ The _rename_ slash command is specific to [http](/configuration/adapters-http) a
 
 ## /resume
 
-The _resume_ slash command is specific to [ACP](/configuration/adapters-acp) adapters that support the `session/list` capability. It allows you to resume a previous session by listing your past sessions and restoring the selected one into the chat buffer. The conversation history is rendered so you can continue where you left off.
+The _resume_ slash command lists your past chat sessions and restores the selected one into the chat buffer.
+
+What it lists depends on the adapter. On an [ACP](/configuration/adapters-acp) adapter that supports the `session/list` capability, it asks the agent for its own sessions. On an [http](/configuration/adapters-http) adapter, it lists the [sessions](/configuration/chat-buffer#sessions) saved to disk.
 
 > [!NOTE]
 > The `/resume` command must be used before sending any messages. It is only available on a fresh chat buffer.
+
+## /save
+
+The _save_ slash command is specific to [http](/configuration/adapters-http) adapters. It saves the chat to disk as a [session](/configuration/chat-buffer#sessions), which you can restore later with `/resume`. You'll be asked for a title if the chat doesn't already have one.
+
+Chats are saved automatically by default, so `/save` is for when you want to name one yourself or save it before the LLM has responded.
 
 ## /share
 

@@ -27,6 +27,9 @@ The events that are fired from within the plugin are:
 - `CodeCompanionChatRestored` - Fired after a chat has been restored to an editable state (e.g. when `on_before_submit` prevents submission)
 - `CodeCompanionChatAdapter` - Fired after the adapter has been set in the chat
 - `CodeCompanionChatModel` - Fired after the model has been set in the chat
+- `CodeCompanionChatSessionSaved` - Fired after a chat has been saved to disk as a session, with `slug` in the data payload
+- `CodeCompanionChatSessionRestored` - Fired after a session has been restored from disk, with `stem` in the data payload
+- `CodeCompanionChatSessionsChanged` - Fired after a session has been written or deleted, so the list on disk has moved on
 - `CodeCompanionCLICreated` - Fired after a CLI buffer has been created for the first time
 - `CodeCompanionCLIOpened` - Fired after a CLI buffer has been opened
 - `CodeCompanionCLIClosed` - Fired after a CLI buffer has been closed
