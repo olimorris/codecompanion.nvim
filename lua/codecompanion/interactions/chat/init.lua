@@ -564,6 +564,7 @@ local function register_callbacks(chat, args)
   end)
 
   require("codecompanion.interactions.background.callbacks").register_chat_callbacks(chat)
+  require("codecompanion.interactions.chat.sessions").register_chat_callbacks(chat)
 end
 
 ---@param args CodeCompanion.ChatArgs

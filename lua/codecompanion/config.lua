@@ -748,6 +748,15 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
           description = "Send a follow-up while streaming",
         },
       },
+      sessions = {
+        enabled = true, -- Allow chats to be saved to, and restored from, disk?
+        autosave = true, -- Save a chat as a session once the LLM has responded for the first time?
+        continuous_save = true, -- Once a chat is a session, save it again after every response and on close?
+
+        ---Where sessions are written to
+        ---@type string
+        dir = vim.fs.joinpath(vim.fn.stdpath("data") --[[@as string]], "codecompanion", "sessions"),
+      },
       opts = {
         context_management = {
           ---@type boolean|fun(adapter: CodeCompanion.HTTPAdapter|CodeCompanion.ACPAdapter): boolean
@@ -776,7 +785,6 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
           ipynb = true,
         },
 
-        autosave = true, -- Rewrite a saved session to disk after every response and on close
         blank_prompt = "", -- The prompt to use when the user doesn't provide a prompt
         completion_provider = providers.completion, -- blink|cmp|coc|default
         debounce = 150, -- Time to debounce user input (milliseconds)
