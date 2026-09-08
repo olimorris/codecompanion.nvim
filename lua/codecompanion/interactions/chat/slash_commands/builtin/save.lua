@@ -16,9 +16,14 @@ end
 ---@param chat CodeCompanion.Chat
 ---@return boolean, string
 function SlashCommand.enabled(chat)
+  if not sessions.enabled() then
+    return false, "Sessions are turned off"
+  end
+
   if not chat.adapter or chat.adapter.type ~= "http" then
     return false, "The /save command only supports HTTP chats"
   end
+
   return true, ""
 end
 
