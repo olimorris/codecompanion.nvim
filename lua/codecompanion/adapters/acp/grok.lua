@@ -193,7 +193,16 @@ local function respond_to_plan_choice(request, state, answer)
   if answer == "Approve" then
     return request.respond({ outcome = "approved" })
   elseif answer == "Request changes" then
+    local input_active = true
+    state.cancel_feedback = function()
+      if input_active then
+        input_active = false
+        vim.api.nvim_input("<Esc>")
+      end
+    end
     return vim.ui.input({ prompt = "Plan feedback: " }, function(feedback)
+      input_active = false
+      state.cancel_feedback = nil
       if not state.cancelled then
         local response = { outcome = "cancelled" }
         if feedback and vim.trim(feedback) ~= "" then
@@ -231,6 +240,9 @@ local function handle_exit_plan_mode(request)
     state.cancelled = true
     if state.cancel_question then
       state.cancel_question()
+    end
+    if state.cancel_feedback then
+      state.cancel_feedback()
     end
     request.respond({ outcome = "abandoned" })
   end)

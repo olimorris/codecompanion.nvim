@@ -4,12 +4,14 @@ local new_set = MiniTest.new_set
 local question_prompt = require("codecompanion.interactions.chat.helpers.question_prompt")
 local original_ask = question_prompt.ask
 local original_input = vim.ui.input
+local original_nvim_input = vim.api.nvim_input
 
 local T = new_set({
   hooks = {
     post_case = function()
       question_prompt.ask = original_ask
       vim.ui.input = original_input
+      vim.api.nvim_input = original_nvim_input
     end,
   },
 })
@@ -153,6 +155,37 @@ T["Grok adapter"]["returns plan feedback using Grok's cancelled outcome"] = func
   adapter.handlers.acp_request(adapter, req)
   h.eq("cancelled", captured.response.outcome)
   h.eq("Use async I/O", captured.response.feedback)
+end
+
+T["Grok adapter"]["closes plan feedback when the request is cancelled"] = function()
+  local feedback_callback
+  question_prompt.ask = function(_, opts)
+    opts.callback("Request changes")
+    return function() end
+  end
+  vim.ui.input = function(_, callback)
+    feedback_callback = callback
+  end
+
+  local input
+  vim.api.nvim_input = function(keys)
+    input = keys
+  end
+
+  local adapter = require("codecompanion.adapters.acp.grok")
+  local req, captured = request({
+    sessionId = "session-1",
+    planContent = "1. Make the change",
+  }, "_x.ai/exit_plan_mode")
+
+  adapter.handlers.acp_request(adapter, req)
+  captured.cancel()
+
+  h.eq("<Esc>", input)
+  h.eq({ outcome = "abandoned" }, captured.response)
+
+  feedback_callback("Use async I/O")
+  h.eq({ outcome = "abandoned" }, captured.response)
 end
 
 return T
