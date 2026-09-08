@@ -18,7 +18,7 @@ T = new_set({
         _G.serializer = require("codecompanion.interactions.chat.sessions.serializer")
 
         _G.session_dir = vim.fn.tempname()
-        require("codecompanion.config").interactions.chat.sessions.dir = _G.session_dir
+        require("codecompanion.config").interactions.chat.sessions.save_dir = _G.session_dir
 
         _G.build_session = function()
           local chat = _G.chat

@@ -749,13 +749,10 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
         },
       },
       sessions = {
-        enabled = true, -- Allow chats to be saved to, and restored from, disk?
-        autosave = true, -- Save a chat as a session once the LLM has responded for the first time?
+        enabled = false, -- Allow chats to be saved to, and restored from, disk?
+        autosave = false, -- Save a chat as a session once the LLM has responded for the first time?
         continuous_save = true, -- Once a chat is a session, save it again after every response and on close?
-
-        ---Where sessions are written to
-        ---@type string
-        dir = vim.fs.joinpath(vim.fn.stdpath("data") --[[@as string]], "codecompanion", "sessions"),
+        save_dir = vim.fs.joinpath(vim.fn.stdpath("data") --[[@as string]], "codecompanion", "sessions"),
       },
       opts = {
         context_management = {

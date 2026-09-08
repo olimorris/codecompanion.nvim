@@ -40,7 +40,7 @@ end
 
 ---@return string
 function M.dir()
-  return config.interactions.chat.sessions.dir
+  return config.interactions.chat.sessions.save_dir
 end
 
 ---@return nil
