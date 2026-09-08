@@ -33,19 +33,16 @@ local function get_extracted_message()
   end)()]])
 end
 
----The header row the parser reports, against the last one actually in the buffer
----@return { reported?: number, actual?: number }
-local function get_header_rows()
-  return child.lua_get([[(function()
-    local parser = require('codecompanion.interactions.chat.parser')
-    local actual
-    for i, line in ipairs(vim.api.nvim_buf_get_lines(_G.chat.bufnr, 0, -1, false)) do
-      if line:match('^## ') then
-        actual = i - 1
-      end
-    end
-    return { reported = parser.headers(_G.chat), actual = actual }
-  end)()]])
+---The user header row `parser.headers` reports
+---@return number|nil
+local function get_reported_header_row()
+  return child.lua_get([[require('codecompanion.interactions.chat.parser').headers(_G.chat)]])
+end
+
+---The user header row `add_response` actually created
+---@return number
+local function get_actual_header_row()
+  return child.lua_get([[_G.chat.header_line - 1]])
 end
 
 local T = new_set({
@@ -78,8 +75,7 @@ end
 
 T["Parser"]["Finds the last user header behind an unclosed code fence"] = function()
   add_response(RESPONSE_WITH_UNCLOSED_FENCE, { "please fix the bug" })
-  local rows = get_header_rows()
-  h.eq(rows.actual, rows.reported)
+  h.eq(get_actual_header_row(), get_reported_header_row())
 end
 
 T["Parser"]["Strips context from a recovered prompt"] = function()
@@ -100,6 +96,45 @@ end
 T["Parser"]["Returns no message for an empty user section under an unclosed fence"] = function()
   add_response(RESPONSE_WITH_UNCLOSED_FENCE, {})
   h.eq(nil, get_extracted_message().content)
+end
+
+T["Parser"]["Does not mistake a heading inside a closed fence for a user header"] = function()
+  add_response(RESPONSE_WITH_CLOSED_FENCE, { "````markdown", "## foo", "````", "", "please fix the bug" })
+  h.eq(get_actual_header_row(), get_reported_header_row())
+end
+
+T["Parser"]["Does not mistake a heading inside the user's own unclosed fence for a user header"] = function()
+  add_response(RESPONSE_WITH_CLOSED_FENCE, { "````markdown", "## foo", "", "please fix the bug" })
+  h.eq(get_actual_header_row(), get_reported_header_row())
+end
+
+T["Parser"]["Returns no message when header_line points into the LLM response"] = function()
+  add_response(RESPONSE_WITH_CLOSED_FENCE, {})
+  child.lua([[
+    for i, line in ipairs(vim.api.nvim_buf_get_lines(_G.chat.bufnr, 0, -1, false)) do
+      if line == 'Here you go:' then
+        _G.chat.header_line = i
+      end
+    end
+  ]])
+  h.eq(nil, get_extracted_message().content)
+end
+
+T["Parser"]["Can extract a prompt after an unclosed tilde fence"] = function()
+  add_response("Here you go:\n\n~~~lua\nlocal x = 1\n", { "please fix the bug" })
+  h.eq("please fix the bug", get_extracted_message().content)
+end
+
+T["Parser"]["Keeps a code block the user typed in the recovered prompt"] = function()
+  add_response(RESPONSE_WITH_UNCLOSED_FENCE, { "fix this:", "", "````lua", "local y = 2", "````" })
+  h.eq("fix this:\n\n````lua\nlocal y = 2\n````", get_extracted_message().content)
+end
+
+T["Parser"]["Ignores a user heading inside a closed fence when no user header follows"] = function()
+  child.lua([[
+    _G.chat:add_buf_message({ role = 'llm', content = "Here you go:\n\n````markdown\n## foo\n````\n" })
+  ]])
+  h.eq(0, get_reported_header_row())
 end
 
 return T

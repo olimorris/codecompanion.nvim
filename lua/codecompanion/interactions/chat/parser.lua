@@ -34,24 +34,29 @@ end
 
 ---@param root TSNode
 ---@param row number
----@return boolean
-local function is_inside_unclosed_fence(root, row)
+---@return TSNode|nil
+local function get_enclosing_fence(root, row)
   local node = root:descendant_for_range(row, 0, row, 0)
 
   while node do
     if node:type() == "fenced_code_block" then
-      local delimiters = 0
-      for child in node:iter_children() do
-        if child:type() == "fenced_code_block_delimiter" then
-          delimiters = delimiters + 1
-        end
-      end
-      return delimiters < 2
+      return node
     end
     node = node:parent()
   end
+end
 
-  return false
+---@param fence TSNode
+---@return boolean
+local function is_unclosed(fence)
+  local delimiters = 0
+  for child in fence:iter_children() do
+    if child:type() == "fenced_code_block_delimiter" then
+      delimiters = delimiters + 1
+    end
+  end
+
+  return delimiters < 2
 end
 
 local M = {}
@@ -155,9 +160,15 @@ function M.messages(chat, start_range)
     end
   end
 
-  content = helpers.strip_context(content) -- If users send a blank message to the LLM, sometimes context is included
+  content = helpers.strip_context(content)
   if not vim.tbl_isempty(content) then
     return { content = vim.trim(table.concat(content, "\n\n")) }
+  end
+
+  -- Handle the case of a header being buried in a mardown code block
+  local full_root = chat.parsers.markdown:parse({ 0, -1 })[1]:root()
+  if not get_enclosing_fence(full_root, start_range - 1) then
+    return nil
   end
 
   return recover_messages(chat, start_range)
@@ -174,7 +185,8 @@ local function recover_headers(chat, root, from_row)
     local heading = lines[i]:match("^##%s+(.-)%s*$")
     if heading and helpers.format_role(heading) == config.interactions.chat.roles.user then
       local row = from_row + i - 1
-      if is_inside_unclosed_fence(root, row) then
+      local fence = get_enclosing_fence(root, row)
+      if fence and is_unclosed(fence) then
         return row
       end
     end
@@ -191,22 +203,27 @@ function M.headers(chat)
   local root = tree:root()
 
   local last_match = nil
+  local ends_with_user_header = false
   for id, node in query:iter_captures(root, chat.bufnr) do
     if query.captures[id] == "role_only" then
       local role = helpers.format_role(get_node_text(node, chat.bufnr))
-      if role == config.interactions.chat.roles.user then
+      ends_with_user_header = role == config.interactions.chat.roles.user
+      if ends_with_user_header then
         last_match = node
       end
     end
   end
 
-  local recovered = recover_headers(chat, root, last_match and (last_match:range() + 1) or 0)
-  if recovered then
-    return recovered
+  -- PERF: Only scan headers if it doesn't end with a user header
+  if not ends_with_user_header then
+    local recovered = recover_headers(chat, root, last_match and (last_match:range() + 1) or 0)
+    if recovered then
+      return recovered
+    end
   end
 
   if last_match then
-    return last_match:range()
+    return (last_match:range())
   end
 end
 
