@@ -1,8 +1,14 @@
----Convert a chat to and from its on-disk form.
----
----This is the only module that knows both the Chat class and the session file
----format, so a change to either is absorbed here rather than on disk.
+--[[
+===============================================================================
+    File:       codecompanion/interactions/chat/sessions/serializer.lua
+-------------------------------------------------------------------------------
+    Description:
+      Converts a chat to and from its on-disk form.
 
+===============================================================================
+--]]
+
+local ToolRegistry = require("codecompanion.interactions.chat.tool_registry")
 local adapters = require("codecompanion.adapters")
 local config = require("codecompanion.config")
 local utils = require("codecompanion.utils")
@@ -12,12 +18,6 @@ local fmt = string.format
 local M = {}
 
 M.SCHEMA_VERSION = 1
-
----@param name string
----@return string
-local function tool_id(name)
-  return fmt("<tool>%s</tool>", name)
-end
 
 ---@param messages table[]
 ---@return table[]
@@ -70,7 +70,7 @@ end
 ---@param chat CodeCompanion.Chat
 ---@param opts { created_at: number, saved_at: number }
 ---@return { meta: table, chat: table }
-function M.from_chat(chat, opts)
+function M.to_session(chat, opts)
   local adapter = chat.adapter
   local model = adapter and adapter.schema and adapter.schema.model and adapter.schema.model.default
 
@@ -96,16 +96,13 @@ function M.from_chat(chat, opts)
 end
 
 ---Resolve the saved adapter, falling back to the default
----@param record table
+---@param saved_chat table
 ---@return string|table
-local function resolve_adapter(record)
-  local name = record.adapter
+local function resolve_adapter(saved_chat)
+  local name = saved_chat.adapter
   if name and config.adapters.http and config.adapters.http[name] then
-    local adapter = adapters.resolve(name)
-    if record.model then
-      adapter = adapters.set_model({ adapter = adapter, model = record.model })
-    end
-    return adapter
+    -- The model has to be passed through `resolve`; `set_model` reads the adapter's own default
+    return adapters.resolve(name, { model = saved_chat.model })
   end
 
   if name then
@@ -116,13 +113,13 @@ local function resolve_adapter(record)
 end
 
 ---Convert a decoded `_chat.json` into args for `Chat.new`
----@param record table
+---@param saved_chat table
 ---@return table
-function M.to_chat_args(record)
+function M.to_chat_args(saved_chat)
   return {
-    adapter = resolve_adapter(record),
-    messages = encode_messages(record.messages),
-    settings = record.settings,
+    adapter = resolve_adapter(saved_chat),
+    messages = encode_messages(saved_chat.messages),
+    settings = saved_chat.settings,
   }
 end
 
@@ -156,7 +153,7 @@ function M.restore_tools(chat, tools)
     local schema = resolve_schema(chat, name)
     if schema then
       registry.in_use[name] = true
-      registry.schemas[tool_id(name)] = schema
+      registry.schemas[ToolRegistry.tool_id(name)] = schema
     else
       table.insert(missing, name)
     end

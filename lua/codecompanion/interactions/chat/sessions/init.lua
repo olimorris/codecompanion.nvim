@@ -1,3 +1,13 @@
+--[[
+===============================================================================
+    File:       codecompanion/interactions/chat/sessions/init.lua
+-------------------------------------------------------------------------------
+    Description:
+      Saves chat buffers to disk and restores them into new ones.
+
+===============================================================================
+--]]
+
 local config = require("codecompanion.config")
 local context = require("codecompanion.interactions.chat.context")
 local log = require("codecompanion.utils.log")
@@ -22,12 +32,13 @@ end
 ---@param opts { title: string, created_at: number }
 ---@return string slug
 local function resolve_slug(chat, opts)
-  local base = slug.slugify(opts.title)
   local entry = sessions[chat.id]
-  local function exists(candidate)
-    return storage.exists(storage.stem(opts.created_at, candidate))
-  end
-  return slug.disambiguate(base, exists, entry and entry.slug)
+  return slug.disambiguate(slug.slugify(opts.title), {
+    is_taken = function(candidate)
+      return storage.exists(storage.stem({ created_at = opts.created_at, slug = candidate }))
+    end,
+    own_slug = entry and entry.slug,
+  })
 end
 
 ---Locate rendered context blocks via the markdown parser
@@ -104,15 +115,14 @@ local function write_session(chat)
     return false
   end
 
-  local session = serializer.from_chat(chat, {
+  local session = serializer.to_session(chat, {
     created_at = entry.created_at,
     saved_at = os.time(),
   })
+  session.ui_lines = api.nvim_buf_is_valid(chat.bufnr) and api.nvim_buf_get_lines(chat.bufnr, 0, -1, false) or nil
 
-  local ui_lines = api.nvim_buf_is_valid(chat.bufnr) and api.nvim_buf_get_lines(chat.bufnr, 0, -1, false) or nil
-  local stem = storage.stem(entry.created_at, entry.slug)
-
-  local ok = storage.write(stem, session, ui_lines)
+  local stem = storage.stem({ created_at = entry.created_at, slug = entry.slug })
+  local ok = storage.write(stem, session)
   if ok then
     log:debug("[sessions] Wrote session %s for chat %d", stem, chat.id)
   end
@@ -200,9 +210,9 @@ end
 function M.load(stem, opts)
   opts = opts or {}
 
-  local saved_chat = storage.read(stem)
+  local saved_chat, reason = storage.read(stem)
   if not saved_chat then
-    return utils.notify("Could not read the chat: " .. stem, vim.log.levels.ERROR)
+    return utils.notify("This session could not be restored because " .. reason, vim.log.levels.ERROR)
   end
 
   local args = serializer.to_chat_args(saved_chat.chat)
@@ -303,7 +313,7 @@ function M._rename(chat, new_title)
     return
   end
 
-  storage.delete(storage.stem(entry.created_at, entry.slug))
+  storage.delete(storage.stem({ created_at = entry.created_at, slug = entry.slug }))
   entry.slug = new_slug
   chat:set_title(new_title)
 end

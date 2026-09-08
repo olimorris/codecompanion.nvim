@@ -1,4 +1,15 @@
----Slugify and disambiguate session titles for use as filenames.
+--[[
+===============================================================================
+    File:       codecompanion/interactions/chat/sessions/utils/slug.lua
+-------------------------------------------------------------------------------
+    Description:
+      Turns session titles into filenames.
+
+      A slug is an identifier, not the title. The full title lives in the
+      session's `_meta.json`, so a slug is free to be truncated and stripped
+      down to what a filesystem will accept.
+===============================================================================
+--]]
 
 local M = {}
 
@@ -15,8 +26,7 @@ local function truncate(slug)
   return (boundary and boundary ~= "") and boundary or slug:sub(1, MAX_LENGTH)
 end
 
----Convert a title into a filesystem-safe slug.
----Lowercase, ASCII alphanumerics + hyphens, collapsed and trimmed.
+---Convert a title into a lowercase, hyphenated, filesystem safe slug
 ---@param title string
 ---@return string
 function M.slugify(title)
@@ -36,23 +46,22 @@ function M.slugify(title)
   return truncate(slug)
 end
 
----Resolve a slug against an existing-slug check, appending `-2`, `-3` etc. on collision.
----@param base string Base slug from slugify()
----@param exists fun(slug: string): boolean Predicate: is this slug taken on disk?
----@param current_slug? string The session's own existing slug (treated as available)
+---Append `-2`, `-3` and so on to a slug until it is one no other session holds
+---@param base string
+---@param opts { is_taken: fun(slug: string): boolean, own_slug?: string }
 ---@return string
-function M.disambiguate(base, exists, current_slug)
-  if base == current_slug or not exists(base) then
+function M.disambiguate(base, opts)
+  if base == opts.own_slug or not opts.is_taken(base) then
     return base
   end
 
-  local n = 2
+  local suffix = 2
   while true do
-    local candidate = base .. "-" .. n
-    if candidate == current_slug or not exists(candidate) then
+    local candidate = base .. "-" .. suffix
+    if candidate == opts.own_slug or not opts.is_taken(candidate) then
       return candidate
     end
-    n = n + 1
+    suffix = suffix + 1
   end
 end
 

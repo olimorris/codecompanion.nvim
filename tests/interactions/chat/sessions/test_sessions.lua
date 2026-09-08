@@ -268,6 +268,44 @@ T["Sessions"]["falls back to the default adapter when the saved one has gone"] =
   h.eq("test_adapter", child.lua_get([[_G.args.adapter]]))
 end
 
+T["Sessions"]["restores the model the session was saved with"] = function()
+  child.lua([[
+    _G.args = _G.serializer.to_chat_args({ adapter = "test_adapter", model = "gpt-4o", messages = {} })
+  ]])
+
+  h.eq("gpt-4o", child.lua_get([[_G.args.adapter.model.name]]))
+end
+
+T["Sessions"]["the listing follows a session that is saved again"] = function()
+  child.lua([[
+    local stem = _G.build_session()
+    _G.before = _G.storage.list()[1].meta.saved_at
+
+    local session = _G.storage.read(stem)
+    session.meta.saved_at = _G.before + 3600
+    _G.storage.write(stem, session)
+
+    _G.after = _G.storage.list()[1].meta.saved_at
+  ]])
+
+  h.eq(3600, child.lua_get([[_G.after]]) - child.lua_get([[_G.before]]))
+end
+
+T["Sessions"]["the listing follows a session written by another Neovim instance"] = function()
+  child.lua([[
+    _G.build_session()
+    _G.before = #_G.storage.list()
+
+    local meta = { schema_version = _G.serializer.SCHEMA_VERSION, title = "Written elsewhere", created_at = 1 }
+    vim.fn.writefile({ vim.json.encode(meta) }, _G.storage.path("19700101T000001-written-elsewhere", "meta"))
+
+    _G.after = #_G.storage.list()
+  ]])
+
+  h.eq(1, child.lua_get([[_G.before]]))
+  h.eq(2, child.lua_get([[_G.after]]))
+end
+
 T["Sessions"]["REJECTS a session written by a newer schema"] = function()
   child.lua([[
     local stem = _G.build_session()
