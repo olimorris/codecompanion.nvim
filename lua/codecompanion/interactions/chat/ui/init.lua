@@ -283,10 +283,7 @@ function UI:is_following()
     return true
   end
 
-  -- Or if the very last lines are folded and the cursor sits on them.
-  --
-  -- In this case, the cursor is visually at the bottom of the chat, but programmatically
-  -- it's on the header line of the fold.
+  -- Or if the very last lines are folded and the cursor sits on them
   if line_count > 0 then
     local ok_fold, fold_start = pcall(api.nvim_win_call, self.winnr, function()
       return vim.fn.foldclosed(line_count)
