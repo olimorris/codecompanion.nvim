@@ -356,6 +356,20 @@ T["HTTP Adapter"]["can update a model on the adapter"] = function()
   }, result)
 end
 
+T["HTTP Adapter"]["set_model applies the model it is given"] = function()
+  local result = child.lua([[
+    local adapters = require("codecompanion.adapters")
+    local adapter = adapters.set_model({
+      adapter = adapters.resolve(test_adapter),
+      model = "gpt-4-1106-preview",
+    })
+    return { name = adapter.model.name, default = adapter.schema.model.default }
+  ]])
+
+  h.eq("gpt-4-1106-preview", result.name)
+  h.eq("gpt-4-1106-preview", result.default)
+end
+
 T["HTTP Adapter"]["can update schema"] = function()
   local adapter = require("codecompanion.adapters").extend("openai", {
     schema = {
@@ -797,6 +811,51 @@ T["Adapter"]["utils"]["can consolidate system messages"] = function()
     { role = "assistant", content = "Bar" },
     { role = "user", content = "Baz" },
   }, child.lua_get([[utils.merge_system_messages(messages)]]))
+end
+
+T["Adapter"]["utils"]["model DOES NOT call a function default"] = function()
+  local result = child.lua([[
+    _G.called = false
+    local adapter = {
+      name = "test",
+      schema = { model = { default = function()
+        _G.called = true
+        return "fetched-over-http"
+      end } },
+    }
+    return { model = tostring(utils.model(adapter)), called = _G.called }
+  ]])
+
+  h.eq("nil", result.model)
+  h.eq(false, result.called)
+end
+
+T["Adapter"]["utils"]["resolve_model calls a function default"] = function()
+  local result = child.lua([[
+    local adapter = {
+      name = "test",
+      schema = { model = { default = function()
+        return "fetched-over-http"
+      end } },
+    }
+    return utils.resolve_model(adapter)
+  ]])
+
+  h.eq("fetched-over-http", result)
+end
+
+T["Adapter"]["utils"]["resolve_model returns nil when the function default errors"] = function()
+  local result = child.lua([[
+    local adapter = {
+      name = "test",
+      schema = { model = { default = function()
+        error("no connection")
+      end } },
+    }
+    return utils.resolve_model(adapter)
+  ]])
+
+  h.eq(vim.NIL, result)
 end
 
 T["Adapter"]["call_handler"] = new_set()

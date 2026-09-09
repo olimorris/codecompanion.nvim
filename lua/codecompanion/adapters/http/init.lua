@@ -274,7 +274,7 @@ function Adapter.extend(adapter, opts)
 end
 
 ---Set the model name and options on the adapter for convenience
----@param args { adapter: CodeCompanion.HTTPAdapter }
+---@param args { adapter: CodeCompanion.HTTPAdapter, model?: string }
 ---@return CodeCompanion.HTTPAdapter
 function Adapter.set_model(args)
   local adapter = args.adapter
@@ -284,6 +284,10 @@ function Adapter.set_model(args)
   -- requests to obtain a list of available models. This is expensive, so
   -- we don't execute them here. Instead, let the user decide when to.
   if adapter.schema and adapter.schema.model then
+    if args.model then
+      adapter.schema.model.default = args.model
+    end
+
     adapter.model = {}
     local model = adapter.schema.model.default
     local choices = adapter.schema.model.choices

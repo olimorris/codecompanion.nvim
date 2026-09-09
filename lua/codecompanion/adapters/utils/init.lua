@@ -412,11 +412,35 @@ function M.map_roles(roles, messages)
   return messages
 end
 
----Helper function to return the default model
+---Obtain the model from the given adapter's schema
 ---@param adapter CodeCompanion.HTTPAdapter
----@return string
+---@return string|nil
 function M.model(adapter)
-  return adapter.schema.model.default
+  local default = adapter.schema and adapter.schema.model and adapter.schema.model.default
+  return type(default) == "string" and default or nil
+end
+
+---Resolve the model from the given adapter
+---@param adapter CodeCompanion.HTTPAdapter
+---@param opts? { async?: boolean }
+---@return string|nil
+function M.resolve_model(adapter, opts)
+  local model = M.model(adapter)
+  if model then
+    return model
+  end
+
+  local default = adapter.schema and adapter.schema.model and adapter.schema.model.default
+  if type(default) ~= "function" then
+    return nil
+  end
+
+  local ok, resolved = pcall(default, adapter, opts)
+  if not ok then
+    log:debug("[adapters::utils::resolve_model] Could not resolve a model for `%s`: %s", adapter.name, resolved)
+    return nil
+  end
+  return type(resolved) == "string" and resolved or nil
 end
 
 ---Helper function to return the model from the choices
@@ -431,7 +455,7 @@ function M.model_choice(adapter, opts)
   if type(choices) ~= "table" then
     return nil
   end
-  return choices[M.model(adapter)]
+  return choices[M.resolve_model(adapter, opts)]
 end
 
 return M

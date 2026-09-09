@@ -65,6 +65,7 @@
 ---@field window_opts? table Window configuration options for the chat buffer
 ---@field yolo_mode? boolean Automatically approve all tool calls
 
+local adapter_utils = require("codecompanion.adapters.utils")
 local adapters = require("codecompanion.adapters")
 local approvals = require("codecompanion.interactions.chat.tools.approvals")
 local config = require("codecompanion.config")
@@ -417,7 +418,7 @@ local function init_adapter(chat, args)
     adapter = adapters.make_safe(chat.adapter),
     bufnr = chat.bufnr,
     id = chat.id,
-    model = chat.adapter.schema and chat.adapter.schema.model.default,
+    model = adapter_utils.resolve_model(chat.adapter),
   })
 
   if chat.adapter.type == "http" then
@@ -830,7 +831,6 @@ function Chat:change_model(args)
 
   if self.adapter.type == "http" then
     self.settings.model = args.model
-    self.adapter.schema.model.default = args.model
     self.adapter = apply()
 
     self:set_system_prompt()
@@ -2050,7 +2050,7 @@ function Chat:update_metadata()
   local config_options
 
   if self.adapter.type == "http" then
-    model = self.adapter.schema and self.adapter.schema.model and self.adapter.schema.model.default
+    model = adapter_utils.model(self.adapter)
   elseif self.adapter.type == "acp" and self.acp_connection then
     local acp_models = self.acp_connection:get_models()
     model = acp_models and acp_models.currentModelId or "default"
