@@ -9,6 +9,7 @@
 --]]
 
 local ToolRegistry = require("codecompanion.interactions.chat.tool_registry")
+local adapter_utils = require("codecompanion.adapters.utils")
 local adapters = require("codecompanion.adapters")
 local config = require("codecompanion.config")
 local utils = require("codecompanion.utils")
@@ -59,20 +60,6 @@ local function encode_tools(registry)
   }
 end
 
----The model as a plain string, or nil when the adapter has yet to settle on one
----@param adapter CodeCompanion.HTTPAdapter
----@return string|nil
-local function get_model(adapter)
-  local name = adapter and adapter.model and adapter.model.name
-  if type(name) == "string" then
-    return name
-  end
-
-  -- Adapters like Ollama make `default` a function that fetches the model list over HTTP
-  local default = adapter and adapter.schema and adapter.schema.model and adapter.schema.model.default
-  return type(default) == "string" and default or nil
-end
-
 ---@param chat CodeCompanion.Chat
 ---@return string
 local function get_cwd(chat)
@@ -93,7 +80,7 @@ function M.to_session(chat, opts)
       context_items = vim.deepcopy(chat.context_items or {}),
       cycle = chat.cycle,
       messages = encode_messages(chat.messages),
-      model = get_model(adapter),
+      model = adapter and adapter_utils.model(adapter),
       schema_version = M.SCHEMA_VERSION,
       settings = chat.settings and vim.deepcopy(chat.settings) or nil,
       tools = encode_tools(chat.tool_registry),
@@ -114,7 +101,6 @@ end
 local function resolve_adapter(saved_chat)
   local name = saved_chat.adapter
   if name and config.adapters.http and config.adapters.http[name] then
-    -- The model has to be passed through `resolve`; `set_model` reads the adapter's own default
     return adapters.resolve(name, { model = saved_chat.model })
   end
 

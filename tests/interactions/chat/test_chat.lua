@@ -64,6 +64,14 @@ T["Chat"]["buffer editor context is handled"] = function()
   h.eq(tags.EDITOR_CONTEXT, last_message_tag)
 end
 
+T["Chat"]["can change the model"] = function()
+  child.lua([[_G.chat:change_model({ model = "gpt-4o" })]])
+
+  h.eq("gpt-4o", child.lua_get([[_G.chat.adapter.schema.model.default]]))
+  h.eq("gpt-4o", child.lua_get([[_G.chat.adapter.model.name]]))
+  h.eq("gpt-4o", child.lua_get([[_G.chat.settings.model]]))
+end
+
 T["Chat"]["system prompt can be ignored"] = function()
   child.lua([[_G.new_chat = require("codecompanion.interactions.chat").new({
     ignore_system_prompt = true,
