@@ -409,6 +409,7 @@ function M.map_roles(roles, messages)
       message.role = roles[message.role:lower()] or message.role
     end
   end
+
   return messages
 end
 
@@ -437,9 +438,10 @@ function M.resolve_model(adapter, opts)
 
   local ok, resolved = pcall(default, adapter, opts)
   if not ok then
-    log:debug("[adapters::utils::resolve_model] Could not resolve a model for `%s`: %s", adapter.name, resolved)
+    log:error("[adapters::utils::resolve_model] Could not resolve model for `%s`: %s", adapter.name, resolved)
     return nil
   end
+
   return type(resolved) == "string" and resolved or nil
 end
 
@@ -455,6 +457,7 @@ function M.model_choice(adapter, opts)
   if type(choices) ~= "table" then
     return nil
   end
+
   return choices[M.resolve_model(adapter, opts)]
 end
 
