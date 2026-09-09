@@ -129,7 +129,7 @@ local function recover_messages(chat, start_range)
   lines = helpers.strip_context(lines)
   local content = vim.trim(table.concat(lines, "\n"))
 
-  -- A tool auto-submit send no user message, so an empty section must stay empty
+  -- A tool auto-submit sends no user message, so an empty section must stay empty
   if content == "" then
     return nil
   end
@@ -160,7 +160,7 @@ function M.messages(chat, start_range)
     end
   end
 
-  content = helpers.strip_context(content)
+  content = helpers.strip_context(content) -- If users send a blank message to the LLM, sometimes context is included
   if not vim.tbl_isempty(content) then
     return { content = vim.trim(table.concat(content, "\n\n")) }
   end
@@ -214,7 +214,7 @@ function M.headers(chat)
     end
   end
 
-  -- PERF: Only scan headers if it doesn't end with a user header
+  -- Without this, a heading inside an unclosed fence would take precedence over a chat header
   if not ends_with_user_header then
     local recovered = recover_headers(chat, root, last_match and (last_match:range() + 1) or 0)
     if recovered then
