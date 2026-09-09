@@ -1,7 +1,7 @@
 local hash = require("codecompanion.utils.hash")
 
 local CONSTANTS = {
-  CACHE_TTL = 30000,
+  CACHE_TTL = 3e4, -- 30 seconds
 }
 
 ---@class CodeCompanion.Filter

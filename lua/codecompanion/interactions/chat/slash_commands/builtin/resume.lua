@@ -1,3 +1,5 @@
+local config = require("codecompanion.config")
+local sessions = require("codecompanion.interactions.chat.sessions")
 local utils = require("codecompanion.utils")
 
 ---@class CodeCompanion.SlashCommand.Resume: CodeCompanion.SlashCommand
@@ -18,8 +20,9 @@ end
 ---@param chat CodeCompanion.Chat
 ---@return boolean,string
 function SlashCommand.enabled(chat)
+  -- HTTP chats resume from the sessions we persist ourselves
   if not chat.acp_connection then
-    return false, "The resume slash command requires an ACP connection"
+    return true, ""
   end
 
   if not chat.acp_connection:can_list_sessions() then
@@ -55,10 +58,28 @@ local function format_session(session)
   return table.concat(parts, " ")
 end
 
+---@param chat CodeCompanion.Chat
+---@return boolean
+local function has_user_messages(chat)
+  return vim.iter(chat.messages):any(function(message)
+    return message.role == config.constants.USER_ROLE and message.content ~= ""
+  end)
+end
+
 ---Execute the slash command
 ---@return nil
 function SlashCommand:execute()
   local Chat = self.Chat
+
+  if not Chat.acp_connection then
+    return sessions.select({
+      on_restored = function()
+        if not has_user_messages(Chat) then
+          Chat:close()
+        end
+      end,
+    })
+  end
 
   if Chat.cycle > 1 then
     return utils.notify("The /resume command must be called before submitting any messages", vim.log.levels.WARN)
