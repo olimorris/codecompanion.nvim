@@ -1,5 +1,6 @@
 local Queue = require("codecompanion.utils.queue")
 
+local async = require("codecompanion.utils.async")
 local config = require("codecompanion.config")
 local formatter = require("codecompanion.interactions.chat.acp.formatters")
 local log = require("codecompanion.utils.log")
@@ -69,21 +70,35 @@ local function touched_files(tool_call)
   return touched
 end
 
----Submit payload to ACP and handle streaming response
+---Submit payload to ACP, registering the request on the chat before connecting
 ---@param payload table The payload to send to the LLM
----@return table|nil Request object or nil on error
+---@return nil
 function ACPHandler:submit(payload)
-  if not self:ensure_connection() then
-    self.chat.status = "error"
-    return self.chat:done(self.output)
+  local request = {}
+  request.cancel = function()
+    request.cancelled = true
+    if request.prompt then
+      request.prompt.cancel()
+    end
   end
 
-  if not self:ensure_session() then
-    self.chat.status = "error"
-    return self.chat:done(self.output)
-  end
+  -- Registered before the connect below, so a second <CR> can't start a parallel submit
+  self.chat.current_request = request
 
-  return self:create_and_send_prompt(payload)
+  -- Connecting in a coroutine keeps the agent's boot time off the main loop, where it
+  -- would otherwise swallow every keystroke until the session replies
+  async.sync(function()
+    if not self:ensure_connection() or not self:ensure_session() then
+      self.chat.status = "error"
+      return self.chat:done(self.output)
+    end
+
+    if request.cancelled then
+      return
+    end
+
+    request.prompt = self:create_and_send_prompt(payload)
+  end)()
 end
 
 ---Ensure the ACP connection is authenticated
