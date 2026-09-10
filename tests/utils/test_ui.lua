@@ -64,7 +64,7 @@ T["UI create_float Screenshots"]["Creates new buffer with content"] = function()
     assert(buffer_content[1]:match("new buffer created"), "First line should mention new buffer")
   ]])
 
-  h.expect_screenshot(child.get_screenshot())
+  h.expect_screenshot(child.get_screenshot(), "tests/screenshots/utils/create_float_new_buffer")
 end
 
 T["UI create_float Screenshots"]["Uses existing buffer without overwriting content"] = function()
@@ -101,7 +101,7 @@ T["UI create_float Screenshots"]["Uses existing buffer without overwriting conte
     assert(bufnr == existing_bufnr, "Should return the same buffer")
   ]])
 
-  h.expect_screenshot(child.get_screenshot())
+  h.expect_screenshot(child.get_screenshot(), "tests/screenshots/utils/create_float_existing_buffer")
 end
 
 return T

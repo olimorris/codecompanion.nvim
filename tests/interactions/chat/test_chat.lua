@@ -84,7 +84,7 @@ end
 
 T["Chat"]["chat buffer is initialized"] = function()
   child.lua([[require("codecompanion").chat()]])
-  h.expect_screenshot(child.get_screenshot())
+  h.expect_screenshot(child.get_screenshot(), "tests/screenshots/interactions/chat/chat_buffer_initialized")
 end
 
 T["Chat"]["cursor is placed after last character when prompt library has non-empty user prompt"] = function()
@@ -148,7 +148,10 @@ T["Chat"]["loading from the prompt library sets the correct header_line"] = func
     return chat.header_line
   ]])
 
-  h.expect_screenshot(child.get_screenshot())
+  h.expect_screenshot(
+    child.get_screenshot(),
+    "tests/screenshots/interactions/chat/chat_prompt_library_sets_header_line"
+  )
   h.eq(9, output)
 end
 

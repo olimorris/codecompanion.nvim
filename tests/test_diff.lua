@@ -264,8 +264,7 @@ return {
     after
   ))
 
-  -- Screenshot name: "tests-test_diff.lua---Diff---Integration-Test---Example-1"
-  h.expect_screenshot(child.get_screenshot())
+  h.expect_screenshot(child.get_screenshot(), "tests/screenshots/diff_integration_example_1")
 end
 
 T["Diff"]["Integration Test"]["Example 2"] = function()
@@ -301,8 +300,7 @@ async fn rn_crgo_build_jsons() -> io::Result<Option<String>> {
     after
   ))
 
-  -- Screenshot name: "tests-test_diff.lua---Diff---Integration-Test---Example-2"
-  h.expect_screenshot(child.get_screenshot())
+  h.expect_screenshot(child.get_screenshot(), "tests/screenshots/diff_integration_example_2")
 end
 
 T["Diff"]["Integration Test"]["Example 3"] = function()
@@ -336,8 +334,7 @@ def process():
     after
   ))
 
-  -- Screenshot name: "tests-test_diff.lua---Diff---Integration-Test---Example-3"
-  h.expect_screenshot(child.get_screenshot())
+  h.expect_screenshot(child.get_screenshot(), "tests/screenshots/diff_integration_example_3")
 end
 
 T["Diff"]["Inline Integration Test"] = new_set()
@@ -399,8 +396,7 @@ async fn rn_crgo_build_jsons() -> io::Result<Option<String>> {
     after
   ))
 
-  -- Screenshot name: "tests-test_diff.lua---Diff---Inline-Integration-Test---Example-1"
-  h.expect_screenshot(child.get_screenshot())
+  h.expect_screenshot(child.get_screenshot(), "tests/screenshots/diff_inline_integration_example_1")
 end
 
 return T

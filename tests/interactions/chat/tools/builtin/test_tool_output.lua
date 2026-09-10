@@ -137,7 +137,10 @@ T["Tool output"]["is displayed and formatted in the chat buffer"] = function()
     })
   ]])
 
-  h.expect_screenshot(child.get_screenshot())
+  h.expect_screenshot(
+    child.get_screenshot(),
+    "tests/screenshots/interactions/chat/tools/builtin/tool_output_displayed_formatted"
+  )
 end
 
 T["Tool output"]["Folds"] = new_set()
@@ -154,7 +157,10 @@ T["Tool output"]["Folds"]["can be folded"] = function()
     })
   ]])
 
-  h.expect_screenshot(child.get_screenshot())
+  h.expect_screenshot(
+    child.get_screenshot(),
+    "tests/screenshots/interactions/chat/tools/builtin/tool_output_folds_can_fold"
+  )
 end
 
 T["Tool output"]["Folds"]["does not fold single line output but applies extmarks"] = function()
@@ -168,7 +174,10 @@ T["Tool output"]["Folds"]["does not fold single line output but applies extmarks
      })
    ]])
 
-  h.expect_screenshot(child.get_screenshot())
+  h.expect_screenshot(
+    child.get_screenshot(),
+    "tests/screenshots/interactions/chat/tools/builtin/tool_output_folds_no_fold_single_line"
+  )
 end
 
 return T

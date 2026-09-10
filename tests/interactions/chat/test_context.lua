@@ -704,7 +704,7 @@ T["Context"]["does not fold single context item but applies extmark"] = function
     })
   ]])
 
-  h.expect_screenshot(child.get_screenshot())
+  h.expect_screenshot(child.get_screenshot(), "tests/screenshots/interactions/chat/context_no_fold_single_item")
 end
 
 return T
