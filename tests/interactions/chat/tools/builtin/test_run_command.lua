@@ -36,7 +36,7 @@ T["run_command tool"] = function()
     vim.wait(200)
   ]])
 
-  h.expect_screenshot(child.get_screenshot())
+  h.expect_screenshot(child.get_screenshot(), "tests/screenshots/interactions/chat/tools/builtin/run_command_tool")
 end
 
 T["run_command tool times out a long running command"] = function()

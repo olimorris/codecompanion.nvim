@@ -140,7 +140,7 @@ T["cli()"]["prompt=true opens the input buffer"] = function()
     vim.cmd("enew")
     require("codecompanion").cli({ prompt = true })
   ]])
-  h.expect_screenshot(child.get_screenshot())
+  h.expect_screenshot(child.get_screenshot(), "tests/screenshots/init_cli_prompt_opens_input_buffer")
 end
 
 --=============================================================================

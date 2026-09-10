@@ -32,13 +32,13 @@ T["cmds"][":CodeCompanionChat"] = function()
     -- Restore the original function
     h.restore_submit(original)
   ]])
-  h.expect_screenshot(child.get_screenshot())
+  h.expect_screenshot(child.get_screenshot(), "tests/screenshots/cmds_chat_opens")
 end
 
 T["cmds"][":CodeCompanionChat Toggle"] = function()
   child.cmd([[tabnew]])
   child.cmd([[CodeCompanionChat Toggle]])
-  h.expect_screenshot(child.get_screenshot())
+  h.expect_screenshot(child.get_screenshot(), "tests/screenshots/cmds_chat_toggle")
 end
 
 T["cmds"]["sticky chat window"] = function()
@@ -285,17 +285,17 @@ T["cmds_tab"][":CodeCompanionChat opens in tab when set in config"] = function()
     -- Restore the original function
     h.restore_submit(original)
   ]])
-  h.expect_screenshot(child.get_screenshot())
+  h.expect_screenshot(child.get_screenshot(), "tests/screenshots/cmds_tab_opens_when_configured")
 end
 
 T["cmds_tab"][":CodeCompanionChat Toggle goes to last tab from chat"] = function()
   child.cmd([[CodeCompanionChat Toggle]])
-  h.expect_screenshot(child.get_screenshot())
+  h.expect_screenshot(child.get_screenshot(), "tests/screenshots/cmds_tab_toggle_goes_to_last_tab")
 end
 
 T["cmds_tab"][":CodeCompanionChat Toggle goes to chat from any other tab"] = function()
   child.cmd([[CodeCompanionChat Toggle]])
-  h.expect_screenshot(child.get_screenshot())
+  h.expect_screenshot(child.get_screenshot(), "tests/screenshots/cmds_tab_toggle_goes_to_chat")
 end
 
 T["cmds_tab"][":CodeCompanionChat Toggle after reopen does not error"] = function()
@@ -345,7 +345,7 @@ T["cmds_tab_sticky"][":CodeCompanionChat doesnt follow if sticky is set"] = func
     -- Open a new tab
     vim.cmd("tabnew")
   ]])
-  h.expect_screenshot(child.get_screenshot())
+  h.expect_screenshot(child.get_screenshot(), "tests/screenshots/cmds_tab_sticky_does_not_follow")
 end
 
 T["cmds_pertab"] = new_set({
