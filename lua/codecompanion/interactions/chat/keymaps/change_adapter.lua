@@ -1,3 +1,4 @@
+local adapter_utils = require("codecompanion.adapters.utils")
 local config = require("codecompanion.config")
 local log = require("codecompanion.utils.log")
 local utils = require("codecompanion.utils")
@@ -72,10 +73,7 @@ function M.list_http_models(adapter)
     return nil
   end
 
-  local current_model_id = adapter.schema.model.default
-  if type(current_model_id) == "function" then
-    current_model_id = current_model_id(adapter)
-  end
+  local current_model_id = adapter_utils.resolve_model(adapter)
 
   local current_model = nil
 

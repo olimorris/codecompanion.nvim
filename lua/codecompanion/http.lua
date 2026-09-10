@@ -169,11 +169,10 @@ end
 ---@param adapter CodeCompanion.HTTPAdapter
 ---@return table
 local function adapter_event_data(adapter)
-  local model = adapter.schema.model.default
   return {
     name = adapter.name,
     formatted_name = adapter.formatted_name,
-    model = type(model) == "function" and model(adapter) or model or "",
+    model = adapter_utils.resolve_model(adapter) or "",
   }
 end
 

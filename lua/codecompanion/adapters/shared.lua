@@ -55,15 +55,7 @@ local function from_model_meta(adapter, fields)
     return value
   end
 
-  local model = adapter.schema and adapter.schema.model and adapter.schema.model.default
-  if type(model) == "function" then
-    local ok, resolved = pcall(model, adapter)
-    if not ok then
-      log:debug("[Context Window] Failed to resolve model name for `%s` adapter: %s", adapter.name, resolved)
-      return nil
-    end
-    model = resolved
-  end
+  local model = adapter_utils.resolve_model(adapter)
 
   local choices = adapter.schema and adapter.schema.model and adapter.schema.model.choices
   if type(choices) == "function" then
