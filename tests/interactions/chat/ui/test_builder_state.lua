@@ -110,4 +110,49 @@ T["Builder state"]["tool fold is placed on the content line when the tool messag
   h.eq(res.fold.type, "tool")
 end
 
+T["Builder"] = new_set()
+
+T["Builder"]["a status write is collapsed onto a single line"] = function()
+  child.lua([[
+    _G.chat:add_buf_message(
+      { role = "llm", content = "Execute: run tests\n\n  make test\n" },
+      { type = _G.MT.TOOL_MESSAGE, status = "in_progress" }
+    )
+  ]])
+  local lines = child.lua_get([[vim.api.nvim_buf_get_lines(_G.chat.bufnr, 0, -1, true)]])
+  h.eq(lines[#lines], "Execute: run tests make test")
+end
+
+T["Builder"]["a tool write WITHOUT a status keeps its line breaks"] = function()
+  child.lua([[
+    _G.chat:add_buf_message({ role = "llm", content = "tool line 1\nline 2" }, { type = _G.MT.TOOL_MESSAGE })
+  ]])
+  local lines = child.lua_get([[vim.api.nvim_buf_get_lines(_G.chat.bufnr, 0, -1, true)]])
+  h.eq(lines[#lines - 1], "tool line 1")
+  h.eq(lines[#lines], "line 2")
+end
+
+T["Builder"]["update_line collapses a multi-line replacement rather than losing the write"] = function()
+  local line_number = child.lua([[
+    local line = _G.chat:add_buf_message(
+      { role = "llm", content = "run_command: ls" },
+      { type = _G.MT.TOOL_MESSAGE, status = "in_progress" }
+    )
+    return line
+  ]])
+  local before = child.lua_get([[vim.api.nvim_buf_line_count(_G.chat.bufnr)]])
+
+  local updated = child.lua(
+    [[return _G.chat:update_buf_line(...,  "run_command: ls -la \\\n  --color", { status = "success" })]],
+    { line_number }
+  )
+
+  h.eq(updated, true)
+  h.eq(child.lua_get([[vim.api.nvim_buf_line_count(_G.chat.bufnr)]]), before)
+  h.eq(
+    child.lua_get([[vim.api.nvim_buf_get_lines(_G.chat.bufnr, ... - 1, ..., true)]], { line_number }),
+    { "run_command: ls -la \\ --color" }
+  )
+end
+
 return T

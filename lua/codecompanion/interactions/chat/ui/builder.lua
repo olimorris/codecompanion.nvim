@@ -59,6 +59,12 @@ local function separator(prev, new)
   return (row and row[new]) or {}
 end
 
+---@param text string
+---@return string
+local function collapse_to_single_line(text)
+  return vim.trim((text:gsub("%s*\r?\n%s*", " ")))
+end
+
 ---@class CodeCompanion.Chat.UI.BuilderState
 ---@field last_role? string The role of the section currently being rendered
 ---@field block_type? string The `BLOCK` type of the open block; nil after a header
@@ -124,6 +130,10 @@ function Builder:add_message(data, opts)
   local role_changed = self:_needs_header(data, opts)
 
   local content = data.content
+  if content and opts.status then
+    content = collapse_to_single_line(content)
+  end
+
   -- If the role has changed (user <-> LLM) then start a new line
   local has_content = content ~= nil and (content ~= "" or role_changed)
 
@@ -288,13 +298,14 @@ function Builder:_apply_icon(insert_line, opts, content_start)
 end
 
 ---Update a specific line in the chat buffer
----@param line_number number The line number to update (1-based)
----@param content string The new content for the line
+---@param line_number number The
+---@param content string
 ---@param opts? { status?: string, icon_id?: number, priority?: number, virt_text_pos?: string }
----@return boolean success Whether the update was successful
----@return number|nil icon_id The new icon extmark ID, if an icon was placed
+---@return boolean
+---@return number|nil
 function Builder:update_line(line_number, content, opts)
   opts = opts or {}
+  content = collapse_to_single_line(content)
 
   if line_number < 1 then
     return false
