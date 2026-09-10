@@ -123,9 +123,7 @@ function M.present_diff(opts)
   if threshold_met then
     -- Show small diffs in the chat buffer
     local diff_text = diff_utils.unified(opts.from_lines, opts.to_lines)
-    -- The floor of five keeps this site's fence length unchanged for diffs that
-    -- do not collide with it.
-    local prompt = markdown.code_block(diff_text, { info = "diff", min = 5 })
+    local prompt = markdown.form_codeblock(diff_text, { ft = "diff" })
     return opts.approve({ title = opts.title, prompt = prompt })
   elseif ui_utils.buf_is_active(opts.chat_bufnr) then
     -- If the chat is active, show the diff in the floating window

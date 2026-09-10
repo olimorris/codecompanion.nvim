@@ -49,10 +49,10 @@ function EditorContext:chat_render()
 
   local content = {}
   if unstaged ~= "" then
-    table.insert(content, fmt("Unstaged changes:\n\n%s", markdown.code_block(unstaged, { info = "diff" })))
+    table.insert(content, fmt("Unstaged changes:\n\n%s", markdown.form_codeblock(unstaged, { ft = "diff" })))
   end
   if staged ~= "" then
-    table.insert(content, fmt("Staged changes:\n\n%s", markdown.code_block(staged, { info = "diff" })))
+    table.insert(content, fmt("Staged changes:\n\n%s", markdown.form_codeblock(staged, { ft = "diff" })))
   end
 
   self.Chat:add_message({
@@ -80,10 +80,10 @@ function EditorContext:cli_render()
 
   local content = {}
   if unstaged ~= "" then
-    table.insert(content, fmt("- Unstaged changes:\n%s", markdown.code_block(unstaged, { info = "diff" })))
+    table.insert(content, fmt("- Unstaged changes:\n%s", markdown.form_codeblock(unstaged, { ft = "diff" })))
   end
   if staged ~= "" then
-    table.insert(content, fmt("- Staged changes:\n%s", markdown.code_block(staged, { info = "diff" })))
+    table.insert(content, fmt("- Staged changes:\n%s", markdown.form_codeblock(staged, { ft = "diff" })))
   end
 
   return {

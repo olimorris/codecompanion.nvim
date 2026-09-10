@@ -437,7 +437,7 @@ function UI:render(context, messages, opts)
   -- If the user has visually selected some text, add that to the chat buffer
   if context and context.is_visual and not opts.stop_context_insertion then
     log:trace("Adding visual selection to chat buffer")
-    local block = markdown.code_block(table.concat(context.lines, "\n"), { info = context.filetype })
+    local block = markdown.form_codeblock(table.concat(context.lines, "\n"), { ft = context.filetype })
     vim.list_extend(lines, vim.split(block, "\n", { plain = true }))
   end
 

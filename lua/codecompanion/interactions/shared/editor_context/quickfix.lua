@@ -265,7 +265,7 @@ local function process_single_file(path, file_data)
   </attachment>]],
         path,
         table.concat(diagnostic_summary, "\n"),
-        markdown.code_block(content, { info = ft })
+        markdown.form_codeblock(content, { ft = ft })
       )
     else
       local diagnostic_groups, _ = group_diagnostics_by_symbol(path, file_data.diagnostics, file_content)
@@ -304,7 +304,7 @@ local function process_single_file(path, file_data)
   </attachment>]],
         path,
         table.concat(diagnostic_summary, "\n"),
-        markdown.code_block(content, { info = ft })
+        markdown.form_codeblock(content, { ft = ft })
       )
     end
   else
@@ -315,7 +315,7 @@ local function process_single_file(path, file_data)
 %s
   </attachment>]],
       path,
-      markdown.code_block(content, { info = ft })
+      markdown.form_codeblock(content, { ft = ft })
     )
   end
 

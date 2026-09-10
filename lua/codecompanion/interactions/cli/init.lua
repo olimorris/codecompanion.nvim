@@ -226,7 +226,7 @@ function CLI.resolve_editor_context(prompt, buffer_context)
       buffer_context.relative_path, -- Keep the CLI
       buffer_context.start_line,
       buffer_context.end_line,
-      markdown.code_block(table.concat(buffer_context.lines, "\n"), { info = buffer_context.filetype or "" }),
+      markdown.form_codeblock(table.concat(buffer_context.lines, "\n"), { ft = buffer_context.filetype or "" }),
       resolved
     )
   end

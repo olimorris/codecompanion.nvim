@@ -214,7 +214,7 @@ function SlashCommand:output(selected, opts)
       [[%s
 %s]],
       selected.description,
-      markdown.code_block(content, { info = ft })
+      markdown.form_codeblock(content, { ft = ft })
     )
   else
     description = fmt(

@@ -60,9 +60,9 @@ function M.format(raw)
 
     local source = to_text(cell.source)
     if cell.cell_type == "code" then
-      table.insert(cell_parts, markdown.code_block(source, { info = language }))
+      table.insert(cell_parts, markdown.form_codeblock(source, { ft = language }))
     elseif cell.cell_type == "markdown" then
-      table.insert(cell_parts, markdown.code_block(source, { info = "markdown" }))
+      table.insert(cell_parts, markdown.form_codeblock(source, { ft = "markdown" }))
     else
       table.insert(cell_parts, source)
     end
@@ -101,7 +101,7 @@ function M.format(raw)
 
       if #output_parts > 0 then
         table.insert(cell_parts, "### Output")
-        table.insert(cell_parts, markdown.code_block(table.concat(output_parts, "\n")))
+        table.insert(cell_parts, markdown.form_codeblock(table.concat(output_parts, "\n")))
       end
     end
 

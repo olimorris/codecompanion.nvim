@@ -4,6 +4,7 @@ local buf_utils = require("codecompanion.utils.buffers")
 local files = require("codecompanion.utils.files")
 local formatters = require("codecompanion.context.formatters")
 local log = require("codecompanion.utils.log")
+local markdown = require("codecompanion.utils.markdown")
 
 local M = {}
 
@@ -35,17 +36,6 @@ function M.create_acp_connection(chat, cb)
     handler:ensure_session()
     call_cb()
   end)()
-end
-
----Return a code fence longer than any successive backtick counts in the content
----@param content string
----@return string
-function M.code_fence(content)
-  local longest = 3
-  for run in content:gmatch("`+") do
-    longest = math.max(longest, #run)
-  end
-  return string.rep("`", longest + 1)
 end
 
 ---Format the given role without any separator
@@ -243,16 +233,7 @@ function M.format_buffer_for_llm(bufnr, path, opts)
     local filetype = api.nvim_buf_is_loaded(bufnr) and buf_utils.get_info(bufnr).filetype
       or vim.filetype.match({ filename = path })
     local numbered_content = buf_utils.add_line_numbers(content)
-    local code_fence = M.code_fence(numbered_content)
-    content = fmt(
-      [[%s%s
-%s
-%s]],
-      code_fence,
-      filetype,
-      numbered_content,
-      code_fence
-    )
+    content = markdown.form_codeblock(numbered_content, { ft = filetype })
   end
 
   local filename = vim.fn.fnamemodify(path, ":t")
@@ -304,16 +285,7 @@ function M.format_file_for_llm(path, opts)
 
   local file_contents, formatted = formatters.apply({ path = path, raw = raw_content })
   if not formatted then
-    local code_fence = M.code_fence(raw_content)
-    file_contents = fmt(
-      [[%s%s
-%s
-%s]],
-      code_fence,
-      filetype,
-      raw_content,
-      code_fence
-    )
+    file_contents = markdown.form_codeblock(raw_content, { ft = filetype })
   end
 
   local content
@@ -372,16 +344,7 @@ function M.format_viewport_range_for_llm(bufnr, range)
   local buffer_content = buf_utils.get_content(bufnr, { start_line - 1, end_line })
   local numbered_content = add_line_numbers_from(buffer_content, start_line)
 
-  local code_fence = M.code_fence(numbered_content)
-  local content = fmt(
-    [[%s%s
-%s
-%s]],
-    code_fence,
-    info.filetype,
-    numbered_content,
-    code_fence
-  )
+  local content = markdown.form_codeblock(numbered_content, { ft = info.filetype })
 
   local excerpt_info = fmt("Excerpt from %s, lines %d to %d", filepath, start_line, end_line)
 

@@ -143,7 +143,7 @@ local function code_block(message, filetype, code)
 %s
 </code>]],
     message,
-    markdown.code_block(table.concat(code, "\n"), { info = filetype })
+    markdown.form_codeblock(table.concat(code, "\n"), { ft = filetype })
   )
 end
 

@@ -110,7 +110,7 @@ local function extract_range(action, lines)
         action.filepath,
         range_label,
         line_count,
-        markdown.code_block(content, { info = vim.fn.fnamemodify(action.filepath, ":e") })
+        markdown.form_codeblock(content, { ft = vim.fn.fnamemodify(action.filepath, ":e") })
       ),
     },
   }

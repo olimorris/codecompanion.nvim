@@ -79,7 +79,7 @@ Code:
 ]],
         severity[diagnostic.severity],
         diagnostic.message,
-        markdown.code_block(table.concat(diagnostic.lines, "\n"), { info = buf_info.filetype })
+        markdown.form_codeblock(table.concat(diagnostic.lines, "\n"), { ft = buf_info.filetype })
       )
     )
   end

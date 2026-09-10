@@ -34,7 +34,7 @@ function EditorContext:chat_render()
     ctx.filename,
     ctx.start_line,
     ctx.end_line,
-    markdown.code_block(table.concat(ctx.lines, "\n"), { info = ctx.filetype or "" })
+    markdown.form_codeblock(table.concat(ctx.lines, "\n"), { ft = ctx.filetype or "" })
   )
 
   self.Chat:add_message({
@@ -60,7 +60,7 @@ function EditorContext:cli_render()
       ctx.relative_path,
       ctx.start_line,
       ctx.end_line,
-      markdown.code_block(table.concat(ctx.lines, "\n"), { info = ctx.filetype or "" })
+      markdown.form_codeblock(table.concat(ctx.lines, "\n"), { ft = ctx.filetype or "" })
     ),
   }
 end

@@ -34,7 +34,9 @@ return {
           role = config.constants.USER_ROLE,
           content = function(context)
             local text = require("codecompanion.helpers.code").get_code(context.start_line, context.end_line)
-            return "I have the following code:\n\n" .. markdown.code_block(text, { info = context.filetype }) .. "\n\n"
+            return "I have the following code:\n\n"
+              .. markdown.form_codeblock(text, { ft = context.filetype })
+              .. "\n\n"
           end,
           opts = {
             contains_code = true,

@@ -182,7 +182,7 @@ Code:
     args.display_path,
     #args.diagnostics,
     table.concat(messages, "\n"),
-    markdown.code_block(table.concat(code, "\n"), { info = vim.bo[bufnr].filetype or "" })
+    markdown.form_codeblock(table.concat(code, "\n"), { ft = vim.bo[bufnr].filetype or "" })
   )
 end
 

@@ -462,7 +462,7 @@ function ACPHandler:handle_error(error)
   log:error("[ACP::Handler] %s", error)
 
   self.chat:add_buf_message(
-    { role = config.constants.LLM_ROLE, content = markdown.code_block(error, { info = "txt" }) },
+    { role = config.constants.LLM_ROLE, content = markdown.form_codeblock(error, { ft = "txt" }) },
     { type = self.chat.MESSAGE_TYPES.LLM_MESSAGE }
   )
 

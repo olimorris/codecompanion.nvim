@@ -29,7 +29,7 @@ function EditorContext:chat_render()
 
   self.Chat:add_message({
     role = config.constants.USER_ROLE,
-    content = "Neovim message history (`:messages`):\n\n" .. markdown.code_block(vim.trim(messages)),
+    content = "Neovim message history (`:messages`):\n\n" .. markdown.form_codeblock(vim.trim(messages)),
   }, { _meta = { source = "editor_context", tag = tags.MESSAGES }, visible = false })
 end
 
@@ -44,7 +44,7 @@ function EditorContext:cli_render()
 
   return {
     inline = "the Neovim messages",
-    block = string.format("- Neovim message history:\n%s", markdown.code_block(vim.trim(msgs))),
+    block = string.format("- Neovim message history:\n%s", markdown.form_codeblock(vim.trim(msgs))),
   }
 end
 

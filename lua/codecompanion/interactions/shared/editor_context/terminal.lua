@@ -51,7 +51,7 @@ function EditorContext:chat_render()
     content = fmt(
       "Latest output from terminal buffer %d:\n\n%s",
       bufnr,
-      markdown.code_block(table.concat(content, "\n"))
+      markdown.form_codeblock(table.concat(content, "\n"))
     ),
   }, { _meta = { source = "editor_context", tag = tags.TERMINAL }, visible = false })
 end
@@ -83,7 +83,7 @@ function EditorContext:cli_render()
 
   return {
     inline = "the terminal output",
-    block = fmt("- Latest terminal output:\n%s\n", markdown.code_block(table.concat(content, "\n"))),
+    block = fmt("- Latest terminal output:\n%s\n", markdown.form_codeblock(table.concat(content, "\n"))),
   }
 end
 

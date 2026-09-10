@@ -284,7 +284,7 @@ local function render_section(doc, node)
       node.line,
       last,
       CONSTANTS.DOC_NAME,
-      markdown.code_block(body, { info = "vimdoc" })
+      markdown.form_codeblock(body, { ft = "vimdoc" })
     ),
   }
 end
@@ -306,7 +306,7 @@ local function render_section_summary(doc, node)
       "`%s` spans %d lines, so only its introduction is shown. Read one of its subsections for the rest.\n%s\nSubsections:\n%s",
       node.path,
       node.subtree_end - node.line + 1,
-      markdown.code_block(intro, { info = "vimdoc" }),
+      markdown.form_codeblock(intro, { ft = "vimdoc" }),
       table.concat(children, "\n")
     ),
   }

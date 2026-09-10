@@ -114,15 +114,25 @@ local function add_response(response, lines)
 
 Positional parameters don't scale. Adding one means touching the signature, every call site, and every annotation. An `opts` table absorbs the new parameter in a single place, and call sites that don't care about it stay as they are.
 
-The shape used throughout the codebase is one positional argument for the subject the function acts on, and an `opts` table for everything else - `Chat:add_message(data, opts)`, `Client:send(payload, opts)`, `M.get_settings_key(chat, opts)`. Where there is no natural subject, `opts` is the only parameter.
+**Default to `opts` alone.** A leading positional is earned, not assumed. It has to be the single subject the function acts on, and it has to be stable enough that it will never be replaced or joined by a sibling - a `Chat`, a payload, the text being wrapped. Everything else goes in `opts`: `Chat:add_message(data, opts)`, `Client:send(payload, opts)`, `M.get_settings_key(chat, opts)`, `markdown.form_codeblock(content, opts)`.
+
+If you are weighing whether an argument qualifies, it doesn't. Put it in `opts`.
 
 ```lua
 -- ❌ Three positionals, and a fourth means editing every caller
 function add_header(name, start_from, contents)
 
--- ✅
+-- ✅ No subject, so `opts` is the only parameter
 ---@param opts? { name?: string, start_from?: number, contents?: string[] }
 function add_header(opts)
+  opts = opts or {}
+
+-- ❌ `ft` is data about the block, not a second subject
+function form_codeblock(content, ft)
+
+-- ✅ `content` is the subject and will never be anything else
+---@param opts? { ft?: string }
+function form_codeblock(content, opts)
   opts = opts or {}
 ```
 

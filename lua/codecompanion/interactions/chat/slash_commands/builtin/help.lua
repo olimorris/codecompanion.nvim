@@ -80,7 +80,7 @@ local function send_output(SlashCommand, content, selected)
 Note the path to the help file is `%s`.
 ]],
       selected.tag,
-      markdown.code_block(content, { info = ft }),
+      markdown.form_codeblock(content, { ft = ft }),
       selected.path
     ),
   }, { context = { id = id }, visible = false })

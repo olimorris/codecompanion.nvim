@@ -47,7 +47,7 @@ local function format_comment(comment)
     comment.path,
     comment.start_line,
     comment.end_line,
-    markdown.code_block(comment.code, { info = comment.filetype or "" }),
+    markdown.form_codeblock(comment.code, { ft = comment.filetype or "" }),
     comment.comment
   )
 end
@@ -73,7 +73,7 @@ local function format_for_buffer(comments)
     table.insert(blocks, fmt("%s\n%s", format_file_loc(comment), comment.comment))
   end
 
-  return "\n\n" .. markdown.code_block(table.concat(blocks, "\n\n"), { info = "markdown" })
+  return "\n\n" .. markdown.form_codeblock(table.concat(blocks, "\n\n"), { ft = "markdown" })
 end
 
 ---Render in the chat interaction
