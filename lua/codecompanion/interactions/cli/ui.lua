@@ -59,7 +59,6 @@ function UI:open(opts)
   return self
 end
 
----Show this CLI buffer in an existing window (preserves layout/size)
 ---@param opts { winnr: number }
 ---@return CodeCompanion.CLI.UI
 function UI:show_in_win(opts)

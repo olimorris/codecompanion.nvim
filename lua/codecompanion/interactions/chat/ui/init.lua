@@ -163,7 +163,6 @@ function UI.new(args)
   return self
 end
 
----Apply shared post-open setup once the chat is visible in a window
 ---@param opts? { toggled?: boolean }
 ---@return CodeCompanion.Chat.UI
 function UI:_finish_open(opts)
@@ -196,7 +195,7 @@ function UI:_finish_open(opts)
 end
 
 ---Open/create the chat window
----@param opts? table
+---@param opts? { toggled?: boolean, window_opts?: table }
 ---@return CodeCompanion.Chat.UI|nil
 function UI:open(opts)
   opts = opts or {}
@@ -236,7 +235,6 @@ function UI:open(opts)
   return self:_finish_open(opts)
 end
 
----Show this chat buffer in an existing window (preserves layout/size)
 ---@param opts { winnr: number, toggled?: boolean, window_opts?: table }
 ---@return CodeCompanion.Chat.UI
 function UI:show_in_win(opts)

@@ -39,9 +39,9 @@ local T = new_set({
   },
 })
 
-T["Window reuse"] = new_set()
+T["Chat"] = new_set()
 
-T["Window reuse"]["cycling chats in a sole window does not error"] = function()
+T["Chat"]["can cycle in a sole window"] = function()
   local result = child.lua([[
     vim.cmd("CodeCompanionChat")
     vim.cmd("CodeCompanionChat")
@@ -75,7 +75,7 @@ T["Window reuse"]["cycling chats in a sole window does not error"] = function()
   h.eq(true, result.visible)
 end
 
-T["Window reuse"]["cycling preserves layout and size"] = function()
+T["Chat"]["keeps layout and size when cycling"] = function()
   local result = child.lua([[
     vim.cmd("CodeCompanionChat")
     local chat1 = require("codecompanion").last_chat()
@@ -113,7 +113,7 @@ T["Window reuse"]["cycling preserves layout and size"] = function()
   h.eq(result.height_before, result.height_after)
 end
 
-T["Window reuse"]["new chat reuses window and sets filetype"] = function()
+T["Chat"]["reuses window when creating a chat"] = function()
   local result = child.lua([[
     vim.cmd("CodeCompanionChat")
     local chat1 = require("codecompanion").last_chat()
@@ -145,7 +145,7 @@ T["Window reuse"]["new chat reuses window and sets filetype"] = function()
   h.eq(result.height_before, result.height_after)
 end
 
-T["Window reuse"]["show_in_win sets filetype without shared_ui.open"] = function()
+T["Chat"]["sets filetype when shown in an existing window"] = function()
   local result = child.lua([[
     local chat = require("codecompanion").chat({ hidden = true })
     local filetype_before = vim.bo[chat.bufnr].filetype
@@ -168,7 +168,7 @@ T["Window reuse"]["show_in_win sets filetype without shared_ui.open"] = function
   h.eq(true, result.winnr)
 end
 
-T["Window reuse"]["closing a chat in a sole window reuses it for the next chat"] = function()
+T["Chat"]["reuses window when closing to the next chat"] = function()
   local result = child.lua([[
     vim.cmd("CodeCompanionChat")
     vim.cmd("CodeCompanionChat")
@@ -197,7 +197,7 @@ T["Window reuse"]["closing a chat in a sole window reuses it for the next chat"]
   h.eq("codecompanion", result.filetype)
 end
 
-T["Window reuse"]["show_in_win applies destination window opts"] = function()
+T["Chat"]["applies window opts when shown in an existing window"] = function()
   local result = child.lua([[
     local chat = require("codecompanion").chat({ hidden = true })
     vim.cmd("vsplit")
