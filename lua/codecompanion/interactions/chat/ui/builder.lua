@@ -62,7 +62,6 @@ end
 ---@param text string
 ---@return string
 local function collapse_to_single_line(text)
-  -- Ensure text doesn't span multiple lines as this causes extmark/icon challenges
   return vim.trim((text:gsub("%s*\r?\n%s*", " ")))
 end
 
