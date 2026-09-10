@@ -61,7 +61,7 @@ end
 
 ---@param text string
 ---@return string
-local function to_single_line(text)
+local function collapse_to_single_line(text)
   -- Ensure text doesn't span multiple lines as this causes extmark/icon challenges
   return vim.trim((text:gsub("%s*\r?\n%s*", " ")))
 end
@@ -132,7 +132,7 @@ function Builder:add_message(data, opts)
 
   local content = data.content
   if content and opts.status then
-    content = to_single_line(content)
+    content = collapse_to_single_line(content)
   end
 
   -- If the role has changed (user <-> LLM) then start a new line
@@ -299,14 +299,14 @@ function Builder:_apply_icon(insert_line, opts, content_start)
 end
 
 ---Update a specific line in the chat buffer
----@param line_number number The line number to update (1-based)
----@param content string The new content for the line
+---@param line_number number The
+---@param content string
 ---@param opts? { status?: string, icon_id?: number, priority?: number, virt_text_pos?: string }
----@return boolean success Whether the update was successful
----@return number|nil icon_id The new icon extmark ID, if an icon was placed
+---@return boolean
+---@return number|nil
 function Builder:update_line(line_number, content, opts)
   opts = opts or {}
-  content = to_single_line(content)
+  content = collapse_to_single_line(content)
 
   if line_number < 1 then
     return false
