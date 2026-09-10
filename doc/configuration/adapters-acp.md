@@ -392,6 +392,10 @@ require("codecompanion").setup({
 
 To use [Goose](https://goose-docs.ai/) in CodeCompanion, ensure you've followed their [documentation](https://goose-docs.ai/docs/getting-started/installation/) to setup and install Goose CLI. Then ensure that in your chat buffer you select the `goose` adapter.
 
+## Setup: Grok Build
+
+Install [Grok Build](https://github.com/xai-org/grok-build) by following its official installation instructions, then run `grok login` in your terminal. Select the `grok` adapter in your chat buffer. CodeCompanion supports Grok Build's interactive questions and plan review requests.
+
 ## Setup: Kilo Code
 
 To use [Kilo Code](https://kilo.ai) in CodeCompanion, ensure you've followed their documentation to [install](https://kilo.ai/docs/getting-started/installing#cli) and [configure](https://kilo.ai/docs/getting-started/setup-authentication#cli) it. Then ensure that in your chat buffer you select the `kilocode` adapter.

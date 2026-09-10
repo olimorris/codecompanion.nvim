@@ -400,6 +400,93 @@ T["ACP Responses"]["dispatches session/request_permission to active prompt"] = f
   h.eq(result.sid, "sess-123")
 end
 
+T["ACP Responses"]["dispatches adapter-specific client requests"] = function()
+  local result = child.lua([[
+    local connection = create_test_connection()
+    connection.session_id = "sess-123"
+    test_adapter.handlers.acp_request = function(_, request)
+      request.respond({ outcome = "accepted" })
+      return request.method == "vendor/question"
+    end
+
+    local sent = {}
+    function connection:write_message(data)
+      table.insert(sent, vim.json.decode(data))
+      return true
+    end
+
+    local req = vim.json.encode({
+      jsonrpc = "2.0",
+      id = 100,
+      method = "vendor/question",
+      params = { sessionId = "sess-123" }
+    })
+    connection:buffer_stdout_and_dispatch(req .. "\n")
+    return sent[1]
+  ]])
+
+  h.eq(result.id, 100)
+  h.eq(result.result.outcome, "accepted")
+end
+
+T["ACP Responses"]["rejects unknown client requests"] = function()
+  local result = child.lua([[
+    local connection = create_test_connection()
+    connection.session_id = "sess-123"
+    local sent = {}
+    function connection:write_message(data)
+      table.insert(sent, vim.json.decode(data))
+      return true
+    end
+
+    local req = vim.json.encode({
+      jsonrpc = "2.0",
+      id = 101,
+      method = "vendor/unknown",
+      params = { sessionId = "sess-123" }
+    })
+    connection:buffer_stdout_and_dispatch(req .. "\n")
+    return sent[1]
+  ]])
+
+  h.eq(result.id, 101)
+  h.eq(result.error.code, -32601)
+  h.eq(result.error.message, "Method not found")
+end
+
+T["ACP Responses"]["cancels pending adapter-specific client requests"] = function()
+  local result = child.lua([[
+    local connection = create_test_connection()
+    connection.session_id = "sess-123"
+    test_adapter.handlers.acp_request = function(_, request)
+      request.on_cancel(function()
+        request.respond({ outcome = "cancelled" })
+      end)
+      return true
+    end
+
+    local sent = {}
+    function connection:write_message(data)
+      table.insert(sent, vim.json.decode(data))
+      return true
+    end
+
+    local req = vim.json.encode({
+      jsonrpc = "2.0",
+      id = 102,
+      method = "vendor/question",
+      params = { sessionId = "sess-123" }
+    })
+    connection:buffer_stdout_and_dispatch(req .. "\n")
+    connection:cancel_client_requests()
+    return { response = sent[1], pending = vim.tbl_count(connection._pending_client_request_cancels) }
+  ]])
+
+  h.eq(result.response.id, 102)
+  h.eq(result.response.result.outcome, "cancelled")
+  h.eq(result.pending, 0)
+end
+
 T["ACP Responses"]["_handle_done when stopReason present"] = function()
   local result = child.lua([[
     local connection = create_test_connection()

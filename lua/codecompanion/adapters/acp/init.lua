@@ -18,6 +18,7 @@ local shared = require("codecompanion.adapters.shared")
 ---@field handlers table Functions which link the output from the request to CodeCompanion
 ---@field handlers.setup? fun(self: CodeCompanion.ACPAdapter): boolean
 ---@field handlers.auth? fun(self: CodeCompanion.ACPAdapter): boolean Manually handle authentication
+---@field handlers.acp_request? fun(self: CodeCompanion.ACPAdapter, request: CodeCompanion.ACP.ClientRequest): boolean Handle an agent-to-client ACP request
 ---@field handlers.on_exit? fun(self: CodeCompanion.ACPAdapter, data: table): table|nil
 ---@field handlers.teardown? fun(self: CodeCompanion.ACPAdapter): any
 ---@field protocol? table Implement the ACP protocol in the adapter
