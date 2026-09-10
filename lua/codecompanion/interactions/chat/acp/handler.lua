@@ -87,13 +87,14 @@ function ACPHandler:submit(payload)
 
   -- Keep the agent's request off the main loop
   async.sync(function()
+    local session_ready = self:ensure_connection() and self:ensure_session()
+
     -- A stop or a newer submission can replace this request while the agent boots,
     -- reporting from here would clear the handle belonging to that request
     if request.cancelled or self.chat.current_request ~= request then
       return
     end
 
-    local session_ready = self:ensure_connection() and self:ensure_session()
     if not session_ready then
       self.chat.status = "error"
       return self.chat:done(self.output)
