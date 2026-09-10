@@ -82,19 +82,21 @@ function ACPHandler:submit(payload)
     end
   end
 
-  -- Registered before the connect below, so a second <CR> can't start a parallel submit
+  -- IMPORTANT: Registered before the connect below, so a second <CR> can't start a parallel submit
   self.chat.current_request = request
 
-  -- Connecting in a coroutine keeps the agent's boot time off the main loop, where it
-  -- would otherwise swallow every keystroke until the session replies
+  -- Keep the agent's request off the main loop
   async.sync(function()
-    if not self:ensure_connection() or not self:ensure_session() then
-      self.chat.status = "error"
-      return self.chat:done(self.output)
+    -- A stop or a newer submission can replace this request while the agent boots,
+    -- reporting from here would clear the handle belonging to that request
+    if request.cancelled or self.chat.current_request ~= request then
+      return
     end
 
-    if request.cancelled then
-      return
+    local session_ready = self:ensure_connection() and self:ensure_session()
+    if not session_ready then
+      self.chat.status = "error"
+      return self.chat:done(self.output)
     end
 
     request.prompt = self:create_and_send_prompt(payload)
