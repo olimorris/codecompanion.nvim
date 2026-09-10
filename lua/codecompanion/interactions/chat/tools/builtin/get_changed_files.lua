@@ -1,6 +1,7 @@
 local Job = require("plenary.job")
 local helpers = require("codecompanion.interactions.chat.tools.builtin.helpers")
 local log = require("codecompanion.utils.log")
+local markdown = require("codecompanion.utils.markdown")
 
 local fmt = string.format
 
@@ -65,13 +66,9 @@ local function get_changed_files(action, opts)
           table.insert(
             output,
             fmt(
-              [[<getChangedFiles type="%s">
-```diff
-%s
-```
-</getChangedFiles>]],
+              '<getChangedFiles type="%s">\n%s\n</getChangedFiles>',
               desc,
-              table.concat(result, "\n")
+              markdown.form_codeblock(table.concat(result, "\n"), { ft = "diff" })
             )
           )
         end

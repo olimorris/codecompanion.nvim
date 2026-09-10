@@ -2,6 +2,7 @@ local adapters = require("codecompanion.adapters")
 local client = require("codecompanion.http")
 local config = require("codecompanion.config")
 local log = require("codecompanion.utils.log")
+local markdown = require("codecompanion.utils.markdown")
 
 local fmt = string.format
 
@@ -136,14 +137,8 @@ return {
       local errors = vim.iter(stderr):flatten():join("\n")
       log:debug("[Fetch Webpage Tool] Error output: %s", stderr)
 
-      local error_output = fmt(
-        [[Error fetching content from `%s`:
-```txt
-%s
-```]],
-        args.url,
-        errors
-      )
+      local error_output =
+        fmt("Error fetching content from `%s`:\n%s", args.url, markdown.form_codeblock(errors, { ft = "txt" }))
       chat:add_tool_output(self, error_output)
     end,
   },

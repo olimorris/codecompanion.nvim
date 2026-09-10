@@ -1,5 +1,6 @@
 local helpers = require("codecompanion.interactions.chat.tools.builtin.helpers")
 local log = require("codecompanion.utils.log")
+local markdown = require("codecompanion.utils.markdown")
 
 local fmt = string.format
 
@@ -135,7 +136,8 @@ return {
       if type(data) == "table" then
         -- Files were found - data is an array of file paths
         local files = #data
-        local results_msg = fmt("Searched files for `%s`, %d results\n```\n%s\n```", query, files, output)
+        local results_msg =
+          fmt("Searched files for `%s`, %d results\n%s", query, files, markdown.form_codeblock(output))
         chat:add_tool_output(self, fmt(llm_output, results_msg), "")
       else
         -- No files found - data is a string message
@@ -153,15 +155,8 @@ return {
       local errors = vim.iter(stderr):flatten():join("\n")
       log:debug("[File Search Tool] Error output: %s", stderr)
 
-      local error_output = fmt(
-        [[Searched files for `%s`, error:
-
-```txt
-%s
-```]],
-        query,
-        errors
-      )
+      local error_output =
+        fmt("Searched files for `%s`, error:\n\n%s", query, markdown.form_codeblock(errors, { ft = "txt" }))
       chat:add_tool_output(self, error_output)
     end,
 

@@ -41,7 +41,7 @@ local function sanitize_text(text, max_length)
 
   max_length = max_length or MAX_TEXT
 
-  text = text:gsub("```[%w]*\n?", ""):gsub("```", "")
+  text = text:gsub("```+[%w]*\n?", "")
   text = text:gsub("\r?\n", " "):gsub("%s+", " ")
   text = text:match("^%s*(.-)%s*$") or ""
 
