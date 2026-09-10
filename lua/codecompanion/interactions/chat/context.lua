@@ -147,6 +147,9 @@ end
 ---@field Chat CodeCompanion.Chat
 local Context = {}
 
+---The header the rendered context block is written under
+Context.HEADER = context_header
+
 ---@class CodeCompanion.Chat.ContextArgs
 ---@field chat CodeCompanion.Chat
 

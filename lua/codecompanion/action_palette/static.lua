@@ -3,6 +3,7 @@ local config = require("codecompanion.config")
 local registry = require("codecompanion.interactions.shared.registry")
 local rules = require("codecompanion.interactions.shared.rules")
 local rules_list = require("codecompanion.interactions.shared.rules.helpers").list()
+local sessions = require("codecompanion.interactions.chat.sessions")
 
 return {
   -- Chat
@@ -71,13 +72,44 @@ return {
       end,
     },
   },
+  -- Saved sessions
+  {
+    name = "Saved sessions ...",
+    interaction = " ",
+    description = "Restore a chat you saved earlier",
+    opts = {
+      index = 3,
+      stop_context_insertion = true,
+    },
+    condition = function()
+      return #sessions.list() > 0
+    end,
+    picker = {
+      prompt = "Select a session",
+      columns = { "name" },
+      items = function()
+        local items = {}
+        for _, session in ipairs(sessions.list()) do
+          table.insert(items, {
+            name = sessions.format(session),
+            interaction = "chat",
+            description = session.meta.title,
+            callback = function(context)
+              sessions.load(session.stem, { buffer_context = context })
+            end,
+          })
+        end
+        return items
+      end,
+    },
+  },
   -- Context
   {
     name = "Chat with rules ...",
     interaction = " ",
     description = "Add rules to your chat",
     opts = {
-      index = 3,
+      index = 4,
       stop_context_insertion = true,
     },
     condition = function()

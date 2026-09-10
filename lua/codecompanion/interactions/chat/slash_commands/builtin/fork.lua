@@ -74,6 +74,10 @@ function SlashCommand:output(name)
   forked.tool_registry.schemas = vim.deepcopy(source.tool_registry.schemas)
 
   forked.context:render()
+
+  if self.config.opts and self.config.opts.auto_save_session then
+    require("codecompanion.interactions.chat.sessions").save(forked)
+  end
 end
 
 return SlashCommand

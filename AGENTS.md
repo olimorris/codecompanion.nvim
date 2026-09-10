@@ -46,6 +46,8 @@ Core: `lua/codecompanion/`
 - Don't over-explore the codebase with excessive grep/read calls. If you haven't converged on an approach after 3-4 searches, pause and share what you've found so far rather than continuing to search.
 - When the user asks to fix tests, fix the tests - not the source code - unless explicitly asked otherwise.
 - If you're working with directories or files, utilise the functions in `codecompanion/utils/files.lua` ensuring you join paths with `vim.fs.joinpath`
+- Never read `adapter.schema.model.default` directly - it holds a function on Ollama and any `openai_compatible` adapter. `adapter_utils.model(adapter)` gives the model as a string without ever calling that function; `adapter_utils.resolve_model(adapter)` calls it for the places that need the value and can afford the HTTP round-trip it may cost. Both return `string|nil`
+- To change an adapter's model, `adapters.set_model({ adapter = adapter, model = "gpt-4o" })`, or `adapters.resolve(name, { model = "gpt-4o" })` when starting from an adapter name. Don't assign the schema yourself
 
 ### Testing
 

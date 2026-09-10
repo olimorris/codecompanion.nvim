@@ -22,7 +22,7 @@ local fmt = string.format
 ---Make a tool ID from a tool name
 ---@param name string
 ---@return string
-local function tool_id(name)
+function ToolRegistry.tool_id(name)
   return fmt("<tool>%s</tool>", name)
 end
 
@@ -134,7 +134,7 @@ function ToolRegistry:add_single_tool(tool, opts)
     return nil
   end
 
-  local id = tool_id(tool)
+  local id = ToolRegistry.tool_id(tool)
 
   local is_adapter_tool = tool_config._adapter_tool == true
   if is_adapter_tool then
@@ -272,7 +272,7 @@ function ToolRegistry:remove_group(name)
   to_remove[group_id(name)] = true
 
   for _, tool_name in ipairs(tool_names) do
-    local id = tool_id(tool_name)
+    local id = ToolRegistry.tool_id(tool_name)
     to_remove[id] = true
     self.in_use[tool_name] = nil
     self.schemas[id] = nil

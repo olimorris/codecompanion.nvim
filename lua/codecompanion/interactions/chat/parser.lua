@@ -32,6 +32,33 @@ local function image_query()
   return cached_image_query
 end
 
+---@param root TSNode
+---@param row number
+---@return TSNode|nil
+local function get_enclosing_fence(root, row)
+  local node = root:descendant_for_range(row, 0, row, 0)
+
+  while node do
+    if node:type() == "fenced_code_block" then
+      return node
+    end
+    node = node:parent()
+  end
+end
+
+---@param fence TSNode
+---@return boolean
+local function is_unclosed(fence)
+  local delimiters = 0
+  for child in fence:iter_children() do
+    if child:type() == "fenced_code_block_delimiter" then
+      delimiters = delimiters + 1
+    end
+  end
+
+  return delimiters < 2
+end
+
 local M = {}
 
 ---Parse the chat buffer for settings
@@ -89,6 +116,29 @@ function M.get_settings_key(chat, opts)
   return key_name, node
 end
 
+---If user messages cannot be found by Tree-sitter, attempt to recover them by reading the buffer directly
+---@param chat CodeCompanion.Chat
+---@param start_range number
+---@return { content: string }|nil
+local function recover_messages(chat, start_range)
+  local lines = vim.api.nvim_buf_get_lines(chat.bufnr, start_range, -1, false) -- start_range is 1-based
+
+  while lines[1] and vim.trim(lines[1]) == "" do
+    table.remove(lines, 1)
+  end
+  lines = helpers.strip_context(lines)
+  local content = vim.trim(table.concat(lines, "\n"))
+
+  -- A tool auto-submit sends no user message, so an empty section must stay empty
+  if content == "" then
+    return nil
+  end
+
+  log:debug("[chat::parser] Recovered %d line(s) of user message from row %d", #lines, start_range)
+
+  return { content = content }
+end
+
 ---Parse the chat buffer for the last message
 ---@param chat CodeCompanion.Chat
 ---@param start_range number
@@ -115,7 +165,32 @@ function M.messages(chat, start_range)
     return { content = vim.trim(table.concat(content, "\n\n")) }
   end
 
-  return nil
+  -- Handle the case of a header being buried in a markdown code block
+  local full_root = chat.parsers.markdown:parse({ 0, -1 })[1]:root()
+  if not get_enclosing_fence(full_root, start_range - 1) then
+    return nil
+  end
+
+  return recover_messages(chat, start_range)
+end
+
+---If headers cannot be found by Tree-sitter, attempt to recover them
+---@param chat CodeCompanion.Chat
+---@param root TSNode
+---@param from_row number
+---@return number|nil
+local function recover_headers(chat, root, from_row)
+  local lines = vim.api.nvim_buf_get_lines(chat.bufnr, from_row, -1, false)
+  for i = #lines, 1, -1 do
+    local heading = lines[i]:match("^##%s+(.-)%s*$")
+    if heading and helpers.format_role(heading) == config.interactions.chat.roles.user then
+      local row = from_row + i - 1
+      local fence = get_enclosing_fence(root, row)
+      if fence and is_unclosed(fence) then
+        return row
+      end
+    end
+  end
 end
 
 ---Parse the chat buffer for the last header
@@ -128,17 +203,27 @@ function M.headers(chat)
   local root = tree:root()
 
   local last_match = nil
+  local ends_with_user_header = false
   for id, node in query:iter_captures(root, chat.bufnr) do
     if query.captures[id] == "role_only" then
       local role = helpers.format_role(get_node_text(node, chat.bufnr))
-      if role == config.interactions.chat.roles.user then
+      ends_with_user_header = role == config.interactions.chat.roles.user
+      if ends_with_user_header then
         last_match = node
       end
     end
   end
 
+  -- Without this, a heading inside an unclosed fence would take precedence over a chat header
+  if not ends_with_user_header then
+    local recovered = recover_headers(chat, root, last_match and (last_match:range() + 1) or 0)
+    if recovered then
+      return recovered
+    end
+  end
+
   if last_match then
-    return last_match:range()
+    return (last_match:range())
   end
 end
 
