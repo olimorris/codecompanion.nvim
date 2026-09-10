@@ -54,6 +54,7 @@ local uv = vim.uv
 ---@field _loading_session boolean|nil
 ---@field _on_session_update function|nil
 ---@field _config_options table[] Raw configOptions from the agent
+---@field _in_flight table<string, CodeCompanion.ACP.Connection.InFlight> Establishment steps currently underway
 ---@field _pending_callbacks table<number, function> Async callbacks keyed by request ID
 ---@field _rpc_log? { path: string, write: fun(data: string) } Per-connection log capturing raw JSON-RPC traffic
 ---@field methods table
@@ -64,6 +65,11 @@ Connection.METHODS = METHODS
 ---@class CodeCompanion.ACP.Connection.PendingResponse
 ---@field result any
 ---@field error any
+
+---@class CodeCompanion.ACP.Connection.InFlight
+---@field done boolean
+---@field success boolean
+---@field callbacks function[]
 
 local METHOD_DEFAULTS = {
   decode = vim.json.decode,
@@ -96,6 +102,7 @@ function Connection.new(args)
     session_id = args.session_id,
     _authenticated = false,
     _config_options = {},
+    _in_flight = {},
     _initialized = false,
     _pending_callbacks = {},
     _state = { handle = nil, id_gen = jsonrpc.IdGenerator.new(), line_buffer = jsonrpc.LineBuffer.new() },
@@ -116,6 +123,57 @@ function Connection:is_ready()
   return self._state.handle ~= nil and self._initialized and self._authenticated
 end
 
+---Wait on an establishment step another caller already started
+---@param in_flight CodeCompanion.ACP.Connection.InFlight
+---@return boolean success
+function Connection:_await_in_flight(in_flight)
+  if coroutine.running() then
+    return async.wait(function(callback)
+      table.insert(in_flight.callbacks, callback)
+    end)
+  end
+
+  -- vim.wait pumps the event loop, so the caller that owns the step can finish
+  local defaults = (self.adapter_modified and self.adapter_modified.defaults) or {}
+  vim.wait(defaults.timeout or TIMEOUTS.DEFAULT, function()
+    return in_flight.done
+  end, TIMEOUTS.RESPONSE_POLL)
+
+  return in_flight.success
+end
+
+---Run an establishment step once, sharing its result with concurrent callers
+---@param opts { key: string, work: fun(): boolean }
+---@return boolean success
+function Connection:_run_once(opts)
+  local in_flight = self._in_flight[opts.key]
+  if in_flight then
+    return self:_await_in_flight(in_flight)
+  end
+
+  in_flight = { done = false, success = false, callbacks = {} }
+  self._in_flight[opts.key] = in_flight
+
+  -- An error here must still release the step, or every later caller waits on it forever
+  local ok, result = pcall(opts.work)
+  if not ok then
+    log:error("[acp::_run_once] Step `%s` failed: %s", opts.key, result)
+  end
+  local success = ok and result and true or false
+
+  in_flight.done = true
+  in_flight.success = success
+  self._in_flight[opts.key] = nil
+
+  for _, callback in ipairs(in_flight.callbacks) do
+    self.methods.schedule(function()
+      callback(success)
+    end)
+  end
+
+  return success
+end
+
 ---Connect, initialize and authenticate the ACP process
 ---@return CodeCompanion.ACP.Connection|nil
 function Connection:connect_and_authenticate()
@@ -123,45 +181,55 @@ function Connection:connect_and_authenticate()
     return self
   end
 
-  if not self:start_agent_process() then
-    return nil
+  -- Every step here blocks on the agent, so a second caller arriving mid-flight
+  -- would spawn its own process and leave the first one orphaned
+  local connected = self:_run_once({
+    key = "connect",
+    work = function()
+      return self:start_agent_process() and self:_initialize() and self:_authenticate()
+    end,
+  })
+
+  return connected and self or nil
+end
+
+---Negotiate the protocol version and record what the agent supports
+---@return boolean success
+function Connection:_initialize()
+  if self._initialized then
+    return true
   end
 
-  if not self._initialized then
-    local initialized = self:send_rpc_request(METHODS.INITIALIZE, self.adapter_modified.parameters)
-    if not initialized then
-      return log:error("[acp::connect_and_authenticate] Failed to initialize")
-    end
-    self._agent_info = initialized
+  local initialized = self:send_rpc_request(METHODS.INITIALIZE, self.adapter_modified.parameters)
+  if not initialized then
+    log:error("[acp::_initialize] Failed to initialize")
+    return false
+  end
+  self._agent_info = initialized
 
-    if
-      initialized.protocolVersion and initialized.protocolVersion ~= self.adapter_modified.parameters.protocolVersion
-    then
-      log:warn(
-        "[acp::connect_and_authenticate] Agent selected protocolVersion=%s (client sent=%s)",
-        initialized.protocolVersion,
-        self.adapter_modified.parameters.protocolVersion
-      )
-    end
-
-    self._initialized = true
-    log:debug("[acp] Initialized (protocol_version=%s)", initialized.protocolVersion or "unknown")
-
-    api.nvim_create_autocmd("VimLeavePre", {
-      group = api.nvim_create_augroup("codecompanion.acp.disconnect", { clear = false }),
-      callback = function()
-        pcall(function()
-          return self:disconnect()
-        end)
-      end,
-    })
+  if
+    initialized.protocolVersion and initialized.protocolVersion ~= self.adapter_modified.parameters.protocolVersion
+  then
+    log:warn(
+      "[acp::_initialize] Agent selected protocolVersion=%s (client sent=%s)",
+      initialized.protocolVersion,
+      self.adapter_modified.parameters.protocolVersion
+    )
   end
 
-  if not self:_authenticate() then
-    return nil
-  end
+  self._initialized = true
+  log:debug("[acp] Initialized (protocol_version=%s)", initialized.protocolVersion or "unknown")
 
-  return self
+  api.nvim_create_autocmd("VimLeavePre", {
+    group = api.nvim_create_augroup("codecompanion.acp.disconnect", { clear = false }),
+    callback = function()
+      pcall(function()
+        return self:disconnect()
+      end)
+    end,
+  })
+
+  return true
 end
 
 ---Connect and initialize the ACP process and establish the session
@@ -175,20 +243,7 @@ function Connection:connect_and_initialize()
     return nil
   end
 
-  utils.fire("ACPSessionPre", {
-    adapter_modified = self.adapter_modified,
-    agent_capabilities = self._agent_info and self._agent_info.agentCapabilities,
-  })
-
-  if not self:_establish_session() then
-    return nil
-  end
-
-  utils.fire("ACPSessionPost", {
-    session_id = self.session_id,
-  })
-
-  return self
+  return self:_open_session() and self or nil
 end
 
 ---Authenticate the connection via adapter hook or agent auth methods
@@ -262,20 +317,33 @@ function Connection:ensure_session()
     return false
   end
 
-  utils.fire("ACPSessionPre", {
-    adapter_modified = self.adapter_modified,
-    agent_capabilities = self._agent_info and self._agent_info.agentCapabilities,
+  return self:_open_session()
+end
+
+---Create or load the session, announcing it to listeners
+---@return boolean success
+function Connection:_open_session()
+  -- session/new can take seconds, and a second caller arriving before the reply
+  -- would create a second session whose id then replaces the one being prompted
+  return self:_run_once({
+    key = "session",
+    work = function()
+      utils.fire("ACPSessionPre", {
+        adapter_modified = self.adapter_modified,
+        agent_capabilities = self._agent_info and self._agent_info.agentCapabilities,
+      })
+
+      if not self:_establish_session() then
+        return false
+      end
+
+      utils.fire("ACPSessionPost", {
+        session_id = self.session_id,
+      })
+
+      return true
+    end,
   })
-
-  if not self:_establish_session() then
-    return false
-  end
-
-  utils.fire("ACPSessionPost", {
-    session_id = self.session_id,
-  })
-
-  return true
 end
 
 ---Check if the agent supports session/list

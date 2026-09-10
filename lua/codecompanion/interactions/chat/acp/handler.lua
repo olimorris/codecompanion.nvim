@@ -1,5 +1,6 @@
 local Queue = require("codecompanion.utils.queue")
 
+local async = require("codecompanion.utils.async")
 local config = require("codecompanion.config")
 local formatter = require("codecompanion.interactions.chat.acp.formatters")
 local log = require("codecompanion.utils.log")
@@ -69,21 +70,38 @@ local function touched_files(tool_call)
   return touched
 end
 
----Submit payload to ACP and handle streaming response
+---Submit payload to ACP, registering the request on the chat before connecting
 ---@param payload table The payload to send to the LLM
----@return table|nil Request object or nil on error
+---@return nil
 function ACPHandler:submit(payload)
-  if not self:ensure_connection() then
-    self.chat.status = "error"
-    return self.chat:done(self.output)
+  local request = {}
+  request.cancel = function()
+    request.cancelled = true
+    if request.prompt then
+      request.prompt.cancel()
+    end
   end
 
-  if not self:ensure_session() then
-    self.chat.status = "error"
-    return self.chat:done(self.output)
-  end
+  -- IMPORTANT: Registered before the connect below, so a second <CR> can't start a parallel submit
+  self.chat.current_request = request
 
-  return self:create_and_send_prompt(payload)
+  -- Keep the agent's request off the main loop
+  async.sync(function()
+    local session_ready = self:ensure_connection() and self:ensure_session()
+
+    -- A stop or a newer submission can replace this request while the agent boots,
+    -- reporting from here would clear the handle belonging to that request
+    if request.cancelled or self.chat.current_request ~= request then
+      return
+    end
+
+    if not session_ready then
+      self.chat.status = "error"
+      return self.chat:done(self.output)
+    end
+
+    request.prompt = self:create_and_send_prompt(payload)
+  end)()
 end
 
 ---Ensure the ACP connection is authenticated
