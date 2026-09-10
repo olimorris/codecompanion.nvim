@@ -67,9 +67,7 @@ function UI:show_in_win(opts)
   self.winnr = opts.winnr
 
   local window = resolve_window_config()
-  if window.opts and not vim.tbl_isempty(window.opts) then
-    ui_utils.set_win_options(self.winnr, window.opts)
-  end
+  ui_utils.apply_win_options(self.winnr, window.opts)
 
   log:trace("CLI opened in existing window")
   utils.fire("CLIOpened", { bufnr = self.bufnr })

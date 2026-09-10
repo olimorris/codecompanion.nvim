@@ -217,4 +217,24 @@ T["Chat"]["applies window opts when shown in an existing window"] = function()
   h.eq(true, result.linebreak)
 end
 
+T["Chat"]["clears source-only window opts when reusing"] = function()
+  local result = child.lua([[
+    local chat = require("codecompanion").chat({ hidden = true })
+    vim.cmd("vsplit")
+    local winnr = vim.api.nvim_get_current_win()
+    vim.api.nvim_set_option_value("list", true, { scope = "global" })
+    vim.api.nvim_set_option_value("list", false, { scope = "local", win = winnr })
+
+    chat.ui:show_in_win({ winnr = winnr })
+
+    return {
+      list = vim.api.nvim_get_option_value("list", { scope = "local", win = winnr }),
+      wrap = vim.api.nvim_get_option_value("wrap", { scope = "local", win = winnr }),
+    }
+  ]])
+
+  h.eq(true, result.list)
+  h.eq(true, result.wrap)
+end
+
 return T

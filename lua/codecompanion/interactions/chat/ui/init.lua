@@ -259,9 +259,7 @@ function UI:show_in_win(opts)
   else
     window = config.display.chat.window
   end
-  if window.opts and not vim.tbl_isempty(window.opts) then
-    ui_utils.set_win_options(self.winnr, window.opts)
-  end
+  ui_utils.apply_win_options(self.winnr, window.opts)
 
   log:trace("Chat opened in existing window with ID %d", self.chat_id)
   return self:_finish_open(opts)
