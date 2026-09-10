@@ -2,6 +2,7 @@ local baseline = require("codecompanion.interactions.code_review.baseline")
 local config = require("codecompanion.config")
 local files = require("codecompanion.utils.files")
 local log = require("codecompanion.utils.log")
+local markdown = require("codecompanion.utils.markdown")
 
 local fmt = string.format
 
@@ -88,12 +89,11 @@ end
 ---@return string
 local function format(comment)
   return fmt(
-    "## %s:%d-%d\n\n````%s\n%s\n````\n\n%s",
+    "## %s:%d-%d\n\n%s\n\n%s",
     comment.path,
     comment.start_line,
     comment.end_line,
-    comment.filetype or "",
-    comment.code,
+    markdown.form_codeblock(comment.code, { ft = comment.filetype }),
     comment.comment
   )
 end
@@ -116,29 +116,29 @@ local function finish(comments, comment, prose)
 end
 
 ---Parse the markdown comments file back into comments
----@param markdown string
+---@param contents string
 ---@return CodeCompanion.CodeReview.Comment[]
-local function parse(markdown)
+local function parse(contents)
   local comments = {}
   local comment, prose, code
-  local in_fence = false
+  local open_backticks
 
-  for _, line in ipairs(vim.split(markdown, "\n", { plain = true })) do
+  for _, line in ipairs(vim.split(contents, "\n", { plain = true })) do
     local path, start_line, end_line = line:match("^## (.+):(%d+)%-(%d+)%s*$")
-    if path and not in_fence then
+    if path and not open_backticks then
       finish(comments, comment, prose or {})
       comment = { path = path, start_line = tonumber(start_line), end_line = tonumber(end_line) }
       prose, code = {}, nil
     elseif comment then
-      local fence_filetype = line:match("^````(%S*)%s*$")
-      if not in_fence and not comment.code and fence_filetype then
-        in_fence = true
-        comment.filetype = fence_filetype ~= "" and fence_filetype or nil
+      local backticks, ft = line:match("^(````+)(%S*)%s*$")
+      if not open_backticks and not comment.code and backticks then
+        open_backticks = backticks
+        comment.filetype = ft ~= "" and ft or nil
         code = {}
-      elseif in_fence and line:match("^````%s*$") then
-        in_fence = false
+      elseif open_backticks and line:match("^" .. open_backticks .. "%s*$") then
+        open_backticks = nil
         comment.code = table.concat(code, "\n")
-      elseif in_fence then
+      elseif open_backticks then
         table.insert(code, line)
       else
         table.insert(prose, line)

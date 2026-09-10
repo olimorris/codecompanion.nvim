@@ -421,4 +421,57 @@ T["MCP Tools"]["long output will be truncated in the chat buffer"] = function()
   h.eq(tool_output_msgs[1], output)
 end
 
+T["MCP Tools"]["a tool result cannot break out of its code block"] = function()
+  h.mock_http(child)
+  h.queue_mock_http_response(child, {
+    content = "Call some tools",
+    tools = {
+      { ["function"] = { name = "other_mcp_echo", arguments = { value = "a\n````\nb" } } },
+      { ["function"] = { name = "other_mcp_echo", arguments = { value = "plain output" } } },
+    },
+  })
+
+  local chat_bufnr = child.lua([[
+    local chat = create_chat()
+    OTHER_MCP_TRANSPORT:expect_jsonrpc_call("tools/call", function(params)
+      return "result", {
+        content = { { type = "text", text = params.arguments.value } }
+      }
+    end, { repeats = 2 })
+
+    chat:add_buf_message({ role = "user", content = "@{mcp.other_mcp} Please echo twice." })
+    chat:submit()
+    vim.wait(1000, function() return vim.bo[chat.bufnr].modifiable end)
+    return chat.bufnr
+  ]])
+
+  local result = child.lua_get(
+    [[(function(bufnr)
+      local lines = vim.api.nvim_buf_get_lines(bufnr, 0, -1, false)
+      local headers = {}
+      for i, line in ipairs(lines) do
+        if line:match("^MCP: other_mcp_echo executed successfully:$") then
+          headers[#headers + 1] = i
+        end
+      end
+      local source = table.concat(lines, "\n")
+      local tree = vim.treesitter.get_string_parser(source, "markdown"):parse()[1]
+      local query = vim.treesitter.query.parse("markdown", "(fenced_code_block) @block")
+      local blocks = {}
+      for _, node in query:iter_captures(tree:root(), source) do
+        local start_row, _, end_row, _ = node:range()
+        blocks[#blocks + 1] = { start_row + 1, end_row }
+      end
+      return { headers = headers, blocks = blocks }
+    end)(...)]],
+    { chat_bufnr }
+  )
+
+  h.eq(2, #result.headers)
+  local swallowed = vim.iter(result.blocks):any(function(block)
+    return result.headers[2] >= block[1] and result.headers[2] <= block[2]
+  end)
+  h.eq(false, swallowed)
+end
+
 return T

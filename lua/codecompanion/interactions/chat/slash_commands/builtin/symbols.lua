@@ -9,6 +9,7 @@ https://github.com/stevearc/aerial.nvim/blob/master/lua/aerial/backends/treesitt
 local config = require("codecompanion.config")
 local helpers = require("codecompanion.interactions.chat.helpers.symbols")
 local log = require("codecompanion.utils.log")
+local markdown = require("codecompanion.utils.markdown")
 local utils = require("codecompanion.utils")
 
 local fmt = string.format
@@ -209,15 +210,7 @@ function SlashCommand:output(selected, opts)
   -- Workspaces allow the user to set their own custom description which should take priority
   local description
   if selected.description then
-    description = fmt(
-      [[%s
-````%s
-%s
-````]],
-      selected.description,
-      ft,
-      content
-    )
+    description = selected.description .. "\n" .. markdown.form_codeblock(content, { ft = ft })
   else
     description = fmt(
       [[Here is a symbolic outline of the file `%s` (with filetype `%s`). I've also included the line numbers that each symbol starts and ends on in the file:

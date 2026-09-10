@@ -7,6 +7,7 @@
 local config = require("codecompanion.config")
 local files = require("codecompanion.utils.files")
 local log = require("codecompanion.utils.log")
+local markdown = require("codecompanion.utils.markdown")
 
 local api = vim.api
 local fmt = string.format
@@ -41,8 +42,7 @@ local function format_changes_as_diff(old_content, new_content)
   })
 
   if diff_result and diff_result ~= "" then
-    local fence = require("codecompanion.interactions.chat.helpers").code_fence(diff_result)
-    return fmt("%sdiff\n%s%s", fence, diff_result, fence)
+    return markdown.form_codeblock(diff_result, { ft = "diff" })
   end
 
   return ""

@@ -1,5 +1,6 @@
 local helpers = require("codecompanion.interactions.chat.tools.builtin.helpers")
 local log = require("codecompanion.utils.log")
+local markdown = require("codecompanion.utils.markdown")
 
 local fmt = string.format
 
@@ -226,12 +227,12 @@ Refers to line 335 of the init.lua file</grepSearchTool>]]
       if type(data) == "table" then
         -- Results were found - data is an array of file paths
         local results = #data
-        local results_msg = fmt("Searched text for `%s`, %d results\n````\n%s\n````", query, results, output)
-        chat:add_tool_output(self, fmt(llm_output, results_msg), "")
+        local content = fmt("Searched text for `%s`, %d results\n%s", query, results, markdown.form_codeblock(output))
+        chat:add_tool_output(self, fmt(llm_output, content), "")
       else
         -- No results found - data is a string message
-        local no_results_msg = fmt("Searched text for `%s`, no results", query)
-        chat:add_tool_output(self, fmt(llm_output, no_results_msg), "")
+        local content = fmt("Searched text for `%s`, no results", query)
+        chat:add_tool_output(self, fmt(llm_output, content), "")
       end
     end,
 
@@ -244,15 +245,8 @@ Refers to line 335 of the init.lua file</grepSearchTool>]]
       local errors = vim.iter(stderr):flatten():join("\n")
       log:debug("[Grep Search Tool] Error output: %s", stderr)
 
-      local error_output = fmt(
-        [[Searched text for `%s`, error:
-```
-%s
-```]],
-        query,
-        errors
-      )
-      chat:add_tool_output(self, error_output)
+      local content = fmt("Searched text for `%s`, error:\n%s", query, markdown.form_codeblock(errors))
+      chat:add_tool_output(self, content)
     end,
 
     ---Rejection message back to the LLM

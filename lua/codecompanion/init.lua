@@ -1,6 +1,7 @@
 local _extensions = require("codecompanion._extensions")
 local config = require("codecompanion.config")
 local log = require("codecompanion.utils.log")
+local markdown = require("codecompanion.utils.markdown")
 
 local api = vim.api
 
@@ -103,14 +104,9 @@ CodeCompanion.add = function(args)
   chat:add_buf_message({
     role = config.constants.USER_ROLE,
     content = string.format(
-      [[Here is some code from %s:
-````%s
-%s
-````
-]],
+      "Here is some code from %s:\n%s\n",
       context.path,
-      context.filetype,
-      content
+      markdown.form_codeblock(content, { ft = context.filetype })
     ),
   })
   chat.ui:open()

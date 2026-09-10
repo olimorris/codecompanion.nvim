@@ -83,6 +83,26 @@ T["Store"]["adds and fetches a comment to and from the markdown file"] = functio
   h.eq(45, comments[1].end_line)
 end
 
+T["Store"]["round trips code that contains its own code block"] = function()
+  child.lua([[
+    store.add_comment(repo, {
+      comment = "The fence in here must not end the section",
+      code = "before\n````lua\nlocal x = 1\n````\nafter",
+      filetype = "markdown",
+      path = "README.md",
+      start_line = 1,
+      end_line = 5,
+    })
+    store.add_comment(repo, { comment = "second", code = "local b", filetype = "lua", path = "b.lua", start_line = 2, end_line = 2 })
+  ]])
+
+  local comments = child.lua_get("store.comments(repo)")
+  h.eq(2, #comments)
+  h.eq("before\n````lua\nlocal x = 1\n````\nafter", comments[1].code)
+  h.eq("The fence in here must not end the section", comments[1].comment)
+  h.eq("second", comments[2].comment)
+end
+
 T["Store"]["keeps comments in the order they were added"] = function()
   child.lua([[
     store.add_comment(repo, { comment = "first", code = "local a", filetype = "lua", path = "a.lua", start_line = 1, end_line = 1 })
