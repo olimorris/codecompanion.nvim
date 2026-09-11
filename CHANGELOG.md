@@ -1,5 +1,13 @@
 # Changelog
 
+## [19.24.1](https://github.com/olimorris/codecompanion.nvim/compare/v19.24.0...v19.24.1) (2026-09-11)
+
+
+### Bug Fixes
+
+* **acp:** linebreak code blocks ([#3378](https://github.com/olimorris/codecompanion.nvim/issues/3378)) ([3f3660f](https://github.com/olimorris/codecompanion.nvim/commit/3f3660fdc9cae571f0407491870888f59e37c037))
+* **cli:** approval requests in herdr ([#3374](https://github.com/olimorris/codecompanion.nvim/issues/3374)) ([968048a](https://github.com/olimorris/codecompanion.nvim/commit/968048a1fa8f541765719949a7b6663a1c6faeff))
+
 ## [19.24.0](https://github.com/olimorris/codecompanion.nvim/compare/v19.23.0...v19.24.0) (2026-09-10)
 
 
