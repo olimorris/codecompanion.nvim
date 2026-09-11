@@ -533,7 +533,7 @@ function Connection:start_agent_process()
   return true
 end
 
----If called inside an async coroutine, yields until the response arrives, or fallsback to sync
+---If called inside an async coroutine, yields until the response arrives, or fallback to sync
 ---@param method string
 ---@param params table
 ---@return table|nil
