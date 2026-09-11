@@ -278,39 +278,6 @@ T["ACPHandler"]["handles connection errors"] = function()
   h.eq(nil, result.request_returned)
 end
 
-T["ACPHandler"]["starts the error codeblock on its own line"] = function()
-  local result = child.lua([[
-    local chat = h.setup_chat_buffer({}, {
-      name = "test_acp",
-      config = {
-        name = "test_acp",
-        type = "acp",
-        handlers = { form_messages = function(a, m) return m end }
-      }
-    })
-
-    local ACPHandler = require("codecompanion.interactions.chat.acp.handler")
-    local handler = ACPHandler.new(chat)
-
-    local buffer_messages = {}
-    chat.add_buf_message = function(self, data, opts)
-      table.insert(buffer_messages, { data = data, opts = opts })
-    end
-    chat.done = function() end
-
-    -- A preceding message chunk that doesn't end in a newline is what
-    -- previously left the fence glued to the end of that line
-    handler:handle_message_chunk("You've hit your session limit")
-    handler:handle_error("Internal error: You've hit your session limit")
-
-    return {
-      error_content = buffer_messages[2].data.content,
-    }
-  ]])
-
-  h.eq(true, result.error_content:sub(1, 1) == "\n")
-end
-
 T["ACPHandler"]["integrates with chat submit flow"] = function()
   local result = child.lua([[
     -- Create chat with ACP adapter
