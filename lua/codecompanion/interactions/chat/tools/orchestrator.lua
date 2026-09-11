@@ -297,7 +297,7 @@ function Orchestrator:_write_label_to_chat()
   self.tool_label = { line_number = line_number, icon_id = icon_id, text = text, status = "failed" }
 end
 
----Updae the label's icon for the tool's final status
+---Update the label's icon for the tool's final status
 ---@return nil
 function Orchestrator:_label_completed()
   local label = self.tool_label
