@@ -1,0 +1,3 @@
+[[post-start]]
+install = "cd doc && npm install"
+copy_memories = "ln -s {{ primary_worktree_path }}/memories {{ worktree_path }}/memories"
