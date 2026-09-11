@@ -10,6 +10,9 @@ description: "Reference for all CodeCompanion slash commands — fetch URLs, add
 
 Slash Commands enable you to quickly add context to the chat buffer. They are comprised of values present in the `interactions.chat.slash_commands` table alongside the `prompt_library` table where individual prompts have `opts.is_slash_cmd = true`.
 
+> [!NOTE]
+> Every command on this page is CodeCompanion's own and is triggered with `/`. An [ACP](/configuration/adapters-acp) agent such as Claude Code also exposes its own commands, which the plugin discovers from the agent at runtime. Those are triggered with `\` to keep the two apart - see [ACP Commands](/usage/chat-buffer/#completion).
+
 ## /acp_session_options
 
 > [!NOTE]
@@ -172,6 +175,14 @@ require("codecompanion").setup({
   },
 })
 ```
+
+## /skills
+
+The _skills_ slash command adds [skills](/usage/chat-buffer/skills) to the chat buffer. Multiple skills can be selected at once, depending on the picker you've configured.
+
+## /skills-group
+
+The _skills-group_ slash command adds a [group](/configuration/skills#groups) of skills in one go. It's hidden if you haven't configured any groups.
 
 ## /symbols
 

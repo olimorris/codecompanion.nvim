@@ -560,6 +560,33 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
             interactions = { "chat", "cli" },
           },
         },
+        ["skills"] = {
+          path = "interactions.chat.slash_commands.builtin.skills",
+          description = "Add a skill to the chat",
+          ---@param opts { adapter: CodeCompanion.HTTPAdapter|CodeCompanion.ACPAdapter }
+          ---@return boolean
+          enabled = function(opts)
+            return require("codecompanion.skills").available_for(opts)
+          end,
+          opts = {
+            contains_code = false,
+            provider = providers.pickers, -- telescope|fzf_lua|mini_pick|snacks|default
+          },
+        },
+        ["skills-group"] = {
+          path = "interactions.chat.slash_commands.builtin.skills_group",
+          description = "Add a group of skills to the chat",
+          ---@param opts { adapter: CodeCompanion.HTTPAdapter|CodeCompanion.ACPAdapter }
+          ---@return boolean
+          enabled = function(opts)
+            local skills = require("codecompanion.skills")
+            return skills.available_for(opts) and not vim.tbl_isempty(skills.groups())
+          end,
+          opts = {
+            contains_code = false,
+            provider = providers.pickers, -- telescope|fzf_lua|mini_pick|snacks|default
+          },
+        },
         ["save"] = {
           path = "interactions.chat.slash_commands.builtin.save",
           description = "Save the chat as a persistent session",
@@ -1227,6 +1254,25 @@ The user is working on a %s machine. Please respond with system specific command
       },
 
       show_presets = true, -- Show the preset rules files?
+    },
+  },
+  -- SKILLS --------------------------------------------------------------------
+  skills = {
+    ---@type string[]
+    dirs = {
+      "~/.config/codecompanion/skills",
+      ".codecompanion/skills",
+      "~/.claude/skills",
+      ".claude/skills",
+    },
+    opts = {
+      chat = {
+        enabled = true, -- When false, skills are unavailable and their slash commands are hidden
+
+        ---Group or skill names to add to every chat
+        ---@type string[]|fun(): string[]
+        autoload = {},
+      },
     },
   },
   -- DISPLAY OPTIONS ----------------------------------------------------------

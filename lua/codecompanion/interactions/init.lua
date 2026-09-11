@@ -26,6 +26,13 @@ local function get_tools(selected)
   return selected.tools
 end
 
+---Extract skills from the selected prompt
+---@param selected table
+---@return table<string>|nil
+local function get_skills(selected)
+  return selected.skills
+end
+
 ---Extract MCP servers from the selected prompt
 ---@param selected table
 ---@return table<string>|nil
@@ -172,6 +179,7 @@ function Interactions:chat()
       intro_message = (opts and opts.intro_message) or nil,
       mcp_servers = get_mcp_servers(self.selected),
       messages = messages,
+      skills = get_skills(self.selected),
       stop_context_insertion = (opts and self.selected.opts.stop_context_insertion) or false,
       tools = get_tools(self.selected),
     })
@@ -250,6 +258,7 @@ function Interactions:workflow()
     callbacks = get_callbacks(self.selected),
     mcp_servers = get_mcp_servers(self.selected),
     messages = messages,
+    skills = get_skills(self.selected),
     tools = get_tools(self.selected),
   })
   if not chat then

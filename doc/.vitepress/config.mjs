@@ -193,6 +193,7 @@ export default withMermaid(
             { text: "MCP", link: "/configuration/mcp" },
             { text: "Prompt Library", link: "/configuration/prompt-library" },
             { text: "Rules", link: "/configuration/rules" },
+            { text: "Skills", link: "/configuration/skills" },
             { text: "System Prompt", link: "/configuration/system-prompt" },
             { text: "Others", link: "/configuration/others" },
           ],
@@ -217,6 +218,7 @@ export default withMermaid(
                   link: "/usage/chat-buffer/editor-context",
                 },
                 { text: "Rules", link: "/usage/chat-buffer/rules" },
+                { text: "Skills", link: "/usage/chat-buffer/skills" },
                 {
                   text: "Slash Commands",
                   link: "/usage/chat-buffer/slash-commands",
