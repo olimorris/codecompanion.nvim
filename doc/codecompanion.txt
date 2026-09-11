@@ -1,5 +1,5 @@
 *codecompanion.txt*
-                              For NVIM v0.11    Last change: 2026 September 08
+                              For NVIM v0.11    Last change: 2026 September 11
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -44,6 +44,7 @@ Table of Contents                            *codecompanion-table-of-contents*
   - Inline Interaction        |codecompanion-configuration-inline-interaction|
   - MCP Servers                      |codecompanion-configuration-mcp-servers|
   - Rules                                  |codecompanion-configuration-rules|
+  - Skills                                |codecompanion-configuration-skills|
   - Prompt Library                |codecompanion-configuration-prompt-library|
   - System Prompts                |codecompanion-configuration-system-prompts|
   - Extensions                        |codecompanion-configuration-extensions|
@@ -55,6 +56,7 @@ Table of Contents                            *codecompanion-table-of-contents*
   - Agents and Tools                    |codecompanion-usage-agents-and-tools|
   - Editor Context                        |codecompanion-usage-editor-context|
   - Rules                                          |codecompanion-usage-rules|
+  - Skills                                        |codecompanion-usage-skills|
   - Slash Commands                        |codecompanion-usage-slash-commands|
   - Command-Line Interface (CLI)|codecompanion-usage-command-line-interface-(cli)|
   - Code Reviews                            |codecompanion-usage-code-reviews|
@@ -3891,6 +3893,115 @@ to have more granular control.
 
 
 
+SKILLS                                    *codecompanion-configuration-skills*
+
+Skills are reusable, filesystem-based resources that give LLMs domain-specific
+expertise (source
+<https://platform.claude.com/docs/en/agents-and-tools/agent-skills/overview>).
+In CodeCompanion, skills are folders of repeatable instructions that your LLM
+reads when it needs them.
+
+At initialisation, the LLM only receives the skills name and description.
+During a conversation, if the LLM deduces that the skill is required, then it
+reads the skill fully. This is known as progressive disclosure and it's what
+allows many skills to be present in the chat without consuming significant
+context.
+
+CodeCompanion uses the same `SKILL.md` format as Claude
+<https://platform.claude.com/docs/en/agents-and-tools/agent-skills/overview#how-skills-work>.
+
+
+ENABLING AND DISABLING SKILLS ~
+
+Skills are enabled by default. To disable them:
+
+>lua
+    require("codecompanion").setup({
+      skills = {
+        opts = {
+          chat = {
+            enabled = false,
+          },
+        },
+      },
+    })
+<
+
+
+DIRECTORIES ~
+
+By passing in a list of directories, CodeCompanion will search for skills in
+each of them. They can be customised with:
+
+>lua
+    require("codecompanion").setup({
+      skills = {
+        dirs = {
+          "~/.config/codecompanion/skills", -- Personal skills
+          ".codecompanion/skills",          -- Project skills
+          "~/.claude/skills",               -- Claude Code's personal skills
+          ".claude/skills",                 -- Claude Code's project skills
+        },
+      },
+    })
+<
+
+The directories are searched in order and skills are keyed on the `name` in
+their frontmatter. This results in a directory further down the list taking
+precedence if skills of the same name clash. This also means that if you
+symlink one skills directory to another and list both, you get one entry per
+skill rather than two.
+
+CodeCompanion never caches skills so they can be added throughout the Neovim
+session without restarting.
+
+
+GROUPS ~
+
+Groups allow you to group collective skills together under a single name for
+use in the chat buffer. They can be customised with:
+
+>lua
+    require("codecompanion").setup({
+      skills = {
+        ["Senior Engineer"] = {
+          description = "How I want code written and reviewed",
+          skills = { "lua-developer", "code-review", "tdd" },
+        },
+        ["Technical Writer"] = {
+          description = "How I want the docs written",
+          skills = { "docs-voice", "changelog" },
+        },
+      },
+    })
+<
+
+The skills in a group must reference the name of the skill as per its
+frontmatter and not the path to the skill. This means that the skill must exist
+in one of the directories listed in `dirs`.
+
+
+AUTOLOAD ~
+
+Skills and groups can be autoloaded into the chat buffer on startup. This is
+configured with:
+
+
+
+PROMPT LIBRARY ~
+
+Skills can also be referenced in |codecompanion-configuration-prompt-library|
+items, ensuring that they are loaded in the chat buffer when the prompt is
+used.
+
+
+  [!NOTE] The prompt library skills takes priority over `autoload`
+
+Set skills to `none` to start a prompt with no skills at all, overriding
+`autoload`:
+
+
+
 PROMPT LIBRARY                    *codecompanion-configuration-prompt-library*
 
 CodeCompanion enables you to leverage prompt templates to quickly interact with
@@ -5727,6 +5838,131 @@ Rules can also be cleared from a chat buffer via the `gR` keymap. Although
 note, this will remove `ALL` context that's been designated as `rules`.
 
 
+SKILLS                                            *codecompanion-usage-skills*
+
+
+  [!IMPORTANT] Skills are only available for
+  |codecompanion-configuration-adapters-http| adapters.
+  |codecompanion-configuration-adapters-acp| agents `may` have skills implemented
+  which can be accessed via the `\` trigger. See
+  |codecompanion-usage-chat-buffer-skills-acp-adapters| for more information.
+Ensure that you have read the |codecompanion-configuration-skills| section to
+understand how to configure skill directories and groups.
+
+
+WHAT YOUR LLM SEES ~
+
+Adding a skill to a chat buffer shares the skill's metadata (the YAML
+frontmatter in `SKILL.md`) with the LLM:
+
+>
+    The `lua-developer` skill is available: The Lua conventions for this project. Use when writing or reviewing Lua.
+    Read `/Users/Oli/.config/codecompanion/skills/lua-developer/SKILL.md` when the skill applies and follow its instructions.
+<
+
+By only loading the metadata, the context in the chat buffer is kept small.
+
+To read the skill in full, CodeCompanion attaches the `read_file` and
+`run_command` |codecompanion-usage-chat-buffer-agents-tools| to the chat. As a
+result, you'll need to use an LLM which has function calling capability.
+
+
+ADDING SKILLS ~
+
+The |codecompanion-usage-chat-buffer-slash-commands-skills| slash command lists
+every skill found in the |codecompanion-configuration-skills-directories|.
+Multiple skills can be added at once depending on the picker you've defined in
+the config.
+
+The |codecompanion-usage-chat-buffer-slash-commands-skills-group| slash command
+lists your configured |codecompanion-configuration-skills-groups| and adds all
+of their skills to the chat buffer.
+
+Both commands use whichever picker you've set for them. The `default` provider
+is `vim.ui.select`, which only selects one item at a time:
+
+>lua
+    require("codecompanion").setup({
+      interactions = {
+        chat = {
+          slash_commands = {
+            ["skills"] = {
+              opts = {
+                provider = "snacks", -- Can be "default", "telescope", "fzf_lua", "mini_pick" or "snacks"
+              },
+            },
+          },
+        },
+      },
+    })
+<
+
+
+ACP ADAPTERS ~
+
+Everything above applies to |codecompanion-configuration-adapters-http|
+adapters. On an |codecompanion-configuration-adapters-acp| adapter such as
+Claude Code, the agent runs its own skills, so `/skills` and `/skills-group`
+are hidden.
+
+Reach the agent's skills with the `\` trigger instead, which lists the
+|codecompanion-usage-chat-buffer--completion| the agent has discovered for
+itself. A skill in `~/.claude/skills` is therefore available either way:
+through `/skills` when you're on an http adapter, and through `\` when Claude
+Code is driving.
+
+
+CREATING A SKILL ~
+
+A skill is a directory containing a `SKILL.md`, in one of your configured
+|codecompanion-configuration-skills-directories|:
+
+>
+    lua-developer/
+    ├── SKILL.md          # Required
+    ├── REFERENCE.md      # Optional
+    └── scripts/          # Optional
+        └── lint.sh
+<
+
+`SKILL.md` is a markdown file with a YAML frontmatter, as per the Claude Agent
+Skills
+<https://platform.claude.com/docs/en/agents-and-tools/agent-skills/overview#how-skills-work>
+page:
+
+>markdown
+    ---
+    name: lua-developer
+    description: The Lua conventions for this project. Use when writing or reviewing Lua.
+    ---
+    
+    # Lua Developer
+    
+    Follow these conventions when writing Lua in this project:
+    
+    - Two space indent, 120 columns
+    - `snake_case` for functions, `PascalCase` for classes
+    
+    See [REFERENCE.md](REFERENCE.md) for worked examples.
+    
+    Run [scripts/lint.sh](scripts/lint.sh) before you report the work as finished.
+<
+
+The instructions (the main body of the skill) should contain the information
+the LLM needs to follow the skill. However, a vague description may mean the
+LLM never calls the skill.
+
+Link to other files in the skill using paths relative to `SKILL.md`. The LLM is
+given the full path to `SKILL.md`, so it finds them wherever you started Neovim
+from.
+
+
+REMOVING A SKILL ~
+
+A skill can be removed by deleting the skill's line from the `Context`
+blockquote in the chat buffer.
+
+
 SLASH COMMANDS                            *codecompanion-usage-slash-commands*
 
 Slash Commands enable you to quickly add context to the chat buffer. They are
@@ -5734,6 +5970,12 @@ comprised of values present in the `interactions.chat.slash_commands` table
 alongside the `prompt_library` table where individual prompts have
 `opts.is_slash_cmd = true`.
 
+
+  [!NOTE] Every command on this page is CodeCompanion's own and is triggered with
+  `/`. An |codecompanion-configuration-adapters-acp| agent such as Claude Code
+  also exposes its own commands, which the plugin discovers from the agent at
+  runtime. Those are triggered with `\` to keep the two apart - see
+  |codecompanion-usage-chat-buffer--completion|.
 
 /ACP_SESSION_OPTIONS ~
 
@@ -5977,6 +6219,20 @@ that you set a token in your configuration with permission to create gists:
       },
     })
 <
+
+
+/SKILLS ~
+
+The `skills` slash command adds |codecompanion-usage-chat-buffer-skills| to the
+chat buffer. Multiple skills can be selected at once, depending on the picker
+you've configured.
+
+
+/SKILLS-GROUP ~
+
+The `skills-group` slash command adds a
+|codecompanion-configuration-skills-groups| of skills in one go. It's hidden if
+you haven't configured any groups.
 
 
 /SYMBOLS ~

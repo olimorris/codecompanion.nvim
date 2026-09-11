@@ -20,6 +20,7 @@ doc/configuration/code-review.md
 doc/configuration/inline.md
 doc/configuration/mcp.md
 doc/configuration/rules.md
+doc/configuration/skills.md
 doc/configuration/prompt-library.md
 doc/configuration/system-prompt.md
 doc/configuration/extensions.md
@@ -34,6 +35,7 @@ doc/usage/chat-buffer/index.md
 doc/usage/chat-buffer/agents-tools.md
 doc/usage/chat-buffer/editor-context.md
 doc/usage/chat-buffer/rules.md
+doc/usage/chat-buffer/skills.md
 doc/usage/chat-buffer/slash-commands.md
 doc/usage/cli.md
 doc/usage/code-review.md
