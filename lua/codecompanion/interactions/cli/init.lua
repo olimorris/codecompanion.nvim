@@ -334,6 +334,11 @@ function CLI.hook(opts)
       return
     end
 
+    -- Claude Code notifies when its prompt sits idle, which arrives after the turn ended and would show as blocked
+    if opts.event == "approval_requested" and not cli.request_id then
+      return
+    end
+
     utils.fire(event, { bufnr = opts.bufnr, message = opts.message })
 
     -- A turn stays in flight while the agent waits on the user, so only its ends move the request
