@@ -142,30 +142,3 @@ require("codecompanion").setup({
 :::
 
 Set skills to `none` to start a prompt with no skills at all, overriding `autoload`:
-
-::: code-group
-
-```markdown [Markdown]
----
-name: No skills prompt
-interaction: chat
-description: A prompt that loads no skills
-skills: none
----
-```
-
-```lua [Lua]
-require("codecompanion").setup({
-  prompt_library = {
-    ["No skills prompt"] = {
-      strategy = "chat",
-      skills = "none",
-      prompts = {
-        -- Omitted for brevity
-      },
-    },
-  },
-})
-```
-
-:::

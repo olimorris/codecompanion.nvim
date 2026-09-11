@@ -28,7 +28,9 @@ The [/skills](/usage/chat-buffer/slash-commands#skills) slash command lists ever
 
 The [/skills-group](/usage/chat-buffer/slash-commands#skills-group) slash command lists your configured [groups](/configuration/skills#groups) and adds all of their skills to the chat buffer.
 
-Both commands use whichever picker you've set for them. The `default` provider is `vim.ui.select`, which only selects one item at a time:
+CodeCompanion detects whether you have [telescope](https://github.com/nvim-telescope/telescope.nvim), [fzf_lua](https://github.com/ibhagwan/fzf-lua), [mini_pick](https://github.com/echasnovski/mini.pick) or [snacks.nvim](https://github.com/folke/snacks.nvim) installed and picks one for you. Failing that, it falls back to the `default` provider, `vim.ui.select`, which is the only one that can't select more than one skill at a time.
+
+Each command is configured separately:
 
 ```lua
 require("codecompanion").setup({
@@ -38,6 +40,11 @@ require("codecompanion").setup({
         ["skills"] = {
           opts = {
             provider = "snacks", -- Can be "default", "telescope", "fzf_lua", "mini_pick" or "snacks"
+          },
+        },
+        ["skills-group"] = {
+          opts = {
+            provider = "snacks",
           },
         },
       },
