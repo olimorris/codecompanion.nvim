@@ -56,6 +56,7 @@
 ---@field mcp_servers? table<string> List of MCP server names to start and load into the chat buffer
 ---@field messages? CodeCompanion.Chat.Messages The messages to display in the chat buffer
 ---@field settings? table The settings that are used in the adapter of the chat buffer
+---@field skills? string[]|"none" Skill or skill group names to preload in the chat buffer
 ---@field status? string The status of any running jobs in the chat buffe
 ---@field stop_context_insertion? boolean Stop any visual selection from being automatically inserted into the chat buffer
 ---@field title? string The title of the chat buffer
@@ -519,6 +520,17 @@ local function load_tools(chat, args)
   end
 end
 
+---@param chat CodeCompanion.Chat
+---@param args CodeCompanion.ChatArgs
+---@return nil
+local function load_skills(chat, args)
+  if args.skills == "none" then
+    return
+  end
+
+  require("codecompanion.skills").autoload(chat, args.skills)
+end
+
 ---Start any MCP servers requested for this chat
 ---@param chat CodeCompanion.Chat
 ---@param args CodeCompanion.ChatArgs
@@ -674,6 +686,7 @@ function Chat.new(args)
   end
 
   load_tools(self, args)
+  load_skills(self, args)
   start_mcp_for_chat(self, args)
   register_callbacks(self, args)
 

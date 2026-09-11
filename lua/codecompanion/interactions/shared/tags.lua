@@ -14,6 +14,7 @@ local M = {
   QUICKFIX = "quickfix",
   RULES = "rules",
   SELECTION = "selection",
+  SKILLS = "skills",
   SYSTEM_PROMPT_FROM_CONFIG = "system_prompt_from_config",
   TERMINAL = "terminal",
   TOOL = "tool",

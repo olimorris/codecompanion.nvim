@@ -22,6 +22,19 @@ local function add_prompt_tools(chat, prompt_config)
   end)
 end
 
+---Add prompt-declared skills to the current chat
+---@param chat CodeCompanion.Chat
+---@param prompt_config table
+local function add_prompt_skills(chat, prompt_config)
+  local prompt_skills = prompt_config.skills
+  if not prompt_skills or prompt_skills == "none" then
+    return
+  end
+
+  local skills = require("codecompanion.skills")
+  skills.add_to_chat(chat, skills.resolve(prompt_skills))
+end
+
 ---Resolve a path to the correct module
 ---@param path string The module or file path
 ---@return table|nil
@@ -171,6 +184,7 @@ end
 function SlashCommands.run(selected, chat)
   if selected.from_prompt_library then
     add_prompt_tools(chat, selected.config)
+    add_prompt_skills(chat, selected.config)
 
     local context = selected.config.context
     if context then

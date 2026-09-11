@@ -68,6 +68,7 @@ function M.parse_file(path, context)
     path = path,
     prompts = prompts,
     rules = frontmatter.rules,
+    skills = frontmatter.skills,
     tools = frontmatter.tools,
   }
 end

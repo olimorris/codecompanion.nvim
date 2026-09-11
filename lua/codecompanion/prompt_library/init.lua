@@ -55,6 +55,7 @@ function M.resolve(context, config)
       picker = prompt.picker,
       prompts = prompt.prompts,
       rules = prompt.rules,
+      skills = prompt.skills,
       tools = prompt.tools,
     })
 
