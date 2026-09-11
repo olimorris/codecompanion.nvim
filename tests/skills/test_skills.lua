@@ -39,6 +39,16 @@ T["Skills"]["discovers only the skills with a name and a description"] = functio
   h.expect_match(skills[2].path, "tests/stubs/skills/personal/pdf%-forms/SKILL%.md$")
 end
 
+T["Skills"]["skips a skill whose name is not a string"] = function()
+  local skills = list_skills({ "tests/stubs/skills/personal" })
+
+  local names = vim.tbl_map(function(skill)
+    return skill.name
+  end, skills)
+  h.eq(false, vim.tbl_contains(names, true))
+  h.eq(2, #skills)
+end
+
 T["Skills"]["a later dir overrides a skill with the same name"] = function()
   local skills = list_skills({ "tests/stubs/skills/personal", "tests/stubs/skills/project" })
 
@@ -91,6 +101,26 @@ T["Skills in a chat"]["attaches the tools the model needs to load a skill"] = fu
 
   h.eq(true, child.lua_get([[_G.chat.tool_registry.in_use.read_file]]))
   h.eq(true, child.lua_get([[_G.chat.tool_registry.in_use.run_command]]))
+end
+
+T["Skills in a chat"]["DOES NOT add a skill when `read_file` is disabled"] = function()
+  child.lua([[
+    _G.chat.tools.tools_config.read_file = nil
+    _G.skills.add_to_chat(_G.chat, _G.skills.resolve({ "pdf-forms" }))
+  ]])
+
+  h.eq(0, child.lua_get([[#_G.chat.context_items]]))
+  h.eq(vim.NIL, child.lua_get([[_G.chat.tool_registry.in_use.read_file]]))
+end
+
+T["Skills in a chat"]["adds a skill without `run_command` when it is disabled"] = function()
+  child.lua([[
+    _G.chat.tools.tools_config.run_command = nil
+    _G.skills.add_to_chat(_G.chat, _G.skills.resolve({ "pdf-forms" }))
+  ]])
+
+  h.eq(true, child.lua_get([[_G.chat.tool_registry.in_use.read_file]]))
+  h.eq(vim.NIL, child.lua_get([[_G.chat.tool_registry.in_use.run_command]]))
 end
 
 T["Skills in a chat"]["a group adds every skill it names"] = function()

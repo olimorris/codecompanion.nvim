@@ -30,8 +30,8 @@ end
 ---@param path string
 ---@return CodeCompanion.Skill|nil
 local function parse_skill(path)
-  local content = files.read(path)
-  if not content then
+  local ok, content = pcall(files.read, path)
+  if not ok or not content then
     return log:warn("[Skills] Could not read `%s`", path)
   end
 
@@ -40,11 +40,12 @@ local function parse_skill(path)
     return log:warn("[Skills] `%s` has no frontmatter", path)
   end
 
-  local ok, parsed = pcall(yaml.decode, frontmatter)
+  local parsed
+  ok, parsed = pcall(yaml.decode, frontmatter)
   if not ok or type(parsed) ~= "table" then
     return log:warn("[Skills] Could not parse the frontmatter in `%s`", path)
   end
-  if not parsed.name or not parsed.description then
+  if type(parsed.name) ~= "string" or type(parsed.description) ~= "string" then
     return log:warn("[Skills] `%s` needs both a `name` and a `description` in its frontmatter", path)
   end
 
@@ -168,8 +169,15 @@ local function add_skill(chat, skill)
     return
   end
 
-  chat.tool_registry:add_single_tool("read_file")
-  chat.tool_registry:add_single_tool("run_command")
+  local tools_config = chat.tools.tools_config
+  if not tools_config.read_file then
+    return log:warn("[Skills] The `%s` skill needs the `read_file` tool, which is disabled", skill.name)
+  end
+
+  chat.tool_registry:add_single_tool("read_file", { config = tools_config.read_file })
+  if tools_config.run_command then
+    chat.tool_registry:add_single_tool("run_command", { config = tools_config.run_command })
+  end
 
   local content = fmt(
     "The `%s` skill is available: %s\nRead `%s` when the skill applies and follow its instructions.",
