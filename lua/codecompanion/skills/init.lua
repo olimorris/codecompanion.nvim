@@ -141,7 +141,6 @@ function M.resolve(names)
   return resolved
 end
 
----Skills need a function calling model, so they're limited to HTTP adapters
 ---@param opts { adapter: CodeCompanion.HTTPAdapter|CodeCompanion.ACPAdapter }
 ---@return boolean
 function M.available_for(opts)
@@ -155,7 +154,7 @@ end
 
 ---@param skill CodeCompanion.Skill
 ---@return string
-local function skill_id(skill)
+local function get_skill_id(skill)
   return "<skill>" .. skill.name .. "</skill>"
 end
 
@@ -164,7 +163,7 @@ end
 ---@param skill CodeCompanion.Skill
 ---@return nil
 local function add_skill(chat, skill)
-  local id = skill_id(skill)
+  local id = get_skill_id(skill)
   if chat_helpers.has_context(id, chat.messages) then
     return
   end
