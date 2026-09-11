@@ -5,11 +5,8 @@ permissions:
 
 on: [pull_request]
 
-env:
-  CLICOLOR: 1
-
 jobs:
-  spelling:
+  run:
     name: Spell Check with Typos
     runs-on: ubuntu-latest
     if: |
@@ -21,5 +18,7 @@ jobs:
         uses: actions/checkout@v6
 
       - name: Spell Check 📝
-        uses: crate-ci/typos@v1.33.1
+        uses: crate-ci/typos@v1.50.1
+        with:
+          config: .config/typos.toml
 
