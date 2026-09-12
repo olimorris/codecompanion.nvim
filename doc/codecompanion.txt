@@ -1,5 +1,5 @@
 *codecompanion.txt*
-                              For NVIM v0.11    Last change: 2026 September 11
+                              For NVIM v0.11    Last change: 2026 September 12
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -93,7 +93,7 @@ FEATURES                                      *codecompanion-welcome-features*
 -  Support for |codecompanion-model-context-protocol|
 -  |codecompanion-usage-inline|, code creation and refactoring
 -  |codecompanion-usage-chat-buffer-editor-context|, |codecompanion-usage-chat-buffer-slash-commands|, |codecompanion-usage-chat-buffer-agents-tools| and |codecompanion-usage-workflows| to improve LLM output
--  Support for |codecompanion-usage-chat-buffer-rules| files like `CLAUDE.md`, `.cursor/rules` and your own custom ones
+-  Support for |codecompanion-usage-chat-buffer-skills| and |codecompanion-usage-chat-buffer-rules| (like `CLAUDE.md`, `.cursor/rules` and your own custom ones)
 -  Built-in |codecompanion-usage-action-palette| for common tasks like advice on LSP errors and code explanations
 -  Create your own |codecompanion-configuration-prompt-library-creating-prompts|, Editor Context and Slash Commands
 -  Have |codecompanion-usage-introduction-quickly-accessing-a-chat-buffer| open at the same time
