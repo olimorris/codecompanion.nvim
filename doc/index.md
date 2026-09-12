@@ -39,3 +39,7 @@ CodeCompanion is a plugin which enables you to code with AI, using LLMs and agen
 CodeCompanion utilises objects called _interactions_. These are the different ways that a user can interact with an LLM. The _chat_ interaction harnesses a buffer to allow direct conversations with LLMs. The _inline_ interaction allows for output from the LLM to be written directly, inline to a pre-existing Neovim buffer.
 
 CodeCompanion uses [adapters](/configuration/adapters-http) to connect Neovim to an LLM or agent, even going as far as specifying [models](/configuration/adapters-http#changing-the-default-model) and/or [hyperparameters](/configuration/adapters-http#changing-adapter-parameters-schema). You can specify adapters for each interaction type and also for each [prompt library](configuration/prompt-library) entry. There are far too many adapters to list so be sure to check out the [adapters folder](https://github.com/olimorris/codecompanion.nvim/tree/main/lua/codecompanion/adapters/http) in the main repository.  You can also roll your own adapters. Refer to the [extending adapters](/extending/adapters) documentation for more information. Finally, be sure to check out the [community adapters](configuration/adapters-http#community-adapters) section for user contributed adapters.
+
+## Using the Docs
+
+You can use the [@{search_help}](/usage/chat-buffer/agents-tools#search-help) tool to ask an LLM to search the CodeCompanion docs for you. Alternatively, if browsing on the site, use thesearch bar at the top left of the page.

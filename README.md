@@ -69,6 +69,8 @@ Thank you to the following people:
 
 Everything you need to know about CodeCompanion (installation, configuration and usage) is within the [docs](https://codecompanion.olimorris.dev).
 
+You can use the [@{search_help}](https://codecompanion.olimorris.dev/usage/chat-buffer/agents-tools#search-help) tool to ask an LLM to search the CodeCompanion docs for you.
+
 ## :toolbox: Troubleshooting
 
 Before raising an [issue](https://github.com/olimorris/codecompanion.nvim/issues), there are a number of steps you can take to troubleshoot a problem:
