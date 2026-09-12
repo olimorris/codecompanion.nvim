@@ -1,5 +1,12 @@
 # Changelog
 
+## [19.25.0](https://github.com/olimorris/codecompanion.nvim/compare/v19.24.1...v19.25.0) (2026-09-12)
+
+
+### Features
+
+* **chat:** add skills ([#3379](https://github.com/olimorris/codecompanion.nvim/issues/3379)) ([d0eb9c8](https://github.com/olimorris/codecompanion.nvim/commit/d0eb9c84b3aa50455ca015f02c93eb775fa6cfe3))
+
 ## [19.24.1](https://github.com/olimorris/codecompanion.nvim/compare/v19.24.0...v19.24.1) (2026-09-11)
 
 
