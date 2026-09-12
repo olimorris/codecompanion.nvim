@@ -192,6 +192,25 @@ return {
         end)
         :totable()
 
+      -- Reorder messages: system messages must come first (required for models like Qwen3)
+      -- This must happen after all message processing to handle both initial messages and tool responses
+      local system_messages = {}
+      local tool_messages = {}
+      local other_messages = {}
+
+      for _, msg in ipairs(messages) do
+        if msg and msg.role == "system" then
+          table.insert(system_messages, msg)
+        elseif msg and msg.role == "tool" then
+          -- Keep tool responses in their original position relative to other non-system messages
+          table.insert(tool_messages, msg)
+        elseif msg then
+          table.insert(other_messages, msg)
+        end
+      end
+
+      messages = vim.list_extend(vim.list_extend(system_messages, other_messages), tool_messages)
+
       return { messages = messages }
     end,
 
