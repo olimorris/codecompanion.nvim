@@ -42,4 +42,4 @@ CodeCompanion uses [adapters](/configuration/adapters-http) to connect Neovim to
 
 ## Using the Docs
 
-You can use the [@{search_help}](/usage/chat-buffer/agents-tools#search-help) tool to ask an LLM to search the CodeCompanion docs for you. Alternatively, if browsing on the site, use thesearch bar at the top left of the page.
+You can use the [@{search_help}](/usage/chat-buffer/agents-tools#search-help) tool to ask an LLM to search the CodeCompanion docs for you. Alternatively, if browsing on the site, use the search bar at the top left of the page.

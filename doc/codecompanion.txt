@@ -129,7 +129,7 @@ DOCS                                              *codecompanion-welcome-docs*
 
 You can use the |codecompanion-usage-chat-buffer-agents-tools-search-help| tool
 to ask an LLM to search the CodeCompanion docs for you. Alternatively, if
-browsing on the site, use thesearch bar at the top left of the page.
+browsing on the site, use the search bar at the top left of the page.
 
 
 ==============================================================================
