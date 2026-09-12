@@ -7,6 +7,7 @@ Table of Contents                            *codecompanion-table-of-contents*
 1. Welcome                                             |codecompanion-welcome|
   - Features                                  |codecompanion-welcome-features|
   - Overview                                  |codecompanion-welcome-overview|
+  - Docs                                          |codecompanion-welcome-docs|
 2. Installation                                   |codecompanion-installation|
   - Requirements                     |codecompanion-installation-requirements|
   - Installation                     |codecompanion-installation-installation|
@@ -122,6 +123,13 @@ in the main repository. You can also roll your own adapters. Refer to the
 be sure to check out the
 |codecompanion-configuration-adapters-http-community-adapters| section for user
 contributed adapters.
+
+
+DOCS                                              *codecompanion-welcome-docs*
+
+You can use the |codecompanion-usage-chat-buffer-agents-tools-search-help| tool
+to ask an LLM to search the CodeCompanion docs for you. Alternatively, if
+browsing on the site, use the search bar at the top left of the page.
 
 
 ==============================================================================
