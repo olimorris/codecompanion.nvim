@@ -28,7 +28,7 @@ require("codecompanion").setup({
 
 ## Directories
 
-By passing in a list of directories, CodeCompanion will search for skills in each of them. They can be customised with:
+Skills are loaded in CodeCompanion from a list of directories. The default directories are:
 
 ```lua
 require("codecompanion").setup({
@@ -43,9 +43,9 @@ require("codecompanion").setup({
 })
 ```
 
-The directories are searched in order and skills are keyed on the `name` in their frontmatter. This results in a directory further down the list taking precedence if skills of the same name clash. This also means that if you symlink one skills directory to another and list both, you get one entry per skill rather than two.
+The directories are searched in order and skills are keyed on the `name` in their YAML frontmatter. A directory further down the list takes precedence if skills of the same name clash. This also means that if you symlink one skills directory to another, the skills are not duplicated.
 
-CodeCompanion never caches skills so they can be added throughout the Neovim session without restarting.
+CodeCompanion never caches skills so they can be added without restarting Neovim.
 
 ## Groups
 
@@ -66,7 +66,7 @@ require("codecompanion").setup({
 })
 ```
 
-The skills in a group must reference the name of the skill as per its frontmatter and not the path to the skill. This means that the skill must exist in one of the directories listed in `dirs`.
+The skills in a group must reference the name of the skill as per its YAML frontmatter and not the path to the skill. This means that the skill must exist in one of the directories listed in `dirs`.
 
 ## Autoload
 
@@ -105,6 +105,69 @@ require("codecompanion").setup({
 ```
 
 :::
+
+## Creating Skills
+
+A skill is a directory containing a `SKILL.md`, in one of your configured [skill directories](/configuration/skills#directories):
+
+```
+lua-developer/
+├── SKILL.md          # Required
+├── REFERENCE.md      # Optional
+└── scripts/          # Optional
+    └── lint.sh
+```
+
+`SKILL.md` is a markdown file with a YAML frontmatter, as per the Claude [Agent Skills](https://platform.claude.com/docs/en/agents-and-tools/agent-skills/overview#how-skills-work) page:
+
+```markdown
+---
+name: lua-developer
+description: The Lua conventions for this project. Use when writing or reviewing Lua.
+---
+
+# Lua Developer
+
+Follow these conventions when writing Lua in this project:
+
+- Two space indent, 120 columns
+- `snake_case` for functions, `PascalCase` for classes
+
+See [REFERENCE.md](REFERENCE.md) for worked examples.
+
+Run [scripts/lint.sh](scripts/lint.sh) before you report the work as finished.
+```
+
+The instructions (the main body of the skill) should contain the information the LLM needs to follow the skill. However, a vague description may mean the LLM never calls the skill.
+
+Link to other files in the skill using paths relative to `SKILL.md`. The LLM is given the full path to `SKILL.md`, so it finds them wherever you started Neovim from.
+
+## Pickers
+
+When selecting skills to load into the chat buffer, CodeCompanion detects whether you have [telescope](https://github.com/nvim-telescope/telescope.nvim), [fzf_lua](https://github.com/ibhagwan/fzf-lua), [mini_pick](https://github.com/echasnovski/mini.pick) or [snacks.nvim](https://github.com/folke/snacks.nvim) installed. Failing that, it falls back to the `default` provider, `vim.ui.select`.
+
+This can be configured with:
+
+```lua
+require("codecompanion").setup({
+  interactions = {
+    chat = {
+      slash_commands = {
+        ["skills"] = {
+          opts = {
+            provider = "snacks", -- Can be "default", "telescope", "fzf_lua", "mini_pick" or "snacks"
+          },
+        },
+        ["skills-group"] = {
+          opts = {
+            provider = "snacks",
+          },
+        },
+      },
+    },
+  },
+})
+```
 
 ## Prompt Library
 

@@ -59,42 +59,6 @@ Everything above applies to [http](/configuration/adapters-http) adapters. On an
 
 Reach the agent's skills with the `\` trigger instead, which lists the [ACP commands](/usage/chat-buffer/#completion) the agent has discovered for itself. A skill in `~/.claude/skills` is therefore available either way: through `/skills` when you're on an http adapter, and through `\` when Claude Code is driving.
 
-## Creating a Skill
-
-A skill is a directory containing a `SKILL.md`, in one of your configured [skill directories](/configuration/skills#directories):
-
-```
-lua-developer/
-├── SKILL.md          # Required
-├── REFERENCE.md      # Optional
-└── scripts/          # Optional
-    └── lint.sh
-```
-
-`SKILL.md` is a markdown file with a YAML frontmatter, as per the Claude [Agent Skills](https://platform.claude.com/docs/en/agents-and-tools/agent-skills/overview#how-skills-work) page:
-
-```markdown
----
-name: lua-developer
-description: The Lua conventions for this project. Use when writing or reviewing Lua.
----
-
-# Lua Developer
-
-Follow these conventions when writing Lua in this project:
-
-- Two space indent, 120 columns
-- `snake_case` for functions, `PascalCase` for classes
-
-See [REFERENCE.md](REFERENCE.md) for worked examples.
-
-Run [scripts/lint.sh](scripts/lint.sh) before you report the work as finished.
-```
-
-The instructions (the main body of the skill) should contain the information the LLM needs to follow the skill. However, a vague description may mean the LLM never calls the skill.
-
-Link to other files in the skill using paths relative to `SKILL.md`. The LLM is given the full path to `SKILL.md`, so it finds them wherever you started Neovim from.
-
 ## Removing a Skill
 
-A skill can be removed by deleting the skill's line from the _Context_ blockquote in the chat buffer.
+A skill can be removed from the chat buffer by deleting the skill's line from the _Context_ blockquote in the chat buffer.
