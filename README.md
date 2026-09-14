@@ -31,7 +31,7 @@ Thank you to the following people:
 - :speech_balloon: [Copilot Chat](https://github.com/features/copilot) meets [Zed AI](https://zed.dev/blog/zed-ai), in Neovim
 - :zap: Integrates Neovim with LLMs and Agents in the CLI
 - :electric_plug: Support for LLMs from [Anthropic](https://platform.claude.com/docs/en/about-claude/models/overview),  [DeepSeek](https://www.deepseek.com), [Google Gemini](https://ai.google.dev/gemini-api/docs/models), [GitHub Copilot](https://github.com/features/copilot), [GitHub Models](https://docs.github.com/en/github-models), [Kimi](https://platform.kimi.ai), [Mistral](https://mistral.ai/), [Novita](https://novita.ai/), [Ollama](https://ollama.com/), [OpenAI](https://developers.openai.com/api/docs/models), Azure OpenAI, [OpenRouter](https://openrouter.ai/), [HuggingFace](https://huggingface.co/) and [xAI](https://docs.x.ai/developers/models) out of the box (or [bring your own](https://codecompanion.olimorris.dev/extending/adapters.html))
-- :robot: Support for [Agent Client Protocol](https://agentclientprotocol.com/overview/introduction), enabling coding with agents like [Augment Code](https://docs.augmentcode.com/cli/overview), [Cagent](https://github.com/docker/cagent) from Docker, [Claude Code](https://docs.anthropic.com/en/docs/claude-code/overview), [Codex](https://openai.com/codex), [Copilot CLI](https://github.com/features/copilot/cli), [Gemini CLI](https://github.com/google-gemini/gemini-cli), [Goose](https://block.github.io/goose/), [Cursor CLI](https://cursor.com/docs/cli/overview), [Kimi CLI](https://github.com/MoonshotAI/kimi-cli), [Kiro](https://kiro.dev/docs/cli/), [Mistral Vibe](https://github.com/mistralai/mistral-vibe) and [OpenCode](https://opencode.ai)
+- :robot: Support for [Agent Client Protocol](https://agentclientprotocol.com/overview/introduction), enabling coding with agents like [Augment Code](https://docs.augmentcode.com/cli/overview), [Cagent](https://github.com/docker/cagent) from Docker, [Claude Code](https://docs.anthropic.com/en/docs/claude-code/overview), [Codex](https://openai.com/codex), [Copilot CLI](https://github.com/features/copilot/cli), [Gemini CLI](https://github.com/google-gemini/gemini-cli), [Goose](https://block.github.io/goose/), [Cursor CLI](https://cursor.com/docs/cli/overview), [Kimi CLI](https://github.com/MoonshotAI/kimi-cli), [Kiro](https://kiro.dev/docs/cli/), [MiniMax Code (MCode)](#minimax-code-mcode) via custom configuration, [Mistral Vibe](https://github.com/mistralai/mistral-vibe) and [OpenCode](https://opencode.ai)
 - :heart_hands: User contributed and supported [adapters](https://codecompanion.olimorris.dev/configuration/adapters-http#community-adapters)
 - :man_technologist: [Code reviews](https://codecompanion.olimorris.dev/usage/code-review) enabling you to comment on and approve/reject agent code
 - :battery: Support for [Model Context Protocol (MCP)](https://codecompanion.olimorris.dev/model-context-protocol#model-context-protocol-mcp-support)
@@ -70,6 +70,29 @@ Thank you to the following people:
 Everything you need to know about CodeCompanion (installation, configuration and usage) is within the [docs](https://codecompanion.olimorris.dev).
 
 You can use the [@{search_help}](https://codecompanion.olimorris.dev/usage/chat-buffer/agents-tools#search-help) tool to ask an LLM to search the CodeCompanion docs for you.
+
+### MiniMax Code (MCode)
+
+[MiniMax Code](https://agent.minimax.io) can use a custom ACP adapter. Follow the [CLI installation instructions](https://www.npmjs.com/package/@minimax-ai/code), including the Node.js requirements and npm script permissions, then run `mcode login` in a terminal. Ensure `mcode` is on Neovim's `PATH`, then add this adapter to your existing setup:
+
+```lua
+require("codecompanion").setup({
+  adapters = {
+    acp = {
+      mcode = function()
+        return require("codecompanion.adapters").extend("kimi_cli", {
+          name = "mcode",
+          formatted_name = "MiniMax Code",
+          opts = { vision = false },
+          commands = { default = { "mcode", "acp" } },
+        })
+      end,
+    },
+  },
+})
+```
+
+This reuses the Kimi adapter's ACP message handling and terminal authentication. Start a chat with `:CodeCompanionChat adapter=mcode`.
 
 ## :toolbox: Troubleshooting
 
