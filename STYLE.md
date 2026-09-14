@@ -8,9 +8,8 @@ Read [CONTRIBUTING.md](CONTRIBUTING.md) first for what to contribute. This file 
 
 ## 1. Formatting
 
-- Formatting is StyLua's job, not yours. Run `make format` before committing
+- Formatting is StyLua's job, not yours
 - 120 column width, 2 space indent, double quotes, Unix line endings (`stylua.toml`)
-- `make test` must pass. `make docs` must be run if you touched anything in `doc/`
 
 ## 2. Comments
 
@@ -180,9 +179,7 @@ T["Parser"]["a balanced response leaves the prompt extractable"] = function()
 
 **Test what the change actually does.** Comprehensive-looking tests that never exercise the edge case are worse than no tests. Don't test a schema mirroring itself, and don't test that a shared utility passes its errors through.
 
-**Don't write tests for chat buffer cursor position, scrolling, or folds.** These are verified by hand in real use. Ask first if you think a case is warranted.
-
-**Use an LLM for the feature or the tests. Not both.**
+**Don't write tests for chat buffer cursor position, scrolling, or folds.** These are verified by hand in real use.
 
 ## 6. Error handling and defensive code
 
@@ -196,9 +193,6 @@ Use the helpers in `lua/codecompanion/utils/files.lua` for anything touching the
 
 ## 8. Scope
 
-- Do what the PR says it does, nothing more
-- Don't create new files unless there is no reasonable place for the code to live. Prefer editing an existing file
-- Don't add documentation files that weren't asked for
 - Don't reformat, rename, or "tidy" code your change doesn't touch - it buries the actual diff
 
 ## 9. Language

@@ -64,6 +64,11 @@ return {
     },
     ["memory"] = {
       description = "Enables Claude to store and retrieve information across conversations through a memory file directory. Claude can create, read, update, and delete files that persist between sessions, allowing it to build knowledge over time without keeping everything in the context window",
+      -- Anthropic defines this tool server-side, so to be able to share the
+      -- list of memory files with it, we need to modify the system prompt
+      system_prompt = function()
+        return require("codecompanion.memory").prompt()
+      end,
       ---@param self CodeCompanion.HTTPAdapter.Anthropic
       ---@param meta { tools: table }
       callback = function(self, meta)

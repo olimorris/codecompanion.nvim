@@ -1,25 +1,21 @@
 local file_utils = require("codecompanion.utils.files")
 local helpers = require("codecompanion.interactions.chat.tools.builtin.helpers")
 local log = require("codecompanion.utils.log")
+local memory = require("codecompanion.memory")
 
 local fmt = string.format
 
 local CONSTANTS = {
-  MEMORY_DIR = "memories",
+  -- Anthropic's memory tool truncates at this point, so we match it
+  MAX_VIEW_CHARS = 16000,
 }
-
----Get the absolute memory directory path
----@return string
-local function get_memory_root()
-  return vim.fs.joinpath(vim.fn.getcwd(), CONSTANTS.MEMORY_DIR)
-end
 
 ---Build a lookup of allowed path prefixes and their absolute roots
 ---@param whitelist? { path: string, as: string }[]
 ---@return { prefix: string, root: string }[]
 local function get_allowed_paths(whitelist)
   local allowed = {
-    { prefix = "/" .. CONSTANTS.MEMORY_DIR, root = get_memory_root() },
+    { prefix = memory.PREFIX, root = memory.root() },
   }
   for _, entry in ipairs(whitelist or {}) do
     if type(entry.path) == "string" and entry.path ~= "" and type(entry.as) == "string" and entry.as ~= "" then
@@ -95,6 +91,32 @@ local function validate_path(path, whitelist)
   error(fmt("Path must start with one of: %s", table.concat(prefixes, ", ")))
 end
 
+---@param name string A path relative to the directory being listed
+---@return boolean
+local function is_ignored(name)
+  for segment in vim.gsplit(name, "/", { plain = true }) do
+    if vim.startswith(segment, ".") or segment == "node_modules" then
+      return true
+    end
+  end
+  return false
+end
+
+---List a directory two levels deep, as the tool's description promises
+---@param root string
+---@return string[]
+local function list_directory(root)
+  local entries = {}
+  for name, entry_type in vim.fs.dir(root, { depth = 2 }) do
+    if not is_ignored(name) then
+      table.insert(entries, entry_type == "directory" and (name .. "/") or name)
+    end
+  end
+  table.sort(entries)
+
+  return entries
+end
+
 ---Shows directory contents or file contents with optional line ranges
 ---@param path string The file or directory path to view
 ---@param view_range? [number, number] The range of lines to view (start_line, end_line)
@@ -107,20 +129,15 @@ local function view(path, view_range, whitelist)
     error(fmt("Path does not exist: %s", path))
   end
 
-  -- Handle directory viewing
   if file_utils.is_dir(normalized_path) then
-    local files, err = file_utils.list_dir(normalized_path)
-    if not files then
-      error(err)
-    end
-
-    if #files == 0 then
+    local entries = list_directory(normalized_path)
+    if #entries == 0 then
       return fmt("Directory: %s\n(empty)", path)
     end
 
     local output = { fmt("Directory: %s", path) }
-    for _, file in ipairs(files) do
-      table.insert(output, "- " .. file)
+    for _, entry in ipairs(entries) do
+      table.insert(output, "- " .. entry)
     end
     return table.concat(output, "\n")
   end
@@ -149,7 +166,16 @@ local function view(path, view_range, whitelist)
     table.insert(scoped_lines, lines[i])
   end
 
-  return table.concat(scoped_lines, "\n")
+  local content = table.concat(scoped_lines, "\n")
+  if #content > CONSTANTS.MAX_VIEW_CHARS then
+    return content:sub(1, CONSTANTS.MAX_VIEW_CHARS)
+      .. fmt(
+        "\n\n[Truncated at %d characters. Use view_range to read a specific range of lines]",
+        CONSTANTS.MAX_VIEW_CHARS
+      )
+  end
+
+  return content
 end
 
 ---Create or overwrite a file with content
@@ -399,7 +425,7 @@ return {
     type = "function",
     ["function"] = {
       name = "memory",
-      description = "Tool for reading, writing, and managing files in a memory system that lives under /memories. This system records your own memory, and is initialized as an empty folder when the task started. This tool can only change files under /memories. This is your memory, you are free to structure this directory as you see fit.\n* The view command supports the following cases:\n  - Directories: Lists files and directories up to 2 levels deep, ignoring hidden items and node_modules\n  - Image files (.jpg, .jpeg, or .png): Displays the image visually\n  - Text files: Displays numbered lines. Lines are determined from Python's .splitlines() method, which recognizes all standard line breaks. If the file contains more than 16000 characters, the output will be truncated.\n* The create command creates or overwrites text files with the content specified in the file_text parameter.\n* The str_replace command replaces text in a file. Requires an exact, unique match of old_str (whitespace sensitive)\n  - Will fail if old_str doesn't exist or appears multiple times\n  - Omitting new_str deletes the matched text\n* The insert command inserts the text insert_text at the line insert_line.\n* The delete command deletes a file or directory (including all contents if a directory).\n* The rename command renames a file or directory. Both old_path and new_path must be provided.\n* All operations are restricted to files and directories within /memories.\n* You cannot delete or rename /memories itself, only its contents.\n* Note: when editing your memory folder, always try to keep the content up-to-date, coherent and organized. You can rename or delete files that are no longer relevant. Do not create new files unless necessary.",
+      description = "Tool for reading, writing, and managing files in a memory system that lives under /memories. This system records your own memory and persists between conversations. What it already contains has been listed for you, so you do not need to explore the directory to find out. This tool can only change files under /memories. This is your memory, you are free to structure this directory as you see fit.\n* The view command supports the following cases:\n  - Directories: Lists files and directories up to 2 levels deep, ignoring hidden items and node_modules\n  - Image files (.jpg, .jpeg, or .png): Displays the image visually\n  - Text files: Displays numbered lines. Lines are determined from Python's .splitlines() method, which recognizes all standard line breaks. If the file contains more than 16000 characters, the output will be truncated.\n* The create command creates or overwrites text files with the content specified in the file_text parameter.\n* The str_replace command replaces text in a file. Requires an exact, unique match of old_str (whitespace sensitive)\n  - Will fail if old_str doesn't exist or appears multiple times\n  - Omitting new_str deletes the matched text\n* The insert command inserts the text insert_text at the line insert_line.\n* The delete command deletes a file or directory (including all contents if a directory).\n* The rename command renames a file or directory. Both old_path and new_path must be provided.\n* All operations are restricted to files and directories within /memories.\n* You cannot delete or rename /memories itself, only its contents.\n* Note: when editing your memory folder, always try to keep the content up-to-date, coherent and organized. You can rename or delete files that are no longer relevant. Do not create new files unless necessary.",
       parameters = {
         type = "object",
         properties = {
@@ -451,34 +477,7 @@ return {
     },
   },
   system_prompt = function()
-    local config = require("codecompanion.config")
-    local tool_config = config.interactions.chat.tools["memory"]
-    local whitelist = tool_config and tool_config.opts and tool_config.opts.whitelist
-
-    local prompt =
-      [[- Always check the memory tool for relevant context before answering questions about previous conversations.
-- Use the memory tool to save important decisions, summaries, or insights from ongoing discussions.
-- When context is unclear, search memory for related topics or keywords before responding.
-- Prefer updating existing memory entries over creating new ones, unless a new topic is introduced.
-- Clearly reference retrieved memory when continuing or summarising conversations.
-- If no relevant memory is found, inform the user and ask if they wish to start a new topic or save new context.]]
-
-    if whitelist and #whitelist > 0 then
-      local paths = {}
-      for _, entry in ipairs(whitelist) do
-        if entry.path and entry.as then
-          local prefix = vim.startswith(entry.as, "/") and entry.as or ("/" .. entry.as)
-          table.insert(paths, fmt("  - %s (mounted at %s)", entry.path, prefix))
-        end
-      end
-      if #paths > 0 then
-        prompt = prompt
-          .. "\n- In addition to /memories, you can also read and write to these whitelisted paths:\n"
-          .. table.concat(paths, "\n")
-      end
-    end
-
-    return prompt
+    return memory.prompt()
   end,
   handlers = {
     ---@param self CodeCompanion.Tool.Memory
