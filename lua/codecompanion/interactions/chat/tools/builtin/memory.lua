@@ -91,14 +91,15 @@ local function validate_path(path, whitelist)
   error(fmt("Path must start with one of: %s", table.concat(prefixes, ", ")))
 end
 
----@param name string
+---@param path string
 ---@return boolean
-local function is_ignored(name)
-  for segment in vim.gsplit(name, "/", { plain = true }) do
+local function is_ignored(path)
+  for segment in vim.gsplit(path, "/", { plain = true }) do
     if vim.startswith(segment, ".") or segment == "node_modules" then
       return true
     end
   end
+
   return false
 end
 
@@ -118,7 +119,7 @@ local function list_directory(root)
 end
 
 ---Shows directory contents or file contents with optional line ranges
----@param path string The file or directory path to view
+---@param path string
 ---@param view_range? [number, number] The range of lines to view (start_line, end_line)
 ---@param whitelist? { path: string, as: string }[]
 ---@return string content
