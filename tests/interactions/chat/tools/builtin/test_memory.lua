@@ -96,6 +96,30 @@ T["view"]["can view directory with files"] = function()
   h.expect_match(output.data, "test2%.txt")
 end
 
+T["view"]["lists a directory two levels deep, skipping hidden items and node_modules"] = function()
+  child.lua([[
+    vim.fn.mkdir(vim.fs.joinpath(_G.MEMORY_DIR_ABSOLUTE, "projects", "deep"), "p")
+    vim.fn.mkdir(vim.fs.joinpath(_G.MEMORY_DIR_ABSOLUTE, "node_modules"), "p")
+    vim.fn.writefile({"Top"}, vim.fs.joinpath(_G.MEMORY_DIR_ABSOLUTE, "top.txt"))
+    vim.fn.writefile({"Nested"}, vim.fs.joinpath(_G.MEMORY_DIR_ABSOLUTE, "projects", "nested.txt"))
+    vim.fn.writefile({"Too deep"}, vim.fs.joinpath(_G.MEMORY_DIR_ABSOLUTE, "projects", "deep", "buried.txt"))
+    vim.fn.writefile({"Hidden"}, vim.fs.joinpath(_G.MEMORY_DIR_ABSOLUTE, ".hidden.txt"))
+    vim.fn.writefile({"Vendored"}, vim.fs.joinpath(_G.MEMORY_DIR_ABSOLUTE, "node_modules", "vendored.txt"))
+
+    local builtin = require("codecompanion.interactions.chat.tools.builtin.memory")
+    _G.result = builtin.cmds[1](builtin, { command = "view", path = "/memories" })
+  ]])
+
+  local output = child.lua_get("_G.result")
+
+  h.eq(output.status, "success")
+  h.expect_match(output.data, "top%.txt")
+  h.expect_match(output.data, "projects/nested%.txt")
+  h.eq(nil, output.data:find("buried%.txt"))
+  h.eq(nil, output.data:find("hidden%.txt"))
+  h.eq(nil, output.data:find("vendored%.txt"))
+end
+
 T["view"]["can view file content"] = function()
   child.lua([[
     -- Create a test file
@@ -123,6 +147,28 @@ T["view"]["can view file content"] = function()
 
   h.eq(output.status, "success")
   h.eq(output.data, "Line 1\nLine 2\nLine 3\n")
+end
+
+T["view"]["truncates a file that is over the character limit"] = function()
+  child.lua([[
+    local lines = {}
+    for i = 1, 2000 do
+      lines[i] = string.rep("é", 20)
+    end
+    vim.fn.writefile(lines, vim.fs.joinpath(_G.MEMORY_DIR_ABSOLUTE, "big.txt"))
+
+    local builtin = require("codecompanion.interactions.chat.tools.builtin.memory")
+    _G.result = builtin.cmds[1](builtin, { command = "view", path = "/memories/big.txt" })
+
+    local notice = _G.result.data:find("\n\n%[Truncated")
+    _G.chars = vim.fn.strcharlen(_G.result.data:sub(1, notice - 1))
+  ]])
+
+  local output = child.lua_get("_G.result")
+
+  h.eq(output.status, "success")
+  h.expect_match(output.data, "%[Truncated at 16000 characters")
+  h.eq(16000, child.lua_get("_G.chars"))
 end
 
 T["view"]["can view file content with line range"] = function()
