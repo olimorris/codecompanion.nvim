@@ -11,6 +11,7 @@ local fmt = string.format
 local CONSTANTS = {
   NAME = "File",
   PROMPT = "Select file(s)",
+  IMAGE_MIMETYPES = { "image/gif", "image/jpeg", "image/png", "image/webp" },
 }
 
 ---The directories to search in, always led by the current working directory
@@ -32,20 +33,7 @@ local function get_search_dirs(SlashCommand)
   return dirs
 end
 
----The command Mini.Pick uses to list files, mirroring its own `builtin.files` tools
----@param dirs string[]
----@return string[]|nil
-local function get_files_command(dirs)
-  if vim.fn.executable("rg") == 1 then
-    return vim.list_extend({ "rg", "--files", "--color=never" }, dirs)
-  end
-  if vim.fn.executable("fd") == 1 then
-    -- `fd` reads its first positional as the search pattern, so the directories need one in front of them
-    return vim.list_extend({ "fd", "--type=f", "--color=never", "." }, dirs)
-  end
-end
-
----Every file in the given directories, for pickers that can't shell out to `rg` or `fd`
+---Every file in the given directories, for pickers that can only search one at a time
 ---@param dirs string[]
 ---@return string[]
 local function scan_dirs(dirs)
@@ -142,11 +130,6 @@ local providers = {
       return mini_pick.provider.builtin.files({}, display)
     end
 
-    local command = get_files_command(dirs)
-    if command then
-      return mini_pick.provider.builtin.cli({ command = command }, display)
-    end
-
     return mini_pick.provider.start(vim.tbl_deep_extend("force", display, { source = { items = scan_dirs(dirs) } }))
   end,
 
@@ -229,10 +212,15 @@ end
 
 ---Base64 encode an image and add it to the chat buffer for adapters that support vision
 ---@param selected { path: string }
----@param opts? { silent?: boolean }
+---@param opts? { mimetype?: string, silent?: boolean }
 ---@return nil
 function SlashCommand:output_image(selected, opts)
   opts = opts or {}
+
+  if not vim.tbl_contains(CONSTANTS.IMAGE_MIMETYPES, opts.mimetype) then
+    log:warn("`%s` is not a supported image type", vim.fn.fnamemodify(selected.path, ":t"))
+    return
+  end
 
   local adapter = self.Chat.adapter
   if not (adapter.opts and adapter.opts.vision) then
@@ -330,6 +318,7 @@ function SlashCommand:output(selected, opts)
     return self:output_pdf(selected, opts)
   end
   if mimetype and mimetype:match("^image/") then
+    opts = vim.tbl_extend("force", opts, { mimetype = mimetype })
     return self:output_image(selected, opts)
   end
 

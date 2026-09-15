@@ -23,14 +23,14 @@ local function pick_files(dirs)
     local extra = vim.fn.tempname()
     vim.fn.mkdir(cwd, "p")
     vim.fn.mkdir(extra, "p")
-    vim.fn.writefile({ "in cwd" }, cwd .. "/in_cwd.txt")
-    vim.fn.writefile({ "in extra" }, extra .. "/in_extra.txt")
+    vim.fn.writefile({ "in cwd" }, vim.fs.joinpath(cwd, "in_cwd.txt"))
+    vim.fn.writefile({ "in extra" }, vim.fs.joinpath(extra, "in_extra.txt"))
     vim.fn.chdir(cwd)
 
     local picked
     vim.ui.select = function(items, _, on_choice)
-      picked = vim.tbl_map(function(item)
-        return vim.fn.fnamemodify(item.path, ":t")
+      picked = vim.tbl_map(function(selected_file)
+        return vim.fn.fnamemodify(selected_file.path, ":t")
       end, items)
       on_choice(nil)
     end
@@ -66,7 +66,7 @@ T["File"]["adds an image as an image message"] = function()
 
     local slash = require("codecompanion.interactions.shared.slash_commands.file")
       .new({ Chat = _G.chat, config = { opts = { contains_code = true } } })
-    slash:output({ path = vim.fn.getcwd() .. "/tests/stubs/logo.png" })
+    slash:output({ path = vim.fs.joinpath(vim.fn.getcwd(), "tests", "stubs", "logo.png") })
   ]])
 
   local message = child.lua([[return _G.chat.messages[#_G.chat.messages] ]])
@@ -77,6 +77,24 @@ T["File"]["adds an image as an image message"] = function()
   h.eq("<image>tests/stubs/logo.png</image>", context)
 end
 
+T["File"]["DOES NOT add an image in a format that LLMs reject"] = function()
+  local count = child.lua([[
+    _G.chat = h.setup_chat_buffer()
+    _G.chat.adapter.opts = vim.tbl_extend("force", _G.chat.adapter.opts or {}, { vision = true })
+    local before = #_G.chat.messages
+
+    local svg = vim.fn.tempname() .. ".svg"
+    vim.fn.writefile({ '<svg xmlns="http://www.w3.org/2000/svg"></svg>' }, svg)
+
+    local slash = require("codecompanion.interactions.shared.slash_commands.file")
+      .new({ Chat = _G.chat, config = { opts = { contains_code = true } } })
+    slash:output({ path = svg })
+
+    return #_G.chat.messages - before
+  ]])
+  h.eq(0, count)
+end
+
 T["File"]["DOES NOT add an image when the adapter has no vision support"] = function()
   local count = child.lua([[
     _G.chat = h.setup_chat_buffer()
@@ -85,7 +103,7 @@ T["File"]["DOES NOT add an image when the adapter has no vision support"] = func
 
     local slash = require("codecompanion.interactions.shared.slash_commands.file")
       .new({ Chat = _G.chat, config = { opts = { contains_code = true } } })
-    slash:output({ path = vim.fn.getcwd() .. "/tests/stubs/logo.png" })
+    slash:output({ path = vim.fs.joinpath(vim.fn.getcwd(), "tests", "stubs", "logo.png") })
 
     return #_G.chat.messages - before
   ]])
