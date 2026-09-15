@@ -67,7 +67,7 @@ return {
       -- Anthropic defines this tool server-side, so to be able to share the
       -- list of memory files with it, we need to modify the system prompt
       system_prompt = function()
-        return require("codecompanion.memory").prompt()
+        return require("codecompanion.memory").get_prompt()
       end,
       ---@param self CodeCompanion.HTTPAdapter.Anthropic
       ---@param meta { tools: table }
