@@ -1,5 +1,4 @@
-*codecompanion.txt*
-                              For NVIM v0.11    Last change: 2026 September 12
+*codecompanion.txt*        For NVIM v0.11       Last change: 2026 September 15
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -909,7 +908,7 @@ CURRENT LIMITATIONS                    *codecompanion-acp-current-limitations*
     `terminal/output`, `terminal/release`, etc.) are not implemented. CodeCompanion
     doesn't advertise terminal capabilities to agents.
 - **Agent Plan Rendering**: Plan
-<https://agentclientprotocol.com/protocol/agent-plan> updates from agents are
+    <https://agentclientprotocol.com/protocol/agent-plan> updates from agents are
     received and logged, but they're not currently rendered in the chat buffer UI.
 - **Audio Content**: Audio can't be sent or received
 
@@ -6115,6 +6114,36 @@ Also, multiple files can be selected and added to the chat buffer.
 
 The content of a file can be reshaped before the LLM sees it with
 |codecompanion-configuration-others-context-formatters|.
+
+**Searching other directories**
+
+Use `opts.dirs` to give the picker a list of directories to search alongside
+the current working directory:
+
+>lua
+    require("codecompanion").setup({
+      interactions = {
+        chat = {
+          slash_commands = {
+            ["file"] = {
+              opts = {
+                dirs = { "~/notes", "../shared-library" },
+              },
+            },
+          },
+        },
+      },
+    })
+<
+
+Paths may be relative or use `~`.
+
+**Images**
+
+Selecting an image sends it to the LLM as an image rather than as file content,
+in the same way as the |codecompanion--image| slash command.
+
+**PDFs**
 
 #3218 <https://github.com/olimorris/codecompanion.nvim/pull/3218> added support
 for PDFs for the following http adapters:

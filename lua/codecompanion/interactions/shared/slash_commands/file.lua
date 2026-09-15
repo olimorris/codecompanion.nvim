@@ -1,8 +1,7 @@
-local Path = require("plenary.path")
-
 local config = require("codecompanion.config")
 local files_utils = require("codecompanion.utils.files")
 local helpers = require("codecompanion.interactions.chat.helpers")
+local image_utils = require("codecompanion.utils.images")
 local log = require("codecompanion.utils.log")
 local tags = require("codecompanion.interactions.shared.tags")
 local utils = require("codecompanion.utils")
@@ -12,7 +11,39 @@ local fmt = string.format
 local CONSTANTS = {
   NAME = "File",
   PROMPT = "Select file(s)",
+  IMAGE_MIMETYPES = { "image/gif", "image/jpeg", "image/png", "image/webp" },
 }
+
+---The directories to search in, always led by the current working directory
+---@param SlashCommand CodeCompanion.SlashCommand
+---@return string[]
+local function get_search_dirs(SlashCommand)
+  local dirs = { vim.fn.getcwd() }
+
+  local configured = SlashCommand.config.opts and SlashCommand.config.opts.dirs or {}
+  for _, dir in ipairs(configured) do
+    local path = vim.fs.abspath(vim.fs.normalize(dir))
+    if files_utils.is_dir(path) then
+      table.insert(dirs, path)
+    else
+      log:warn("`%s` is not a directory. Skipping", dir)
+    end
+  end
+
+  return dirs
+end
+
+---Every file in the given directories, for pickers that can only search one at a time
+---@param dirs string[]
+---@return string[]
+local function scan_dirs(dirs)
+  local files = {}
+  for _, dir in ipairs(dirs) do
+    vim.list_extend(files, files_utils.scan_directory(dir, { max_depth = 10 }))
+  end
+
+  return files
+end
 
 local providers = {
   ---The default provider
@@ -28,7 +59,7 @@ local providers = {
         SlashCommand = SlashCommand,
         title = CONSTANTS.PROMPT,
       })
-      :find_files()
+      :find_files({ dirs = get_search_dirs(SlashCommand) })
       :display()
   end,
 
@@ -51,6 +82,7 @@ local providers = {
       source = "files",
       prompt = snacks.title,
       confirm = snacks:display(),
+      dirs = get_search_dirs(SlashCommand),
       main = { file = false, float = true },
     })
   end,
@@ -71,6 +103,7 @@ local providers = {
       prompt_title = telescope.title,
       attach_mappings = telescope:display(),
       hidden = true,
+      search_dirs = get_search_dirs(SlashCommand),
     })
   end,
 
@@ -86,14 +119,18 @@ local providers = {
       end,
     })
 
-    mini_pick.provider.builtin.files(
-      {},
-      mini_pick:display(function(selected)
-        return {
-          path = selected,
-        }
-      end)
-    )
+    local display = mini_pick:display(function(selected)
+      return {
+        path = selected,
+      }
+    end)
+
+    local dirs = get_search_dirs(SlashCommand)
+    if #dirs == 1 then
+      return mini_pick.provider.builtin.files({}, display)
+    end
+
+    return mini_pick.provider.start(vim.tbl_deep_extend("force", display, { source = { items = scan_dirs(dirs) } }))
   end,
 
   ---The fzf-lua provider
@@ -108,13 +145,15 @@ local providers = {
       end,
     })
 
-    fzf.provider.files(fzf:display(function(selected, opts)
+    local display = fzf:display(function(selected, opts)
       local file = fzf.provider.path.entry_to_file(selected, opts)
       return {
         relative_path = file.stripped,
         path = file.path,
       }
-    end))
+    end)
+
+    fzf.provider.files(vim.tbl_extend("force", display, { search_paths = get_search_dirs(SlashCommand) }))
   end,
 }
 
@@ -145,7 +184,8 @@ end
 ---@return nil
 function SlashCommand:chat_render(SlashCommands)
   if not config.can_send_code() and (self.config.opts and self.config.opts.contains_code) then
-    return log:warn("Sending of code has been disabled")
+    log:warn("Sending of code has been disabled")
+    return
   end
   return SlashCommands:set_provider(self, providers)
 end
@@ -156,7 +196,8 @@ end
 ---@return nil
 function SlashCommand.cli_render(slash_config, callback)
   if not config.can_send_code() and (slash_config.opts and slash_config.opts.contains_code) then
-    return log:warn("Sending of code has been disabled")
+    log:warn("Sending of code has been disabled")
+    return
   end
 
   local SlashCommands = require("codecompanion.interactions.chat.slash_commands").new()
@@ -169,21 +210,46 @@ function SlashCommand.cli_render(slash_config, callback)
   }, providers)
 end
 
----Open and read the contents of the selected file
----@param selected { path: string, relative_path: string?, description: string? }
-function SlashCommand:read(selected)
-  local ok, content = pcall(function()
-    return Path.new(selected.path):read()
-  end)
+---Base64 encode an image and add it to the chat buffer for adapters that support vision
+---@param selected { path: string }
+---@param opts? { mimetype?: string, silent?: boolean }
+---@return nil
+function SlashCommand:output_image(selected, opts)
+  opts = opts or {}
 
-  if not ok then
-    return ""
+  if not vim.tbl_contains(CONSTANTS.IMAGE_MIMETYPES, opts.mimetype) then
+    log:warn("`%s` is not a supported image type", vim.fn.fnamemodify(selected.path, ":t"))
+    return
   end
 
-  local ft = vim.filetype.match({ filename = selected.path })
-  local id = "<file>" .. vim.fn.fnamemodify(selected.path, ":.") .. "</file>"
+  local adapter = self.Chat.adapter
+  if not (adapter.opts and adapter.opts.vision) then
+    log:warn(
+      "The `%s` adapter does not support images. `%s` was not added to the chat",
+      adapter.formatted_name,
+      vim.fn.fnamemodify(selected.path, ":t")
+    )
+    return
+  end
 
-  return content, ft, id, selected.path
+  local image = image_utils.from_path(selected.path)
+  if type(image) == "string" then
+    log:error("Could not encode image: %s", image)
+    return
+  end
+
+  -- `from_path` ids the image by its absolute path, which reads badly in the context block
+  image.id = vim.fn.fnamemodify(selected.path, ":.")
+
+  self.Chat:add_image_message(image, {
+    source = "codecompanion.interactions.shared.slash_commands.file",
+  })
+
+  if opts.silent then
+    return
+  end
+
+  utils.notify(fmt("Added the `%s` image to the chat", vim.fn.fnamemodify(selected.path, ":t")))
 end
 
 ---Base64 encode a document and add it to the chat buffer for adapters that support documents
@@ -193,16 +259,18 @@ end
 function SlashCommand:output_pdf(selected, opts)
   local adapter = self.Chat.adapter
   if not (adapter.opts and adapter.opts.documents) then
-    return log:warn(
+    log:warn(
       "The `%s` adapter does not support documents. `%s` was not added to the chat",
       adapter.formatted_name,
       vim.fn.fnamemodify(selected.path, ":t")
     )
+    return
   end
 
   local base64, err = files_utils.base64_encode_file(selected.path)
   if err then
-    return log:error(err)
+    log:error(err)
+    return
   end
 
   local id = "<file>" .. vim.fn.fnamemodify(selected.path, ":.") .. "</file>"
@@ -239,7 +307,8 @@ end
 ---@return nil
 function SlashCommand:output(selected, opts)
   if not config.can_send_code() and (self.config.opts and self.config.opts.contains_code) then
-    return log:warn("Sending of code has been disabled")
+    log:warn("Sending of code has been disabled")
+    return
   end
   opts = opts or {}
 
@@ -247,6 +316,10 @@ function SlashCommand:output(selected, opts)
   if mimetype == "application/pdf" then
     opts = vim.tbl_extend("force", opts, { filetype = "pdf", mimetype = mimetype })
     return self:output_pdf(selected, opts)
+  end
+  if mimetype and mimetype:match("^image/") then
+    opts = vim.tbl_extend("force", opts, { mimetype = mimetype })
+    return self:output_image(selected, opts)
   end
 
   if selected.description then

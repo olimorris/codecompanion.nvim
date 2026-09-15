@@ -74,6 +74,34 @@ The _file_ slash command allows you to add the contents of a file in the current
 
 The content of a file can be reshaped before the LLM sees it with [context formatters](/configuration/others#context-formatters).
 
+**Searching other directories**
+
+Use `opts.dirs` to give the picker a list of directories to search alongside the current working directory:
+
+```lua
+require("codecompanion").setup({
+  interactions = {
+    chat = {
+      slash_commands = {
+        ["file"] = {
+          opts = {
+            dirs = { "~/notes", "../shared-library" },
+          },
+        },
+      },
+    },
+  },
+})
+```
+
+Paths may be relative or use `~`.
+
+**Images**
+
+Selecting an image sends it to the LLM as an image rather than as file content, in the same way as the [/image](#image) slash command.
+
+**PDFs**
+
 [#3218](https://github.com/olimorris/codecompanion.nvim/pull/3218) added support for PDFs for the following http adapters:
 
 - Anthropic
