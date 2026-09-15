@@ -1,5 +1,6 @@
 local config = require("codecompanion.config")
 local files = require("codecompanion.utils.files")
+local tags = require("codecompanion.interactions.shared.tags")
 
 local fmt = string.format
 
@@ -10,14 +11,14 @@ M.PREFIX = "/" .. M.DIR
 
 ---The absolute path to the memory directory
 ---@return string
-function M.root()
+function M.get_root()
   return vim.fs.joinpath(vim.fn.getcwd(), M.DIR)
 end
 
 ---Every memory, addressed the way the LLM must pass it back to the memory tool
 ---@return string[]
-function M.index()
-  local root = M.root()
+function M.get_index()
+  local root = M.get_root()
   if not files.is_dir(root) then
     return {}
   end
@@ -51,8 +52,8 @@ end
 
 ---Tell the LLM what it has stored, and how to name what it stores next
 ---@return string
-function M.prompt()
-  local index = M.index()
+function M.get_prompt()
+  local index = M.get_index()
 
   local lines = {}
   if vim.tbl_isempty(index) then
@@ -89,6 +90,20 @@ function M.prompt()
   end
 
   return table.concat(lines, "\n")
+end
+
+---Bring a chat's index back in line with what is on disk, after the tool has changed it
+---@param chat CodeCompanion.Chat
+---@return nil
+function M.refresh_prompt(chat)
+  local id = require("codecompanion.interactions.chat.tool_registry").tool_id("memory")
+
+  for _, message in ipairs(chat.messages) do
+    if message.context and message.context.id == id and message._meta and message._meta.tag == tags.TOOL then
+      message.content = M.get_prompt()
+      return
+    end
+  end
 end
 
 return M

@@ -15,7 +15,7 @@ local CONSTANTS = {
 ---@return { prefix: string, root: string }[]
 local function get_allowed_paths(whitelist)
   local allowed = {
-    { prefix = memory.PREFIX, root = memory.root() },
+    { prefix = memory.PREFIX, root = memory.get_root() },
   }
   for _, entry in ipairs(whitelist or {}) do
     if type(entry.path) == "string" and entry.path ~= "" and type(entry.as) == "string" and entry.as ~= "" then
@@ -167,8 +167,8 @@ local function view(path, view_range, whitelist)
   end
 
   local content = table.concat(scoped_lines, "\n")
-  if #content > CONSTANTS.MAX_VIEW_CHARS then
-    return content:sub(1, CONSTANTS.MAX_VIEW_CHARS)
+  if vim.fn.strcharlen(content) > CONSTANTS.MAX_VIEW_CHARS then
+    return vim.fn.strcharpart(content, 0, CONSTANTS.MAX_VIEW_CHARS)
       .. fmt(
         "\n\n[Truncated at %d characters. Use view_range to read a specific range of lines]",
         CONSTANTS.MAX_VIEW_CHARS
@@ -477,14 +477,14 @@ return {
     },
   },
   system_prompt = function()
-    return memory.prompt()
+    return memory.get_prompt()
   end,
   handlers = {
     ---@param self CodeCompanion.Tool.Memory
     ---@param meta { tools: CodeCompanion.Tools }
     ---@return nil
     on_exit = function(self, meta)
-      log:trace("[Memory Tool] on_exit handler executed")
+      memory.refresh_prompt(meta.tools.chat)
     end,
   },
   output = {

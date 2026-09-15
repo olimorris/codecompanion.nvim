@@ -153,18 +153,22 @@ T["view"]["truncates a file that is over the character limit"] = function()
   child.lua([[
     local lines = {}
     for i = 1, 2000 do
-      lines[i] = string.rep("x", 20)
+      lines[i] = string.rep("é", 20)
     end
     vim.fn.writefile(lines, vim.fs.joinpath(_G.MEMORY_DIR_ABSOLUTE, "big.txt"))
 
     local builtin = require("codecompanion.interactions.chat.tools.builtin.memory")
     _G.result = builtin.cmds[1](builtin, { command = "view", path = "/memories/big.txt" })
+
+    local notice = _G.result.data:find("\n\n%[Truncated")
+    _G.chars = vim.fn.strcharlen(_G.result.data:sub(1, notice - 1))
   ]])
 
   local output = child.lua_get("_G.result")
 
   h.eq(output.status, "success")
   h.expect_match(output.data, "%[Truncated at 16000 characters")
+  h.eq(16000, child.lua_get("_G.chars"))
 end
 
 T["view"]["can view file content with line range"] = function()
