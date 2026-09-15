@@ -1,5 +1,5 @@
 *codecompanion.txt*
-                              For NVIM v0.11    Last change: 2026 September 12
+                              For NVIM v0.11    Last change: 2026 September 15
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -87,18 +87,18 @@ FEATURES                                      *codecompanion-welcome-features*
 
 -  Copilot Chat <https://github.com/features/copilot> meets Zed AI <https://zed.dev/blog/zed-ai>, in Neovim
 -  Integrates Neovim with LLMs and Agents in the CLI
--  Support for LLMs from Anthropic <https://platform.claude.com/docs/en/about-claude/models/overview>, DeepSeek <https://www.deepseek.com>, Google Gemini <https://ai.google.dev/gemini-api/docs/models>, GitHub Copilot <https://github.com/features/copilot>, GitHub Models <https://docs.github.com/en/github-models>, Kimi <https://platform.kimi.ai>, Mistral <https://mistral.ai/>, Novita <https://novita.ai/>, Ollama <https://ollama.com/>, OpenAI <https://developers.openai.com/api/docs/models>, Azure OpenAI, OpenRouter <https://openrouter.ai/>, HuggingFace <https://huggingface.co/> and xAI <https://docs.x.ai/developers/models> out of the box (or |codecompanion-extending-adapters|)
+-  Support for LLMs from Anthropic <https://platform.claude.com/docs/en/about-claude/models/overview>, DeepSeek <https://www.deepseek.com>, Google Gemini <https://ai.google.dev/gemini-api/docs/models>, GitHub Copilot <https://github.com/features/copilot>, GitHub Models <https://docs.github.com/en/github-models>, Kimi <https://platform.kimi.ai>, Mistral <https://mistral.ai/>, Novita <https://novita.ai/>, Ollama <https://ollama.com/>, OpenAI <https://developers.openai.com/api/docs/models>, Azure OpenAI, OpenRouter <https://openrouter.ai/>, HuggingFace <https://huggingface.co/> and xAI <https://docs.x.ai/developers/models> out of the box (or extending-adapters)
 -  Support for Agent Client Protocol <https://agentclientprotocol.com/overview/introduction>, enabling coding with agents like Augment Code <https://docs.augmentcode.com/cli/overview>, Cagent <https://github.com/docker/cagent> from Docker, Claude Code <https://docs.anthropic.com/en/docs/claude-code/overview>, Cline CLI <https://docs.cline.bot/home>, Codex <https://openai.com/codex>, Copilot CLI <https://github.com/features/copilot/cli>, Gemini CLI <https://github.com/google-gemini/gemini-cli>, Goose <https://block.github.io/goose/>, Cursor CLI <https://cursor.com/docs/cli/overview>, Kilo Code <https://kilo.ai>, Kimi CLI <https://github.com/MoonshotAI/kimi-cli>, Kiro <https://kiro.dev/cli/>, Mistral Vibe <https://github.com/mistralai/mistral-vibe> and OpenCode <https://opencode.ai>
--  User contributed and supported |codecompanion-configuration-adapters-http-community-adapters|
--  |codecompanion-usage-code-review| enabling you to comment on and approve/reject agent code
--  Support for |codecompanion-model-context-protocol|
--  |codecompanion-usage-inline|, code creation and refactoring
--  |codecompanion-usage-chat-buffer-editor-context|, |codecompanion-usage-chat-buffer-slash-commands|, |codecompanion-usage-chat-buffer-agents-tools| and |codecompanion-usage-workflows| to improve LLM output
--  Support for |codecompanion-usage-chat-buffer-skills| and |codecompanion-usage-chat-buffer-rules| (like `CLAUDE.md`, `.cursor/rules` and your own custom ones)
--  Built-in |codecompanion-usage-action-palette| for common tasks like advice on LSP errors and code explanations
--  Create your own |codecompanion-configuration-prompt-library-creating-prompts|, Editor Context and Slash Commands
--  Have |codecompanion-usage-introduction-quickly-accessing-a-chat-buffer| open at the same time
--  Support for |codecompanion-usage-chat-buffer--images-vision| and PDFs as input
+-  User contributed and supported configuration-adapters-http-community-adapters
+-  usage-code-review enabling you to comment on and approve/reject agent code
+-  Support for model-context-protocol
+-  usage-inline, code creation and refactoring
+-  usage-chat-buffer-editor-context, usage-chat-buffer-slash-commands, usage-chat-buffer-agents-tools and usage-workflows to improve LLM output
+-  Support for usage-chat-buffer-skills and usage-chat-buffer-rules (like `CLAUDE.md`, `.cursor/rules` and your own custom ones)
+-  Built-in usage-action-palette for common tasks like advice on LSP errors and code explanations
+-  Create your own configuration-prompt-library-creating-prompts, Editor Context and Slash Commands
+-  Have usage-introduction-quickly-accessing-a-chat-buffer open at the same time
+-  Support for usage-chat-buffer--images-vision and PDFs as input
 -  Async execution for fast performance
 
 
@@ -110,26 +110,25 @@ buffer to allow direct conversations with LLMs. The `inline` interaction allows
 for output from the LLM to be written directly, inline to a pre-existing Neovim
 buffer.
 
-CodeCompanion uses |codecompanion-configuration-adapters-http| to connect
-Neovim to an LLM or agent, even going as far as specifying
-|codecompanion-configuration-adapters-http-changing-the-default-model| and/or
-|codecompanion-configuration-adapters-http-changing-adapter-parameters-schema|.
-You can specify adapters for each interaction type and also for each
-|codecompanion-configuration-prompt-library| entry. There are far too many
-adapters to list so be sure to check out the adapters folder
+CodeCompanion uses configuration-adapters-http to connect Neovim to an LLM or
+agent, even going as far as specifying
+configuration-adapters-http-changing-the-default-model and/or
+configuration-adapters-http-changing-adapter-parameters-schema. You can specify
+adapters for each interaction type and also for each
+configuration-prompt-library entry. There are far too many adapters to list so
+be sure to check out the adapters folder
 <https://github.com/olimorris/codecompanion.nvim/tree/main/lua/codecompanion/adapters/http>
 in the main repository. You can also roll your own adapters. Refer to the
-|codecompanion-extending-adapters| documentation for more information. Finally,
-be sure to check out the
-|codecompanion-configuration-adapters-http-community-adapters| section for user
+extending-adapters documentation for more information. Finally, be sure to
+check out the configuration-adapters-http-community-adapters section for user
 contributed adapters.
 
 
 DOCS                                              *codecompanion-welcome-docs*
 
-You can use the |codecompanion-usage-chat-buffer-agents-tools-search-help| tool
-to ask an LLM to search the CodeCompanion docs for you. Alternatively, if
-browsing on the site, use the search bar at the top left of the page.
+You can use the usage-chat-buffer-agents-tools-search-help tool to ask an LLM
+to search the CodeCompanion docs for you. Alternatively, if browsing on the
+site, use the search bar at the top left of the page.
 
 
 ==============================================================================
@@ -159,8 +158,7 @@ recommended to pin the plugin to a specific release to avoid breaking changes.
 
 nvim-treesitter <https://github.com/nvim-treesitter/nvim-treesitter> is
 required if you plan to use markdown prompts in the
-|codecompanion-configuration-prompt-library|, ensuring you have the `yaml`
-parser installed.
+configuration-prompt-library, ensuring you have the `yaml` parser installed.
 
 
 **Plenary.nvim note:**
@@ -177,8 +175,8 @@ plugin. Below is an example which installs and configures mcphub.nvim
 <https://github.com/ravitemer/mcphub.nvim>:
 
 
-Visit the |codecompanion-extending-extensions| to learn more about available
-extensions and how to create your own.
+Visit the extending-extensions to learn more about available extensions and how
+to create your own.
 
 
 OTHER S                                   *codecompanion-installation-other-s*
@@ -197,13 +195,12 @@ copy images from your system clipboard into a chat buffer via `:PasteImage`:
 
 COMPLETION                             *codecompanion-installation-completion*
 
-When in the |codecompanion-usage-chat-buffer-|, completion can be used to more
-easily add |codecompanion-usage-chat-buffer-editor-context|,
-|codecompanion-usage-chat-buffer-slash-commands| and
-|codecompanion-usage-chat-buffer-agents-tools|. Out of the box, the plugin
-supports completion with both nvim-cmp <https://github.com/hrsh7th/nvim-cmp>
-and blink.cmp <https://github.com/Saghen/blink.cmp>. For the latter, on version
-<= 0.10.0, ensure that you've added `codecompanion` as a source:
+When in the usage-chat-buffer-, completion can be used to more easily add
+usage-chat-buffer-editor-context, usage-chat-buffer-slash-commands and
+usage-chat-buffer-agents-tools. Out of the box, the plugin supports completion
+with both nvim-cmp <https://github.com/hrsh7th/nvim-cmp> and blink.cmp
+<https://github.com/Saghen/blink.cmp>. For the latter, on version <= 0.10.0,
+ensure that you've added `codecompanion` as a source:
 
 >lua
     sources = {
@@ -213,8 +210,8 @@ and blink.cmp <https://github.com/Saghen/blink.cmp>. For the latter, on version
     },
 <
 
-The plugin also supports |codecompanion-usage-chat-buffer--completion| and
-coc.nvim <https://github.com/neoclide/coc.nvim>.
+The plugin also supports usage-chat-buffer--completion and coc.nvim
+<https://github.com/neoclide/coc.nvim>.
 
 
 HELP                                         *codecompanion-installation-help*
@@ -236,7 +233,7 @@ troubleshoot, running it with `nvim --clean -u minimal.lua`.
 This guide is intended to help you get up and running with CodeCompanion and
 begin your journey of coding with AI in Neovim. It assumes that you have
 already installed the plugin. If you haven't done so, please refer to the
-|codecompanion-installation| first.
+installation first.
 
 
 DOCUMENTATION                    *codecompanion-getting-started-documentation*
@@ -309,24 +306,23 @@ CHAT AND INLINE ~
   [!NOTE] The adapters that the plugin supports out of the box can be found in
   the built-in adapters directory
   <https://github.com/olimorris/codecompanion.nvim/tree/main/lua/codecompanion/adapters>.
-  Or, see the |codecompanion-configuration-adapters-http-community-adapters|.
-  |codecompanion-configuration-adapters-acp| are only supported for the chat
-  interaction.
+  Or, see the configuration-adapters-http-community-adapters.
+  configuration-adapters-acp are only supported for the chat interaction.
 The Chat Buffer is where you can converse with an LLM from within a Neovim
 buffer. It operates on a single response per turn basis. The inline interaction
 enables an LLM to write code directly into a Neovim buffer.
 
-The |codecompanion-usage-chat-buffer-| and |codecompanion-usage-inline|
-interactions need an adapter to function. In CodeCompanion terminology, an
-adapter is the connection between Neovim and an LLM or agent. CodeCompanion has
-two `types` of adapters; HTTP adapters which connect you to an LLM via it's API
-and ACP adapters which connect you to an agent via the Agent Client Protocol
+The usage-chat-buffer- and usage-inline interactions need an adapter to
+function. In CodeCompanion terminology, an adapter is the connection between
+Neovim and an LLM or agent. CodeCompanion has two `types` of adapters; HTTP
+adapters which connect you to an LLM via it's API and ACP adapters which
+connect you to an agent via the Agent Client Protocol
 <https://agentclientprotocol.com>. CodeCompanion has a number of built-in
 adapters
 <https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/config.lua>
 that you can leverage and you can find more details in the respective
-|codecompanion-configuration-adapters-http| and
-|codecompanion-configuration-adapters-acp| sections of the documentation.
+configuration-adapters-http and configuration-adapters-acp sections of the
+documentation.
 
 To set an adapter:
 
@@ -389,8 +385,8 @@ You can set/change the API key by using the `extend` function:
 <
 
 There are numerous ways that environment variables can be set for adapters.
-Refer to the |codecompanion-configuration-adapters-http-environment-variables|
-section for more information.
+Refer to the configuration-adapters-http-environment-variables section for more
+information.
 
 
 CLI ~
@@ -442,10 +438,9 @@ Commands` in the chat buffer.
 **Editor Context**
 
 `Editor Context`, accessed via `#` (by default), contain data about the present
-state of Neovim. You can find a
-|codecompanion-usage-chat-buffer-editor-context|. The buffer editor context
-will automatically link a buffer to the chat buffer, by default, updating the
-LLM when the buffer changes.
+state of Neovim. You can find a usage-chat-buffer-editor-context. The buffer
+editor context will automatically link a buffer to the chat buffer, by default,
+updating the LLM when the buffer changes.
 
 You can use them in your prompts like:
 
@@ -462,13 +457,13 @@ You can use them in your prompts like:
   also work with coc.nvim.
 `Slash commands`, accessed via `/` (by default), run commands to insert
 additional context into the chat buffer. You can find a
-|codecompanion-usage-chat-buffer-slash-commands|.
+usage-chat-buffer-slash-commands.
 
 **Tools**
 
 `Tools`, accessed via `@` (by default), allow the LLM to function as an agent
 and leverage external tools. You can find a
-|codecompanion-usage-chat-buffer-agents-tools-available-tools|.
+usage-chat-buffer-agents-tools-available-tools.
 
 You can use them in your prompts like:
 
@@ -482,9 +477,8 @@ CLI ~
 Running `:CodeCompanionCLI` will open a new CLI interaction. Running
 `:CodeCompanionCLI <your prompt>` will send the prompt to the last CLI
 interaction (or create a new one). You can also run `:CodeCompanionCLI Ask` to
-use a rich prompt input field complete with |codecompanion--editor-context|.
-Save with `:w` to send the prompt to the agent, or `:w!` to send and
-auto-submit it.
+use a rich prompt input field complete with -editor-context. Save with `:w` to
+send the prompt to the agent, or `:w!` to send and auto-submit it.
 
 Adding `!` to the command (e.g. `:CodeCompanionCLI! <prompt>`) will auto-submit
 the prompt and keep your cursor in the current buffer. You can also specify
@@ -500,8 +494,7 @@ Run `:CodeCompanion your prompt` to call the inline interaction. The
 interaction will evaluate the prompt and either write code or open a chat
 buffer. You can also make a visual selection and call the inline interaction.
 To send additional context alongside your prompt, you can leverage
-|codecompanion-usage-inline-editor-context| such as `:CodeCompanion #{buffer}
-<your prompt>`.
+usage-inline-editor-context such as `:CodeCompanion #{buffer} <your prompt>`.
 
 For convenience, you can call prompts with their `alias` from the prompt
 library
@@ -520,7 +513,7 @@ ACTION PALETTE ~
 
 Run `:CodeCompanionActions` to open the action palette, which gives you access
 to the plugin's features, including your prompts from the
-|codecompanion-configuration-prompt-library|.
+configuration-prompt-library.
 
 By default the plugin uses `vim.ui.select`, however, you can change the
 provider by altering the `display.action_palette.provider` config value to be
@@ -546,7 +539,7 @@ However, there are multiple options available:
 
 - `CodeCompanion <prompt>` - Prompt the inline interaction
 - `CodeCompanion adapter=<adapter> <prompt>` - Prompt the inline interaction with a specific adapter
-- `CodeCompanion /<prompt library>` - Call an item via its alias from the |codecompanion-configuration-prompt-library|
+- `CodeCompanion /<prompt library>` - Call an item via its alias from the configuration-prompt-library
 - `CodeCompanionActions Refresh` - Refresh the action palette and any items in the prompt library
 - `CodeCompanionChat <prompt>` - Send a prompt to the LLM via a chat buffer
 - `CodeCompanionChat adapter=<adapter> model=<model>` - Open a chat buffer with a specific http adapter and model
@@ -560,7 +553,7 @@ However, there are multiple options available:
 - `CodeCompanionCLI! <prompt>` - Send and auto-submit a prompt, keeping focus in the current buffer
 - `CodeCompanionCLI agent=<agent> <prompt>` - Start a new CLI interaction with a specific agent
 - `CodeCompanionCLI Ask` - Open the rich input buffer for CLI prompts
-- `CodeCompanionCodeReview` - Open an agent's changes in the quickfix list for |codecompanion-usage-code-review|
+- `CodeCompanionCodeReview` - Open an agent's changes in the quickfix list for usage-code-review
 - `CodeCompanionCodeReview Comment` - Leave a review comment on the current line or visual selection
 
 
@@ -579,8 +572,8 @@ For an optimum plugin workflow, the author recommends the following:
 
 
   [!NOTE] You can also assign prompts from the library to specific mappings. See
-  the |codecompanion-configuration-prompt-library-assigning-prompts-to-a-keymap|
-  section for more information.
+  the configuration-prompt-library-assigning-prompts-to-a-keymap section for more
+  information.
 
 ==============================================================================
 4. Architecture                                   *codecompanion-architecture*
@@ -616,9 +609,9 @@ context awareness which means it can prevent this from happening by taking
 IN THE CHAT BUFFER ~
 
 Firstly, CodeCompanion manages context by paying close attention to the number
-of tokens in the |codecompanion-usage-chat-buffer-|, matching them against a
-defined trigger threshold in your config, which can be
-|codecompanion-configuration-chat-buffer-context-management|.
+of tokens in the usage-chat-buffer-, matching them against a defined trigger
+threshold in your config, which can be
+configuration-chat-buffer-context-management.
 
 CodeCompanion uses two thresholds: an **editing** trigger (default `0.65` of
 the context window) and a **compaction** trigger (default `0.85`). When the
@@ -668,7 +661,7 @@ message history with that summary.
 Not everything in the history is summarised and the below items are preserved:
 
 - The system prompt
-- Project rules (anything tagged via the |codecompanion-usage-chat-buffer-slash-commands-rules| slash command)
+- Project rules (anything tagged via the usage-chat-buffer-slash-commands-rules slash command)
 
 Files, buffers, and images that were attached during the chat are replaced with
 reference placeholders, similarly to how tool results are replaced when edited:
@@ -706,16 +699,16 @@ produces tokens-over-the-wire savings independent of what the server does.
 MANUAL TRIGGERS
 
 Compaction can also be triggered manually via the
-|codecompanion-usage-chat-buffer-slash-commands-compact| slash command,
-regardless of where the token count sits. Editing has no manual equivalent —
-it runs automatically when the threshold is crossed.
+usage-chat-buffer-slash-commands-compact slash command, regardless of where the
+token count sits. Editing has no manual equivalent — it runs automatically
+when the threshold is crossed.
 
 
 ==============================================================================
 5. Integrations                                   *codecompanion-integrations*
 
 CodeCompanion enables integrations with many applications based on its rich
-|codecompanion-usage-events| catalog.
+usage-events catalog.
 
 
 HERDR                                       *codecompanion-integrations-herdr*
@@ -813,7 +806,7 @@ CodeCompanion provides comprehensive support for the ACP specification:
 
 SUPPORTED ADAPTERS ~
 
-Please see the |codecompanion-configuration-adapters-acp| page.
+Please see the configuration-adapters-acp page.
 
 
 CLIENT CAPABILITIES ~
@@ -870,7 +863,7 @@ If an agent supports the `session/list` capability, you can resume a previous
 session using the `/resume` slash command in a fresh chat buffer. This calls
 `session/list` to discover previous sessions, then `session/load` to restore
 the selected session's conversation history into the chat buffer. See
-|codecompanion-usage-chat-buffer-slash-commands-resume| for usage details.
+usage-chat-buffer-slash-commands-resume for usage details.
 
 
 MODEL SELECTION ~
@@ -917,8 +910,8 @@ CURRENT LIMITATIONS                    *codecompanion-acp-current-limitations*
 SEE ALSO                                          *codecompanion-acp-see-also*
 
 - Agent Client Protocol Specification <https://agentclientprotocol.com/> - Official ACP documentation
-- |codecompanion-configuration-adapters-acp| - Setup instructions for specific agents
-- |codecompanion-usage-chat-buffer-agents-tools| - How to interact with agents in chat
+- configuration-adapters-acp - Setup instructions for specific agents
+- usage-chat-buffer-agents-tools - How to interact with agents in chat
 
 
 ==============================================================================
@@ -934,13 +927,12 @@ enhance their coding experience.
 USAGE                                                *codecompanion-mcp-usage*
 
 To use MCP servers within CodeCompanion, refer to the
-|codecompanion-usage-chat-buffer-agents-tools-mcp| section in the chat buffer
-usage section of the documentation.
+usage-chat-buffer-agents-tools-mcp section in the chat buffer usage section of
+the documentation.
 
-If |codecompanion-configuration-mcp-enabling-servers|, the servers will be
-started when you open a chat buffer for the first time. However, you can use
-the |codecompanion-usage-chat-buffer-slash-commands-mcp| to start or stop
-servers manually.
+If configuration-mcp-enabling-servers, the servers will be started when you
+open a chat buffer for the first time. However, you can use the
+usage-chat-buffer-slash-commands-mcp to start or stop servers manually.
 
 
 IMPLEMENTATION                              *codecompanion-mcp-implementation*
@@ -997,12 +989,12 @@ to another.
 
 CodeCompanion follows semantic versioning <https://semver.org/> and to avoid
 breaking changes, it is recommended to pin the plugin to a specific version in
-your Neovim configuration. The |codecompanion-installation| provides more
-information on how to do this.
+your Neovim configuration. The installation provides more information on how to
+do this.
 
 - The Super Diff has now been removed from CodeCompanion (#2600 <https://github.com/olimorris/codecompanion.nvim/pull/2600>)
 - CodeCompanion now only supports a built-in diff which is enabled by default (#2600 <https://github.com/olimorris/codecompanion.nvim/pull/2600>), dropping support for Mini.Diff
-- The `full_stack_dev` group has been renamed to |codecompanion-usage-chat-buffer-agents-tools-agent| (#2786 <https://github.com/olimorris/codecompanion.nvim/pull/2786>)
+- The `full_stack_dev` group has been renamed to usage-chat-buffer-agents-tools-agent (#2786 <https://github.com/olimorris/codecompanion.nvim/pull/2786>)
 - The `next_edit_suggestion` and `list_code_usages` tools have been removed
 
 
@@ -1038,7 +1030,7 @@ CONFIG
 
 - The biggest change in this release is the renaming of `strategies` to `interactions`. This will only be a breaking change if you specifically reference `codecompanion.strategies` in your configuration. If you do, you'll need to change it to `codecompanion.interactions` (#2485 <https://github.com/olimorris/codecompanion.nvim/pull/2485>)
 - Previously, built-in slash commands and tools were stored in `/catalog` folders which have now been renamed to `/builtin`. If you reference these in your configuration you'll need to update the paths accordingly (#2482 <https://github.com/olimorris/codecompanion.nvim/pull/2482>)
-- Workspaces have now been removed from the plugin. Please use |codecompanion-configuration-rules| instead.
+- Workspaces have now been removed from the plugin. Please use configuration-rules instead.
 
 
 ADAPTERS
@@ -1065,7 +1057,7 @@ ADAPTERS
 
 CHAT
 
-- Memory has been renamed to rules. Please rename any references to `memory` in your configuration to `rules`. Please refer to the |codecompanion-configuration-rules| documentation for more information (#2440 <https://github.com/olimorris/codecompanion.nvim/pull/2440>)
+- Memory has been renamed to rules. Please rename any references to `memory` in your configuration to `rules`. Please refer to the configuration-rules documentation for more information (#2440 <https://github.com/olimorris/codecompanion.nvim/pull/2440>)
 
 - The variable and parameter `#{buffer}{watch}` has been renamed to `#{buffer}{diff}`. This better reflects that an LLM receives a diff of buffer changes with each request (#2444 <https://github.com/olimorris/codecompanion.nvim/pull/2444>)
 - The variable and parameter `#{buffer}{pin}` has now been renamed to `#{buffer}{all}`. This better reflects that the
@@ -1134,7 +1126,7 @@ ACTION PALETTE                    *codecompanion-configuration-action-palette*
 
 The Action Palette holds plugin specific items like the ability to launch a
 chat buffer and the currently open chat buffers alongside displaying the
-prompts from the |codecompanion-prompt-library|.
+prompts from the prompt-library.
 
 
 LAYOUT ~
@@ -1171,8 +1163,8 @@ ACP ADAPTERS                        *codecompanion-configuration-acp-adapters*
 
 This section contains configuration which is specific to Agent Client Protocol
 (ACP) adapters only. There is a lot of shared functionality between ACP and
-|codecompanion-configuration-adapters-http| adapters. Therefore it's
-recommended you read the two pages together.
+configuration-adapters-http adapters. Therefore it's recommended you read the
+two pages together.
 
 
 CUSTOMISING AN ADAPTER ~
@@ -1231,17 +1223,16 @@ function() return require("codecompanion.adapters").extend("codex", { defaults
 }, }, }) end, } }, }),`
 
 To find out what the available session config options are for a specific
-adapter you can open the |codecompanion-usage-chat-buffer--debug-window| in the
-chat buffer.
+adapter you can open the usage-chat-buffer--debug-window in the chat buffer.
 
 
 MCP SERVERS ~
 
 Some ACP adapters support
 <https://agentclientprotocol.com/protocol/session-setup#mcp-servers> connecting
-to Model Client Protocol (MCP) servers. If you've defined
-|codecompanion-configuration-mcp|, then CodeCompanion can automatically connect
-to those servers when initializing the adapter.
+to Model Client Protocol (MCP) servers. If you've defined configuration-mcp,
+then CodeCompanion can automatically connect to those servers when initializing
+the adapter.
 
 To enable this, set `inherit_from_config` in the ACP adapter's
 `defaults.mcpServers` field:
@@ -1372,7 +1363,7 @@ CLAUDE PRO SUBSCRIPTION
 
 2. Back in your CLI, copy the OAuth token (in yellow):
 
-3. In your CodeCompanion config, extend the `claude_code` adapter and include the OAuth token (see the section on |codecompanion-configuration-adapters-http-environment-variables-setting-an-api-key| for other ways to do this):
+3. In your CodeCompanion config, extend the `claude_code` adapter and include the OAuth token (see the section on configuration-adapters-http-environment-variables-setting-an-api-key for other ways to do this):
 
 >lua
     require("codecompanion").setup({
@@ -1655,17 +1646,17 @@ HTTP ADAPTERS                      *codecompanion-configuration-http-adapters*
 
 
   [!TIP] Want to connect to an LLM that isn't supported out of the box? Check out
-  |codecompanion--community-adapters| user contributed adapters,
-  |codecompanion-extending-adapters| your own or post in the discussions
+  -community-adapters user contributed adapters, extending-adapters your own or
+  post in the discussions
   <https://github.com/olimorris/codecompanion.nvim/discussions>
 An adapter is what connects Neovim to an LLM provider and model. It's the
 interface that allows data to be sent, received and processed. There are a
 multitude of ways to customise them.
 
 There are two "types" of adapter in CodeCompanion; **http** adapters which
-connect you to an LLM and |codecompanion-configuration-adapters-acp| adapters
-which leverage the Agent Client Protocol <https://agentclientprotocol.com> to
-connect you to an agent.
+connect you to an LLM and configuration-adapters-acp adapters which leverage
+the Agent Client Protocol <https://agentclientprotocol.com> to connect you to
+an agent.
 
 The configuration for both types of adapters is exactly the same, however they
 sit within their own tables (`adapters.http.*` and `adapters.acp.*`) and have
@@ -1731,8 +1722,8 @@ adapter, these sit within a schema table and can be configured during setup:
 ADDING A CUSTOM ADAPTER ~
 
 
-  [!NOTE] See the |codecompanion-extending-adapters| section to learn how to
-  create custom adapters
+  [!NOTE] See the extending-adapters section to learn how to create custom
+  adapters
 Custom adapters can be added to the plugin as follows:
 
 >lua
@@ -2095,7 +2086,7 @@ out of the box:
 
 You can configure the OpenRouter adapter in your config, as shown in the
 section below. However, you can also customise it on a per-chat basis, using
-`gd` to open the |codecompanion-usage-chat-buffer--debug-window|.
+`gd` to open the usage-chat-buffer--debug-window.
 
 
 The adapter also supports sticky sessions
@@ -2158,8 +2149,8 @@ You can change this to be a `ACP` or `HTTP` adapter:
     })
 <
 
-See the section on |codecompanion-configuration-adapters-acp| and
-|codecompanion-configuration-adapters-http| for more information.
+See the section on configuration-adapters-acp and configuration-adapters-http
+for more information.
 
 
 COMPLETION ~
@@ -2188,9 +2179,8 @@ You can override this with:
 PREFIXES
 
 You can also customize the prefixes that trigger completions for
-|codecompanion-usage-chat-buffer-editor-context|,
-|codecompanion-usage-chat-buffer-slash-commands|, and
-|codecompanion-usage-chat-buffer-agents-tools|:
+usage-chat-buffer-editor-context, usage-chat-buffer-slash-commands, and
+usage-chat-buffer-agents-tools:
 
 >lua
     require("codecompanion").setup({
@@ -2285,13 +2275,12 @@ to influence the chat's behavior:
 <
 
 The `actions` table contains module paths that are resolved and executed
-asynchronously. See the |codecompanion-usage-chat-buffer--generating-titles|
-section for a working example.
+asynchronously. See the usage-chat-buffer--generating-titles section for a
+working example.
 
 
   [!TIP] You can change the adapters used for background callbacks, see the
-  |codecompanion-configuration-adapters-http-background-interaction-adapters|
-  section
+  configuration-adapters-http-background-interaction-adapters section
 
 PREVENTING SUBMISSION
 
@@ -2418,7 +2407,7 @@ large files which quickly erode an LLM's context window.
 A context formatter modifies a file's content before it is shared with an LLM.
 This is the case whether the file was attached with `/file`, opened as a buffer
 and attached with `/buffer`, pulled in by a rules file, or re-read to produce a
-|codecompanion-configuration-chat-buffer-syncing| diff.
+configuration-chat-buffer-syncing diff.
 
 You can define your own formatter by ensuring your you implement a `format(raw,
 path)` function which returns the content the LLM should see, or the path to a
@@ -2444,8 +2433,7 @@ window: **editing** (which removes old tool results from the message history)
 and **compaction** (which summarises the message history). Both are triggered
 separately and can be expressed as a decimal (for a percentage of the context
 window) or an integer (for an absolute token count). You can read more about
-how the two operations work in the
-|codecompanion-architecture-in-the-chat-buffer| section.
+how the two operations work in the architecture-in-the-chat-buffer section.
 
 
   [!NOTE] Some adapters (Anthropic, OpenAI Responses) manage context themselves,
@@ -2565,11 +2553,10 @@ You can even define your own context:
 
 SYNCING
 
-Neovim buffers can be
-|codecompanion-usage-chat-buffer-editor-context-with-parameters| with the chat
-buffer. That is, on each turn their content can be shared with the LLM. This is
-useful if you're modifying a buffer and want the LLM to always have the latest
-changes.
+Neovim buffers can be usage-chat-buffer-editor-context-with-parameters with the
+chat buffer. That is, on each turn their content can be shared with the LLM.
+This is useful if you're modifying a buffer and want the LLM to always have the
+latest changes.
 
 For the built-in `#buffer` editor context, this is enabled by default. However,
 you can change it with:
@@ -2675,8 +2662,8 @@ The plugin supports providers like telescope
 <https://github.com/folke/snacks.nvim>. By default, the plugin will
 automatically detect if you have any of those plugins installed and duly set
 them as the default provider. Failing that, the in-built `default` provider
-will be used. Please see the |codecompanion-usage-chat-buffer-| usage section
-for information on how to use Slash Commands.
+will be used. Please see the usage-chat-buffer- usage section for information
+on how to use Slash Commands.
 
 
 Credit to @lazymaniac <https://github.com/lazymaniac> for the inspiration
@@ -2706,8 +2693,8 @@ Sessions can be configured with `sessions`:
 
 `autosave` decides whether a chat `becomes` a session, and `continuous_save`
 decides whether a session is `continuously updated`. The
-|codecompanion-usage-chat-buffer-slash-commands-save| command can be used to
-manually save a session:
+usage-chat-buffer-slash-commands-save command can be used to manually save a
+session:
 
   ------------------------------------------------------------------------
   autosave             continuous_save                  Behaviour
@@ -2738,8 +2725,8 @@ manually save a session:
                                                         a snapshot
   ------------------------------------------------------------------------
 An autosaved chat is named based on the user's opening message. If the
-|codecompanion-configuration-chat-buffer-background-callbacks| background
-callback is enabled, the LLM's title is used instead.
+configuration-chat-buffer-background-callbacks background callback is enabled,
+the LLM's title is used instead.
 
 Setting `enabled = false` removes `/save`, the session list in `/resume` and
 the action palette entry.
@@ -2754,8 +2741,8 @@ with:
 
 SYNCING BUFFERS/FILES ~
 
-|codecompanion-usage-chat-buffer-index-context| hold the data of a file or
-buffer at a point in time.
+usage-chat-buffer-index-context hold the data of a file or buffer at a point in
+time.
 
 Depending on the file type, it may be worthwhile continuously syncing their
 content with an LLM. Extensions listed in `sync_diff` are watched from the
@@ -2778,7 +2765,7 @@ moment they're added to the chat buffer, whether that's with `/file`,
 <
 
 To change how a file's content is shaped before the LLM sees it, see
-|codecompanion-configuration-others-context-formatters|.
+configuration-others-context-formatters.
 
 
 TOOLS ~
@@ -2824,13 +2811,13 @@ When users introduce the group, `my_group`, in the chat buffer, it can call the
 tools you listed (such as `run_command`) to perform tasks on your code. The
 `system_prompt` field allows you to give the LLM specific instructions for how
 to use the group's tools and can be a string or a function that receives the
-group config table and a |codecompanion-configuration-system-prompt| (with
-`language`, `date`, `nvim_version`, `os`, etc.).
+group config table and a configuration-system-prompt (with `language`, `date`,
+`nvim_version`, `os`, etc.).
 
-A tool is a |codecompanion-extending-tools| table with specific keys that
-define the interface and workflow of the tool. The table can be resolved using
-the `callback` option. The `callback` option can be a table itself or either a
-function or a string that points to a luafile that return the table.
+A tool is a extending-tools table with specific keys that define the interface
+and workflow of the tool. The table can be resolved using the `callback`
+option. The `callback` option can be a table itself or either a function or a
+string that points to a luafile that return the table.
 
 
 ENABLING TOOLS
@@ -2846,8 +2833,8 @@ and want to refresh the tool availability in the chat buffer.
 APPROVALS
 
 CodeCompanion allows you to apply safety mechanisms to its built-in tools prior
-to execution. See the |codecompanion-usage-chat-buffer-agents-tools-approvals|
-section for more information.
+to execution. See the usage-chat-buffer-agents-tools-approvals section for more
+information.
 
 
 
@@ -2870,7 +2857,7 @@ chat buffers:
 `lua {6-9} require("codecompanion").setup({ interactions = { chat = { tools = {
 opts = { default_tools = { "my_tool", "my_tool_group" } }, } } } })`
 
-This also works for |codecompanion-configuration-extensions|.
+This also works for configuration-extensions.
 
 
 LIMITING TOOL OUTPUT
@@ -2889,11 +2876,11 @@ tokens }, } } } })`
 
 LLM JUDGE
 
-When |codecompanion-usage-chat-buffer-agents-tools-yolo-mode| is on, tools are
-auto-approved. Some tools (such as `run_command` and `delete_file`), by
-default, will always ask you first, owing to their destructive nature. The
-judge offers a middle ground: a background LLM judges the specific action and
-only interrupts you when it is judged to be unsafe.
+When usage-chat-buffer-agents-tools-yolo-mode is on, tools are auto-approved.
+Some tools (such as `run_command` and `delete_file`), by default, will always
+ask you first, owing to their destructive nature. The judge offers a middle
+ground: a background LLM judges the specific action and only interrupts you
+when it is judged to be unsafe.
 
 To fully enable the LLM judge:
 
@@ -2947,15 +2934,15 @@ The default system prompt for the judge is:
     Reply only through the provided schema.
 <
 
-See the |codecompanion-usage-chat-buffer-agents-tools-yolo-mode| usage section
-for how the judge behaves once enabled.
+See the usage-chat-buffer-agents-tools-yolo-mode usage section for how the
+judge behaves once enabled.
 
 
 WEB SEARCH
 
-The |codecompanion-usage-chat-buffer-agents-tools-web-search| tool is a
-built-in tool that allows an LLM to perform web searches using an adapter.
-Currently, CodeCompanion supports DuckDuckGo <https://duckduckgo.com>, Jina
+The usage-chat-buffer-agents-tools-web-search tool is a built-in tool that
+allows an LLM to perform web searches using an adapter. Currently,
+CodeCompanion supports DuckDuckGo <https://duckduckgo.com>, Jina
 <https://www.jina.ai> and Tavily <https://www.tavily.com> adapters.
 
 To override the default Tavily adapter:
@@ -2982,8 +2969,8 @@ For additional options, refer to the adapter's own file.
 USER INTERFACE (UI) ~
 
 
-  [!NOTE] The |codecompanion-installation-other-plugins| section contains
-  installation instructions for some popular markdown rendering plugins
+  [!NOTE] The installation-other-plugins section contains installation
+  instructions for some popular markdown rendering plugins
 
 AUTO SCROLLING
 
@@ -3053,9 +3040,9 @@ context can be folded:
 LAYOUT
 
 The plugin leverages floating windows to display content to a user in a variety
-of scenarios, such as with the |codecompanion-usage-chat-buffer--messages|. You
-can change the appearance of the chat buffer by changing the
-`display.chat.window` table in your configuration.
+of scenarios, such as with the usage-chat-buffer--messages. You can change the
+appearance of the chat buffer by changing the `display.chat.window` table in
+your configuration.
 
 
 
@@ -3213,7 +3200,7 @@ HOOKS ~
 CLI interactions can integrate with agents that support hooks, enabling the
 CodeCompanion event system to react to the agent in realtime. Without this,
 features that need to know where a turn starts and ends, such as the
-|codecompanion-usage-code-review|, are limited.
+usage-code-review, are limited.
 
 Currently, CodeCompanion only supports Claude Code
 <https://code.claude.com/docs/en/hooks>.
@@ -3380,7 +3367,7 @@ You can also pass `width` and `height` overrides via the Lua API:
 CODE REVIEWS                        *codecompanion-configuration-code-reviews*
 
 CodeCompanion enables users to undertake code reviews and easily share feedback
-with an agent. Find out how they work in the |codecompanion-usage-code-review|.
+with an agent. Find out how they work in the usage-code-review.
 
 
 DISABLING ~
@@ -3459,10 +3446,9 @@ the same value works with `gitsigns`, `diffview`, or any git-diff plugin.
 
 EDITOR CONTEXT ~
 
-When you share a review with the
-|codecompanion-usage-chat-buffer-editor-context-code-review| editor context,
-the tag itself is replaced in your message with a short phrase before it's
-sent. For example, the prompt:
+When you share a review with the usage-chat-buffer-editor-context-code-review
+editor context, the tag itself is replaced in your message with a short phrase
+before it's sent. For example, the prompt:
 
 >md
     Can you action #{code_review}
@@ -3590,8 +3576,7 @@ interaction. You can change this to any other HTTP adapter:
     })
 <
 
-See the section on |codecompanion-configuration-adapters-http| for more
-information.
+See the section on configuration-adapters-http for more information.
 
 
 KEYMAPS ~
@@ -3642,8 +3627,8 @@ You can also cancel an inline request with:
 
 EDITOR CONTEXT ~
 
-The plugin comes with a number of |codecompanion-usage-inline-editor-context|
-items that can be used alongside your prompt using the `#{}` syntax (e.g.,
+The plugin comes with a number of usage-inline-editor-context items that can be
+used alongside your prompt using the `#{}` syntax (e.g.,
 `#{my_new_context_item}`). You can also add your own:
 
 >lua
@@ -3684,8 +3669,8 @@ should be output in a vertical/horizontal split or a new buffer:
 
 DIFF ~
 
-Please see the |codecompanion-chat-buffer-diff| on the Chat Buffer page for
-configuration options.
+Please see the chat-buffer-diff on the Chat Buffer page for configuration
+options.
 
 
 MCP SERVERS                          *codecompanion-configuration-mcp-servers*
@@ -3696,8 +3681,8 @@ CodeCompanion added support for the Model Context Protocol (MCP)
 applications to external systems.
 
 You can find out which parts of the protocol CodeCompanion has implemented on
-the |codecompanion-model-context-protocol| page. Currently, you can leverage
-MCP servers with |codecompanion-usage-chat-buffer-|.
+the model-context-protocol page. Currently, you can leverage MCP servers with
+usage-chat-buffer-.
 
 
 MCP SERVERS ~
@@ -3713,8 +3698,8 @@ BASIC CONFIGURATION
 In the environment variables example above, we're using 1Password CLI
 <https://developer.1password.com/docs/cli/> tool to fetch the API key. However,
 you can leverage CodeCompanion's built-in
-|codecompanion-configuration-adapters-http-environment-variables| capabilities
-to fetch the value from any source you like.
+configuration-adapters-http-environment-variables capabilities to fetch the
+value from any source you like.
 
 
 ROOTS
@@ -3889,8 +3874,8 @@ rules. Currently, the plugin has two in-built parsers:
 - `CodeCompanion` - parses rules in the same ways as `claude` but allows for a system prompts to be extracted via a H2 "System Prompt" header
 - `none` - a blank parser which can be used to overwrite parsers that have been set on the default rules groups
 
-Please see the guide on |codecompanion-extending-parsers| to understand how you
-can create and apply your own.
+Please see the guide on extending-parsers to understand how you can create and
+apply your own.
 
 
 APPLYING PARSERS
@@ -3998,7 +3983,7 @@ configured with:
 CREATING SKILLS ~
 
 A skill is a directory containing a `SKILL.md`, in one of your configured
-|codecompanion-configuration-skills-directories|:
+configuration-skills-directories:
 
 >
     lua-developer/
@@ -4075,9 +4060,8 @@ This can be configured with:
 
 PROMPT LIBRARY ~
 
-Skills can also be referenced in |codecompanion-configuration-prompt-library|
-items, ensuring that they are loaded in the chat buffer when the prompt is
-used.
+Skills can also be referenced in configuration-prompt-library items, ensuring
+that they are loaded in the chat buffer when the prompt is used.
 
 
   [!NOTE] The prompt library skills takes priority over `autoload`
@@ -4099,8 +4083,7 @@ CodeCompanion uses a prompt library to manage and organize these prompts.
 ADDING PROMPTS ~
 
 
-  [!NOTE] See the |codecompanion--creating-prompts| section to learn how to
-  create your own.
+  [!NOTE] See the -creating-prompts section to learn how to create your own.
 There are two ways to add prompts to the prompt library. You can either define
 them directly in your configuration file as Lua tables, or you can store them
 as markdown files in your filesystem and reference them in your configuration.
@@ -4240,7 +4223,7 @@ individual tools as well as tool groups:
 
 ::: tip Disabling all tools Setting `tools` to `none` will prevent any tools
 from being loaded in the chat, including any
-|codecompanion-configuration-chat-buffer-default-tools|:
+configuration-chat-buffer-default-tools:
 
 
 :::
@@ -4253,8 +4236,7 @@ the first prompt is sent to the LLM, the LLM responds, then the next prompt in
 the workflow is sent, etc. This can be useful for implementing multi-step
 processes such as chain-of-thought reasoning or iterative code refinement.
 
-**Note:** Markdown prompts do not support
-|codecompanion-extending-agentic-workflows|.
+**Note:** Markdown prompts do not support extending-agentic-workflows.
 
 
 You can also modify the options for the entire workflow at an individual prompt
@@ -4366,7 +4348,7 @@ The format of the date can be changed in your config by altering the
 TOOL SYSTEM PROMPT ~
 
 CodeCompanion also ships with a separate system prompt when
-|codecompanion-usage-chat-buffer-agents-tools| are used in the chat buffer:
+usage-chat-buffer-agents-tools are used in the chat buffer:
 
 >txt
     <instructions>
@@ -4559,8 +4541,8 @@ lazy.nvim:
     })
 <
 
-Visit the creating |codecompanion-extending-extensions| guide to learn more
-about available extensions and how to create your own.
+Visit the creating extending-extensions guide to learn more about available
+extensions and how to create your own.
 
 
 OTHER OPTIONS                      *codecompanion-configuration-other-options*
@@ -4665,21 +4647,21 @@ the plugin.
 
 APPLY AN LLM'S EDITS TO A BUFFER/FILE ~
 
-The |codecompanion-usage-chat-buffer-agents-tools-files| tool, combined with
-the |codecompanion-usage-chat-buffer-editor-context-buffer| editor context or
-|codecompanion-usage-chat-buffer-slash-commands-buffer| slash command, enables
-an LLM to modify code in a Neovim buffer. This is especially useful if you do
-not wish to manually apply an LLM's suggestions yourself. Simply tag it in the
-chat buffer with `@files` or `@insert_edit_into_file`.
+The usage-chat-buffer-agents-tools-files tool, combined with the
+usage-chat-buffer-editor-context-buffer editor context or
+usage-chat-buffer-slash-commands-buffer slash command, enables an LLM to modify
+code in a Neovim buffer. This is especially useful if you do not wish to
+manually apply an LLM's suggestions yourself. Simply tag it in the chat buffer
+with `@files` or `@insert_edit_into_file`.
 
 
 CODE REVIEW AN LLM/AGENT'S CHANGES ~
 
-You can |codecompanion-usage-code-review| like a pull request.
-`:CodeCompanionCodeReview` opens every change in the quickfix list, one entry
-per hunk. You can step through them, leave in place comments with
-`:CodeCompanionCodeReview Comment` and then share the review in a chat buffer
-with the |codecompanion-usage-chat-buffer-editor-context-code-review| context.
+You can usage-code-review like a pull request. `:CodeCompanionCodeReview` opens
+every change in the quickfix list, one entry per hunk. You can step through
+them, leave in place comments with `:CodeCompanionCodeReview Comment` and then
+share the review in a chat buffer with the
+usage-chat-buffer-editor-context-code-review context.
 
 To navigate to the files an agent has edited or created, use
 `:CodeCompanionChat Changes` to open them in the quickfix list. Every file the
@@ -4717,10 +4699,10 @@ there.
 
 RUN TESTS FROM THE CHAT BUFFER ~
 
-The |codecompanion-usage-chat-buffer-agents-tools-run-command| tool enables an
-LLM to execute commands on your machine. This can be useful if you wish the LLM
-to run a test suite on your behalf and give insight on failing cases. Simply
-tag the `@run_command` in the chat buffer and ask it run your tests.
+The usage-chat-buffer-agents-tools-run-command tool enables an LLM to execute
+commands on your machine. This can be useful if you wish the LLM to run a test
+suite on your behalf and give insight on failing cases. Simply tag the
+`@run_command` in the chat buffer and ask it run your tests.
 
 
 ACTION PALETTE                            *codecompanion-usage-action-palette*
@@ -4749,7 +4731,7 @@ The plugin also defines a number of prompts in the form of the prompt library:
   [!INFO] These can also be called via the cmd line with their `alias`, for
   example `:CodeCompanion /explain`
 The plugin also contains two built-in workflows, `Code workflow` and `Edit test
-repeat workflow`. See the |codecompanion-usage-workflows| for more information.
+repeat workflow`. See the usage-workflows for more information.
 
 The built-in prompts can be turned off by setting
 `display.action_palette.opts.show_preset_prompts = false`.
@@ -4781,7 +4763,7 @@ response which is then followed by the LLM's. The user's responses are parsed
 by treesitter and sent via an adapter to an LLM for a response which is then
 streamed back into the buffer. A response is sent to the LLM by pressing `<CR>`
 or `<C-s>` in normal mode or `<C-CR>` in insert mode. This can of course be
-changed as per the |codecompanion--keymaps| section.
+changed as per the -keymaps section.
 
 New in `v19.12.0`, you can send a message to the LLM whilst it's executing tool
 calls with the `btw` keymap which is triggered with `gm`. When safe to do so,
@@ -4813,8 +4795,7 @@ ACP adapters are initiated via a command in the configuration. By default, this
 will be the `default` command. Some ACP adapters have additional commands and
 these can be triggered via the cmd line with something like `:CodeCompanionChat
 adapter=gemini_cli command=yolo`, or you can use the
-|codecompanion-usage-chat-buffer-slash-commands-command| slash command within
-the chat buffer.
+usage-chat-buffer-slash-commands-command slash command within the chat buffer.
 
 
 COMPLETION ~
@@ -4840,10 +4821,10 @@ dynamically discovered from the agent itself.
   built-in and custom commands. If you define a new custom command mid-session,
   the same delay applies before it appears in the completion list.
 The backslash trigger is used to avoid conflicts with CodeCompanion's built-in
-|codecompanion-usage-chat-buffer-slash-commands|. When you send a message,
-`\command` is automatically transformed to `/command` for the agent. The
-trigger character can be customized via
-`interactions.chat.slash_commands.opts.acp.trigger` in your config.
+usage-chat-buffer-slash-commands. When you send a message, `\command` is
+automatically transformed to `/command` for the agent. The trigger character
+can be customized via `interactions.chat.slash_commands.opts.acp.trigger` in
+your config.
 
 It's worth noting that not all commands available in ACP CLI tools are exposed
 via the SDK. Only a subset of built-in commands are supported, though this is
@@ -4879,8 +4860,7 @@ start syncing its diff.
 Some file types are worth syncing every time they're attached. Jupyter
 Notebooks are the out of the box example, since a notebook changes on disk
 whenever a cell is run. Any extension can be watched from the moment it's added
-to the chat buffer by listing it in
-|codecompanion-configuration-chat-buffer-syncing|.
+to the chat buffer by listing it in configuration-chat-buffer-syncing.
 
 If a context item is added by mistake, it can be removed from the chat buffer
 by simply deleting it from the `Context` blockquote. On the next turn, all data
@@ -4927,10 +4907,10 @@ IMAGES / VISION ~
 
 Many LLMs have the ability to receive images as input (sometimes referred to as
 vision). CodeCompanion supports the adding of images into the chat buffer via
-the |codecompanion-usage-chat-buffer-slash-commands-image| slash command and
-through the system clipboard with |codecompanion-installation-img-clip-nvim|.
-CodeCompanion can work with images in your file system and also with remote
-URLs, encoding both into a base64 representation.
+the usage-chat-buffer-slash-commands-image slash command and through the system
+clipboard with installation-img-clip-nvim. CodeCompanion can work with images
+in your file system and also with remote URLs, encoding both into a base64
+representation.
 
 If your adapter and model doesn't support images, then CodeCompanion will
 endeavour to ensure that the image is not included in the messages payload
@@ -4972,10 +4952,10 @@ MESSAGES ~
   [!TIP] The message history and adapter settings can be modified via the debug
   window (`gd`) in the chat buffer
 It's important to note that some messages, such as system prompts or context
-provided via |codecompanion-usage-chat-buffer-slash-commands|, will be hidden.
-This is to keep the chat buffer uncluttered from a UI perspective. Using the
-`gd` keymap opens up the debug window, which allows the user to see the full
-contents of the messages table which will be sent to the LLM on the next turn.
+provided via usage-chat-buffer-slash-commands, will be hidden. This is to keep
+the chat buffer uncluttered from a UI perspective. Using the `gd` keymap opens
+up the debug window, which allows the user to see the full contents of the
+messages table which will be sent to the LLM on the next turn.
 
 The message history cannot be altered directly in the chat buffer. However, it
 can be modified in the debug window. This window is simply a Lua buffer which
@@ -4999,8 +4979,7 @@ AGENTS AND TOOLS                        *codecompanion-usage-agents-and-tools*
 
 
   [!IMPORTANT] The built-in tools are for HTTP adapters only and not all LLMs
-  support tool use. Please see the |codecompanion--compatibility| section for
-  more information.
+  support tool use. Please see the -compatibility section for more information.
 As outlined by Andrew Ng in Agentic Design Patterns Part 3, Tool Use
 <https://www.deeplearning.ai/the-batch/agentic-design-patterns-part-3-tool-use>,
 LLMs can act as agents by leveraging external tools. Andrew notes some common
@@ -5032,8 +5011,8 @@ which sees tool's added to a queue and sequentially worked with their output
 being shared back to the LLM via the chat buffer. Depending on the tool, flags
 may be inserted on the chat buffer for later processing.
 
-An outline of the |codecompanion-extending-tools-architecture| is available in
-the extending section.
+An outline of the extending-tools-architecture is available in the extending
+section.
 
 
 AGENTS / TOOL GROUPS ~
@@ -5061,8 +5040,8 @@ completely replace the default system prompts with its own tailored
 instructions. This is how the built-in `@{agent}` group works.
 
 When `system_prompt` is a function, it receives the group config as the first
-argument and a |codecompanion-configuration-system-prompt| as the second,
-giving access to `language`, `date`, `nvim_version`, `os` and more:
+argument and a configuration-system-prompt as the second, giving access to
+`language`, `date`, `nvim_version`, `os` and more:
 
 >lua
     groups = {
@@ -5095,16 +5074,16 @@ coding agent.
 
 It contains the following tools:
 
-- |codecompanion-usage-chat-buffer-agents-tools-ask-questions|
-- |codecompanion-usage-chat-buffer-agents-tools-create-file|
-- |codecompanion-usage-chat-buffer-agents-tools-delete-file|
-- |codecompanion-usage-chat-buffer-agents-tools-file-search|
-- |codecompanion-usage-chat-buffer-agents-tools-get-changed-files|
-- |codecompanion-usage-chat-buffer-agents-tools-get-diagnostics|
-- |codecompanion-usage-chat-buffer-agents-tools-grep-search|
-- |codecompanion-usage-chat-buffer-agents-tools-insert-edit-into-file|
-- |codecompanion-usage-chat-buffer-agents-tools-read-file|
-- |codecompanion-usage-chat-buffer-agents-tools-run-command|
+- usage-chat-buffer-agents-tools-ask-questions
+- usage-chat-buffer-agents-tools-create-file
+- usage-chat-buffer-agents-tools-delete-file
+- usage-chat-buffer-agents-tools-file-search
+- usage-chat-buffer-agents-tools-get-changed-files
+- usage-chat-buffer-agents-tools-get-diagnostics
+- usage-chat-buffer-agents-tools-grep-search
+- usage-chat-buffer-agents-tools-insert-edit-into-file
+- usage-chat-buffer-agents-tools-read-file
+- usage-chat-buffer-agents-tools-run-command
 
 You can use it with:
 
@@ -5119,12 +5098,12 @@ The `@{files}` tool is a collection of tools that allows an LLM to carry out
 file operations in your current working directory. It contains the following
 files:
 
-- |codecompanion-usage-chat-buffer-agents-tools-create-file|
-- |codecompanion-usage-chat-buffer-agents-tools-file-search|
-- |codecompanion-usage-chat-buffer-agents-tools-get-changed-files|
-- |codecompanion-usage-chat-buffer-agents-tools-grep-search|
-- |codecompanion-usage-chat-buffer-agents-tools-insert-edit-into-file|
-- |codecompanion-usage-chat-buffer-agents-tools-read-file|
+- usage-chat-buffer-agents-tools-create-file
+- usage-chat-buffer-agents-tools-file-search
+- usage-chat-buffer-agents-tools-get-changed-files
+- usage-chat-buffer-agents-tools-grep-search
+- usage-chat-buffer-agents-tools-insert-edit-into-file
+- usage-chat-buffer-agents-tools-read-file
 
 You can use it with:
 
@@ -5136,7 +5115,7 @@ You can use it with:
 BUILT-IN TOOLS ~
 
 CodeCompanion comes with a number of built-in tools which you can leverage, as
-long as your adapter and model are |codecompanion--compatibility|.
+long as your adapter and model are -compatibility.
 
 When calling a tool, CodeCompanion replaces the tool call in any prompt you
 send to the LLM with the value of a tool's `opts.tool_replacement_message`
@@ -5214,8 +5193,7 @@ for the tool.
 **Options:** - `adapter` The adapter used to fetch, process and format the
 webpage's content (Default: `jina`). The MarkItDown
 <https://github.com/microsoft/markitdown> adapter is also available as an
-alternative, configurable via
-|codecompanion-usage-chat-buffer-slash-commands-fetch|.
+alternative, configurable via usage-chat-buffer-slash-commands-fetch.
 
 
 FILE_SEARCH
@@ -5404,8 +5382,7 @@ occurs, the tool will instead share the exit code.
 The LLM is specifically instructed to detect if you're running a test suite,
 and if so, to insert a flag in its request. This is then detected and the
 outcome of the test is stored in the corresponding flag on the chat buffer.
-This makes it ideal for |codecompanion-extending-agentic-workflows| to hook
-into.
+This makes it ideal for extending-agentic-workflows to hook into.
 
 **Options:** - `require_approval_before` require approval before running a
 command? (Default: true)
@@ -5436,7 +5413,7 @@ receive up to date information:
 <
 
 The tool supports numerous adapters that you'll need to
-|codecompanion-configuration-chat-buffer-web-search|.
+configuration-chat-buffer-web-search.
 
 
 ADAPTER TOOLS ~
@@ -5479,10 +5456,10 @@ In the `openai_responses` adapter, the following tools are available:
 
 MCP ~
 
-The MCP servers you've |codecompanion-configuration-mcp| in CodeCompanion
-expose their own set of tools that you can use in the chat buffer. Once a
-server has been started, the tools will be available to you and appear in the
-completion menu, by typing `@`. They are prefixed with `mcp:`.
+The MCP servers you've configuration-mcp in CodeCompanion expose their own set
+of tools that you can use in the chat buffer. Once a server has been started,
+the tools will be available to you and appear in the completion menu, by typing
+`@`. They are prefixed with `mcp:`.
 
 
 SECURITY ~
@@ -5534,11 +5511,10 @@ prompting the user. However, some tools such as `run_command` and `delete_file`
 are excluded from this as they have `allowed_in_yolo_mode = false` set by
 default.
 
-If you've configured the |codecompanion-configuration-chat-buffer-llm-judge|
-then a tool's commands will be sent to an LLM to verify that they're safe. This
-assumes that your chosen adapter supports structured outputs and the tool
-itself supports the judge. The |codecompanion--delete_file| and
-|codecompanion--run_command| tools support this out of the box.
+If you've configured the configuration-chat-buffer-llm-judge then a tool's
+commands will be sent to an LLM to verify that they're safe. This assumes that
+your chosen adapter supports structured outputs and the tool itself supports
+the judge. The -delete_file and -run_command tools support this out of the box.
 
 If the judge decides the action is safe, it executes immediately and the
 verdict is cached so re-running the exact same command won't be re-judged that
@@ -5683,10 +5659,10 @@ filtered out.
 
 #CODE_REVIEW ~
 
-The `code_review` context shares your |codecompanion-usage-code-review| with an
-LLM. Every pending comment you've left with `:CodeCompanionCodeReview Comment`
-is sent when you submit the chat buffer and the review baseline advances so the
-next review only shows what changes in the next iteration.
+The `code_review` context shares your usage-code-review with an LLM. Every
+pending comment you've left with `:CodeCompanionCodeReview Comment` is sent
+when you submit the chat buffer and the review baseline advances so the next
+review only shows what changes in the next iteration.
 
 >md
     Please action #{code_review}
@@ -5705,8 +5681,8 @@ you asked for.
 #DIAGNOSTICS ~
 
 
-  [!TIP] The |codecompanion-usage-action-palette| has a pre-built prompt which
-  asks an LLM to explain LSP diagnostics in a visual selection.
+  [!TIP] The usage-action-palette has a pre-built prompt which asks an LLM to
+  explain LSP diagnostics in a visual selection.
 The `diagnostics` context shares any diagnostic information from LSP servers
 active in the current buffer. This can serve as useful context should you wish
 to troubleshoot any errors with an LLM.
@@ -5787,15 +5763,15 @@ at the point a response is sent (excluding the chat buffer of course).
 
 RULES                                              *codecompanion-usage-rules*
 
-Ensure that you have read the |codecompanion-configuration-rules| section to
-understand how to create and configure rule groups.
+Ensure that you have read the configuration-rules section to understand how to
+create and configure rule groups.
 
 
 DEFAULT RULE GROUP ~
 
 Below is the `default` rule group that, when
-|codecompanion-configuration-rules-enabling-rules|, provides a collection of
-common files to the chat buffer:
+configuration-rules-enabling-rules, provides a collection of common files to
+the chat buffer:
 
 >lua
     require("codecompanion").setup({
@@ -5831,7 +5807,7 @@ or good old plain text files.
 The location of the rules is also unimportant. The rules files could be local
 to the project you're working in. Or, they could reside in a separate location
 on your disk. Just ensure the path is correct when you're
-|codecompanion-configuration-rules-rule-groups| the rules group.
+configuration-rules-rule-groups the rules group.
 
 You can even set the system prompt for the chat buffer in the rules file
 itself.
@@ -5911,9 +5887,9 @@ ACTION PALETTE
 
 
 
-There is also a `Chat with rules` action in the
-|codecompanion-usage-action-palette|. This lists all of the rule groups in the
-config that can be added to a new chat buffer.
+There is also a `Chat with rules` action in the usage-action-palette. This
+lists all of the rule groups in the config that can be added to a new chat
+buffer.
 
 
 CLEARING RULES
@@ -5925,13 +5901,12 @@ note, this will remove `ALL` context that's been designated as `rules`.
 SKILLS                                            *codecompanion-usage-skills*
 
 
-  [!IMPORTANT] Skills are only available for
-  |codecompanion-configuration-adapters-http| adapters.
-  |codecompanion-configuration-adapters-acp| agents `may` have skills implemented
-  which can be accessed via the `\` trigger. See
-  |codecompanion-usage-chat-buffer-skills-acp-adapters| for more information.
-Ensure that you have read the |codecompanion-configuration-skills| section to
-understand how to configure skill directories and groups.
+  [!IMPORTANT] Skills are only available for configuration-adapters-http
+  adapters. configuration-adapters-acp agents `may` have skills implemented which
+  can be accessed via the `\` trigger. See usage-chat-buffer-skills-acp-adapters
+  for more information.
+Ensure that you have read the configuration-skills section to understand how to
+configure skill directories and groups.
 
 
 WHAT YOUR LLM SEES ~
@@ -5947,20 +5922,19 @@ frontmatter in `SKILL.md`) with the LLM:
 By only loading the metadata, the context in the chat buffer is kept small.
 
 To read the skill in full, CodeCompanion attaches the `read_file` and
-`run_command` |codecompanion-usage-chat-buffer-agents-tools| to the chat. As a
-result, you'll need to use an LLM which has function calling capability.
+`run_command` usage-chat-buffer-agents-tools to the chat. As a result, you'll
+need to use an LLM which has function calling capability.
 
 
 ADDING SKILLS ~
 
-The |codecompanion-usage-chat-buffer-slash-commands-skills| slash command lists
-every skill found in the |codecompanion-configuration-skills-directories|.
-Multiple skills can be added at once depending on the picker you've defined in
-the config.
+The usage-chat-buffer-slash-commands-skills slash command lists every skill
+found in the configuration-skills-directories. Multiple skills can be added at
+once depending on the picker you've defined in the config.
 
-The |codecompanion-usage-chat-buffer-slash-commands-skills-group| slash command
-lists your configured |codecompanion-configuration-skills-groups| and adds all
-of their skills to the chat buffer.
+The usage-chat-buffer-slash-commands-skills-group slash command lists your
+configured configuration-skills-groups and adds all of their skills to the chat
+buffer.
 
 CodeCompanion detects whether you have telescope
 <https://github.com/nvim-telescope/telescope.nvim>, fzf_lua
@@ -5996,16 +5970,14 @@ Each command is configured separately:
 
 ACP ADAPTERS ~
 
-Everything above applies to |codecompanion-configuration-adapters-http|
-adapters. On an |codecompanion-configuration-adapters-acp| adapter such as
-Claude Code, the agent runs its own skills, so `/skills` and `/skills-group`
-are hidden.
+Everything above applies to configuration-adapters-http adapters. On an
+configuration-adapters-acp adapter such as Claude Code, the agent runs its own
+skills, so `/skills` and `/skills-group` are hidden.
 
 Reach the agent's skills with the `\` trigger instead, which lists the
-|codecompanion-usage-chat-buffer--completion| the agent has discovered for
-itself. A skill in `~/.claude/skills` is therefore available either way:
-through `/skills` when you're on an http adapter, and through `\` when Claude
-Code is driving.
+usage-chat-buffer--completion the agent has discovered for itself. A skill in
+`~/.claude/skills` is therefore available either way: through `/skills` when
+you're on an http adapter, and through `\` when Claude Code is driving.
 
 
 REMOVING A SKILL ~
@@ -6023,10 +5995,9 @@ alongside the `prompt_library` table where individual prompts have
 
 
   [!NOTE] Every command on this page is CodeCompanion's own and is triggered with
-  `/`. An |codecompanion-configuration-adapters-acp| agent such as Claude Code
-  also exposes its own commands, which the plugin discovers from the agent at
-  runtime. Those are triggered with `\` to keep the two apart - see
-  |codecompanion-usage-chat-buffer--completion|.
+  `/`. An configuration-adapters-acp agent such as Claude Code also exposes its
+  own commands, which the plugin discovers from the agent at runtime. Those are
+  triggered with `\` to keep the two apart - see usage-chat-buffer--completion.
 
 /ACP_SESSION_OPTIONS ~
 
@@ -6049,19 +6020,17 @@ in Neovim to the chat buffer. The command has native, `Telescope`, `mini.pick`,
 `fzf.lua` and `snacks.nvim` providers available. Also, multiple buffers can be
 selected and added to the chat buffer as per the video above.
 
-This slash command is also available in the
-|codecompanion-usage-cli-slash-commands|, where it inserts `@path` references
-instead of buffer contents.
+This slash command is also available in the usage-cli-slash-commands, where it
+inserts `@path` references instead of buffer contents.
 
 
 /COMMAND ~
 
-The `command` slash command is specific to
-|codecompanion-configuration-adapters-acp| adapters and allows users to switch
-between different adapter commands. For instance, some ACP adapters may allow
-you to run the agent command with a specific flag. Be mindful that switching
-commands is destructive and essentially resets the chat buffer for the purposes
-of a conversation with an agent.
+The `command` slash command is specific to configuration-adapters-acp adapters
+and allows users to switch between different adapter commands. For instance,
+some ACP adapters may allow you to run the agent command with a specific flag.
+Be mindful that switching commands is destructive and essentially resets the
+chat buffer for the purposes of a conversation with an agent.
 
 
 /COMPACT ~
@@ -6114,7 +6083,39 @@ current working directory to the chat buffer. The command has native,
 Also, multiple files can be selected and added to the chat buffer.
 
 The content of a file can be reshaped before the LLM sees it with
-|codecompanion-configuration-others-context-formatters|.
+configuration-others-context-formatters.
+
+
+SEARCHING OTHER DIRECTORIES
+
+Use `opts.dirs` to give the picker a list of directories to search alongside
+the current working directory:
+
+>lua
+    require("codecompanion").setup({
+      interactions = {
+        chat = {
+          slash_commands = {
+            ["file"] = {
+              opts = {
+                dirs = { "~/notes", "../shared-library" },
+              },
+            },
+          },
+        },
+      },
+    })
+<
+
+Paths may be relative or use `~`. A directory that doesn't exist is skipped
+with a warning.
+
+
+IMAGES
+
+Selecting an image sends it to the LLM as an image rather than as file content,
+in the same way as the -image slash command. This requires an adapter with
+vision support; on any other adapter the image is skipped with a warning.
 
 #3218 <https://github.com/olimorris/codecompanion.nvim/pull/3218> added support
 for PDFs for the following http adapters:
@@ -6128,9 +6129,8 @@ for PDFs for the following http adapters:
 Simply use the `/file` slash command and select a PDF file. The plugin will
 `base64` encode the PDF and send it to the LLM.
 
-This slash command is also available in the
-|codecompanion-usage-cli-slash-commands|, where it inserts `@path` references
-instead of file contents.
+This slash command is also available in the usage-cli-slash-commands, where it
+inserts `@path` references instead of file contents.
 
 - Select a single file: `⏎ enter`
 - Select multiple files: `⇥ tab`
@@ -6146,8 +6146,8 @@ context in the process. This enables you to branch the conversation and
 experiment with different prompts, models or even adapters without losing the
 original conversation.
 
-To save every fork as a |codecompanion-configuration-chat-buffer-sessions| as
-soon as it's created:
+To save every fork as a configuration-chat-buffer-sessions as soon as it's
+created:
 
 >lua
     require("codecompanion").setup({
@@ -6186,25 +6186,24 @@ image picker is only available with `snacks.nvim` and the `vim.ui.select`.
 
 /RULES ~
 
-The `rules` slash command allows you to add
-|codecompanion-usage-chat-buffer-rules| groups to the chat buffer.
+The `rules` slash command allows you to add usage-chat-buffer-rules groups to
+the chat buffer.
 
 
 /MCP ~
 
-The `mcp` slash command allows you to start and stop
-|codecompanion-configuration-mcp| servers manually from within a chat buffer.
-This is applied at a global level, so starting/stopping servers in one chat
-buffer will affect all other chat buffers. A `snacks.nvim` and `vim.ui.select`
-provider is available for selecting which MCP servers to start/stop.
+The `mcp` slash command allows you to start and stop configuration-mcp servers
+manually from within a chat buffer. This is applied at a global level, so
+starting/stopping servers in one chat buffer will affect all other chat
+buffers. A `snacks.nvim` and `vim.ui.select` provider is available for
+selecting which MCP servers to start/stop.
 
 
 /MODE ~
 
-The `mode` slash command is specific to
-|codecompanion-configuration-adapters-acp| adapters and allows users to switch
-between different agent operating modes, as per the protocol
-<https://agentclientprotocol.com/protocol/session-modes> docs.
+The `mode` slash command is specific to configuration-adapters-acp adapters and
+allows users to switch between different agent operating modes, as per the
+protocol <https://agentclientprotocol.com/protocol/session-modes> docs.
 
 
 /NOW ~
@@ -6215,11 +6214,10 @@ buffer.
 
 /RENAME ~
 
-The `rename` slash command is specific to
-|codecompanion-configuration-adapters-http| adapters. It allows you to rename
-the title of the conversation in the chat buffer. This can be useful to keep
-track of different conversations via `open chats` in the
-|codecompanion-usage-action-palette|.
+The `rename` slash command is specific to configuration-adapters-http adapters.
+It allows you to rename the title of the conversation in the chat buffer. This
+can be useful to keep track of different conversations via `open chats` in the
+usage-action-palette.
 
 
 /RESUME ~
@@ -6227,11 +6225,10 @@ track of different conversations via `open chats` in the
 The `resume` slash command lists your past chat sessions and restores the
 selected one into the chat buffer.
 
-What it lists depends on the adapter. On an
-|codecompanion-configuration-adapters-acp| adapter that supports the
-`session/list` capability, it asks the agent for its own sessions. On an
-|codecompanion-configuration-adapters-http| adapter, it lists the
-|codecompanion-configuration-chat-buffer-sessions| saved to disk.
+What it lists depends on the adapter. On an configuration-adapters-acp adapter
+that supports the `session/list` capability, it asks the agent for its own
+sessions. On an configuration-adapters-http adapter, it lists the
+configuration-chat-buffer-sessions saved to disk.
 
 
   [!NOTE] The `/resume` command must be used before sending any messages. It is
@@ -6239,11 +6236,10 @@ What it lists depends on the adapter. On an
 
 /SAVE ~
 
-The `save` slash command is specific to
-|codecompanion-configuration-adapters-http| adapters. It saves the chat to disk
-as a |codecompanion-configuration-chat-buffer-sessions|, which you can restore
-later with `/resume`. You'll be asked for a title if the chat doesn't already
-have one.
+The `save` slash command is specific to configuration-adapters-http adapters.
+It saves the chat to disk as a configuration-chat-buffer-sessions, which you
+can restore later with `/resume`. You'll be asked for a title if the chat
+doesn't already have one.
 
 Chats are saved automatically by default, so `/save` is for when you want to
 name one yourself or save it before the LLM has responded.
@@ -6274,16 +6270,15 @@ that you set a token in your configuration with permission to create gists:
 
 /SKILLS ~
 
-The `skills` slash command adds |codecompanion-usage-chat-buffer-skills| to the
-chat buffer. Multiple skills can be selected at once, depending on the picker
-you've configured.
+The `skills` slash command adds usage-chat-buffer-skills to the chat buffer.
+Multiple skills can be selected at once, depending on the picker you've
+configured.
 
 
 /SKILLS-GROUP ~
 
-The `skills-group` slash command adds a
-|codecompanion-configuration-skills-groups| of skills in one go. It's hidden if
-you haven't configured any groups.
+The `skills-group` slash command adds a configuration-skills-groups of skills
+in one go. It's hidden if you haven't configured any groups.
 
 
 /SYMBOLS ~
@@ -6445,11 +6440,11 @@ Alternatively, you could hard code the prompt:
 
 EDITOR CONTEXT
 
-Similarly to the |codecompanion-usage-chat-buffer-|, you can use
-|codecompanion-usage-chat-buffer-editor-context| references in your prompts to
-share information about your current Neovim session. This makes it trivial to
-share the current buffer (`#{buffer}`), all currently open buffers
-(`#{buffers}`), or LSP diagnostics (`#{diagnostics}`) to name but a few.
+Similarly to the usage-chat-buffer-, you can use
+usage-chat-buffer-editor-context references in your prompts to share
+information about your current Neovim session. This makes it trivial to share
+the current buffer (`#{buffer}`), all currently open buffers (`#{buffers}`), or
+LSP diagnostics (`#{diagnostics}`) to name but a few.
 
 You can use the `:CodeCompanionCLI` command:
 
@@ -6519,10 +6514,10 @@ or:
 <
 
 This will toggle a `codecompanion_input` buffer. In this buffer, you have
-access to all of the available |codecompanion--editor-context|, some
-|codecompanion--slash-commands| and a much a larger character window. To send
-the prompt to the agent, you can write the buffer with `:w`. Or, to
-automatically send and submit, you can forcefully write with `:w!`.
+access to all of the available -editor-context, some -slash-commands and a much
+a larger character window. To send the prompt to the agent, you can write the
+buffer with `:w`. Or, to automatically send and submit, you can forcefully
+write with `:w!`.
 
 You can scroll previous prompts with the `<up>` and `<down>` keys.
 
@@ -6530,11 +6525,10 @@ You can scroll previous prompts with the `<up>` and `<down>` keys.
 SLASH COMMANDS
 
 The prompt input buffer also supports the
-|codecompanion-usage-chat-buffer-slash-commands-buffer%5d| and
-|codecompanion-usage-chat-buffer-slash-commands-file| slash commands, which
-better enable you to share lots of context with a CLI agent at once. Simply
-type `/` in the buffer to bring up the completion menu for your selected
-provider.
+usage-chat-buffer-slash-commands-buffer%5D and
+usage-chat-buffer-slash-commands-file slash commands, which better enable you
+to share lots of context with a CLI agent at once. Simply type `/` in the
+buffer to bring up the completion menu for your selected provider.
 
 Instead of sharing file contents, CLI slash commands insert `@path` references
 into the prompt. For example, selecting a file via `/file` will insert:
@@ -6570,8 +6564,7 @@ Or pass `submit = true` in Lua:
 <
 
 This is especially useful in keymaps where you want a fire-and-forget workflow,
-like the diagnostics and terminal examples in the |codecompanion--workflow|
-section.
+like the diagnostics and terminal examples in the -workflow section.
 
 
 API REFERENCE ~
@@ -6795,8 +6788,8 @@ the raw comments file. `:bw` saves your edits.
 
 SENDING
 
-Use the |codecompanion-usage-chat-buffer-editor-context-code-review| editor
-context in a chat buffer:
+Use the usage-chat-buffer-editor-context-code-review editor context in a chat
+buffer:
 
 >md
     Please action #{code_review}
@@ -6806,7 +6799,7 @@ This will be expanded to `“Please action my comments from the code review,
 which I've attached”`. The LLM receives each comment as a block containing
 the path, the line range, the code you commented on, and your prose. In the
 chat buffer, a shorter, readable version is also added so you can see what was
-sent without opening the |codecompanion-usage-chat-buffer--debug-window|.
+sent without opening the usage-chat-buffer--debug-window.
 
 If you have no pending comments there's nothing to send, and `#{code_review}`
 does nothing. A review you're happy with can end with `:CodeCompanionCodeReview
@@ -6916,9 +6909,8 @@ running in a separate terminal:
   [!TIP] The `review.md` path is static at a repository level. Therefore, in a
   `CLAUDE.md` or `AGENTS.md` file you can reference this file, only needing to do
   `:CodeCompanionCodeReview Share` to advance the baseline.
-If the agent runs in CodeCompanion's own |codecompanion-usage-cli|, steps 1-4
-are the same, but you can submit with `#{code_review}` directly in the prompt
-instead of `Share`.
+If the agent runs in CodeCompanion's own usage-cli, steps 1-4 are the same, but
+you can submit with `#{code_review}` directly in the prompt instead of `Share`.
 
 
 WITHOUT GIT ~
@@ -6975,10 +6967,10 @@ The events that are fired from within the plugin are:
 - `CodeCompanionCLIClosed` - Fired after a CLI buffer has been closed
 - `CodeCompanionCLIHidden` - Fired after a CLI buffer has been hidden
 - `CodeCompanionCLISent` - Fired after data has been sent to a CLI buffer
-- `CodeCompanionCLISubmitted` - Fired when a CLI agent accepts a prompt, however it was typed. Requires |codecompanion-configuration-cli-hooks|
-- `CodeCompanionCLIDone` - Fired when a CLI agent finishes a turn. Requires |codecompanion-configuration-cli-hooks|
-- `CodeCompanionCLIApprovalRequested` - Fired when a CLI agent is waiting on the user, with a `message` in the data payload. Requires |codecompanion-configuration-cli-hooks|
-- `CodeCompanionCLIApprovalFinished` - Fired when a CLI agent resumes after waiting. Requires |codecompanion-configuration-cli-hooks|
+- `CodeCompanionCLISubmitted` - Fired when a CLI agent accepts a prompt, however it was typed. Requires configuration-cli-hooks
+- `CodeCompanionCLIDone` - Fired when a CLI agent finishes a turn. Requires configuration-cli-hooks
+- `CodeCompanionCLIApprovalRequested` - Fired when a CLI agent is waiting on the user, with a `message` in the data payload. Requires configuration-cli-hooks
+- `CodeCompanionCLIApprovalFinished` - Fired when a CLI agent resumes after waiting. Requires configuration-cli-hooks
 - `CodeCompanionContextChanged` - Fired when the context that a chat buffer follows, changes
 - `CodeCompanionFileEdited` - Fired after the LLM has edited or created a file; the data payload includes the `path` and what made the change (`tool`)
 - `CodeCompanionInlineStarted` - Fired at the start of the Inline interaction
@@ -6987,9 +6979,9 @@ The events that are fired from within the plugin are:
 - `CodeCompanionMCPServerReady` - Fired when an MCP server is ready for requests
 - `CodeCompanionMCPServerClosed` - Fired when an MCP server is closed
 - `CodeCompanionMCPServerToolsLoaded` - Fired when tools are loaded for an MCP server
-- `CodeCompanionRequestStarted` - Fired at the start of any API request, and at the start of a CLI agent's turn when |codecompanion-configuration-cli-hooks| are wired up
+- `CodeCompanionRequestStarted` - Fired at the start of any API request, and at the start of a CLI agent's turn when configuration-cli-hooks are wired up
 - `CodeCompanionRequestStreaming` - Fired at the start of a streaming API request
-- `CodeCompanionRequestFinished` - Fired at the end of any API request, and at the end of a CLI agent's turn when |codecompanion-configuration-cli-hooks| are wired up
+- `CodeCompanionRequestFinished` - Fired at the end of any API request, and at the end of a CLI agent's turn when configuration-cli-hooks are wired up
 - `CodeCompanionToolAdded` - Fired when a tool has been added to a chat
 - `CodeCompanionToolApprovalRequested` - Fired when a tool is requesting approval to run
 - `CodeCompanionToolApprovalFinished` - Fired when a user has actioned an approval request
@@ -7005,8 +6997,8 @@ The events that are fired from within the plugin are:
 In addition to these events, the chat buffer has its own **callback system**
 for hooking into lifecycle events like `on_before_submit`, `on_checkpoint` and
 `on_tool_output`. These callbacks receive the chat instance and can inspect or
-mutate chat state. See the |codecompanion-configuration-chat-buffer-callbacks|
-section for details.
+mutate chat state. See the configuration-chat-buffer-callbacks section for
+details.
 
 There are also events that can be utilized to trigger commands from within the
 plugin:
@@ -7073,15 +7065,14 @@ You can trigger an event with:
 
 INLINE INTERACTION                    *codecompanion-usage-inline-interaction*
 
-As per the |codecompanion-getting-started-inline| guide, the inline interaction
-enables you to code directly into a Neovim buffer. Simply run `:CodeCompanion
-<your prompt>`, or make a visual selection to send that as context to the LLM
-alongside your prompt.
+As per the getting-started-inline guide, the inline interaction enables you to
+code directly into a Neovim buffer. Simply run `:CodeCompanion <your prompt>`,
+or make a visual selection to send that as context to the LLM alongside your
+prompt.
 
-For convenience, you can call prompts from the
-|codecompanion-configuration-prompt-library| via the interaction. For example,
-`:'<,'>CodeCompanion /tests` would ask the LLM to create some unit tests from
-the selected text.
+For convenience, you can call prompts from the configuration-prompt-library via
+the interaction. For example, `:'<,'>CodeCompanion /tests` would ask the LLM to
+create some unit tests from the selected text.
 
 
 ADAPTERS ~
@@ -7140,7 +7131,7 @@ session:
 Simply include them in your prompt. For example `:CodeCompanion #{buffer} add a
 new method to this file`. Multiple context items can be sent as part of the
 same prompt. You can even add your own custom variables as per the
-|codecompanion-configuration-inline-editor-context|.
+configuration-inline-editor-context.
 
 You can also have multiple editor context as part of a prompt, for example:
 `:CodeCompanion #{buffer} #{clipboard} analyze this code`.
@@ -7182,7 +7173,7 @@ USER INTERFACE                            *codecompanion-usage-user-interface*
 CodeCompanion aims to keep any changes to the user's UI to a minimum.
 Aesthetics, especially in Neovim, are highly subjective. So whilst it won't set
 much by default, it does endeavour to allow users to hook into the plugin and
-customize the UI to their liking via |codecompanion-usage-events|.
+customize the UI to their liking via usage-events.
 
 
 METADATA
@@ -7245,14 +7236,14 @@ via the use of reflection and planning prompts.
 
 USAGE ~
 
-Workflows can only be initiated from the |codecompanion-usage-action-palette|.
-This is because they are a complex Lua table structure which needs to be
-processed and added to a new chat buffer. Simply open up the Action Palette and
-select your desired workflow.
+Workflows can only be initiated from the usage-action-palette. This is because
+they are a complex Lua table structure which needs to be processed and added to
+a new chat buffer. Simply open up the Action Palette and select your desired
+workflow.
 
 You can create your own workflows by following the
-|codecompanion-configuration-prompt-library-workflows| configuration guide and
-the |codecompanion-extending-agentic-workflows| guide.
+configuration-prompt-library-workflows configuration guide and the
+extending-agentic-workflows guide.
 
 
 ==============================================================================
@@ -8094,14 +8085,14 @@ HOW THEY WORK ~
 Before showcasing some examples, it's important to understand how workflows
 have been implemented in the plugin.
 
-When initiated from the |codecompanion-usage-action-palette|, workflows attach
-themselves to a |codecompanion-usage-chat-buffer-| via the notion of a
-`subscription`. That is, the workflow has subscribed to the conversation and
-dataflow that's taking place in the chat buffer. After the LLM sends a
-response, the chat buffer will trigger an event on the subscription class. This
-will execute a callback which has been defined in the workflow itself (often
-times this is simply a text prompt), and the event will duly be deleted from
-the subscription to prevent it from being executed again.
+When initiated from the usage-action-palette, workflows attach themselves to a
+usage-chat-buffer- via the notion of a `subscription`. That is, the workflow
+has subscribed to the conversation and dataflow that's taking place in the chat
+buffer. After the LLM sends a response, the chat buffer will trigger an event
+on the subscription class. This will execute a callback which has been defined
+in the workflow itself (often times this is simply a text prompt), and the
+event will duly be deleted from the subscription to prevent it from being
+executed again.
 
 
 CREATING AGENTIC WORKFLOWS ~
@@ -8216,9 +8207,9 @@ Let's breakdown the prompts in that workflow:
 
 The first prompt in a workflow should set the ask of the LLM and provide clear
 instructions. In this case, we're giving the LLM access to the
-|codecompanion-usage-chat-buffer-agents-tools-files| and
-|codecompanion-usage-chat-buffer-agents-tools-run-command| tools to edit a
-buffer and run tests, respectively.
+usage-chat-buffer-agents-tools-files and
+usage-chat-buffer-agents-tools-run-command tools to edit a buffer and run
+tests, respectively.
 
 We're giving the LLM knowledge of the buffer with the `#buffer` editor context
 and also telling CodeCompanion to watch it for any changes with the `{watch}`
@@ -8254,15 +8245,14 @@ Now let's look at how we trigger the automated reflection prompts:
 Now there's a little bit more to unpack in this prompt. Firstly, we're
 automatically submitting the prompt to the LLM to save the user some time and
 keypresses. Next, we're scoping the prompt to only be sent to the chat buffer
-if the currently active tool is the
-|codecompanion-usage-chat-buffer-agents-tools-run-command|.
+if the currently active tool is the usage-chat-buffer-agents-tools-run-command.
 
 We're also leveraging a function called `repeat_until`. This ensures that the
 prompt is always attached to the chat buffer until a condition is met. In this
-case, until the tests pass. In the
-|codecompanion-usage-chat-buffer-agents-tools-run-command| tool, we ask the LLM
-to pass a flag if it detects a test suite is being run. The plugin picks up on
-that flag and puts the test outcome into the chat buffer class as a flag.
+case, until the tests pass. In the usage-chat-buffer-agents-tools-run-command
+tool, we ask the LLM to pass a flag if it detects a test suite is being run.
+The plugin picks up on that flag and puts the test outcome into the chat buffer
+class as a flag.
 
 Finally, we're letting the LLM know that the tests failed, and asking it to
 fix.
@@ -8812,12 +8802,11 @@ execution to continue.
 SCHEMA
 
 The function call that the LLM has sent, is parsed and sent to the `args`
-parameter of any function you've created in
-|codecompanion-extending-tools-cmds|, as a JSON object which is then converted
-to Lua via `vim.json.decode`. If the LLM has done its job correctly, the Lua
-table should be the representation of what you've described in the schema. In
-summary, the schema represents the structure of the response that the LLM must
-follow in order to call the tool.
+parameter of any function you've created in extending-tools-cmds, as a JSON
+object which is then converted to Lua via `vim.json.decode`. If the LLM has
+done its job correctly, the Lua table should be the representation of what
+you've described in the schema. In summary, the schema represents the structure
+of the response that the LLM must follow in order to call the tool.
 
 For a tool to function correctly, your tool requires an OpenAI compatible
 <https://platform.openai.com/docs/guides/function-calling?api-mode=chat>
@@ -8895,9 +8884,9 @@ HANDLERS
 The `handlers` table contains two functions that are executed before and after
 a tool completes:
 
-1. `setup` - Is called **before** anything in the |codecompanion-extending-tools-cmds| and |codecompanion-extending-tools-output| table. This is useful if you wish to set the cmds dynamically on the tool itself, like in the @run_command <https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/interactions/chat/tools/builtin/run_command.lua> tool.
-2. `on_exit` - Is called **after** everything in the |codecompanion-extending-tools-cmds| and |codecompanion-extending-tools-output| table.
-3. `prompt_condition` - Is called **before** anything in the |codecompanion-extending-tools-cmds| and |codecompanion-extending-tools-output| table and is used to determine `if` the user should be prompted for approval. This is used in the `@insert_edit_into_file` tool to allow users to determine if they'd like to apply an approval to `buffer` or `file` edits.
+1. `setup` - Is called **before** anything in the extending-tools-cmds and extending-tools-output table. This is useful if you wish to set the cmds dynamically on the tool itself, like in the @run_command <https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/interactions/chat/tools/builtin/run_command.lua> tool.
+2. `on_exit` - Is called **after** everything in the extending-tools-cmds and extending-tools-output table.
+3. `prompt_condition` - Is called **before** anything in the extending-tools-cmds and extending-tools-output table and is used to determine `if` the user should be prompted for approval. This is used in the `@insert_edit_into_file` tool to allow users to determine if they'd like to apply an approval to `buffer` or `file` edits.
 
 For the purposes of our calculator, let's just return some notifications so you
 can see the tool system and tool flow:
@@ -8924,12 +8913,12 @@ can see the tool system and tool flow:
 OUTPUT
 
 The `output` table enables you to manage and format output from the execution
-of the |codecompanion-extending-tools-cmds|. It contains four functions:
+of the extending-tools-cmds. It contains four functions:
 
 1. `success` - Is called after `every` successful execution of a command/function. This can be a useful way of notifying the LLM of the success.
-2. `error` - Is called when an error occurs whilst executing a command/function. It will only ever be called once as the whole execution of the |codecompanion-extending-tools-cmds| is halted. This can be a useful way of notifying the LLM of the failure.
-3. `prompt` - Is called when user approval to execute the |codecompanion-extending-tools-cmds| is required. It forms the message prompt which the user is asked to confirm or reject.
-4. `rejected` - Is called when a user rejects the approval to run the |codecompanion-extending-tools-cmds|. This method is used to inform the LLM of the rejection.
+2. `error` - Is called when an error occurs whilst executing a command/function. It will only ever be called once as the whole execution of the extending-tools-cmds is halted. This can be a useful way of notifying the LLM of the failure.
+3. `prompt` - Is called when user approval to execute the extending-tools-cmds is required. It forms the message prompt which the user is asked to confirm or reject.
+4. `rejected` - Is called when a user rejects the approval to run the extending-tools-cmds. This method is used to inform the LLM of the rejection.
 
 Let's consider how me might implement this for our calculator tool:
 
@@ -9206,8 +9195,8 @@ EXTENDING FROM THE RUN_COMMAND TOOL ~
 
 For a lot of users, custom tools will often be commands that they ask an LLM to
 execute on their machine. As such, the handlers and output functions that exist
-in the |codecompanion-usage-chat-buffer-agents-tools-run-command| tool are
-sufficient and should be reused.
+in the usage-chat-buffer-agents-tools-run-command tool are sufficient and
+should be reused.
 
 To make it easy for users to create their own command-based tools,
 CodeCompanion allows for extensions from `run_command`. In the example below,
@@ -9380,10 +9369,9 @@ tool to function. In the case of Anthropic, we insert additional headers.
 
 Some adapter tools can be a `hybrid` in terms of their implementation. That is,
 they're an adapter tool that requires a client-side component (i.e. a built-in
-tool). This is the case for the
-|codecompanion-usage-chat-buffer-agents-tools-memory| tool from Anthropic. To
-allow for this, ensure that the tool definition in `available_tools` has
-`client_tool` defined:
+tool). This is the case for the usage-chat-buffer-agents-tools-memory tool from
+Anthropic. To allow for this, ensure that the tool definition in
+`available_tools` has `client_tool` defined:
 
 >lua
     ["memory"] = {

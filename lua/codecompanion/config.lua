@@ -474,6 +474,7 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
           description = "Insert a file",
           opts = {
             contains_code = true,
+            dirs = {}, -- Directories to search in, alongside the current working directory
             interactions = { "chat", "cli" },
             max_lines = 1000,
             provider = providers.pickers, -- telescope|fzf_lua|mini_pick|snacks|default

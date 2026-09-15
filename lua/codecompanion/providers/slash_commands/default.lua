@@ -1,8 +1,6 @@
-local Path = require("plenary.path")
-
 local buf_utils = require("codecompanion.utils.buffers")
+local files_utils = require("codecompanion.utils.files")
 local log = require("codecompanion.utils.log")
-local scan = require("plenary.scandir")
 
 local api = vim.api
 
@@ -20,23 +18,20 @@ function Default.new(args)
   return self
 end
 
----Find files in the current working directory. Designed to match the Telescope API
-function Default:find_files()
-  local path = Path:new(vim.fn.getcwd())
-  if not path:is_dir() then
-    return {}
-  end
+---Find files in the given directories. Designed to match the Telescope API
+---@param opts? { dirs?: string[] }
+function Default:find_files(opts)
+  opts = opts or {}
 
-  local files = scan.scan_dir(path:absolute(), {
-    hidden = true,
-    depth = 10,
-    add_dirs = false,
-  })
+  local files = {}
+  for _, dir in ipairs(opts.dirs or { vim.fn.getcwd() }) do
+    vim.list_extend(files, files_utils.scan_directory(dir, { max_depth = 10 }))
+  end
 
   self.to_display = vim
     .iter(files)
-    :map(function(f)
-      return { relative_path = f, path = f }
+    :map(function(file)
+      return { relative_path = vim.fn.fnamemodify(file, ":."), path = file }
     end)
     :totable()
 
@@ -88,24 +83,25 @@ end
 ---@param paths table
 ---@param filetypes table
 function Default:images(paths, filetypes)
+  local patterns
+  if filetypes and next(filetypes) then
+    patterns = vim
+      .iter(filetypes)
+      :map(function(filetype)
+        return "*." .. filetype
+      end)
+      :totable()
+  end
+
   local files = {}
   for _, path in ipairs(paths) do
-    local p = Path:new(path)
-
-    local file = scan.scan_dir(p:absolute(), {
-      hidden = false,
-      depth = 5,
-      add_dirs = false,
-      search_pattern = filetypes,
-    })
-
-    vim.list_extend(files, file)
+    vim.list_extend(files, files_utils.scan_directory(path, { max_depth = 5, patterns = patterns }))
   end
 
   self.to_display = vim
     .iter(files)
-    :map(function(f)
-      return { relative_path = f, path = f }
+    :map(function(file)
+      return { relative_path = vim.fn.fnamemodify(file, ":."), path = file }
     end)
     :totable()
 
