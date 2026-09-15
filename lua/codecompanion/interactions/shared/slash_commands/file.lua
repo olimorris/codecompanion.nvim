@@ -40,7 +40,8 @@ local function get_files_command(dirs)
     return vim.list_extend({ "rg", "--files", "--color=never" }, dirs)
   end
   if vim.fn.executable("fd") == 1 then
-    return vim.list_extend({ "fd", "--type=f", "--color=never" }, dirs)
+    -- `fd` reads its first positional as the search pattern, so the directories need one in front of them
+    return vim.list_extend({ "fd", "--type=f", "--color=never", "." }, dirs)
   end
 end
 
