@@ -84,4 +84,23 @@ T["Memory"]["refreshing picks up a memory created since the prompt was built"] =
   h.expect_match(contents, "%- /memories/parallel%-sub%-agents%.md")
 end
 
+T["Memory"]["shares the index when Anthropic defines the tool server-side"] = function()
+  add_memories()
+
+  local contents = child.lua([[
+    local anthropic = require("codecompanion.adapters.http.anthropic")
+    _G.chat.tools:refresh({ adapter = anthropic })
+    _G.chat.tool_registry:add("memory", { config = _G.chat.tools.tools_config })
+
+    return table.concat(
+      vim.tbl_map(function(message)
+        return message.content
+      end, _G.chat.messages),
+      "\n"
+    )
+  ]])
+
+  h.expect_match(contents, "%- /memories/parallel%-sub%-agents%.md")
+end
+
 return T
