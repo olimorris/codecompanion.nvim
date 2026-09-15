@@ -50,4 +50,4 @@ deps/mini.nvim:
 
 deps/panvimdoc:
 	@mkdir -p deps
-	git clone --filter=blob:none https://github.com/kdheepak/panvimdoc $@
+	git clone --filter=blob:none https://github.com/kdheepak/panvimdoc --branch v4.0.1 $@
