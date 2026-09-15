@@ -91,7 +91,7 @@ local function validate_path(path, whitelist)
   error(fmt("Path must start with one of: %s", table.concat(prefixes, ", ")))
 end
 
----@param name string A path relative to the directory being listed
+---@param name string
 ---@return boolean
 local function is_ignored(name)
   for segment in vim.gsplit(name, "/", { plain = true }) do
