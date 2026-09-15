@@ -1,5 +1,4 @@
-*codecompanion.txt*
-                              For NVIM v0.11    Last change: 2026 September 12
+*codecompanion.txt*        For NVIM v0.11       Last change: 2026 September 15
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -909,7 +908,7 @@ CURRENT LIMITATIONS                    *codecompanion-acp-current-limitations*
     `terminal/output`, `terminal/release`, etc.) are not implemented. CodeCompanion
     doesn't advertise terminal capabilities to agents.
 - **Agent Plan Rendering**: Plan
-<https://agentclientprotocol.com/protocol/agent-plan> updates from agents are
+    <https://agentclientprotocol.com/protocol/agent-plan> updates from agents are
     received and logged, but they're not currently rendered in the chat buffer UI.
 - **Audio Content**: Audio can't be sent or received
 
@@ -6141,9 +6140,8 @@ Paths may be relative or use `~`.
 
 **Images**
 
-Selecting an image sends it to the LLM as an image rather than as file
-content, in the same way as the |codecompanion-usage-chat-buffer-slash-commands-image|
-slash command.
+Selecting an image sends it to the LLM as an image rather than as file content,
+in the same way as the |codecompanion--image| slash command.
 
 **PDFs**
 
