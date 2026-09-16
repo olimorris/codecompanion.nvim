@@ -23,6 +23,17 @@ jobs:
       release_created: ${{ steps.release.outputs.release_created }}
       tag_name: ${{ steps.release.outputs.tag_name }}
 
+  deploy-docs:
+    runs-on: ubuntu-latest
+    needs: release
+    if: ${{ needs.release.outputs.release_created == 'true' }}
+
+    steps:
+      - name: Deploy docs 📚
+        env:
+          DEPLOY_HOOK: ${{ secrets.CLOUDFLARE_DEPLOY_HOOK }}
+        run: curl --fail --silent --show-error --output /dev/null -X POST "$DEPLOY_HOOK"
+
   luarocks-upload:
     runs-on: ubuntu-latest
     needs: release
