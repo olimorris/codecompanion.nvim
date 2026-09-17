@@ -35,11 +35,9 @@ return {
   methods = {
     tools = {
       web_search = {
-        ---Setup the adapter for the fetch webpage tool
         ---@param self CodeCompanion.HTTPAdapter
         ---@param opts table Tool options
         ---@param data table The data from the LLM's tool call
-        ---@return nil
         setup = function(self, opts, data)
           opts = opts or {}
 
