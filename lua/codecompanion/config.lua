@@ -32,6 +32,7 @@ local defaults = {
       duckduckgo = "duckduckgo",
       jina = "jina",
       markitdown = "markitdown",
+      serply = "serply",
       tavily = "tavily",
       -------------------------------------------------------------------------
       extend = nil, -- Per-adapter overrides keyed by config key e.g. { openai = { env = { api_key = "ABC-123" } } }
@@ -313,7 +314,7 @@ The user is working on a %s machine. Please respond with system specific command
           path = "interactions.chat.tools.builtin.web_search",
           description = "Search the web for information",
           opts = {
-            adapter = "tavily", -- tavily, duckduckgo, jina
+            adapter = "tavily", -- tavily, duckduckgo, jina, serply
             opts = {
               -- Tavily options
               search_depth = "advanced",
