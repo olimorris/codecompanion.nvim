@@ -1,4 +1,4 @@
-*codecompanion.txt*        For NVIM v0.11       Last change: 2026 September 16
+*codecompanion.txt*        For NVIM v0.11       Last change: 2026 September 17
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -5550,6 +5550,9 @@ YOLO mode. This will automatically approve all tool executions without
 prompting the user. However, some tools such as `run_command` and `delete_file`
 are excluded from this as they have `allowed_in_yolo_mode = false` set by
 default.
+
+A |codecompanion-configuration-prompt-library-options| item can start its chat
+buffer in YOLO mode with `opts.yolo_mode = true`.
 
 If you've configured the |codecompanion-configuration-chat-buffer-llm-judge|
 then a tool's commands will be sent to an LLM to verify that they're safe. This
