@@ -405,6 +405,8 @@ Approvals can be reset for the given chat buffer by using the `gtx` keymap.
 
 To bypass the approval system, you can use `gty` in the chat buffer to enable YOLO mode. This will automatically approve all tool executions without prompting the user. However, some tools such as `run_command` and `delete_file` are excluded from this as they have `allowed_in_yolo_mode = false` set by default.
 
+A [prompt library](/configuration/prompt-library#options) item can start its chat buffer in YOLO mode with `opts.yolo_mode = true`.
+
 If you've configured the [LLM judge](/configuration/chat-buffer#llm-judge) then a tool's commands will be sent to an LLM to verify that they're safe. This assumes that your chosen adapter supports structured outputs and the tool itself supports the judge. The [delete_file](#delete_file) and [run_command](#run_command) tools support this out of the box.
 
 If the judge decides the action is safe, it executes immediately and the verdict is cached so re-running the exact same command won't be re-judged that session. For example, approving `make test` does not result in `make test && rm -rf foo` being auto-approved. If the request to the judge fails, or the adapter can't produce structured output, the tool will require manual approval.

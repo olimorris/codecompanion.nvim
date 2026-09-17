@@ -182,6 +182,7 @@ function Interactions:chat()
       skills = get_skills(self.selected),
       stop_context_insertion = (opts and self.selected.opts.stop_context_insertion) or false,
       tools = get_tools(self.selected),
+      yolo_mode = (opts and opts.yolo_mode) or false,
     })
   end
 
@@ -260,6 +261,7 @@ function Interactions:workflow()
     messages = messages,
     skills = get_skills(self.selected),
     tools = get_tools(self.selected),
+    yolo_mode = (workflow.opts and workflow.opts.yolo_mode) or false,
   })
   if not chat then
     return
