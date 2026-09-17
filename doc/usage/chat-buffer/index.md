@@ -80,6 +80,19 @@ Some file types are worth syncing every time they're attached. Jupyter Notebooks
 
 If a context item is added by mistake, it can be removed from the chat buffer by simply deleting it from the `Context` blockquote. On the next turn, all data related to that context item will be removed from the message history.
 
+### Links
+
+Any Markdown link pointing at a file on disk is attached to the chat buffer when you send your message, with the link itself replaced by the file's path:
+
+```markdown
+I want to share [File](~/Code/Neovim/codecompanion.nvim/README.md) with you
+```
+
+Images are attached as images, PDFs as documents and everything else as a file. Links to missing paths and directories are left alone.
+
+Links to URLs are fetched with the [fetch](/usage/chat-buffer/slash-commands#fetch) slash command's adapter and cached, with the chat buffer holding the turn until they resolve. Press any key to give up on a slow fetch.
+
+
 Finally, it's important to note that all http adapter endpoints require the sending of previous messages that make up the conversation. So even though you've shared context once, many messages ago, the LLM will always be able to refer to it, unless you actively alter the history of the conversation via `gd`.
 
 ## Debug Window

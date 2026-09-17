@@ -71,13 +71,13 @@ local adapters = require("codecompanion.adapters")
 local approvals = require("codecompanion.interactions.chat.tools.approvals")
 local config = require("codecompanion.config")
 local context_helpers = require("codecompanion.interactions.chat.helpers.context")
+local context_paths = require("codecompanion.interactions.chat.helpers.context_paths")
 local helpers = require("codecompanion.interactions.chat.helpers")
 local parser = require("codecompanion.interactions.chat.parser")
 local schema = require("codecompanion.schema")
 local tags = require("codecompanion.interactions.shared.tags")
 
 local hash = require("codecompanion.utils.hash")
-local images_utils = require("codecompanion.utils.images")
 local keymaps = require("codecompanion.utils.keymaps")
 local log = require("codecompanion.utils.log")
 local tokens = require("codecompanion.utils.tokens")
@@ -1419,7 +1419,7 @@ function Chat:submit(opts)
     end
 
     if message_to_submit then
-      self:check_images(message_to_submit)
+      context_paths.attach({ chat = self, message = message_to_submit })
     end
 
     -- Add the user message after any context so the LLM sees context first
@@ -1636,32 +1636,6 @@ function Chat:add_context(data, source, id, opts)
   -- Context is created by adding it to the context class and linking it to a message on the chat buffer
   self.context:add({ source = source, id = id, bufnr = opts.bufnr, path = opts.path, opts = opts.context_opts })
   self:add_message(message, { visible = opts.visible, context = { id = id }, _meta = { tag = opts.tag or source } })
-end
-
----Check if there are any images in the chat buffer
----@param message table
----@return nil
-function Chat:check_images(message)
-  local images = parser.images(self, self.header_line)
-  if not images then
-    return
-  end
-
-  for _, image in ipairs(images) do
-    local encoded_image = images_utils.encode_image(image)
-    if type(encoded_image) == "string" then
-      log:warn("Could not encode image: %s", encoded_image)
-    else
-      self:add_image_message(encoded_image)
-
-      -- Replace the image link in the message with "image"
-      local to_remove = fmt("[Image](%s)", image.path)
-      message.content = vim.trim(message.content:gsub(vim.pesc(to_remove), "image"))
-
-      to_remove = fmt("![%s](%s)", image.text or "", image.path)
-      message.content = vim.trim(message.content:gsub(vim.pesc(to_remove), "image"))
-    end
-  end
 end
 
 ---Reconcile the context_items table to the items in the chat buffer
