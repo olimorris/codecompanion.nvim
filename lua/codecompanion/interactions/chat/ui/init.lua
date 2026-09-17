@@ -165,7 +165,7 @@ end
 
 ---@param opts? { toggled?: boolean }
 ---@return CodeCompanion.Chat.UI
-function UI:_finish_open(opts)
+function UI:_setup_after_open(opts)
   opts = opts or {}
   vim.bo[self.chat_bufnr].textwidth = 0
 
@@ -232,7 +232,7 @@ function UI:open(opts)
   })
 
   log:trace("Chat opened with ID %d", self.chat_id)
-  return self:_finish_open(opts)
+  return self:_setup_after_open(opts)
 end
 
 ---@param opts { winnr: number, toggled?: boolean, window_opts?: table }
@@ -262,7 +262,7 @@ function UI:show_in_win(opts)
   ui_utils.apply_win_options(self.winnr, window.opts)
 
   log:trace("Chat opened in existing window with ID %d", self.chat_id)
-  return self:_finish_open(opts)
+  return self:_setup_after_open(opts)
 end
 
 ---Hide the chat buffer from view

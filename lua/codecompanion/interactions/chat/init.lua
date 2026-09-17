@@ -632,7 +632,7 @@ function Chat.new(args)
     open = function(opts)
       opts = opts or {}
       opts.ui = self.ui
-      Chat.open_or_reuse(opts)
+      Chat.open(opts)
     end,
     hide = function(opts)
       self.ui:hide(opts)
@@ -657,7 +657,7 @@ function Chat.new(args)
   end
 
   if not self.hidden then
-    Chat.open_or_reuse({ ui = self.ui }):render(self.buffer_context, self.messages, {
+    Chat.open({ ui = self.ui }):render(self.buffer_context, self.messages, {
       stop_context_insertion = args.stop_context_insertion,
       auto_submit = args.auto_submit,
       from_prompt_library = args.from_prompt_library,
@@ -2197,7 +2197,7 @@ end
 ---Open a chat UI in an existing window when possible
 ---@param opts { ui: CodeCompanion.Chat.UI, winnr?: number, toggled?: boolean, window_opts?: table }
 ---@return CodeCompanion.Chat.UI
-function Chat.open_or_reuse(opts)
+function Chat.open(opts)
   opts = opts or {}
   local ui = opts.ui
   if opts.winnr and api.nvim_win_is_valid(opts.winnr) then
@@ -2279,7 +2279,7 @@ function Chat.toggle(args)
   if window_opts then
     opts.window_opts = window_opts
   end
-  Chat.open_or_reuse(opts)
+  Chat.open(opts)
 end
 
 return Chat

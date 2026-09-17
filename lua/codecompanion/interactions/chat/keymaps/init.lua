@@ -361,7 +361,7 @@ M.close = {
       end
     end
 
-    require("codecompanion.interactions.chat").open_or_reuse({
+    require("codecompanion.interactions.chat").open({
       ui = target.chat.ui,
       winnr = winnr,
       window_opts = window_opts,
