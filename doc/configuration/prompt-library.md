@@ -284,6 +284,7 @@ To see what your agent supports, open a chat with that adapter open the debug wi
 - `pre_hook` _(function)_ - Function to run before the prompt is executed (Lua only)
 - `stop_context_insertion` _(boolean)_  - Prevent automatic context insertion
 - `user_prompt` _(string)_ - Get user input before actioning the response
+- `yolo_mode` _(boolean)_ - Start the chat buffer in [YOLO mode](/usage/chat-buffer/agents-tools#yolo-mode) so tools run without asking for approval
 
 ### With Placeholders
 

@@ -612,6 +612,7 @@ function Chat.new(args)
 
   if args.yolo_mode then
     approvals:toggle_yolo_mode(self.bufnr)
+    utils.notify("YOLO mode enabled!", vim.log.levels.INFO)
   end
 
   if not init_parsers(self) then
