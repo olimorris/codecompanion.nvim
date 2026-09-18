@@ -1,5 +1,18 @@
 # Changelog
 
+## [19.26.0](https://github.com/olimorris/codecompanion.nvim/compare/v19.25.0...v19.26.0) (2026-09-18)
+
+
+### Features
+
+* **prompts:** can yolo via a prompt library item ([#3396](https://github.com/olimorris/codecompanion.nvim/issues/3396)) ([4e93ca9](https://github.com/olimorris/codecompanion.nvim/commit/4e93ca935a4309f7d77fdd9094bf05ed6a550bff))
+
+
+### Bug Fixes
+
+* **tools:** can set `enabled = false` ([#3399](https://github.com/olimorris/codecompanion.nvim/issues/3399)) ([9833ab6](https://github.com/olimorris/codecompanion.nvim/commit/9833ab677869d0c6d83f58fedb77a53a8a2b23be))
+* **ui:** reuse window when cycling or creating chats ([#3344](https://github.com/olimorris/codecompanion.nvim/issues/3344)) ([d8d328b](https://github.com/olimorris/codecompanion.nvim/commit/d8d328b3b8377139ba6b267dab3f16e2c7051164))
+
 ## [19.25.0](https://github.com/olimorris/codecompanion.nvim/compare/v19.24.1...v19.25.0) (2026-09-15)
 
 
