@@ -47,7 +47,7 @@ local Filter = filter.create_filter({
     if opts and opts.adapter and opts.adapter.available_tools then
       for name, cfg in pairs(opts.adapter.available_tools) do
         local should_show = true
-        if cfg.enabled then
+        if cfg.enabled ~= nil then
           if type(cfg.enabled) == "function" then
             should_show = cfg.enabled(opts.adapter)
           else
