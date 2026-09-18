@@ -81,6 +81,25 @@ T["ensures adapter tools take priority over config tools"] = function()
   h.eq(filtered["tool1"]._adapter_tool, true)
 end
 
+T["filters disabled adapter tools"] = function()
+  local tools_config = {
+    tool1 = { path = "test" },
+  }
+
+  local adapter = {
+    available_tools = {
+      tool1 = { enabled = false },
+      tool2 = { enabled = false },
+    },
+  }
+
+  local filtered = tool_filter.filter_enabled_tools(tools_config, { adapter = adapter })
+
+  h.eq(filtered.tool1 ~= nil, true)
+  h.eq(filtered.tool1._adapter_tool, nil)
+  h.eq(filtered.tool2, nil)
+end
+
 T["cache invalidation"] = new_set()
 
 T["cache invalidation"]["detects config changes when tools are added"] = function()
