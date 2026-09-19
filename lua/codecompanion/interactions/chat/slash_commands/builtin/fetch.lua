@@ -466,7 +466,7 @@ function SlashCommand:output(url, opts)
 end
 
 ---Fetch a URL and add its contents to the chat buffer, blocking until it resolves
----@param opts { chat: CodeCompanion.Chat, url: string }
+---@param opts { chat: CodeCompanion.Chat, url: string, cache?: boolean }
 ---@return boolean attached
 function SlashCommand.fetch_sync(opts)
   local adapter = adapters.resolve(config.interactions.chat.slash_commands.fetch.opts.adapter)
@@ -507,7 +507,9 @@ function SlashCommand.fetch_sync(opts)
     return false
   end
 
-  cache_response(opts.url, response.content)
+  if opts.cache ~= false then
+    cache_response(opts.url, response.content)
+  end
   output(opts.chat, { url = opts.url, content = response.content }, { silent = true })
 
   return true

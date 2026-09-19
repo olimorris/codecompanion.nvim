@@ -15,7 +15,6 @@ local function resolve_local_file(path)
   end
 end
 
----Attach a file to the chat, returning the text that replaces its link
 ---@param chat CodeCompanion.Chat
 ---@param path string
 ---@return string|nil
@@ -29,7 +28,6 @@ local function attach_file(chat, path)
   end
 end
 
----Fetch a URL into the chat, returning the text that replaces its link
 ---@param chat CodeCompanion.Chat
 ---@param url string
 ---@return string|nil
@@ -38,6 +36,7 @@ local function attach_url(chat, url)
   vim.cmd("redraw")
 
   local attached = require("codecompanion.interactions.chat.slash_commands.builtin.fetch").fetch_sync({
+    cache = false,
     chat = chat,
     url = url,
   })
@@ -51,7 +50,7 @@ end
 ---@return nil
 function M.attach(opts)
   local chat = opts.chat
-  local context_paths = parser.context_paths(chat, chat.header_line)
+  local context_paths = parser.context_paths(chat, { start_range = chat.header_line })
   if not context_paths then
     return
   end

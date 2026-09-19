@@ -24,11 +24,7 @@ end
 local cached_context_path_query
 local function context_path_query()
   cached_context_path_query = cached_context_path_query
-    or vim.treesitter.query.parse(
-      "markdown_inline",
-      [[((image) @image)
-    ((inline_link) @link)]]
-    )
+    or vim.treesitter.query.parse("markdown_inline", "[(image) (inline_link)] @link")
   return cached_context_path_query
 end
 
@@ -227,30 +223,52 @@ function M.headers(chat)
   end
 end
 
+local DESTINATION_WRAPPERS = { "^<(.*)>$", "^'(.*)'$", '^"(.*)"$' }
+
+---Strip the angle brackets or quotes that Markdown needs around a path containing spaces
+---@param destination string
+---@return string
+local function unwrap_destination(destination)
+  for _, wrapper in ipairs(DESTINATION_WRAPPERS) do
+    local unwrapped = destination:match(wrapper)
+    if unwrapped then
+      return unwrapped
+    end
+  end
+
+  return destination
+end
+
 ---Parse a section of the buffer for Markdown links to files and URLs
 ---@param chat CodeCompanion.Chat
----@param start_range number The 1-indexed line number from where to start parsing
+---@param opts { start_range: number }
 ---@return { destination: string, markdown: string }[]|nil
-function M.context_paths(chat, start_range)
+function M.context_paths(chat, opts)
   local ts_query = context_path_query()
   local parser = chat.parsers.markdown_inline or vim.treesitter.get_parser(chat.bufnr, "markdown_inline")
 
-  local tree = parser:parse({ start_range, -1 })[1]
+  local tree = parser:parse({ opts.start_range, -1 })[1]
   local root = tree:root()
 
   local context_paths = {}
 
-  for id, node in ts_query:iter_captures(root, chat.bufnr, start_range - 1, -1) do
-    local capture_name = ts_query.captures[id]
-    if capture_name == "image" or capture_name == "link" then
-      for child in node:iter_children() do
-        if child:type() == "link_destination" then
-          table.insert(context_paths, {
-            destination = get_node_text(child, chat.bufnr),
-            markdown = get_node_text(node, chat.bufnr),
-          })
-        end
+  for _, node in ts_query:iter_captures(root, chat.bufnr, opts.start_range - 1, -1) do
+    local destination, title
+    for child in node:iter_children() do
+      if child:type() == "link_destination" then
+        destination = get_node_text(child, chat.bufnr)
+      elseif child:type() == "link_title" then
+        title = get_node_text(child, chat.bufnr)
       end
+    end
+
+    -- Markdown reads a path containing spaces as the link's title, leaving it with no destination at all
+    destination = destination or title
+    if destination then
+      table.insert(context_paths, {
+        destination = unwrap_destination(destination),
+        markdown = get_node_text(node, chat.bufnr),
+      })
     end
   end
 
