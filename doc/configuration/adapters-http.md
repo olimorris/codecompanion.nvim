@@ -352,7 +352,23 @@ require("codecompanion").setup({
 })
 ```
 
-## Hiding Preset Adapters
+## Hiding Adapters
+
+Adapters in the `hidden` table are kept out of the adapter picker. Set one to `false` to show it again:
+
+```lua
+require("codecompanion").setup({
+  adapters = {
+    http = {
+      opts = {
+        hidden = { my_custom_adapter = true, tavily = false },
+      },
+    },
+  },
+})
+```
+
+Hidden adapters can still be resolved by name, such as by the `web_search` tool.
 
 By default, the plugin shows all available adapters, including the presets. If you prefer to only display the adapters defined in your user configuration, you can set the `show_presets` option to `false`:
 
