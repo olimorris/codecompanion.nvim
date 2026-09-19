@@ -2955,7 +2955,8 @@ WEB SEARCH
 The |codecompanion-usage-chat-buffer-agents-tools-web-search| tool is a
 built-in tool that allows an LLM to perform web searches using an adapter.
 Currently, CodeCompanion supports DuckDuckGo <https://duckduckgo.com>, Jina
-<https://www.jina.ai> and Tavily <https://www.tavily.com> adapters.
+<https://www.jina.ai>, Serply <https://serply.io> and Tavily
+<https://www.tavily.com> adapters.
 
 To override the default Tavily adapter:
 
