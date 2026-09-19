@@ -38,6 +38,8 @@ local defaults = {
       opts = {
         allow_insecure = false, -- Allow insecure connections?
         cache_models_for = 1800, -- Cache adapter models for this long (seconds)
+        -- Adapters to keep out of the adapter picker. Set one to `false` to show it again
+        hidden = { duckduckgo = true, jina = true, markitdown = true, tavily = true },
         proxy = nil, -- [protocol://]host[:port] e.g. socks5://127.0.0.1:9999
         show_presets = true, -- Show preset adapters
         show_model_choices = true, -- Show model choices when changing adapter
