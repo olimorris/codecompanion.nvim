@@ -12,6 +12,7 @@ local fmt = string.format
 local CONSTANTS = {
   NAME = "Fetch",
   CACHE_PATH = config.interactions.chat.slash_commands.fetch.opts.cache_path,
+  SYNC_TIMEOUT = 10000,
 }
 
 ---Get the cached URLs from the directory
@@ -291,11 +292,30 @@ local function read_cache(chat, url, hash, opts)
   }, opts)
 end
 
+local write_cache
+
+---Cache a fetched URL so that a later request can be served from disk
+---@param url string
+---@param content string
+---@return nil
+local function cache_response(url, content)
+  local hash = hash_utils.hash(url)
+  write_cache(
+    hash,
+    vim.json.encode({
+      url = url,
+      hash = hash,
+      timestamp = os.time(),
+      data = content,
+    })
+  )
+end
+
 ---Write the cache for the URL
 ---@param hash string
 ---@param data string
 ---@return nil
-local function write_cache(hash, data)
+function write_cache(hash, data)
   local p = Path:new(CONSTANTS.CACHE_PATH .. "/" .. hash .. ".json")
   p.filename = p:expand()
   vim.fn.mkdir(CONSTANTS.CACHE_PATH, "p")
@@ -345,16 +365,7 @@ local function fetch(chat, adapter, url, opts)
             kind = "codecompanion.nvim",
           }, function(selected)
             if selected == "Yes" then
-              local hash = hash_utils.hash(url)
-              write_cache(
-                hash,
-                vim.json.encode({
-                  url = url,
-                  hash = hash,
-                  timestamp = os.time(),
-                  data = body.content,
-                })
-              )
+              cache_response(url, body.content)
             end
           end)
         end
@@ -452,6 +463,56 @@ function SlashCommand:output(url, opts)
   end
 
   return call_fetch()
+end
+
+---Fetch a URL and add its contents to the chat buffer, blocking until it resolves
+---@param opts { chat: CodeCompanion.Chat, url: string, cache?: boolean }
+---@return boolean attached
+function SlashCommand.fetch_sync(opts)
+  local adapter = adapters.resolve(config.interactions.chat.slash_commands.fetch.opts.adapter)
+  if not adapter then
+    log:error("Could not resolve adapter for the fetch slash command")
+    return false
+  end
+
+  adapter = vim.deepcopy(adapter)
+  adapter.methods.slash_commands.fetch.setup(adapter, { url = opts.url })
+
+  local done = false
+  local response
+  client.new({ adapter = adapter }):request({ url = opts.url }, {
+    callback = function(err, data)
+      done = true
+      if err then
+        return log:error("Failed to fetch the URL, with error %s", err)
+      end
+      if data then
+        response = adapter.methods.slash_commands.fetch.callback(adapter, data)
+      end
+    end,
+  })
+
+  -- Waiting on the adapter's own callback keeps CLI-based adapters like markitdown working
+  local finished, reason = vim.wait(CONSTANTS.SYNC_TIMEOUT, function()
+    return done
+  end, 100)
+  if not finished then
+    -- vim.wait reports -2 when the user presses a key, which is their way out of a slow fetch
+    log:error("%s fetching %s", reason == -2 and "Cancelled" or "Timed out", opts.url)
+    return false
+  end
+
+  if not response or response.status == "error" then
+    log:error("Error fetching URL: %s", response and response.content or opts.url)
+    return false
+  end
+
+  if opts.cache ~= false then
+    cache_response(opts.url, response.content)
+  end
+  output(opts.chat, { url = opts.url, content = response.content }, { silent = true })
+
+  return true
 end
 
 return SlashCommand
