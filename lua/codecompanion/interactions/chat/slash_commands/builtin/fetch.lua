@@ -292,7 +292,17 @@ local function read_cache(chat, url, hash, opts)
   }, opts)
 end
 
-local write_cache
+---Write the cache for the URL
+---@param hash string
+---@param data string
+---@return nil
+local function write_cache(hash, data)
+  local p = Path:new(CONSTANTS.CACHE_PATH .. "/" .. hash .. ".json")
+  p.filename = p:expand()
+  vim.fn.mkdir(CONSTANTS.CACHE_PATH, "p")
+  p:touch({ parents = true })
+  p:write(data or "", "w")
+end
 
 ---Cache a fetched URL so that a later request can be served from disk
 ---@param url string
@@ -309,18 +319,6 @@ local function cache_response(url, content)
       data = content,
     })
   )
-end
-
----Write the cache for the URL
----@param hash string
----@param data string
----@return nil
-function write_cache(hash, data)
-  local p = Path:new(CONSTANTS.CACHE_PATH .. "/" .. hash .. ".json")
-  p.filename = p:expand()
-  vim.fn.mkdir(CONSTANTS.CACHE_PATH, "p")
-  p:touch({ parents = true })
-  p:write(data or "", "w")
 end
 
 ---Fetch the contents of a URL
