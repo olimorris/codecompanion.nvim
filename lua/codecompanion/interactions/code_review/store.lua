@@ -267,35 +267,28 @@ function M.accept(root, id)
   append(accepted_path(root), tostring(id))
 end
 
+---Take a hunk back out of the accepted set
+---@param root string
+---@param id number|string
+---@return nil
+function M.unaccept(root, id)
+  local path = accepted_path(root)
+  local kept = vim.tbl_filter(function(line)
+    return line ~= tostring(id)
+  end, read_lines(path))
+
+  if #kept == 0 then
+    return delete(path)
+  end
+
+  files.write_to_path(path, table.concat(kept, "\n") .. "\n")
+end
+
 ---Forget the accepted hunks for a repo
 ---@param root string
 ---@return nil
 function M.clear_accepted(root)
   delete(accepted_path(root))
-end
-
-local ignored_files_path = branch_file("ignored_files.txt")
-
----Return the files the user has ignored, as a set of root-relative paths
----@param root string
----@return table<string, boolean>
-function M.ignored(root)
-  return read_set(ignored_files_path(root))
-end
-
----Record a file the user has ignored
----@param root string
----@param path string A path relative to the root
----@return nil
-function M.ignore(root, path)
-  append(ignored_files_path(root), path)
-end
-
----Forget the ignored files for a repo
----@param root string
----@return nil
-function M.clear_ignored(root)
-  delete(ignored_files_path(root))
 end
 
 return M

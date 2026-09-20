@@ -198,6 +198,37 @@ T["Diff"]["Handles multiple hunks"] = function()
   h.eq(2, result.hunk_count, "Should detect 2 separate change hunks")
 end
 
+T["Diff"]["Maps merged rows back to their line on each side"] = function()
+  local rows = child.lua([[
+    local diff_obj = diff.create({
+      bufnr = vim.api.nvim_create_buf(false, true),
+      from_lines = { "one", "two", "three", "four", "five" },
+      to_lines = { "one", "TWO", "five" },
+    })
+
+    return diff_obj.merged.rows
+  ]])
+
+  h.eq({ from = 1, to = 1 }, rows[1], "An unchanged row carries a line on both sides")
+  h.eq({ from = 2 }, rows[2], "A deleted row has no line in the working file")
+  h.eq({ to = 2 }, rows[5], "An added row has no line in the baseline")
+  h.eq({ from = 5, to = 3 }, rows[6], "An unchanged row after a hunk tracks the drift between the sides")
+end
+
+T["Diff"]["Keeps the to side in step after a pure deletion"] = function()
+  local rows = child.lua([[
+    local diff_obj = diff.create({
+      bufnr = vim.api.nvim_create_buf(false, true),
+      from_lines = { "a", "b", "c", "d" },
+      to_lines = { "a", "d" },
+    })
+
+    return diff_obj.merged.rows
+  ]])
+
+  h.eq({ from = 4, to = 2 }, rows[4], "The row after the deletion is line 2 of the working file")
+end
+
 T["Diff"]["Unified diff keeps the last changed line separate"] = function()
   local result = child.lua([[
     return require("codecompanion.diff.utils").unified(

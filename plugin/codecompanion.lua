@@ -36,7 +36,10 @@ api.nvim_set_hl(0, "CodeCompanionDiffTextDelete", { link = "DiffTextDelete", def
 api.nvim_set_hl(0, "CodeCompanionDiffBanner", { link = "DiagnosticHint", default = true })
 api.nvim_set_hl(0, "CodeCompanionDiffBannerInline", { link = "Comment", default = true })
 api.nvim_set_hl(0, "CodeCompanionCLIPath", { link = "Include", default = true })
+api.nvim_set_hl(0, "CodeCompanionCodeReviewAdded", { link = "Added", default = true })
 api.nvim_set_hl(0, "CodeCompanionCodeReviewComment", { link = "DiagnosticHint", default = true })
+api.nvim_set_hl(0, "CodeCompanionCodeReviewPath", { link = "Directory", default = true })
+api.nvim_set_hl(0, "CodeCompanionCodeReviewRemoved", { link = "Removed", default = true })
 api.nvim_set_hl(0, "CodeCompanionVirtualText", { link = "Comment", default = true })
 
 local syntax_group = api.nvim_create_augroup("codecompanion.syntax", { clear = true })

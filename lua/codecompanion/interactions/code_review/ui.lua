@@ -19,7 +19,7 @@ local anchors = {}
 
 ---@return table
 local function opts()
-  return config.interactions.code_review.display.virtual_text
+  return config.interactions.code_review.display.comments
 end
 
 ---Watch for files being opened, for only as long as there are comments to draw into them

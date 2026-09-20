@@ -1,9 +1,7 @@
 local baseline = require("codecompanion.interactions.code_review.baseline")
 local config = require("codecompanion.config")
-local diff = require("codecompanion.interactions.code_review.diff")
 local files = require("codecompanion.utils.files")
 local input = require("codecompanion.interactions.shared.input")
-local keymaps = require("codecompanion.interactions.code_review.keymaps")
 local log = require("codecompanion.utils.log")
 local store = require("codecompanion.interactions.code_review.store")
 local ui = require("codecompanion.interactions.code_review.ui")
@@ -44,21 +42,6 @@ local function get_context(bufnr, args)
   }
 end
 
----Open the user input to add a comment
----@param context table
----@return nil
-local function add_comment(context)
-  input.open({
-    title = " Add Comment ",
-    on_submit = function(comment)
-      local root = get_storage_root()
-      store.add_comment(root, vim.tbl_extend("force", context, { comment = comment }))
-      ui.refresh()
-      notify(fmt("Added comment (%d pending)", #store.comments(root)))
-    end,
-  })
-end
-
 ---Open the user input to change a comment already written against a line
 ---@param existing { comment: CodeCompanion.CodeReview.Comment, index: number }
 ---@return nil
@@ -85,68 +68,6 @@ local function edit_comment(existing)
   })
 end
 
----The review hunk under the cursor in the quickfix list, with its place in it
----@return { entry: table, index: number, list: table }?
-local function get_qf_entry()
-  local list = vim.fn.getqflist({ idx = 0, items = true })
-
-  local index = list.idx
-  if vim.bo.buftype == "quickfix" then
-    index = api.nvim_win_get_cursor(0)[1]
-  end
-
-  local entry = list.items[index]
-  if not (entry and type(entry.user_data) == "table" and entry.user_data.code_review_hunk) then
-    notify("No review hunk under the cursor", vim.log.levels.WARN)
-    return
-  end
-
-  return { entry = entry, index = index, list = list }
-end
-
----Comment on the hunk under the cursor in the quickfix list
----@return nil
-local function comment_on_entry()
-  local selected = get_qf_entry()
-  if not selected then
-    return
-  end
-
-  local entry = selected.entry
-  local filename = api.nvim_buf_get_name(entry.bufnr)
-
-  -- The review diffs the files on disk, so read the commented line from there too
-  local line = vim.fn.filereadable(filename) == 1 and vim.fn.readfile(filename)[entry.lnum] or ""
-
-  local context = {
-    code = line,
-    filetype = vim.filetype.match({ filename = filename }),
-    path = vim.fs.relpath(get_storage_root(), filename) or filename,
-    start_line = entry.lnum,
-    end_line = entry.lnum,
-  }
-
-  add_comment(context)
-end
-
----Advance the baseline so only changes made from now on appear in a review
----@param root string
----@return boolean success
-local function advance_baseline(root)
-  if baseline.get_root() and not baseline.snapshot(root) then
-    notify(
-      "Could not advance the baseline. Your next review will include changes from this round",
-      vim.log.levels.ERROR
-    )
-    return false
-  end
-  store.clear_round(root)
-  store.clear_accepted(root)
-  store.clear_ignored(root)
-  keymaps.restore()
-  return true
-end
-
 ---Is there work the user hasn't reviewed yet?
 ---@param root string
 ---@return boolean
@@ -154,32 +75,42 @@ local function awaiting_review(root)
   return store.round_open(root) or #store.comments(root) > 0
 end
 
----Replace the review quickfix list, keeping the cursor on a nearby entry
----@param items table[]
----@param index number
+---Open the user input to add a comment against a line
+---@param context { code: string, filetype: string, path: string, start_line: number, end_line: number }
 ---@return nil
-local function replace_quickfix(items, index)
-  local replacement = { items = items }
-  if #items > 0 then
-    replacement.idx = math.min(index, #items)
-  end
-  vim.fn.setqflist({}, "r", replacement)
-
-  if #items == 0 then
-    notify("All hunks reviewed")
-  end
+function M.add_comment(context)
+  input.open({
+    title = " Add Comment ",
+    on_submit = function(comment)
+      local root = get_storage_root()
+      store.add_comment(root, vim.tbl_extend("force", context, { comment = comment }))
+      ui.refresh()
+      notify(fmt("Added comment (%d pending)", #store.comments(root)))
+    end,
+  })
 end
 
----Comment on the current line, visual selection or quickfix hunk
+---Close the round off, so only changes made from now on appear in a review
+---@return boolean success
+function M.mark_reviewed()
+  local root = get_storage_root()
+
+  if baseline.get_root() and not baseline.snapshot(root) then
+    notify("Could not close this round off. Your next review will include changes from it", vim.log.levels.ERROR)
+    return false
+  end
+
+  store.clear_round(root)
+  store.clear_accepted(root)
+  return true
+end
+
+---Comment on the current line or visual selection
 ---@param args? table
 ---@return nil
 function M.comment(args)
   if not config.can_send_code() then
     return log:warn("Sending of code has been disabled")
-  end
-
-  if vim.bo.buftype == "quickfix" then
-    return comment_on_entry()
   end
 
   local bufnr = api.nvim_get_current_buf()
@@ -189,7 +120,7 @@ function M.comment(args)
     return edit_comment(existing)
   end
 
-  add_comment(get_context(bufnr, args))
+  M.add_comment(get_context(bufnr, args))
 end
 
 ---Return all pending review comments
@@ -208,7 +139,7 @@ function M.consume()
   end
 
   store.clear_comments(root)
-  advance_baseline(root)
+  M.mark_reviewed()
   ui.clear_all()
 
   return pending
@@ -227,144 +158,16 @@ function M.share()
     return
   end
 
-  advance_baseline(root)
+  M.mark_reviewed()
   ui.clear_all()
   vim.fn.setreg("+", path)
   notify(fmt("Code review ready at `%s` (path copied to the clipboard)", path))
 end
 
----Approve all changes up to now without comments
+---Open the review window, changed files on the left and the whole file on the right
 ---@return nil
-function M.approve()
-  local root = get_storage_root()
-
-  local pending = #store.comments(root)
-  if pending > 0 then
-    notify(fmt("%d pending comment(s) kept", pending), vim.log.levels.WARN)
-  end
-
-  if not advance_baseline(root) then
-    return
-  end
-
-  notify("Baseline set. Tracking agent changes from here")
-end
-
----Open the changes since the baseline in the quickfix list, one entry per hunk
----@param opts? { scope?: "all" }
----@return nil
-function M.open(opts)
-  opts = opts or {}
-
-  local root = baseline.get_root()
-  if not root then
-    -- Without git there's no baseline, so fall back to the files edited this session
-    return require("codecompanion.interactions.shared.edited_files").to_quickfix()
-  end
-
-  if not baseline.get(root) then
-    notify("No edits to review yet", vim.log.levels.WARN)
-    return
-  end
-
-  local hunks = baseline.diff(root)
-  if not hunks then
-    return notify("Could not read the worktree", vim.log.levels.ERROR)
-  end
-
-  local changed = #hunks
-  if opts.scope ~= "all" then
-    local accepted = store.accepted(root)
-    local ignored = store.ignored(root)
-    hunks = vim.tbl_filter(function(hunk)
-      return not accepted[tostring(hunk.id)] and not ignored[hunk.path]
-    end, hunks)
-  end
-
-  if #hunks == 0 then
-    if changed > 0 then
-      return notify("No edits left to review. Use `:CodeCompanionCodeReview All` to include what you've set aside")
-    end
-    return notify("No edits to review")
-  end
-
-  local items = {}
-  for _, hunk in ipairs(hunks) do
-    table.insert(items, {
-      filename = vim.fs.joinpath(root, hunk.path),
-      lnum = hunk.line,
-      text = hunk.summary,
-      user_data = { code_review_hunk = hunk.id },
-    })
-  end
-
-  -- A new list is pushed onto the stack, so :colder restores the user's own list
-  vim.fn.setqflist({}, " ", { title = "CodeCompanion Code Review", items = items })
-  vim.cmd.copen()
-
-  keymaps.set(api.nvim_get_current_buf())
-end
-
----Diff the hunk under the cursor against the baseline
----@return nil
-function M.open_diff()
-  local selected = get_qf_entry()
-  if not selected then
-    return
-  end
-
-  local entry = selected.entry
-  local root = get_storage_root()
-  local filename = api.nvim_buf_get_name(entry.bufnr)
-  diff.show({
-    root = root,
-    path = vim.fs.relpath(root, filename) or filename,
-    baseline_ref = baseline.alias(),
-    line = entry.lnum,
-    id = entry.user_data.code_review_hunk,
-  })
-end
-
----Accept the current quickfix hunk, keeping it out of the review from now on
----@return nil
-function M.accept()
-  local selected = get_qf_entry()
-  if not selected then
-    return
-  end
-
-  store.accept(get_storage_root(), selected.entry.user_data.code_review_hunk)
-  diff.close()
-
-  table.remove(selected.list.items, selected.index)
-  replace_quickfix(selected.list.items, selected.index)
-end
-
----Ignore the current hunk's file until the baseline advances
----@return nil
-function M.ignore()
-  local selected = get_qf_entry()
-  if not selected then
-    return
-  end
-
-  local entry = selected.entry
-  local root = get_storage_root()
-  local path = vim.fs.relpath(root, api.nvim_buf_get_name(entry.bufnr))
-  if not path then
-    return
-  end
-
-  store.ignore(root, path)
-  notify(fmt("Ignoring `%s`", path))
-  diff.close()
-
-  replace_quickfix(
-    vim.tbl_filter(function(item)
-      return item.bufnr ~= entry.bufnr
-    end, selected.list.items),
-    selected.index
-  )
+function M.open_window()
+  return require("codecompanion.interactions.code_review.window").open()
 end
 
 ---Open the pending comments file for editing by hand
