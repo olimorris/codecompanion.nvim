@@ -126,7 +126,7 @@ Finally, ensure that you have an adapter configured for any background interacti
 <video controls muted title="Adding images to the chat buffer" src="https://github.com/user-attachments/assets/8897d58e-f2c4-4da9-a170-22f31a75c358"></video>
 </p>
 
-Many LLMs have the ability to receive images as input (sometimes referred to as vision). CodeCompanion supports the adding of images into the chat buffer via the [/image](/usage/chat-buffer/slash-commands#image) slash command and through the system clipboard with [img-clip.nvim](/installation#img-clip-nvim). CodeCompanion can work with images in your file system and also with remote URLs, encoding both into a base64 representation.
+Many LLMs have the ability to receive images as input (sometimes referred to as vision). CodeCompanion supports the adding of images into the chat buffer via the [/image](/usage/chat-buffer/slash-commands#image) slash command and through the system clipboard with [img-clip.nvim](/installation#other-plugins). CodeCompanion can work with images in your file system and also with remote URLs, encoding both into a base64 representation.
 
 If your adapter and model doesn't support images, then CodeCompanion will endeavour to ensure that the image is not included in the messages payload that's sent to the LLM.
 

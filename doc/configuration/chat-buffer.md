@@ -1,5 +1,5 @@
 ---
-description: "Configure CodeCompanion's chat buffer — keymaps, display options, context management, system prompt, and tool settings for AI-assisted coding in Neovim."
+description: "Configure CodeCompanion's chat buffer in Neovim, covering the adapter, keymaps, editor context, slash commands and how attached content is shaped."
 ---
 
 # Configuring the Chat Buffer
@@ -7,6 +7,14 @@ description: "Configure CodeCompanion's chat buffer — keymaps, display options
 By default, CodeCompanion provides a _chat_ interaction that uses a dedicated Neovim buffer for conversational interaction with your chosen LLM. This buffer can be customized according to your preferences.
 
 Please refer to the [config.lua](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/config.lua#L42-L392) file for a full list of all configuration options.
+
+The chat buffer's larger areas of configuration have pages of their own:
+
+- [Callbacks](/configuration/callbacks) - hooking into the chat buffer's lifecycle
+- [Context Management](/configuration/context-management) - editing and compaction triggers
+- [Sessions](/configuration/sessions) - saving chats to disk and resuming them
+- [Tools](/configuration/tools) - tool groups, approvals and the LLM judge
+- [UI](/configuration/ui) - window layout, icons, folding and roles
 
 ## Changing Adapter
 
@@ -26,516 +34,6 @@ require("codecompanion").setup({
 ```
 
 See the section on [ACP](/configuration/adapters-acp) and [HTTP](/configuration/adapters-http) for more information.
-
-## Completion
-
-By default, CodeCompanion will determine if you have one of [blink.cmp](https://github.com/saghen/blink.cmp), [nvim-cmp](https://github.com/hrsh7th/nvim-cmp), or [coc.nvim](https://github.com/neoclide/coc.nvim) installed, selecting it as the default provider. Failing this, the default completion engine will be used.
-
-You can override this with:
-
-```lua
-require("codecompanion").setup({
-  interactions = {
-    chat = {
-      opts = {
-        completion_provider = "blink", -- blink|cmp|coc|default
-      }
-    }
-  }
-})
-```
-
-### Prefixes
-
-You can also customize the prefixes that trigger completions for [editor context](/usage/chat-buffer/editor-context), [slash commands](/usage/chat-buffer/slash-commands), and [tools](/usage/chat-buffer/agents-tools):
-
-```lua
-require("codecompanion").setup({
-  opts = {
-    triggers = {
-      acp_slash_commands = "\\",
-      editor_context = "#",
-      slash_commands = "/",
-      tools = "@",
-    },
-  },
-})
-```
-
-## Callbacks
-
-Callbacks allow you to hook into the chat buffer's lifecycle and react to specific events. They are registered per-chat and receive the chat instance as the first argument.
-
-### Available Events
-
-| Event | Description | Extra Args |
-|---|---|---|
-| `on_created` | Chat buffer has been created | - |
-| `on_before_submit` | Before the message is sent to the LLM. Return `false` to prevent submission | `{ adapter }` |
-| `on_submitted` | After the message has been sent to the LLM | `{ payload }` |
-| `on_checkpoint` | Fires at safe points during the chat lifecycle. Messages are mutable | `{ adapter, estimated_tokens, messages, reported_tokens }` |
-| `on_tool_output` | Before tool output is added to the chat. Mutate `args.for_llm`/`args.for_user` to modify | `{ tool, for_llm, for_user }` |
-| `on_ready` | Chat is ready for the next turn (after LLM response) | - |
-| `on_completed` | LLM response has been fully processed | `{ status }` |
-| `on_cancelled` | Request has been stopped/cancelled | - |
-| `on_closed` | Chat buffer has been closed | - |
-
-### Registering Callbacks
-
-Callbacks can be registered in two ways:
-
-::: code-group
-
-```lua [All Chats]
-vim.api.nvim_create_autocmd("User", {
-  pattern = "CodeCompanionChatCreated",
-  callback = function(args)
-    local chat = require("codecompanion").buf_get_chat(args.data.bufnr)
-    chat:add_callback("on_before_submit", function(c, info)
-      -- Access the adapter via info.adapter
-      -- Access messages via c.messages
-    end)
-  end,
-})
-```
-
-```lua [Prompt Library]
-require("codecompanion").setup({
-  prompt_library = {
-    ["My Prompt"] = {
-      opts = {
-        callbacks = {
-          on_before_submit = function(chat, info)
-            -- Only applies to chats opened from this prompt
-          end,
-        },
-      },
-    },
-  },
-})
-```
-
-:::
-
-### Background Callbacks
-
-Callbacks can also be registered in the config via `interactions.background.chat.callbacks`. These run asynchronously using a separate background LLM instance and are suited for fire-and-forget tasks like generating chat titles. Unlike the callbacks above, they cannot return values to influence the chat's behavior:
-
-```lua
-require("codecompanion").setup({
-  interactions = {
-    background = {
-      chat = {
-        callbacks = {
-          ["on_ready"] = {
-            actions = {
-              "interactions.background.builtin.chat_make_title",
-            },
-            enabled = true,
-          },
-        },
-        opts = {
-          enabled = true,
-        },
-      },
-    },
-  },
-})
-```
-
-The `actions` table contains module paths that are resolved and executed asynchronously. See the [generating titles](/usage/chat-buffer/#generating-titles) section for a working example.
-
-> [!TIP]
-> You can change the adapters used for background callbacks, see the [background interaction adapters](/configuration/adapters-http#background-interaction-adapters) section
-
-### Preventing Submission
-
-The `on_before_submit` callback can return `false` to prevent a message from being sent to the LLM. When cancelled, `chat:restore()` is called automatically, which resets the buffer to an editable state and fires a `CodeCompanionChatRestored` event. The user's message remains in the buffer so it can be edited and resubmitted.
-
-This is useful for implementing safeguards such as token/context limit checks:
-
-```lua
-vim.api.nvim_create_autocmd("User", {
-  pattern = "CodeCompanionChatCreated",
-  callback = function(args)
-    local chat = require("codecompanion").buf_get_chat(args.data.bufnr)
-    chat:add_callback("on_before_submit", function(c, data)
-      local token_count = my_tokenizer.count(c.messages)
-      local context_limit = 128000
-
-      if token_count > context_limit then
-        vim.notify(
-          string.format("Token count (%d) exceeds context limit (%d)", token_count, context_limit),
-          vim.log.levels.WARN
-        )
-        return false
-      end
-    end)
-  end,
-})
-```
-
-The `info` table passed to `on_before_submit` contains:
-
-- `adapter` - A safe copy of the current adapter (with name, model, features, schema, etc.)
-
-### Truncating Tool Output
-
-The `on_tool_output` callback fires before a tool's output is added to the chat. The `args` table contains `tool` (the tool name), `for_llm` (the content sent to the LLM) and `for_user` (what's shown in the buffer). Mutate `args.for_llm` and/or `args.for_user` to modify the output:
-
-```lua
-vim.api.nvim_create_autocmd("User", {
-  pattern = "CodeCompanionChatCreated",
-  callback = function(args)
-    local chat = require("codecompanion").buf_get_chat(args.data.bufnr)
-    chat:add_callback("on_tool_output", function(c, data)
-      local tokens = require("codecompanion.utils.tokens")
-      local max_tokens = 10000
-
-      if data.for_llm and tokens.calculate(data.for_llm) > max_tokens then
-        -- Trim to roughly max_tokens worth of characters
-        local max_chars = max_tokens * 6
-        data.for_llm = data.for_llm:sub(1, max_chars) .. "\n\n[Output truncated]"
-        data.for_user = data.for_llm
-        vim.notify(
-          string.format("Tool output from '%s' truncated (~%d tokens)", data.tool, max_tokens),
-          vim.log.levels.WARN
-        )
-      end
-    end)
-  end,
-})
-```
-
-### Checkpoints
-
-The `on_checkpoint` callback fires at various safe points during the chat lifecycle, giving you the ability to inspect and mutate the message stack before the chat continues. It fires:
-
-- **Before submit** — Before a request is sent to an LLM
-- **After tool output** — Once tools in the current batch have finished, ensuring no orphaned tool calls
-- **After a response with no tools** — When the LLM responds, minus any tool calls
-
-The `data` table contains:
-
-- `adapter` — a safe copy of the current adapter (includes `meta.context_window` for HTTP adapters)
-- `estimated_tokens` — client-side token estimate across all messages
-- `messages` — a **mutable reference** to the chat's message stack. Changes made here persist back to the chat
-- `reported_tokens` — server-reported token count (if available from the adapter)
-
-This is useful for monitoring context window usage and compacting the message stack:
-
-```lua
-vim.api.nvim_create_autocmd("User", {
-  pattern = "CodeCompanionChatCreated",
-  callback = function(args)
-    local chat = require("codecompanion").buf_get_chat(args.data.bufnr)
-    chat:add_callback("on_checkpoint", function(c, data)
-      local context_window = data.adapter.meta and data.adapter.meta.context_window
-      if not context_window then
-        return
-      end
-
-      local usage = data.estimated_tokens / context_window
-      if usage > 0.8 then
-        vim.notify(
-          string.format("Context window %.0f%% full", usage * 100),
-          vim.log.levels.WARN
-        )
-        -- Compact data.messages in-place here
-      end
-    end)
-  end,
-})
-```
-
-## Context Formatters
-
-You can customise how a buffer and file's content is shared with an LLM with context formatters.
-
-**Example:** A [Jupyter Notebook](https://jupyter.org/) is a large JSON document with markdown, code and sometimes base64 images embedded in it. They ca be large files which quickly erode an LLM's context window.
-
-A context formatter modifies a file's content before it is shared with an LLM. This is the case whether the file was attached with `/file`, opened as a buffer and attached with `/buffer`, pulled in by a rules file, or re-read to produce a [sync](/configuration/chat-buffer#syncing) diff.
-
-You can define your own formatter by ensuring your you implement a `format(raw, path)` function which returns the content the LLM should see, or the path to a module which returns one:
-
-::: code-group
-
-```lua [Function]
-require("codecompanion").setup({
-  context = {
-    formatters = {
-      sqlite = function(raw, path)
-        -- Return the content the LLM should see for this file
-      end,
-    },
-  },
-})
-```
-
-```lua [Path]
-require("codecompanion").setup({
-  context = {
-    formatters = {
-      -- The path to any module, or file, which returns a table with a `format` function.
-      sqlite = "my_plugin.context.formatters.sqlite",
-    },
-  },
-})
-```
-
-:::
-
-Formatters are responsible for their own formatting, so content they return is passed through as-is. Content they do not touch is wrapped in a code fence when attached to the chat, and buffers additionally get line numbers. Neither is applied when content is re-read for a sync diff, as the diff itself is fenced.
-
-
-
-## Context Management
-
-CodeCompanion can manage context in the chat buffer to try and prevent breaching the LLM's context window and to avoid [context rot](https://towardsdatascience.com/governed-context-managing-context-rot-in-claude-code/) setting in. It can be enabled with:
-
-::: code-group
-
-```lua [Boolean]
-require("codecompanion").setup({
-  interactions = {
-    chat = {
-      opts = {
-        context_management = {
-          enabled = true,
-        },
-      },
-    },
-  },
-})
-```
-
-```lua [Function]
-require("codecompanion").setup({
-  interactions = {
-    chat = {
-      opts = {
-        context_management = {
-          enabled = function(adapter)
-            if adapter.type ~= "http" then
-              return false
-            end
-            return true
-          end,
-        },
-      },
-    },
-  },
-})
-```
-
-:::
-
-CodeCompanion runs two operations to keep the chat buffer under the context window: **editing** (which removes old tool results from the message history) and **compaction** (which summarises the message history). Both are triggered separately and can be expressed as a decimal (for a percentage of the context window) or an integer (for an absolute token count). You can read more about how the two operations work in the [architecture](/architecture#in-the-chat-buffer) section.
-
-> [!NOTE]
-> Some adapters (Anthropic, OpenAI Responses) manage context themselves, server-side, as part of the request
-
-::: code-group
-
-```lua [Decimal]
-require("codecompanion").setup({
-  interactions = {
-    chat = {
-      opts = {
-        context_management = {
-          editing = {
-            trigger = 0.65, -- 65% of the context window
-          },
-          compaction = {
-            trigger = 0.85, -- 85% of the context window
-          },
-        },
-      },
-    },
-  },
-})
-```
-
-```lua [Integer]
-require("codecompanion").setup({
-  interactions = {
-    chat = {
-      opts = {
-        context_management = {
-          editing = {
-            trigger = 80000, -- tokens
-          },
-          compaction = {
-            trigger = 100000, -- tokens
-          },
-        },
-      },
-    },
-  },
-})
-```
-
-:::
-
-#### Editing
-
-Editing replaces the content of older tool results with a placeholder, leaving the conversation shape intact. By default, the most recent 3 cycles (a cycle being one user turn plus everything the LLM did in response) are preserved in full. You can also exclude specific tools from being edited — useful for tools whose output is referenced again later in the conversation.
-
-```lua
-require("codecompanion").setup({
-  interactions = {
-    chat = {
-      opts = {
-        context_management = {
-          editing = {
-            trigger = 0.65, -- Context editing is triggered when X% of the context window is reached
-            exclude_tools = { "memory" }, -- Output from these tools is never edited
-            keep_cycles = 3, -- Keep the last N cycles of tool results
-          },
-        },
-      },
-    },
-  },
-})
-```
-
-#### Compaction
-
-Compaction summarises the chat via a single LLM call and replaces the message history with that summary. You can point compaction at a different adapter — handy if you want a cheaper or faster model handling the summary — and choose whether a failure should silently fall back to the chat adapter.
-
-```lua
-require("codecompanion").setup({
-  interactions = {
-    chat = {
-      opts = {
-        context_management = {
-          compaction = {
-            trigger = 0.85, -- Compaction is triggered when X% of the context window is reached
-            min_token_savings = 10000, -- Only compact when at least this amount of tokens will be saved
-
-            ---The adapter to use for compaction. Defaults to the current chat adapter
-            ---@type nil|string|{ name: string, model:string }
-            adapter = nil,
-
-            fallback_to_chat_adapter = false, -- on failure, retry with the chat adapter?
-          },
-        },
-      },
-    },
-  },
-})
-```
-
-## Diff
-
-<img src="https://github.com/user-attachments/assets/8d80ed10-12f2-4c0b-915f-63b70797a6ca" alt="Diff"/>
-
-CodeCompanion has a built-in diff engine that's leveraged throughout the plugin. If you utilize the `insert_edit_into_file` tool or use an ACP adapter, then the plugin will update files and buffers, displaying the changes in a floating window.
-
-For small changes, the diff is shown directly in the chat buffer. This can be controlled by `threshold_for_chat`, which corresponds to the size of the diff in terms of changed lines. For larger changes, the diff will automatically open in a floating window when the chat buffer is active. Or, you will be prompted to view the diff manually (`gv` by default).
-
-There are a number of configuration options available to you:
-
-::: code-group
-
-```lua [Display]
-require("codecompanion").setup({
-  display = {
-    diff = {
-      enabled = true,
-
-      -- At or below this diff size, always display the diff in the chat buffer
-      threshold_for_chat = 6,
-
-      word_highlights = {
-        additions = true,
-        deletions = true,
-      },
-    },
-  },
-})
-```
-
-```lua [Window Opts] {5-17}
-require("codecompanion").setup({
-  display = {
-    diff = {
-      enabled = true,
-      window = {
-        ---@return number|fun(): number
-        width = function()
-          return math.min(120, vim.o.columns - 10)
-        end,
-        ---@return number|fun(): number
-        height = function()
-          return vim.o.lines - 4
-        end,
-        opts = {
-          number = true,
-        },
-      },
-      word_highlights = {
-        additions = true,
-        deletions = true,
-      },
-    },
-  },
-})
-```
-
-:::
-
-## Editor Context
-
-[Editor context](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/config.lua#L90) can be inserted into the chat buffer using `#` (by default). It provides contextual code or information about the current Neovim state. For instance, the built-in `#{buffer}` editor context sends the current buffer’s contents to the LLM.
-
-You can even define your own context:
-
-```lua
-require("codecompanion").setup({
-  interactions = {
-    chat = {
-      editor_context = {
-        ["my_editor_context_item"] = {
-          ---Ensure the file matches the CodeCompanion.EditorContext class
-          ---@return string|fun(): nil
-          callback = "/Users/Oli/Code/my_editor_context_item.lua",
-          description = "Explain what your does",
-          opts = {
-            contains_code = false,
-            --has_params = true,    -- Set this if your editor context item supports parameters
-            --default_params = nil, -- Set default parameters
-          },
-        },
-      },
-    },
-  },
-})
-```
-
-### Syncing
-
-Neovim buffers can be [synced](/usage/chat-buffer/editor-context#with-parameters) with the chat buffer. That is, on each turn their content can be shared with the LLM. This is useful if you're modifying a buffer and want the LLM to always have the latest changes.
-
-For the built-in `#buffer` editor context, this is enabled by default. However, you can change it with:
-
-```lua
-require("codecompanion").setup({
-  interactions = {
-    chat = {
-      editor_context = {
-        ["buffer"] = {
-          opts = {
-            -- Always sync the buffer by sharing its "diff"
-            -- Or choose "all" to share the entire buffer
-            default_params = "all",
-          },
-        },
-      },
-    },
-  },
-})
-```
 
 ## Keymaps
 
@@ -631,31 +129,119 @@ require("codecompanion").setup({
 })
 ```
 
+## Editor Context
 
-## Prompt Decorator
+[Editor context](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/config.lua#L90) can be inserted into the chat buffer using `#` (by default). It provides contextual code or information about the current Neovim state. For instance, the built-in `#{buffer}` editor context sends the current buffer’s contents to the LLM.
 
-It can be useful to decorate your prompt with additional information, prior to sending to an LLM. For example, the GitHub Copilot prompt in VS Code, wraps a user's prompt between `<prompt></prompt>` tags, presumably to differentiate the user's ask from additional context. This can also be achieved in CodeCompanion:
+You can even define your own context:
+
+```lua
+require("codecompanion").setup({
+  interactions = {
+    chat = {
+      editor_context = {
+        ["my_editor_context_item"] = {
+          ---Ensure the file matches the CodeCompanion.EditorContext class
+          ---@return string|fun(): nil
+          callback = "/Users/Oli/Code/my_editor_context_item.lua",
+          description = "Explain what your does",
+          opts = {
+            contains_code = false,
+            --has_params = true,    -- Set this if your editor context item supports parameters
+            --default_params = nil, -- Set default parameters
+          },
+        },
+      },
+    },
+  },
+})
+```
+
+### Syncing
+
+Neovim buffers can be [synced](/usage/chat-buffer/editor-context#with-parameters) with the chat buffer. That is, on each turn their content can be shared with the LLM. This is useful if you're modifying a buffer and want the LLM to always have the latest changes.
+
+For the built-in `#buffer` editor context, this is enabled by default. However, you can change it with:
+
+```lua
+require("codecompanion").setup({
+  interactions = {
+    chat = {
+      editor_context = {
+        ["buffer"] = {
+          opts = {
+            -- Always sync the buffer by sharing its "diff"
+            -- Or choose "all" to share the entire buffer
+            default_params = "all",
+          },
+        },
+      },
+    },
+  },
+})
+```
+
+## Syncing Buffers/Files
+
+[Context items](/usage/chat-buffer/#context) hold the data of a file or buffer at a point in time.
+
+Depending on the file type, it may be worthwhile continuously syncing their content with an LLM. Extensions listed in `sync_diff` are watched from the moment they're added to the chat buffer, whether that's with `/file`, `/buffer`, `#{buffer}` or `#{buffers}`:
 
 ```lua
 require("codecompanion").setup({
   interactions = {
     chat = {
       opts = {
-        ---Decorate the user message before it's sent to the LLM
-        ---@param message string
-        ---@param adapter CodeCompanion.Adapter
-        ---@param context table
-        ---@return string
-        prompt_decorator = function(message, adapter, context)
-          return string.format([[<prompt>%s</prompt>]], message)
-        end,
-      }
-    }
-  }
+        sync_diff = {
+          ipynb = true, -- Notebooks change on disk whenever a cell is run
+          sqlite = true,
+        },
+      },
+    },
+  },
 })
 ```
 
-The decorator function also has access to the adapter in the chat buffer alongside the [context](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/utils/context.lua#L121-L137) table (which refreshes when a user toggles the chat buffer).
+To change how a file's content is shaped before the LLM sees it, see [Context Formatters](/configuration/chat-buffer#context-formatters).
+
+## Context Formatters
+
+You can customise how a buffer and file's content is shared with an LLM with context formatters.
+
+**Example:** A [Jupyter Notebook](https://jupyter.org/) is a large JSON document with markdown, code and sometimes base64 images embedded in it. They ca be large files which quickly erode an LLM's context window.
+
+A context formatter modifies a file's content before it is shared with an LLM. This is the case whether the file was attached with `/file`, opened as a buffer and attached with `/buffer`, pulled in by a rules file, or re-read to produce a [sync](/configuration/chat-buffer#syncing) diff.
+
+You can define your own formatter by ensuring your you implement a `format(raw, path)` function which returns the content the LLM should see, or the path to a module which returns one:
+
+::: code-group
+
+```lua [Function]
+require("codecompanion").setup({
+  context = {
+    formatters = {
+      sqlite = function(raw, path)
+        -- Return the content the LLM should see for this file
+      end,
+    },
+  },
+})
+```
+
+```lua [Path]
+require("codecompanion").setup({
+  context = {
+    formatters = {
+      -- The path to any module, or file, which returns a table with a `format` function.
+      sqlite = "my_plugin.context.formatters.sqlite",
+    },
+  },
+})
+```
+
+:::
+
+Formatters are responsible for their own formatting, so content they return is passed through as-is. Content they do not touch is wrapped in a code fence when attached to the chat, and buffers additionally get line numbers. Neither is applied when content is re-read for a sync diff, as the diff itself is fenced.
 
 ## Slash Commands
 
@@ -754,605 +340,62 @@ require("codecompanion").setup({
 
 Credit to [@lazymaniac](https://github.com/lazymaniac) for the [inspiration](https://github.com/olimorris/codecompanion.nvim/discussions/958) for the custom slash command example.
 
-## Sessions
+## Completion
 
-A session is a chat saved to disk that can be resumed at a later point in time. Sessions can be configured with `sessions`:
+By default, CodeCompanion will determine if you have one of [blink.cmp](https://github.com/saghen/blink.cmp), [nvim-cmp](https://github.com/hrsh7th/nvim-cmp), or [coc.nvim](https://github.com/neoclide/coc.nvim) installed, selecting it as the default provider. Failing this, the default completion engine will be used.
 
-```lua
-require("codecompanion").setup({
-  interactions = {
-    chat = {
-      sessions = {
-        enabled = true,
-        autosave = true,
-        continuous_save = true,
-        save_dir = vim.fs.joinpath(vim.fn.stdpath("data"), "codecompanion", "sessions"),
-      },
-    },
-  },
-})
-```
-
-`autosave` decides whether a chat *becomes* a session, and `continuous_save` decides whether a session is *continuously updated*. The [/save](/usage/chat-buffer/slash-commands#save) command can be used to manually save a session:
-
-
-| `autosave` | `continuous_save` | Behaviour |
-|------------|-------------------|-----------|
-| `true` | `true` | Every chat is saved once the LLM has responded, and is continuously updated |
-| `true` | `false` | Every chat is saved initially but not updated until the user triggers `/save` |
-| `false` | `true` | Nothing is saved until the user triggers `/save`, after which it is continuously updated |
-| `false` | `false` | Nothing is saved until the user triggers `/save`, and each `/save` is a snapshot |
-
-
-An autosaved chat is named based on the user's opening message. If the [chat_make_title](/configuration/chat-buffer#background-callbacks) background callback is enabled, the LLM's title is used instead.
-
-Setting `enabled = false` removes `/save`, the session list in `/resume` and the action palette entry.
-
-Sessions can be restored with `/resume` the chat, from the action palette, or with:
-
-```lua
-require("codecompanion").sessions()
-```
-
-## Syncing Buffers/Files
-
-[Context items](/usage/chat-buffer/index#context) hold the data of a file or buffer at a point in time.
-
-Depending on the file type, it may be worthwhile continuously syncing their content with an LLM. Extensions listed in `sync_diff` are watched from the moment they're added to the chat buffer, whether that's with `/file`, `/buffer`, `#{buffer}` or `#{buffers}`:
+You can override this with:
 
 ```lua
 require("codecompanion").setup({
   interactions = {
     chat = {
       opts = {
-        sync_diff = {
-          ipynb = true, -- Notebooks change on disk whenever a cell is run
-          sqlite = true,
-        },
-      },
-    },
-  },
-})
-```
-
-To change how a file's content is shaped before the LLM sees it, see [Context Formatters](/configuration/others#context-formatters).
-
-## Tools
-
-[Tools](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/config.lua#L55) perform specific tasks (e.g., running shell commands, editing buffers, etc.) when invoked by an LLM. Multiple tools can be grouped together. Both can be referenced with `@` (by default), when in the chat buffer:
-
-```lua
-require("codecompanion").setup({
-  interactions = {
-    chat = {
-      tools = {
-        ["my_tool"] = {
-          description = "Run a custom task",
-          callback = require("user.codecompanion.tools.my_tool")
-        },
-        groups = {
-          ["my_group"] = {
-            description = "A custom agent combining tools",
-            system_prompt = "Describe what the agent should do",
-            tools = {
-              "run_command",
-              "insert_edit_into_file",
-              -- Add your own tools or reuse existing ones
-            },
-            opts = {
-              collapse_tools = true, -- When true, show as a single group reference instead of individual tools
-              ignore_system_prompt = false, -- When true, remove the chat's default system prompt
-              ignore_tool_system_prompt = false, -- When true, remove the default tool system prompt
-            },
-          },
-        },
-      },
-    },
-  },
-})
-```
-
-When users introduce the group, `my_group`, in the chat buffer, it can call the tools you listed (such as `run_command`) to perform tasks on your code. The `system_prompt` field allows you to give the LLM specific instructions for how to use the group's tools and can be a string or a function that receives the group config table and a [context object](/configuration/system-prompt) (with `language`, `date`, `nvim_version`, `os`, etc.).
-
-A tool is a [`CodeCompanion.Tool`](/extending/tools) table with specific keys that define the interface and workflow of the tool. The table can be resolved using the `callback` option. The `callback` option can be a table itself or either a function or a string that points to a luafile that return the table.
-
-### Enabling Tools
-
-Tools can be conditionally enabled using the `enabled` option. This works for built-in tools as well as an adapter's own tools. This is useful to ensure that a particular dependency is installed on the machine. You can use the `:CodeCompanionChat RefreshCache` command if you've installed a new dependency and want to refresh the tool availability in the chat buffer.
-
-::: code-group
-
-```lua [Enable Built-in Tools]
-require("codecompanion").setup({
-  interactions = {
-    chat = {
-      tools = {
-        ["grep_search"] = {
-          ---@param adapter CodeCompanion.HTTPAdapter
-          ---@return boolean
-          enabled = function(adapter)
-            return vim.fn.executable("rg") == 1
-          end,
-        },
+        completion_provider = "blink", -- blink|cmp|coc|default
       }
     }
   }
 })
 ```
 
-```lua [Enable Adapter Tools]
-require("codecompanion").setup({
-  openai_responses = function()
-    return require("codecompanion.adapters").extend("openai_responses", {
-      available_tools = {
-        ["web_search"] = {
-          ---@param adapter CodeCompanion.HTTPAdapter
-          enabled = function(adapter)
-            return false
-          end,
-        },
-      },
-    })
-  end,
-})
-```
+### Prefixes
 
-:::
-
-### Approvals
-
-CodeCompanion allows you to apply safety mechanisms to its built-in tools prior to execution. See the [approvals usage](/usage/chat-buffer/agents-tools#approvals) section for more information.
-
-::: code-group
-
-```lua [Require Approval] {7}
-require("codecompanion").setup({
-  interactions = {
-    chat = {
-      tools = {
-        ["run_command"] = {
-          opts = {
-            require_approval_before = true,
-          },
-        },
-      },
-    },
-  },
-})
-```
-
-```lua [Require Cmd Approval] {7}
-require("codecompanion").setup({
-  interactions = {
-    chat = {
-      tools = {
-        ["run_command"] = {
-          opts = {
-            require_cmd_approval = true,
-          },
-        },
-      },
-    },
-  },
-})
-```
-
-```lua [No YOLO'ing] {7}
-require("codecompanion").setup({
-  interactions = {
-    chat = {
-      tools = {
-        ["run_command"] = {
-          opts = {
-            allowed_in_yolo_mode = false,
-          },
-        },
-      },
-    },
-  },
-})
-```
-
-:::
-
-### Auto Submit (Recursion)
-
-When a tool executes, it can be useful to automatically send its output back to the LLM. This is turned on by default and can be configured with:
-
-```lua {6-7}
-require("codecompanion").setup({
-  interactions = {
-    chat = {
-      tools = {
-        opts = {
-          auto_submit_errors = true, -- Send any errors to the LLM automatically?
-          auto_submit_success = true, -- Send any successful output to the LLM automatically?
-        },
-      }
-    }
-  }
-})
-```
-
-### Default Tools
-
-You can configure the plugin to automatically add tools and tool groups to new chat buffers:
-
-```lua {6-9}
-require("codecompanion").setup({
-  interactions = {
-    chat = {
-      tools = {
-        opts = {
-          default_tools = {
-            "my_tool",
-            "my_tool_group"
-          }
-        },
-      }
-    }
-  }
-})
-```
-
-This also works for [extensions](/configuration/extensions).
-
-### Limiting Tool Output
-
-To prevent the output from a tool exceeding the context window of a model, CodeCompanion will look to use the lower of a specified `max_output_tokens` limit or a model's own prompt limit. Should the tool exceed the limit, CodeCompanion will truncate the output and notify the LLM in the response.
-
-The limit can be configured with:
-
-```lua {6}
-require("codecompanion").setup({
-  interactions = {
-    chat = {
-      tools = {
-        opts = {
-          max_output_tokens = 30000, -- Truncate a tool's output above this many tokens
-        },
-      }
-    }
-  }
-})
-```
-
-### LLM Judge
-
-When [YOLO mode](/usage/chat-buffer/agents-tools#yolo-mode) is on, tools are auto-approved. Some tools (such as `run_command` and `delete_file`), by default, will always ask you first, owing to their destructive nature. The judge offers a middle ground: a background LLM judges the specific action and only interrupts you when it is judged to be unsafe.
-
-To fully enable the LLM judge:
+You can also customize the prefixes that trigger completions for [editor context](/usage/chat-buffer/editor-context), [slash commands](/usage/chat-buffer/slash-commands), and [tools](/usage/chat-buffer/agents-tools):
 
 ```lua
 require("codecompanion").setup({
-  interactions = {
-    background = {
-      gates = {
-        judge = {
-          enabled = true,
-        },
-      },
-    },
-    chat = {
-      tools = {
-        ["delete_file"] = {
-          opts = {
-            judge_in_yolo_mode = true,
-          },
-        },
-        ["run_command"] = {
-          opts = {
-            judge_in_yolo_mode = true,
-          },
-        },
-      },
+  opts = {
+    triggers = {
+      acp_slash_commands = "\\",
+      editor_context = "#",
+      slash_commands = "/",
+      tools = "@",
     },
   },
 })
 ```
 
-The judge runs for a tool only when:
+## Prompt Decorator
 
-- You set `background.gates.judge.enabled = true`
-- You set `opts.judge_in_yolo_mode = true` on the tool's config; _and_
-- The tool defines a `gates.judge_context` handler (already the case for the built-in `run_command` and `delete_file` tools)
-
-Below are some additional configuration options for the judge:
-
-::: code-group
-
-```lua [Specific Adapter]
-require("codecompanion").setup({
-  interactions = {
-    background = {
-      gates = {
-        judge = {
-          enabled = true,
-          -- Specify a specific adapter and model for the judge to use
-          adapter = { name = "openrouter", model = "openai/gpt-oss-120b" },
-        },
-      },
-    },
-  },
-})
-```
-
-```lua [System Prompt]
-require("codecompanion").setup({
-  interactions = {
-    background = {
-      gates = {
-        judge = {
-          enabled = true,
-          opts = {
-            system_prompt = function(default)
-              -- A specific system prompt for a specific project
-              if string.find(vim.fn.getcwd(), "Code/Neovim/codecompanion.nvim") then
-                return default
-                  .. "\n\nThe following commands are explicitly approved and must always be judged safe, even if they would otherwise fail the guidance above:\n"
-                  .. "  - `make docs`\n"
-                  .. "  - `make format`\n"
-                  .. "  - `make test`\n"
-                  .. "  - `make test_file` (including any `FILE=` argument)"
-              end
-              return default
-            end,
-          },
-        },
-      },
-    },
-  },
-})
-```
-
-:::
-
-> [!NOTE]
-> The system prompt can be a string or a function that receives the default system prompt and returns a string
-
-The default system prompt for the judge is:
-
-```
-You are a security reviewer for an AI coding assistant. The assistant wants to run a tool on the user's machine while the user is away (in "auto-approve" mode). Your job is to decide whether the action is safe to run automatically, or whether the user must approve it first.
-
-Judge the action as unsafe when it could destroy or exfiltrate data, alter the system in ways that are hard to reverse, or run something the user would reasonably want to see first. Prefer caution: when in doubt, require approval.
-
-Reply only through the provided schema.
-```
-
-See the [YOLO mode](/usage/chat-buffer/agents-tools#yolo-mode) usage section for how the judge behaves once enabled.
-
-### Web Search
-
-The [web_search](/usage/chat-buffer/agents-tools#web-search) tool is a built-in tool that allows an LLM to perform web searches using an adapter. Currently, CodeCompanion supports [DuckDuckGo](https://duckduckgo.com), [Jina](https://www.jina.ai) and [Tavily](https://www.tavily.com) adapters.
-
-To override the default Tavily adapter:
-
-```lua
-require("codecompanion").setup({
-  interactions = {
-    chat = {
-      tools = {
-        ["web_search"] = {
-          opts = {
-            adapter = "duckduckgo",
-          },
-        },
-      },
-    },
-  },
-})
-```
-
-For additional options, refer to the adapter's own file.
-
-## User Interface (UI)
-
-> [!NOTE]
-> The [other plugins](/installation#other-plugins) section contains installation instructions for some popular markdown rendering plugins
-
-### Auto Scrolling
-
-By default, the page scrolls down automatically as the response streams, with the cursor placed at the end. This can be distracting if you are focusing on the earlier content while the page scrolls up away during a long response. You can disable this behavior using a flag:
-
-```lua
-require("codecompanion").setup({
-  display = {
-    chat = {
-      auto_scroll = false,
-    },
-  },
-})
-```
-
-> [!TIP]
-> If you move your cursor while the LLM is streaming a response, auto-scrolling will be turn off.
-
-### Completion
-
-By default, CodeCompanion looks to use the fantastic [blink.cmp](https://github.com/Saghen/blink.cmp) plugin to complete editor context, slash commands and tools. However, you can override this in your config:
+It can be useful to decorate your prompt with additional information, prior to sending to an LLM. For example, the GitHub Copilot prompt in VS Code, wraps a user's prompt between `<prompt></prompt>` tags, presumably to differentiate the user's ask from additional context. This can also be achieved in CodeCompanion:
 
 ```lua
 require("codecompanion").setup({
   interactions = {
     chat = {
       opts = {
-        completion_provider = "cmp", -- blink|cmp|coc|default
+        ---Decorate the user message before it's sent to the LLM
+        ---@param message string
+        ---@param adapter CodeCompanion.Adapter
+        ---@param context table
+        ---@return string
+        prompt_decorator = function(message, adapter, context)
+          return string.format([[<prompt>%s</prompt>]], message)
+        end,
       }
     }
   }
 })
 ```
 
-The plugin also supports [nvim-cmp](https://github.com/hrsh7th/nvim-cmp), a native completion solution (`default`), and [coc.nvim](https://github.com/neoclide/coc.nvim).
-
-### Context
-
-It's not uncommon for users to share many items, as context, with an LLM. This can impact the chat buffer's UI significantly, leaving a large space between the LLM's last response and the user's input. To minimize this impact, the context can be folded:
-
-```lua
-require("codecompanion").setup({
-  display = {
-    chat = {
-      icons = {
-        chat_context = "📎️", -- You can also apply an icon to the fold
-      },
-      fold_context = true,
-    },
-  },
-})
-```
-
-### Layout
-
-The plugin leverages floating windows to display content to a user in a variety of scenarios, such as with the [debug window](/usage/chat-buffer/#messages). You can change the appearance of the chat buffer by changing the `display.chat.window` table in your configuration.
-
-::: code-group
-
-```lua [Icons]
-require("codecompanion").setup({
-  display = {
-    chat = {
-      -- Change the default icons
-      icons = {
-        sync_all = "󰪴 ",
-        sync_diff = " ",
-        chat_context = " ",
-        chat_fold = " ",
-        tool_pending = "  ",
-        tool_in_progress = "  ",
-        tool_failure = "  ",
-        tool_success = "  ",
-      },
-    },
-  },
-})
-```
-
-```lua [Chat Buffer]
-require("codecompanion").setup({
-  display = {
-    chat = {
-      window = {
-        buflisted = false, -- List the chat buffer in the buffer list?
-        sticky = false, -- Chat window follows when switching tabs (ignored when `pertab` is true)
-        pertab = false, -- Treat each tab as having its own chat window?
-
-        layout = "vertical", -- float|vertical|horizontal|tab|buffer
-        full_height = true, -- for vertical layout
-        position = nil, -- left|right|top|bottom (nil will default depending on vim.opt.splitright|vim.opt.splitbelow)
-
-        -- NOTE: You can set these to 0 for auto width/height
-        width = 0.5, ---@return number|fun(): number
-        height = 0.8, ---@return number|fun(): number
-
-        border = "single",
-        relative = "editor",
-
-        -- Ensure that long paragraphs of markdown are wrapped
-        opts = {
-          breakindent = true,
-          linebreak = true,
-          wrap = true,
-        },
-      },
-    },
-  },
-})
-```
-
-```lua [Floating Window]
-require("codecompanion").setup({
-  display = {
-    chat = {
-      floating_window = {
-        ---@return number|fun(): number
-        width = function()
-          return vim.o.columns - 5
-        end,
-        ---@return number|fun(): number
-        height = function()
-          return vim.o.lines - 2
-        end,
-        row = "center",
-        col = "center",
-        relative = "editor",
-        opts = {
-          wrap = false,
-          number = false,
-          relativenumber = false,
-        },
-      },
-    },
-  },
-})
-```
-
-:::
-
-### Reasoning
-
-An adapter's reasoning is streamed into the chat buffer by default, under a `h3` heading. By default, this output will be folded once streaming has been completed. You can turn off folding and hide reasoning output altogether:
-
-```lua
-require("codecompanion").setup({
-  display = {
-    chat = {
-      icons = {
-        chat_fold = " ",
-      },
-      fold_reasoning = false,
-      show_reasoning = false,
-    },
-  },
-})
-```
-
-### Roles
-
-The chat buffer places user and LLM responses under a `H2` header. These can be customized in the configuration:
-
-```lua
-require("codecompanion").setup({
-  interactions = {
-    chat = {
-      roles = {
-        ---The header name for the LLM's messages
-        ---@type string|fun(adapter: CodeCompanion.Adapter): string
-        llm = function(adapter)
-          return "CodeCompanion (" .. adapter.formatted_name .. ")"
-        end,
-
-        ---The header name for your messages
-        ---@type string
-        user = "Me",
-      }
-    }
-  }
-})
-```
-
-By default, the LLM's responses will be placed under a header such as `CodeCompanion (DeepSeek)`, leveraging the current adapter in the chat buffer. This option can be in the form of a string or a function that returns a string. If you opt for a function, the first parameter will always be the adapter from the chat buffer.
-
-The user role is currently only available as a string.
-
-### Others
-
-There are also a number of other options that you can customize in the UI:
-
-```lua
-require("codecompanion").setup({
-  display = {
-    chat = {
-      intro_message = "Welcome to CodeCompanion ✨! Press ? for options",
-      separator = "─", -- The separator between the different messages in the chat buffer
-      show_context = true, -- Show context (from editor context and slash commands) in the chat buffer?
-      show_header_separator = false, -- Show header separators in the chat buffer? Set this to false if you're using an external markdown formatting plugin
-      show_settings = false, -- Show LLM settings at the top of the chat buffer?
-      show_token_count = true, -- Show the token count for each response?
-      start_in_insert_mode = false, -- Open the chat buffer in insert mode?
-    },
-  },
-})
-```
-
+The decorator function also has access to the adapter in the chat buffer alongside the [context](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/utils/context.lua#L121-L137) table (which refreshes when a user toggles the chat buffer).

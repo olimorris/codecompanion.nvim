@@ -64,6 +64,11 @@ The plugin uses the notion of _interactions_ to describe the many different ways
 
 ## Setup
 
+### Choosing an Adapter
+
+> [!WARNING]
+> **PLACEHOLDER SECTION.** The docs review found no guidance for a reader who doesn't have Copilot and has to pick an adapter cold. This needs your words: which adapters you'd steer a newcomer towards, and the smallest working config for each.
+
 ### Chat and Inline
 
 > [!NOTE]
@@ -189,7 +194,7 @@ _Slash commands_, accessed via `/` (by default), run commands to insert addition
 
 **Tools**
 
-_Tools_, accessed via `@` (by default), allow the LLM to function as an agent and leverage external tools. You can find a [list of available tools and how to use them](usage/chat-buffer/agents-tools#available-tools).
+_Tools_, accessed via `@` (by default), allow the LLM to function as an agent and leverage external tools. You can find a [list of available tools and how to use them](usage/chat-buffer/agents-tools#built-in-tools).
 
 You can use them in your prompts like:
 
@@ -203,7 +208,7 @@ Can you use @{grep_search} to find occurrences of "hello world"
   <video controls title="CLI interaction demo" src="https://github.com/user-attachments/assets/9b4e202d-a939-4daa-8344-74af91f9f366"></video>
 </p>
 
-Running `:CodeCompanionCLI` will open a new CLI interaction. Running `:CodeCompanionCLI <your prompt>` will send the prompt to the last CLI interaction (or create a new one). You can also run `:CodeCompanionCLI Ask` to use a rich prompt input field complete with [editor context](#editor-context). Save with `:w` to send the prompt to the agent, or `:w!` to send and auto-submit it.
+Running `:CodeCompanionCLI` will open a new CLI interaction. Running `:CodeCompanionCLI <your prompt>` will send the prompt to the last CLI interaction (or create a new one). You can also run `:CodeCompanionCLI Ask` to use a rich prompt input field complete with [editor context](/usage/chat-buffer/editor-context). Save with `:w` to send the prompt to the agent, or `:w!` to send and auto-submit it.
 
 Adding `!` to the command (e.g. `:CodeCompanionCLI! <prompt>`) will auto-submit the prompt and keep your cursor in the current buffer. You can also specify which agent to use with `:CodeCompanionCLI agent=<agent name>`.
 
@@ -218,7 +223,7 @@ Adding `!` to the command (e.g. `:CodeCompanionCLI! <prompt>`) will auto-submit 
 
 Run `:CodeCompanion your prompt` to call the inline interaction. The interaction will evaluate the prompt and either write code or open a chat buffer. You can also make a visual selection and call the inline interaction. To send additional context alongside your prompt, you can leverage [editor context](/usage/inline#editor-context) such as `:CodeCompanion #{buffer} <your prompt>`.
 
-For convenience, you can call prompts with their `alias` from the [prompt library](https://github.com/olimorris/codecompanion.nvim/blob/6a4341a4cfe8988a57ad9e8b7dc01ccd6f3e1628/lua/codecompanion/config.lua#L565) such as `:'<,'>CodeCompanion /explain`. The prompt library comes with the following presets:
+For convenience, you can call prompts with their `alias` from the [prompt library](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/config.lua) such as `:'<,'>CodeCompanion /explain`. The prompt library comes with the following presets:
 
 - `/commit` - Generate a commit message
 - `/explain` - Explain how selected code in a buffer works
@@ -246,30 +251,10 @@ The plugin has five core commands:
 - `CodeCompanion` - Open the inline interaction
 - `CodeCompanionChat` - Open a chat buffer
 - `CodeCompanionCLI` - Open a CLI interaction
-- `CodeCompanionCLI Install` - Write CodeCompanion's hooks into your CLI agents' settings
 - `CodeCompanionCmd` - Generate a command in the command-line
 - `CodeCompanionActions` - Open the _Action Palette_
 
-However, there are multiple options available:
-
-- `CodeCompanion <prompt>` - Prompt the inline interaction
-- `CodeCompanion adapter=<adapter> <prompt>` - Prompt the inline interaction with a specific adapter
-- `CodeCompanion /<prompt library>` - Call an item via its alias from the [prompt library](configuration/prompt-library)
-- `CodeCompanionActions Refresh` - Refresh the action palette and any items in the prompt library
-- `CodeCompanionChat <prompt>` - Send a prompt to the LLM via a chat buffer
-- `CodeCompanionChat adapter=<adapter> model=<model>` - Open a chat buffer with a specific http adapter and model
-- `CodeCompanionChat adapter=<adapter> command=<command>` - Open a chat buffer with a specific ACP adapter and command
-- `CodeCompanionChat Add` - Add visually selected chat to the current chat buffer
-- `CodeCompanionChat Changes` - Open the quickfix list with all files that have been changed by the LLM
-- `CodeCompanionChat RefreshCache` - Used to refresh conditional elements in the chat buffer
-- `CodeCompanionChat Toggle` - Toggle a chat buffer
-- `CodeCompanionCLI` - Open a new CLI interaction
-- `CodeCompanionCLI <prompt>` - Send a prompt to the last CLI interaction (or create a new one)
-- `CodeCompanionCLI! <prompt>` - Send and auto-submit a prompt, keeping focus in the current buffer
-- `CodeCompanionCLI agent=<agent> <prompt>` - Start a new CLI interaction with a specific agent
-- `CodeCompanionCLI Ask` - Open the rich input buffer for CLI prompts
-- `CodeCompanionCodeReview` - Open an agent's changes in the quickfix list for [code reviews](/usage/code-review)
-- `CodeCompanionCodeReview Comment` - Leave a review comment on the current line or visual selection
+Each takes a number of arguments. See [Commands](/usage/commands) for the full list.
 
 ## Suggested Plugin Workflow
 
@@ -285,4 +270,4 @@ vim.cmd([[cab cc CodeCompanion]])
 ```
 
 > [!NOTE]
-> You can also assign prompts from the library to specific mappings. See the [prompt library](configuration/prompt-library#assigning-prompts-to-a-keymap) section for more information.
+> You can also assign prompts from the library to specific mappings. See the [prompt library](/usage/prompt-library#keymaps) section for more information.

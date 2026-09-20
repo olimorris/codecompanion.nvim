@@ -169,13 +169,13 @@ or:
 require("codecompanion").cli({ prompt = true })
 ```
 
-This will toggle a `codecompanion_input` buffer. In this buffer, you have access to all of the available [editor context](#editor-context), some [slash commands](#slash-commands) and a much a larger character window. To send the prompt to the agent, you can write the buffer with `:w`. Or, to automatically send and submit, you can forcefully write with `:w!`.
+This will toggle a `codecompanion_input` buffer. In this buffer, you have access to all of the available [editor context](/usage/chat-buffer/editor-context), some [slash commands](#slash-commands) and a much a larger character window. To send the prompt to the agent, you can write the buffer with `:w`. Or, to automatically send and submit, you can forcefully write with `:w!`.
 
 You can scroll previous prompts with the `<up>` and `<down>` keys.
 
 ### Slash Commands
 
-The prompt input buffer also supports the [buffer](/usage/chat-buffer/slash-commands#buffer]) and [file](/usage/chat-buffer/slash-commands#file) slash commands, which better enable you to share lots of context with a CLI agent at once. Simply type `/` in the buffer to bring up the completion menu for your selected provider.
+The prompt input buffer also supports the [buffer](/usage/chat-buffer/slash-commands#buffer) and [file](/usage/chat-buffer/slash-commands#file) slash commands, which better enable you to share lots of context with a CLI agent at once. Simply type `/` in the buffer to bring up the completion menu for your selected provider.
 
 Instead of sharing file contents, CLI slash commands insert `@path` references into the prompt. For example, selecting a file via `/file` will insert:
 

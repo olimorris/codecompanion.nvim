@@ -347,7 +347,7 @@ Use @{web_search} to find the latest version of Neovim?
 Use @{web_search} to search neovim.io and explain how I can configure a new language server
 ```
 
-The tool supports numerous adapters that you'll need to [configure](/configuration/chat-buffer#web-search).
+The tool supports numerous adapters that you'll need to [configure](/configuration/tools#web-search).
 
 ## Adapter Tools
 
@@ -407,7 +407,7 @@ To bypass the approval system, you can use `gty` in the chat buffer to enable YO
 
 A [prompt library](/configuration/prompt-library#options) item can start its chat buffer in YOLO mode with `opts.yolo_mode = true`.
 
-If you've configured the [LLM judge](/configuration/chat-buffer#llm-judge) then a tool's commands will be sent to an LLM to verify that they're safe. This assumes that your chosen adapter supports structured outputs and the tool itself supports the judge. The [delete_file](#delete_file) and [run_command](#run_command) tools support this out of the box.
+If you've configured the [LLM judge](/configuration/tools#llm-judge) then a tool's commands will be sent to an LLM to verify that they're safe. This assumes that your chosen adapter supports structured outputs and the tool itself supports the judge. The [delete_file](#delete-file) and [run_command](#run-command) tools support this out of the box.
 
 If the judge decides the action is safe, it executes immediately and the verdict is cached so re-running the exact same command won't be re-judged that session. For example, approving `make test` does not result in `make test && rm -rf foo` being auto-approved. If the request to the judge fails, or the adapter can't produce structured output, the tool will require manual approval.
 

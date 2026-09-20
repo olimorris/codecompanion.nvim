@@ -14,7 +14,7 @@ For convenience, you can call prompts from the [prompt library](/configuration/p
 
 ## Adapters
 
-You can specify a different adapter to that in the configuration (`interactions.inline.adapter`) when sending an inline prompt. Simply include the adapter via `adapter=*`. For example `:<','>CodeCompanion adapter=deepseek can you refactor this?`. This approach can also be combined with variables.
+You can specify a different adapter to that in the configuration (`interactions.inline.adapter`) when sending an inline prompt. Simply include the adapter via `adapter=*`. For example `:<','>CodeCompanion adapter=deepseek can you refactor this?`. This approach can also be combined with editor context.
 
 ## Classification
 
@@ -46,7 +46,7 @@ The inline interaction allows you to send context alongside your prompt via the 
 - `chat` - shares the LLM's messages from the last chat buffer
 - `clipboard` - shares the data on your clipboard with the LLM
 
-Simply include them in your prompt. For example `:CodeCompanion #{buffer} add a new method to this file`. Multiple context items can be sent as part of the same prompt. You can even add your own custom variables as per the [configuration](/configuration/inline#editor-context).
+Simply include them in your prompt. For example `:CodeCompanion #{buffer} add a new method to this file`. Multiple context items can be sent as part of the same prompt. You can even add your own custom editor context as per the [configuration](/configuration/inline#editor-context).
 
 You can also have multiple editor context as part of a prompt, for example: `:CodeCompanion #{buffer} #{clipboard} analyze this code`.
 

@@ -166,4 +166,4 @@ The plugin also supports [native completion](/usage/chat-buffer/#completion) and
 
 ## Help
 
-Consider using the [minimal.lua](https://github.com/olimorris/codecompanion.nvim/blob/main/minimal.lua) file to troubleshoot, running it with `nvim --clean -u minimal.lua`.
+If something isn't working, see [Troubleshooting](/troubleshooting).

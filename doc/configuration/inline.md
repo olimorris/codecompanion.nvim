@@ -116,4 +116,4 @@ require("codecompanion").setup({
 
 ## Diff
 
-Please see the [Diff section](chat-buffer#diff) on the Chat Buffer page for configuration options.
+Please see the [Diff section](/configuration/diff) on the Chat Buffer page for configuration options.

@@ -72,7 +72,7 @@ require("codecompanion").setup({
 
 The _file_ slash command allows you to add the contents of a file in the current working directory to the chat buffer. The command has native, _Telescope_, _mini.pick_, _fzf.lua_ and _snacks.nvim_ providers available. Also, multiple files can be selected and added to the chat buffer.
 
-The content of a file can be reshaped before the LLM sees it with [context formatters](/configuration/others#context-formatters).
+The content of a file can be reshaped before the LLM sees it with [context formatters](/configuration/chat-buffer#context-formatters).
 
 **Searching other directories**
 
@@ -123,7 +123,7 @@ Please note that these mappings may be different depending on your provider.
 
 The _fork_ slash command, specific to _http_ adapters, allows you to duplicate the current chat buffer, copying the message history and preserving tools and context in the process. This enables you to branch the conversation and experiment with different prompts, models or even adapters without losing the original conversation.
 
-To save every fork as a [session](/configuration/chat-buffer#sessions) as soon as it's created:
+To save every fork as a [session](/configuration/sessions) as soon as it's created:
 
 ```lua
 require("codecompanion").setup({
@@ -173,14 +173,14 @@ The _rename_ slash command is specific to [http](/configuration/adapters-http) a
 
 The _resume_ slash command lists your past chat sessions and restores the selected one into the chat buffer.
 
-What it lists depends on the adapter. On an [ACP](/configuration/adapters-acp) adapter that supports the `session/list` capability, it asks the agent for its own sessions. On an [http](/configuration/adapters-http) adapter, it lists the [sessions](/configuration/chat-buffer#sessions) saved to disk.
+What it lists depends on the adapter. On an [ACP](/configuration/adapters-acp) adapter that supports the `session/list` capability, it asks the agent for its own sessions. On an [http](/configuration/adapters-http) adapter, it lists the [sessions](/configuration/sessions) saved to disk.
 
 > [!NOTE]
 > The `/resume` command must be used before sending any messages. It is only available on a fresh chat buffer.
 
 ## /save
 
-The _save_ slash command is specific to [http](/configuration/adapters-http) adapters. It saves the chat to disk as a [session](/configuration/chat-buffer#sessions), which you can restore later with `/resume`. You'll be asked for a title if the chat doesn't already have one.
+The _save_ slash command is specific to [http](/configuration/adapters-http) adapters. It saves the chat to disk as a [session](/configuration/sessions), which you can restore later with `/resume`. You'll be asked for a title if the chat doesn't already have one.
 
 Chats are saved automatically by default, so `/save` is for when you want to name one yourself or save it before the LLM has responded.
 
