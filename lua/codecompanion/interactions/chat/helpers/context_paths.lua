@@ -59,10 +59,14 @@ function M.attach(opts)
   for _, context_path in ipairs(context_paths) do
     local path = resolve_local_file(context_path.destination)
     local source = path or context_path.destination:match("^https?://.+")
-    if source and not attached[source] then
-      attached[source] = true
-      local replacement = path and attach_file(chat, path) or attach_url(chat, source)
+    if source then
+      if attached[source] == nil then
+        attached[source] = (path and attach_file(chat, path) or attach_url(chat, source)) or false
+      end
+
+      local replacement = attached[source]
       if replacement then
+        replacement = replacement:gsub("%%", "%%%%")
         opts.message.content = vim.trim(opts.message.content:gsub(vim.pesc(context_path.markdown), replacement))
       end
     end
