@@ -1,3 +1,5 @@
+local log = require("codecompanion.utils.log")
+
 local fmt = string.format
 
 local time_ranges = {
@@ -78,6 +80,7 @@ return {
         callback = function(self, data)
           local ok, body = pcall(vim.json.decode, data.body)
           if not ok then
+            log:error("[Serply Adapter] Error decoding JSON: %s", data.body)
             return {
               status = "error",
               content = "Could not parse JSON response",
