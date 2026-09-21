@@ -667,6 +667,30 @@ T["Chat"]["has_orphaned_tool_calls returns false when all calls have results"] =
   h.eq(false, result)
 end
 
+T["Chat"]["has_orphaned_tool_calls returns false when a result pairs on call_id"] = function()
+  local result = child.lua([[
+    table.insert(_G.chat.messages, {
+      role = "llm",
+      tools = {
+        calls = {
+          {
+            id = "fc_08b1c96172854ff00168e8340c67c8819387d953e1ce970203",
+            call_id = "call_balVirseGsQYwrVoigfUfF5G",
+            ["function"] = { name = "read_file", arguments = "{}" },
+          },
+        },
+      },
+    })
+    table.insert(_G.chat.messages, {
+      role = "tool",
+      content = "result 1",
+      tools = { call_id = "call_balVirseGsQYwrVoigfUfF5G", type = "tool_result" },
+    })
+    return _G.chat:has_orphaned_tool_calls()
+  ]])
+  h.eq(false, result)
+end
+
 T["Chat"]["_complete_orphaned_tool_calls synthesizes cancelled results"] = function()
   local result = child.lua([[
     table.insert(_G.chat.messages, {

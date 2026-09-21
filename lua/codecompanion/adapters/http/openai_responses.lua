@@ -141,8 +141,9 @@ return {
               table.insert(input, m._meta.compaction)
             end
 
-            -- Reasoning comes first
-            if m.reasoning then
+            -- Reasoning comes first. Reasoning carried over from another
+            -- endpoint has no encrypted content to resolve it, and is dropped
+            if m.reasoning and m.reasoning.encrypted_content then
               local reasoning_item = {
                 type = "reasoning",
               }
@@ -157,10 +158,7 @@ return {
                 }
               end
 
-              -- Include encrypted_content if available (required for stateless mode)
-              if m.reasoning.encrypted_content then
-                reasoning_item.encrypted_content = m.reasoning.encrypted_content
-              end
+              reasoning_item.encrypted_content = m.reasoning.encrypted_content
 
               table.insert(input, reasoning_item)
             end
@@ -249,8 +247,9 @@ return {
                 :map(function(tool_call)
                   return {
                     type = "function_call",
-                    id = tool_call.id,
-                    call_id = tool_call.call_id,
+                    -- Only this endpoint mints an item id, so one from elsewhere would be rejected
+                    id = tool_call.call_id and tool_call.id or nil,
+                    call_id = adapter_utils.pairing_id(tool_call),
                     name = tool_call["function"].name,
                     arguments = tool_call["function"].arguments,
                   }
@@ -628,7 +627,7 @@ return {
         return {
           role = self.roles.tool or "tool",
           tools = {
-            call_id = tool_call.call_id,
+            call_id = adapter_utils.pairing_id(tool_call),
             id = tool_call.id,
             name = tool_call["function"].name,
           },

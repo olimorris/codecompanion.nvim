@@ -202,6 +202,43 @@ T["OpenAI adapter"]["it can form messages with tools"] = function()
   h.eq({ messages = expected }, adapter.handlers.form_messages(adapter, messages))
 end
 
+T["OpenAI adapter"]["sends the call id of a tool call recorded by the responses endpoint"] = function()
+  local messages = {
+    {
+      role = "assistant",
+      tools = {
+        calls = {
+          {
+            id = "fc_0cf9af0f913994140068e2713964448193a723d7191832a56f",
+            call_id = "call_RJU6xfk0OzQF3Gg9cOFS5RY7",
+            ["function"] = {
+              name = "weather",
+              arguments = '{"location": "London", "units": "celsius"}',
+            },
+          },
+        },
+      },
+    },
+  }
+
+  local expected = {
+    {
+      role = "assistant",
+      tool_calls = {
+        {
+          id = "call_RJU6xfk0OzQF3Gg9cOFS5RY7",
+          ["function"] = {
+            name = "weather",
+            arguments = '{"location": "London", "units": "celsius"}',
+          },
+        },
+      },
+    },
+  }
+
+  h.eq({ messages = expected }, adapter.handlers.form_messages(adapter, messages))
+end
+
 T["OpenAI adapter"]["it can form tools to be sent to the API"] = function()
   local weather = require("tests.interactions.chat.tools.builtin.stubs.weather").schema
   local tools = { weather = { weather } }

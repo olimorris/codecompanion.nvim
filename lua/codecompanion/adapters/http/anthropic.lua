@@ -324,7 +324,8 @@ return {
         end
 
         -- 8. If reasoning is present, format it as a content block
-        if m.reasoning and type(m.content) == "table" then
+        -- Reasoning carried over from another endpoint has no signature, and is dropped
+        if m.reasoning and m.reasoning._data and m.reasoning._data.signature and type(m.content) == "table" then
           -- Ref: https://docs.anthropic.com/en/docs/build-with-claude/extended-thinking#how-extended-thinking-works
           table.insert(m.content, 1, {
             type = "thinking",

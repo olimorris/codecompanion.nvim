@@ -230,12 +230,11 @@ return {
         while i <= #result.messages do
           local current = result.messages[i]
 
-          -- gemini-3 requires reasoning_text and reasoning_opaque fields
+          -- gemini-3 requires reasoning_text and reasoning_opaque fields, so
+          -- reasoning carried over from the responses endpoint is dropped
           if current.reasoning then
-            if current.reasoning.content then
-              current.reasoning_text = current.reasoning.content
-            end
             if current.reasoning.opaque then
+              current.reasoning_text = current.reasoning.content
               current.reasoning_opaque = current.reasoning.opaque
             end
             current.reasoning = nil

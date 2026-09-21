@@ -343,6 +343,52 @@ T["Responses"]["build_messages"]["format tool calls"] = function()
   h.eq({ input = expected }, adapter.handlers.request.build_messages(adapter, messages))
 end
 
+T["Responses"]["build_messages"]["pairs a tool call recorded by another endpoint on its own id"] = function()
+  local messages = {
+    {
+      role = "assistant",
+      tools = {
+        calls = {
+          {
+            _index = 0,
+            id = "toolu_01QaKj2erSQMiJHXP5h7V6H9",
+            type = "function",
+            ["function"] = {
+              name = "weather",
+              arguments = '{"location": "London", "units": "celsius"}',
+            },
+          },
+        },
+      },
+    },
+  }
+
+  local expected = {
+    {
+      type = "function_call",
+      call_id = "toolu_01QaKj2erSQMiJHXP5h7V6H9",
+      name = "weather",
+      arguments = '{"location": "London", "units": "celsius"}',
+    },
+  }
+
+  h.eq({ input = expected }, adapter.handlers.request.build_messages(adapter, messages))
+end
+
+T["Responses"]["build_messages"]["drops reasoning recorded by another endpoint"] = function()
+  local messages = {
+    {
+      role = "assistant",
+      content = "Sorted",
+      reasoning = { content = "Thinking about it", opaque = "znZxYvkXY73ngc8" },
+    },
+  }
+
+  h.eq({
+    input = { { role = "assistant", content = "Sorted" } },
+  }, adapter.handlers.request.build_messages(adapter, messages))
+end
+
 T["Responses"]["build_messages"]["format tool output"] = function()
   local messages = {
     {
