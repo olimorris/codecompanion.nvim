@@ -44,8 +44,11 @@ end
 
 ---Open the user input to change a comment already written against a line
 ---@param existing { comment: CodeCompanion.CodeReview.Comment, index: number }
+---@param opts? { on_done?: fun(): nil }
 ---@return nil
-local function edit_comment(existing)
+function M.edit_comment(existing, opts)
+  opts = opts or {}
+
   input.open({
     allow_empty = true, -- An empty submission deletes the comment
     initial_content = existing.comment.comment,
@@ -56,14 +59,16 @@ local function edit_comment(existing)
 
       if vim.trim(comment) == "" then
         table.remove(comments, existing.index)
-        notify("Removed comment")
       else
         comments[existing.index].comment = comment
-        notify("Updated comment")
       end
 
       store.write_comments(root, comments)
       ui.refresh()
+
+      if opts.on_done then
+        opts.on_done()
+      end
     end,
   })
 end
@@ -77,15 +82,20 @@ end
 
 ---Open the user input to add a comment against a line
 ---@param context { code: string, filetype: string, path: string, start_line: number, end_line: number }
+---@param opts? { on_done?: fun(): nil }
 ---@return nil
-function M.add_comment(context)
+function M.add_comment(context, opts)
+  opts = opts or {}
+
   input.open({
     title = " Add Comment ",
     on_submit = function(comment)
-      local root = get_storage_root()
-      store.add_comment(root, vim.tbl_extend("force", context, { comment = comment }))
+      store.add_comment(get_storage_root(), vim.tbl_extend("force", context, { comment = comment }))
       ui.refresh()
-      notify(fmt("Added comment (%d pending)", #store.comments(root)))
+
+      if opts.on_done then
+        opts.on_done()
+      end
     end,
   })
 end
@@ -96,7 +106,7 @@ function M.mark_reviewed()
   local root = get_storage_root()
 
   if baseline.get_root() and not baseline.snapshot(root) then
-    notify("Could not close this round off. Your next review will include changes from it", vim.log.levels.ERROR)
+    notify("Could not save your review. These changes will show up again next time", vim.log.levels.ERROR)
     return false
   end
 
@@ -117,7 +127,7 @@ function M.comment(args)
 
   local existing = ui.comment_at(bufnr, api.nvim_win_get_cursor(0)[1])
   if existing then
-    return edit_comment(existing)
+    return M.edit_comment(existing)
   end
 
   M.add_comment(get_context(bufnr, args))
@@ -181,7 +191,7 @@ function M.edit_comments()
   -- Escape any '%' chars
   vim.cmd.edit(vim.fn.fnameescape(path))
 
-  ui.watch_comments_file(api.nvim_get_current_buf())
+  ui.watch_for_comments(api.nvim_get_current_buf())
 end
 
 ---@return nil
