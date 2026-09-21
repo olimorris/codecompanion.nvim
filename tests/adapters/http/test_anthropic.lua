@@ -548,6 +548,28 @@ T["Anthropic adapter"]["form_messages"]["can handle reasoning"] = function()
   h.eq({ cache_control = { type = "ephemeral" }, messages = expected }, result)
 end
 
+T["Anthropic adapter"]["form_messages"]["drops reasoning that carries no signature"] = function()
+  local messages = {
+    {
+      content = "The answer is 4.",
+      reasoning = { content = "2 + 2 = 4", encrypted_content = "gAAAAABo6" },
+      role = "assistant",
+    },
+  }
+
+  local expected = {
+    {
+      content = { { type = "text", text = "The answer is 4." } },
+      role = "assistant",
+    },
+  }
+
+  h.eq(
+    { cache_control = { type = "ephemeral" }, messages = expected },
+    adapter.handlers.form_messages(adapter, messages)
+  )
+end
+
 T["Anthropic adapter"]["form_messages"]["tool use AND reasoning"] = function()
   local messages = {
     {

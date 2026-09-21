@@ -1089,8 +1089,9 @@ function Chat:_orphaned_tool_calls()
   for _, msg in ipairs(self.messages) do
     if msg.tools and msg.tools.calls then
       for _, call in ipairs(msg.tools.calls) do
-        if call.id then
-          pending[call.id] = call
+        local pairing_id = adapter_utils.pairing_id(call)
+        if pairing_id then
+          pending[pairing_id] = call
         end
       end
     end

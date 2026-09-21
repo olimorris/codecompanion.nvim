@@ -413,6 +413,14 @@ function M.map_roles(roles, messages)
   return messages
 end
 
+---Get the id that pairs a tool call with its result
+---@param tool_call table
+---@return string|nil
+function M.pairing_id(tool_call)
+  -- Responses also mints an `id` naming the response item, which no endpoint accepts as a call id
+  return tool_call.call_id or tool_call.id
+end
+
 ---Obtain the model from the given adapter's schema
 ---@param adapter CodeCompanion.HTTPAdapter
 ---@return string|nil
