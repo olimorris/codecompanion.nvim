@@ -36,8 +36,8 @@ return {
     tools = {
       web_search = {
         ---@param self CodeCompanion.HTTPAdapter
-        ---@param opts table Tool options
-        ---@param data table The data from the LLM's tool call
+        ---@param opts? { max_results?: number, time_range?: string, topic?: string, gl?: string, hl?: string }
+        ---@param data { query: string, domains?: string[] }
         setup = function(self, opts, data)
           opts = opts or {}
 
@@ -73,7 +73,7 @@ return {
 
         ---Process the output from the fetch webpage tool
         ---@param self CodeCompanion.HTTPAdapter
-        ---@param data table The data returned from the fetch
+        ---@param data { status: number, body: string }
         ---@return table{status: string, content: string}|nil
         callback = function(self, data)
           local ok, body = pcall(vim.json.decode, data.body)
