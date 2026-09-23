@@ -134,7 +134,15 @@ end
 ---@return CodeCompanion.LogHandler
 local function create_notify_handler(opts)
   opts.handle = function(level, text)
-    vim.notify(text, level, { title = "CodeCompanion" })
+    local notify = function()
+      vim.notify(text, level, { title = "CodeCompanion" })
+    end
+
+    if vim.in_fast_event() then
+      vim.schedule(notify)
+    else
+      notify()
+    end
   end
   return LogHandler.new(opts)
 end
