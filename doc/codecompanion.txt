@@ -1852,7 +1852,25 @@ want to disable this:
 <
 
 
-HIDING PRESET ADAPTERS ~
+HIDING ADAPTERS ~
+
+Adapters in the `hidden` table are kept out of the adapter picker. Set one to
+`false` to show it again:
+
+>lua
+    require("codecompanion").setup({
+      adapters = {
+        http = {
+          opts = {
+            hidden = { my_custom_adapter = true, tavily = false },
+          },
+        },
+      },
+    })
+<
+
+Hidden adapters can still be resolved by name, such as by the `web_search`
+tool.
 
 By default, the plugin shows all available adapters, including the presets. If
 you prefer to only display the adapters defined in your user configuration, you
@@ -2955,7 +2973,8 @@ WEB SEARCH
 The |codecompanion-usage-chat-buffer-agents-tools-web-search| tool is a
 built-in tool that allows an LLM to perform web searches using an adapter.
 Currently, CodeCompanion supports DuckDuckGo <https://duckduckgo.com>, Jina
-<https://www.jina.ai> and Tavily <https://www.tavily.com> adapters.
+<https://www.jina.ai>, Serply <https://serply.io> and Tavily
+<https://www.tavily.com> adapters.
 
 To override the default Tavily adapter:
 
@@ -4855,10 +4874,10 @@ CONTEXT ~
 
 
 Sharing context with an LLM is crucial in order to generate useful responses.
-In the plugin, context is defined as output that is shared with a chat buffer
-via a `Variable`, `Slash Command` or `Tool`. They appear in a blockquote
-entitled `Context`. In essence, this is context that you're sharing with an
-LLM.
+Generally, context can be added to a chat buffer via the use of
+|codecompanion-editor-context|, |codecompanion-slash-commands| and
+|codecompanion-agents-tools|. CodeCompanion displays context in a blockquote
+entitled `Context`.
 
 
   [!IMPORTANT] Context items contain the data of an object at a point in time. By
@@ -4882,15 +4901,46 @@ whenever a cell is run. Any extension can be watched from the moment it's added
 to the chat buffer by listing it in
 |codecompanion-configuration-chat-buffer-syncing|.
 
-If a context item is added by mistake, it can be removed from the chat buffer
-by simply deleting it from the `Context` blockquote. On the next turn, all data
-related to that context item will be removed from the message history.
-
 Finally, it's important to note that all http adapter endpoints require the
 sending of previous messages that make up the conversation. So even though
 you've shared context once, many messages ago, the LLM will always be able to
 refer to it, unless you actively alter the history of the conversation via
 `gd`.
+
+
+ADDING VIA PATHS
+
+You can manually add files or URLs to the chat buffer by way of a markdown link
+<https://www.markdownguide.org/basic-syntax/#links>:
+
+>markdown
+    I want to share [File](~/Code/Neovim/codecompanion.nvim/README.md) with you
+<
+
+Any link pointing at a file on disk is attached to the chat buffer when a
+message is sent to the LLM. The link is then replaced with the file's path.
+This works for images, PDFs and any other file type.
+
+Links to URLs are fetched with the
+|codecompanion-usage-chat-buffer-slash-commands-fetch| slash command's adapter
+and never use a cache.
+
+Markdown cannot parse a bare space in a link, so a path containing one must be
+wrapped accordingly:
+
+  Link                                             Attached
+  ------------------------------------------------ ----------
+  [File](/Users/Oli/Downloads/report.txt)          Yes
+  [File](</Users/Oli/Downloads/some report.txt>)   Yes
+  [File]('/Users/Oli/Downloads/some report.txt')   Yes
+  [File]("/Users/Oli/Downloads/some report.txt")   Yes
+  [File](/Users/Oli/Downloads/some report.txt)     No
+
+REMOVING
+
+If a context item is added by mistake, it can be removed from the chat buffer
+by simply deleting it from the `Context` blockquote. On the next turn, all data
+related to that context item will be removed from the message history.
 
 
 DEBUG WINDOW ~
@@ -5533,6 +5583,9 @@ YOLO mode. This will automatically approve all tool executions without
 prompting the user. However, some tools such as `run_command` and `delete_file`
 are excluded from this as they have `allowed_in_yolo_mode = false` set by
 default.
+
+A |codecompanion-configuration-prompt-library-options| item can start its chat
+buffer in YOLO mode with `opts.yolo_mode = true`.
 
 If you've configured the |codecompanion-configuration-chat-buffer-llm-judge|
 then a tool's commands will be sent to an LLM to verify that they're safe. This

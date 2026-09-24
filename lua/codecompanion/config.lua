@@ -32,12 +32,14 @@ local defaults = {
       duckduckgo = "duckduckgo",
       jina = "jina",
       markitdown = "markitdown",
+      serply = "serply",
       tavily = "tavily",
       -------------------------------------------------------------------------
       extend = nil, -- Per-adapter overrides keyed by config key e.g. { openai = { env = { api_key = "ABC-123" } } }
       opts = {
         allow_insecure = false, -- Allow insecure connections?
         cache_models_for = 1800, -- Cache adapter models for this long (seconds)
+        hidden = { duckduckgo = true, jina = true, markitdown = true, tavily = true },
         proxy = nil, -- [protocol://]host[:port] e.g. socks5://127.0.0.1:9999
         show_presets = true, -- Show preset adapters
         show_model_choices = true, -- Show model choices when changing adapter
@@ -313,7 +315,7 @@ The user is working on a %s machine. Please respond with system specific command
           path = "interactions.chat.tools.builtin.web_search",
           description = "Search the web for information",
           opts = {
-            adapter = "tavily", -- tavily, duckduckgo, jina
+            adapter = "tavily", -- tavily, duckduckgo, jina, serply
             opts = {
               -- Tavily options
               search_depth = "advanced",
@@ -1298,6 +1300,7 @@ The user is working on a %s machine. Please respond with system specific command
     dirs = {
       "~/.config/codecompanion/skills",
       ".codecompanion/skills",
+      "~/.agents/skills",
       "~/.claude/skills",
       ".claude/skills",
     },

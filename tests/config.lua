@@ -10,6 +10,7 @@ return {
         },
         opts = {
           stream = true,
+          vision = true,
         },
         headers = {
           content_type = "application/json",

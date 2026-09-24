@@ -192,7 +192,7 @@ T["Chat"]["CodeCompanion images are replaced in text and base64 encoded"] = func
     prompt
   ))
 
-  h.eq("What does this image do?", message)
+  h.eq("What does this tests/stubs/logo.png do?", message)
 
   message = child.lua([[
     local messages = _G.chat.messages
@@ -212,7 +212,7 @@ T["Chat"]["CodeCompanion images are replaced in text and base64 encoded"] = func
   }, message._meta)
 
   h.eq({
-    id = string.format("<image>%s/tests/stubs/logo.png</image>", vim.fs.normalize(vim.fn.getcwd())),
+    id = "<image>tests/stubs/logo.png</image>",
     mimetype = "image/png",
     path = string.format("%s/tests/stubs/logo.png", vim.fs.normalize(vim.fn.getcwd())),
   }, message.context)
@@ -236,7 +236,7 @@ T["Chat"]["markdown images are replaced in text and base64 encoded"] = function(
     prompt
   ))
 
-  h.eq("What does this image do?", message)
+  h.eq("What does this tests/stubs/logo.png do?", message)
 
   message = child.lua([[
     local messages = _G.chat.messages
@@ -256,7 +256,7 @@ T["Chat"]["markdown images are replaced in text and base64 encoded"] = function(
   }, message._meta)
 
   h.eq({
-    id = string.format("<image>%s/tests/stubs/logo.png</image>", vim.fs.normalize(vim.fn.getcwd())),
+    id = "<image>tests/stubs/logo.png</image>",
     mimetype = "image/png",
     path = string.format("%s/tests/stubs/logo.png", vim.fs.normalize(vim.fn.getcwd())),
   }, message.context)
@@ -264,9 +264,9 @@ T["Chat"]["markdown images are replaced in text and base64 encoded"] = function(
   h.expect_starts_with("iVBORw0KGgoAAAANSUhEU", message.content)
 end
 
-T["Chat"]["ordinary markdown links are not treated as images"] = function()
+T["Chat"]["an image is attached however the link is labelled"] = function()
   local prompt =
-    string.format("What does this [file](%s) do?", vim.fs.normalize(vim.fn.getcwd()) .. "/tests/stubs/logo.png")
+    string.format("What does this [logo](%s) do?", vim.fs.normalize(vim.fn.getcwd()) .. "/tests/stubs/logo.png")
   local result = child.lua(string.format(
     [[
       _G.chat:add_buf_message({
@@ -277,7 +277,56 @@ T["Chat"]["ordinary markdown links are not treated as images"] = function()
       local messages = _G.chat.messages
       return {
         content = messages[#messages].content,
-        tag = messages[#messages]._meta and messages[#messages]._meta.tag,
+        tag = messages[#messages - 1]._meta.tag,
+      }
+  ]],
+    prompt
+  ))
+
+  h.eq("What does this tests/stubs/logo.png do?", result.content)
+  h.eq(tags.IMAGE, result.tag)
+end
+
+T["Chat"]["a link to a file is attached and replaced with its path"] = function()
+  local prompt =
+    string.format("I want to share [File](%s) with you", vim.fs.normalize(vim.fn.getcwd()) .. "/tests/stubs/stub.go")
+  local result = child.lua(string.format(
+    [[
+      _G.chat:add_buf_message({
+        role = "user",
+        content = "%s",
+      })
+      _G.chat:submit()
+      local messages = _G.chat.messages
+      return {
+        content = messages[#messages].content,
+        attachment = messages[#messages - 1],
+        context_items = _G.chat.context_items,
+      }
+  ]],
+    prompt
+  ))
+
+  h.eq("I want to share tests/stubs/stub.go with you", result.content)
+  h.eq(tags.FILE, result.attachment._meta.tag)
+  h.expect_contains("<attachment filepath=", result.attachment.content)
+  h.eq(1, vim.tbl_count(result.context_items))
+  h.eq("<file>tests/stubs/stub.go</file>", result.context_items[1].id)
+end
+
+T["Chat"]["a link to a missing path or a directory is left alone"] = function()
+  local cwd = vim.fs.normalize(vim.fn.getcwd())
+  local prompt = string.format("See [gone](%s/tests/stubs/nope.go) and [dir](%s/tests/stubs)", cwd, cwd)
+  local result = child.lua(string.format(
+    [[
+      _G.chat:add_buf_message({
+        role = "user",
+        content = [==[%s]==],
+      })
+      _G.chat:submit()
+      local messages = _G.chat.messages
+      return {
+        content = messages[#messages].content,
         context_items = vim.tbl_count(_G.chat.context_items),
       }
   ]],
@@ -285,7 +334,67 @@ T["Chat"]["ordinary markdown links are not treated as images"] = function()
   ))
 
   h.eq(prompt, result.content)
-  h.eq(nil, result.tag)
+  h.eq(0, result.context_items)
+end
+
+---Replace the blocking fetch so the URL tests never touch the network
+---@param attached boolean What the fetch reports back
+local function stub_fetch(attached)
+  child.lua(string.format(
+    [[
+    _G.fetched = {}
+    local fetch = require("codecompanion.interactions.chat.slash_commands.builtin.fetch")
+    fetch.fetch_sync = function(opts)
+      table.insert(_G.fetched, opts.url)
+      if not %s then
+        return false
+      end
+      opts.chat:add_context({ content = "<attachment url=\"" .. opts.url .. "\">stub</attachment>" },
+        "slash_command", "<url>" .. opts.url .. "</url>")
+      return true
+    end
+  ]],
+    tostring(attached)
+  ))
+end
+
+T["Chat"]["a linked URL is fetched and replaced with the URL"] = function()
+  stub_fetch(true)
+  local result = child.lua([[
+    _G.chat:add_buf_message({
+      role = "user",
+      content = "Summarise [the docs](https://codecompanion.olimorris.dev) for me",
+    })
+    _G.chat:submit()
+    local messages = _G.chat.messages
+    return {
+      content = messages[#messages].content,
+      fetched = _G.fetched,
+      context_items = vim.tbl_count(_G.chat.context_items),
+    }
+  ]])
+
+  h.eq("Summarise https://codecompanion.olimorris.dev for me", result.content)
+  h.eq({ "https://codecompanion.olimorris.dev" }, result.fetched)
+  h.eq(1, result.context_items)
+end
+
+T["Chat"]["a URL that fails to fetch is left alone"] = function()
+  stub_fetch(false)
+  local result = child.lua([[
+    _G.chat:add_buf_message({
+      role = "user",
+      content = "Summarise [the docs](https://codecompanion.olimorris.dev) for me",
+    })
+    _G.chat:submit()
+    local messages = _G.chat.messages
+    return {
+      content = messages[#messages].content,
+      context_items = vim.tbl_count(_G.chat.context_items),
+    }
+  ]])
+
+  h.eq("Summarise [the docs](https://codecompanion.olimorris.dev) for me", result.content)
   h.eq(0, result.context_items)
 end
 
@@ -552,6 +661,30 @@ T["Chat"]["has_orphaned_tool_calls returns false when all calls have results"] =
       role = "tool",
       content = "result 2",
       tools = { call_id = "call_2", type = "tool_result" },
+    })
+    return _G.chat:has_orphaned_tool_calls()
+  ]])
+  h.eq(false, result)
+end
+
+T["Chat"]["has_orphaned_tool_calls returns false when a result pairs on call_id"] = function()
+  local result = child.lua([[
+    table.insert(_G.chat.messages, {
+      role = "llm",
+      tools = {
+        calls = {
+          {
+            id = "fc_08b1c96172854ff00168e8340c67c8819387d953e1ce970203",
+            call_id = "call_balVirseGsQYwrVoigfUfF5G",
+            ["function"] = { name = "read_file", arguments = "{}" },
+          },
+        },
+      },
+    })
+    table.insert(_G.chat.messages, {
+      role = "tool",
+      content = "result 1",
+      tools = { call_id = "call_balVirseGsQYwrVoigfUfF5G", type = "tool_result" },
     })
     return _G.chat:has_orphaned_tool_calls()
   ]])

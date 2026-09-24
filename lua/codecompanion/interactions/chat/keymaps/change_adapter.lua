@@ -29,6 +29,8 @@ function M.get_adapters_list(current_adapter)
   local adapters =
     vim.tbl_deep_extend("force", {}, vim.deepcopy(config.adapters.acp), vim.deepcopy(config.adapters.http))
 
+  local hidden = config.adapters.http.opts.hidden
+
   local adapters_list = vim
     .iter(adapters)
     :filter(function(adapter)
@@ -38,6 +40,7 @@ function M.get_adapters_list(current_adapter)
         and adapter ~= "extend"
         and adapter ~= "opts"
         and adapter ~= current_adapter
+        and not hidden[adapter]
     end)
     :map(function(adapter, _)
       return adapter

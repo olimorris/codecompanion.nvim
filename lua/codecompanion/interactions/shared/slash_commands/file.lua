@@ -213,13 +213,13 @@ end
 ---Base64 encode an image and add it to the chat buffer for adapters that support vision
 ---@param selected { path: string }
 ---@param opts? { mimetype?: string, silent?: boolean }
----@return nil
+---@return boolean attached
 function SlashCommand:output_image(selected, opts)
   opts = opts or {}
 
   if not vim.tbl_contains(CONSTANTS.IMAGE_MIMETYPES, opts.mimetype) then
     log:warn("`%s` is not a supported image type", vim.fn.fnamemodify(selected.path, ":t"))
-    return
+    return false
   end
 
   local adapter = self.Chat.adapter
@@ -229,13 +229,13 @@ function SlashCommand:output_image(selected, opts)
       adapter.formatted_name,
       vim.fn.fnamemodify(selected.path, ":t")
     )
-    return
+    return false
   end
 
   local image = image_utils.from_path(selected.path)
   if type(image) == "string" then
     log:error("Could not encode image: %s", image)
-    return
+    return false
   end
 
   -- `from_path` ids the image by its absolute path, which reads badly in the context block
@@ -245,17 +245,17 @@ function SlashCommand:output_image(selected, opts)
     source = "codecompanion.interactions.shared.slash_commands.file",
   })
 
-  if opts.silent then
-    return
+  if not opts.silent then
+    utils.notify(fmt("Added the `%s` image to the chat", vim.fn.fnamemodify(selected.path, ":t")))
   end
 
-  utils.notify(fmt("Added the `%s` image to the chat", vim.fn.fnamemodify(selected.path, ":t")))
+  return true
 end
 
 ---Base64 encode a document and add it to the chat buffer for adapters that support documents
 ---@param selected { path: string }
 ---@param opts { filetype: string, mimetype: string, silent: boolean, sync_all: boolean }
----@return nil
+---@return boolean attached
 function SlashCommand:output_pdf(selected, opts)
   local adapter = self.Chat.adapter
   if not (adapter.opts and adapter.opts.documents) then
@@ -264,13 +264,13 @@ function SlashCommand:output_pdf(selected, opts)
       adapter.formatted_name,
       vim.fn.fnamemodify(selected.path, ":t")
     )
-    return
+    return false
   end
 
   local base64, err = files_utils.base64_encode_file(selected.path)
   if err then
     log:error(err)
-    return
+    return false
   end
 
   local id = "<file>" .. vim.fn.fnamemodify(selected.path, ":.") .. "</file>"
@@ -285,7 +285,7 @@ function SlashCommand:output_pdf(selected, opts)
   })
 
   if opts.sync_all then
-    return
+    return true
   end
 
   self.Chat.context:add({
@@ -294,21 +294,21 @@ function SlashCommand:output_pdf(selected, opts)
     source = "codecompanion.interactions.shared.slash_commands.file",
   })
 
-  if opts.silent then
-    return
+  if not opts.silent then
+    utils.notify(fmt("Added the `%s` document to the chat", vim.fn.fnamemodify(selected.path, ":t")))
   end
 
-  utils.notify(fmt("Added the `%s` document to the chat", vim.fn.fnamemodify(selected.path, ":t")))
+  return true
 end
 
 ---Output from the slash command in the chat buffer
 ---@param selected { path: string, relative_path?: string, description?: string }
 ---@param opts? { message?:string, description?: string, silent: boolean, sync_all: boolean }
----@return nil
+---@return boolean attached
 function SlashCommand:output(selected, opts)
   if not config.can_send_code() and (self.config.opts and self.config.opts.contains_code) then
     log:warn("Sending of code has been disabled")
-    return
+    return false
   end
   opts = opts or {}
 
@@ -338,7 +338,7 @@ function SlashCommand:output(selected, opts)
   })
 
   if opts.sync_all then
-    return
+    return true
   end
 
   self.Chat.context:add({
@@ -347,11 +347,11 @@ function SlashCommand:output(selected, opts)
     source = "codecompanion.interactions.shared.slash_commands.file",
   })
 
-  if opts.silent then
-    return
+  if not opts.silent then
+    utils.notify(fmt("Added the `%s` file to the chat", vim.fn.fnamemodify(selected.path, ":t")))
   end
 
-  utils.notify(fmt("Added the `%s` file to the chat", vim.fn.fnamemodify(selected.path, ":t")))
+  return true
 end
 
 return SlashCommand

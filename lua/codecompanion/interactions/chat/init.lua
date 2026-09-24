@@ -71,13 +71,13 @@ local adapters = require("codecompanion.adapters")
 local approvals = require("codecompanion.interactions.chat.tools.approvals")
 local config = require("codecompanion.config")
 local context_helpers = require("codecompanion.interactions.chat.helpers.context")
+local context_paths = require("codecompanion.interactions.chat.helpers.context_paths")
 local helpers = require("codecompanion.interactions.chat.helpers")
 local parser = require("codecompanion.interactions.chat.parser")
 local schema = require("codecompanion.schema")
 local tags = require("codecompanion.interactions.shared.tags")
 
 local hash = require("codecompanion.utils.hash")
-local images_utils = require("codecompanion.utils.images")
 local keymaps = require("codecompanion.utils.keymaps")
 local log = require("codecompanion.utils.log")
 local tokens = require("codecompanion.utils.tokens")
@@ -612,6 +612,7 @@ function Chat.new(args)
 
   if args.yolo_mode then
     approvals:toggle_yolo_mode(self.bufnr)
+    utils.notify("YOLO mode enabled!", vim.log.levels.INFO)
   end
 
   if not init_parsers(self) then
@@ -629,12 +630,13 @@ function Chat.new(args)
     name = "Chat " .. vim.tbl_count(chats),
     description = CONSTANTS.BLANK_DESC,
     interaction = "chat",
-    open = function()
-      Chat.close_last_chat()
-      self.ui:open()
+    open = function(opts)
+      opts = opts or {}
+      opts.ui = self.ui
+      Chat.open(opts)
     end,
-    hide = function()
-      self.ui:hide()
+    hide = function(opts)
+      self.ui:hide(opts)
     end,
   })
 
@@ -656,8 +658,7 @@ function Chat.new(args)
   end
 
   if not self.hidden then
-    self.close_last_chat()
-    self.ui:open():render(self.buffer_context, self.messages, {
+    Chat.open({ ui = self.ui }):render(self.buffer_context, self.messages, {
       stop_context_insertion = args.stop_context_insertion,
       auto_submit = args.auto_submit,
       from_prompt_library = args.from_prompt_library,
@@ -1088,8 +1089,9 @@ function Chat:_orphaned_tool_calls()
   for _, msg in ipairs(self.messages) do
     if msg.tools and msg.tools.calls then
       for _, call in ipairs(msg.tools.calls) do
-        if call.id then
-          pending[call.id] = call
+        local pairing_id = adapter_utils.pairing_id(call)
+        if pairing_id then
+          pending[pairing_id] = call
         end
       end
     end
@@ -1419,7 +1421,7 @@ function Chat:submit(opts)
     end
 
     if message_to_submit then
-      self:check_images(message_to_submit)
+      context_paths.attach({ chat = self, message = message_to_submit })
     end
 
     -- Add the user message after any context so the LLM sees context first
@@ -1636,32 +1638,6 @@ function Chat:add_context(data, source, id, opts)
   -- Context is created by adding it to the context class and linking it to a message on the chat buffer
   self.context:add({ source = source, id = id, bufnr = opts.bufnr, path = opts.path, opts = opts.context_opts })
   self:add_message(message, { visible = opts.visible, context = { id = id }, _meta = { tag = opts.tag or source } })
-end
-
----Check if there are any images in the chat buffer
----@param message table
----@return nil
-function Chat:check_images(message)
-  local images = parser.images(self, self.header_line)
-  if not images then
-    return
-  end
-
-  for _, image in ipairs(images) do
-    local encoded_image = images_utils.encode_image(image)
-    if type(encoded_image) == "string" then
-      log:warn("Could not encode image: %s", encoded_image)
-    else
-      self:add_image_message(encoded_image)
-
-      -- Replace the image link in the message with "image"
-      local to_remove = fmt("[Image](%s)", image.path)
-      message.content = vim.trim(message.content:gsub(vim.pesc(to_remove), "image"))
-
-      to_remove = fmt("![%s](%s)", image.text or "", image.path)
-      message.content = vim.trim(message.content:gsub(vim.pesc(to_remove), "image"))
-    end
-  end
 end
 
 ---Reconcile the context_items table to the items in the chat buffer
@@ -2172,17 +2148,48 @@ function Chat.last_chat()
 end
 
 ---Close the last chat buffer
----@return nil
-function Chat.close_last_chat()
+---@param opts? { keep_window?: boolean }
+---@return number|nil
+function Chat.close_last_chat(opts)
+  opts = opts or {}
   if last_chat and not vim.tbl_isempty(last_chat) then
     if last_chat.ui:is_visible() then
       -- pertab: leave chats visible in other tabs alone
       if config.display.chat.window.pertab and last_chat.ui:is_visible_non_curtab() then
-        return
+        return nil
+      end
+      -- Never reuse a window from another tab
+      if opts.keep_window and not last_chat.ui:is_visible_non_curtab() then
+        local winnr = last_chat.ui.winnr
+        last_chat.ui:hide({ keep_window = true })
+        return winnr
       end
       last_chat.ui:hide()
     end
   end
+  return nil
+end
+
+---Open a chat UI in an existing window when possible
+---@param opts { ui: CodeCompanion.Chat.UI, winnr?: number, toggled?: boolean, window_opts?: table }
+---@return CodeCompanion.Chat.UI
+function Chat.open(opts)
+  opts = opts or {}
+  local ui = opts.ui
+  if opts.winnr and api.nvim_win_is_valid(opts.winnr) then
+    return ui:show_in_win(opts)
+  end
+
+  local winnr = Chat.close_last_chat({ keep_window = true })
+  if winnr and api.nvim_win_is_valid(winnr) then
+    return ui:show_in_win({
+      winnr = winnr,
+      toggled = opts.toggled,
+      window_opts = opts.window_opts,
+    })
+  end
+
+  return ui:open(opts)
 end
 
 ---Check if the last chat is currently visible
@@ -2244,16 +2251,11 @@ function Chat.toggle(args)
   chat.buffer_context = args.context or chat.buffer_context
 
   -- At this point, the chat exists but is not visible in the current tab
-
-  -- Close the chat window (if it's open elsewhere)
-  Chat.close_last_chat()
-
-  -- Reopen the chat in the current tab with the toggled flag
-  local opts = { toggled = true }
+  local opts = { ui = chat.ui, toggled = true }
   if window_opts then
     opts.window_opts = window_opts
   end
-  chat.ui:open(opts)
+  Chat.open(opts)
 end
 
 return Chat

@@ -392,6 +392,56 @@ T["Copilot adapter"]["Streaming"]["can send reasoning opaque back in messages"] 
   h.eq({ messages = expected }, output)
 end
 
+T["Copilot adapter"]["Streaming"]["drops reasoning and the item id recorded by the responses endpoint"] = function()
+  local input = {
+    {
+      content = "Search for quotes.lua",
+      role = "user",
+    },
+    {
+      content = "LLM's response here",
+      reasoning = {
+        content = "Some reasoning here",
+        encrypted_content = "gAAAAABo6",
+      },
+      role = "llm",
+      tools = {
+        calls = {
+          {
+            _index = 0,
+            ["function"] = { arguments = "{}", name = "insert_edit_into_file" },
+            id = "fc_0cf9af0f913994140068e2713964448193a723d7191832a56f",
+            call_id = "call_MHxYMWV1QmRVTng0Znd2b0tyM0Y",
+            type = "function",
+          },
+        },
+      },
+    },
+  }
+
+  local expected = {
+    {
+      content = "Search for quotes.lua",
+      copilot_cache_control = { type = "ephemeral" },
+      role = "user",
+    },
+    {
+      content = "LLM's response here",
+      copilot_cache_control = { type = "ephemeral" },
+      role = "llm",
+      tool_calls = {
+        {
+          ["function"] = { arguments = "{}", name = "insert_edit_into_file" },
+          id = "call_MHxYMWV1QmRVTng0Znd2b0tyM0Y",
+          type = "function",
+        },
+      },
+    },
+  }
+
+  h.eq({ messages = expected }, adapter.handlers.form_messages(adapter, input))
+end
+
 T["Copilot adapter"]["No Streaming"] = new_set({
   hooks = {
     pre_case = function()

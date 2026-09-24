@@ -47,6 +47,52 @@ M.encode = function(data)
   end
 end
 
+---@param lines string[]
+---@return string
+local function fold_lines(lines)
+  local folded = ""
+  local previous
+  for _, line in ipairs(lines) do
+    if line == "" then
+      folded = folded .. "\n"
+    elseif previous == nil or previous == "" then
+      folded = folded .. line
+    elseif line:match("^%s") or previous:match("^%s") then
+      folded = folded .. "\n" .. line
+    else
+      folded = folded .. " " .. line
+    end
+    previous = line
+  end
+  return folded
+end
+
+---Decode a literal (`|`) or folded (`>`) block scalar
+---@param text string
+---@return string
+local function decode_block_scalar(text)
+  local header, body = text:match("^([^\n]*)\n?(.*)$")
+  local lines = vim.split(body, "\n", { plain = true })
+
+  local indent
+  for _, line in ipairs(lines) do
+    if line:match("%S") then
+      local width = #line:match("^ *")
+      indent = indent and math.min(indent, width) or width
+    end
+  end
+  lines = vim.tbl_map(function(line)
+    return line:match("%S") and line:sub((indent or 0) + 1) or ""
+  end, lines)
+
+  local value = header:match("^>") and fold_lines(lines) or table.concat(lines, "\n")
+  -- Tree-sitter leaves trailing blank lines out of the node, so `+` can only keep the final newline
+  if header:match("^[>|][%d+]*%-") or value == "" then
+    return value
+  end
+  return value .. "\n"
+end
+
 ---Decode a yaml node
 ---@param source string
 ---@param node TSNode
@@ -105,6 +151,8 @@ local function decode(source, node)
   elseif nt == "single_quote_scalar" or nt == "double_quote_scalar" then
     local text = vim.treesitter.get_node_text(node, source)
     return text:sub(2, text:len() - 1)
+  elseif nt == "block_scalar" then
+    return decode_block_scalar(vim.treesitter.get_node_text(node, source))
   elseif nt == "integer_scalar" or nt == "float_scalar" then
     return tonumber(vim.treesitter.get_node_text(node, source))
   elseif nt == "boolean_scalar" then

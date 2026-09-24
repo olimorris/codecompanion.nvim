@@ -65,7 +65,7 @@ It's worth noting that not all commands available in ACP CLI tools are exposed v
 
 <img src="https://github.com/user-attachments/assets/e8a31214-ccba-407f-a8e4-32ba185a3ecd" alt="context" />
 
-Sharing context with an LLM is crucial in order to generate useful responses. In the plugin, context is defined as output that is shared with a chat buffer via a _Variable_, _Slash Command_ or _Tool_. They appear in a blockquote entitled `Context`. In essence, this is context that you're sharing with an LLM.
+Sharing context with an LLM is crucial in order to generate useful responses. Generally, context can be added to a chat buffer via the use of [editor context](editor-context), [slash commands](slash-commands) and [tools](agents-tools). CodeCompanion displays context in a blockquote entitled `Context`.
 
 > [!IMPORTANT]
 > Context items contain the data of an object at a point in time. By default, they **are not** self-updating
@@ -78,9 +78,35 @@ Syncing and sending only a _diff_, is a more token-conscious way of keeping the 
 
 Some file types are worth syncing every time they're attached. Jupyter Notebooks are the out of the box example, since a notebook changes on disk whenever a cell is run. Any extension can be watched from the moment it's added to the chat buffer by listing it in [sync_diff](/configuration/chat-buffer#syncing).
 
-If a context item is added by mistake, it can be removed from the chat buffer by simply deleting it from the `Context` blockquote. On the next turn, all data related to that context item will be removed from the message history.
-
 Finally, it's important to note that all http adapter endpoints require the sending of previous messages that make up the conversation. So even though you've shared context once, many messages ago, the LLM will always be able to refer to it, unless you actively alter the history of the conversation via `gd`.
+
+### Adding via Paths
+
+You can manually add files or URLs to the chat buffer by way of a [markdown link](https://www.markdownguide.org/basic-syntax/#links):
+
+```markdown
+I want to share [File](~/Code/Neovim/codecompanion.nvim/README.md) with you
+```
+
+Any link pointing at a file on disk is attached to the chat buffer when a message is sent to the LLM. The link is then replaced with the file's path. This works for images, PDFs and any other file type.
+
+Links to URLs are fetched with the [fetch](/usage/chat-buffer/slash-commands#fetch) slash command's adapter and never use a cache.
+
+Markdown cannot parse a bare space in a link, so a path containing one must be wrapped accordingly:
+
+
+| Link | Attached |
+| --- | --- |
+| `[File](/Users/Oli/Downloads/report.txt)` | Yes |
+| `[File](</Users/Oli/Downloads/some report.txt>)` | Yes |
+| `[File]('/Users/Oli/Downloads/some report.txt')` | Yes |
+| `[File]("/Users/Oli/Downloads/some report.txt")` | Yes |
+| `[File](/Users/Oli/Downloads/some report.txt)` | No |
+
+
+### Removing
+
+If a context item is added by mistake, it can be removed from the chat buffer by simply deleting it from the `Context` blockquote. On the next turn, all data related to that context item will be removed from the message history.
 
 ## Debug Window
 

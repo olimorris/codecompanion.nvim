@@ -30,6 +30,26 @@ T["Keymaps"]["change_adapter"]["get_adapters_list returns correct list"] = funct
   h.expect_tbl_contains("anthropic", list)
 end
 
+T["Keymaps"]["change_adapter"]["hidden adapters are excluded from the list"] = function()
+  child.lua([[h.setup_plugin()]])
+
+  local list = child.lua([[return change_adapter.get_adapters_list("test_adapter")]])
+
+  h.expect_tbl_contains("anthropic", list)
+  h.eq(false, vim.tbl_contains(list, "tavily"))
+end
+
+T["Keymaps"]["change_adapter"]["an adapter set to false in hidden is shown"] = function()
+  child.lua([[
+    h.setup_plugin()
+    config.adapters.http.opts.hidden.tavily = false
+  ]])
+
+  local list = child.lua([[return change_adapter.get_adapters_list("test_adapter")]])
+
+  h.expect_tbl_contains("tavily", list)
+end
+
 T["Keymaps"]["change_adapter"]["current adapter appears once at front"] = function()
   child.lua([[h.setup_plugin()]])
   local list = child.lua([[return change_adapter.get_adapters_list("test_adapter")]])

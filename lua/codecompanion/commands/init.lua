@@ -11,6 +11,7 @@ local config = require("codecompanion.config")
 local triggers = require("codecompanion.triggers")
 
 local _cached_adapters = {}
+local hidden = config.adapters.http.opts.hidden
 
 ---Get the available adapters from the config
 ---@param type? "all"|"http" Defaults to "all"
@@ -29,7 +30,7 @@ local function get_adapters(type)
     _cached_adapters[type] = vim
       .iter(config_adapters)
       :filter(function(k, _)
-        return k ~= "acp" and k ~= "http" and k ~= "extend" and k ~= "opts"
+        return k ~= "acp" and k ~= "http" and k ~= "extend" and k ~= "opts" and not hidden[k]
       end)
       :map(function(k, _)
         return k

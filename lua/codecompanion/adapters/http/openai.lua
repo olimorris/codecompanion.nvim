@@ -123,7 +123,7 @@ return {
               .iter(m.tools.calls)
               :map(function(tool_call)
                 return {
-                  id = tool_call.id,
+                  id = adapter_utils.pairing_id(tool_call),
                   ["function"] = tool_call["function"],
                   type = tool_call.type,
                   -- Include a _meta field to hold everything else
@@ -401,7 +401,7 @@ return {
         return {
           role = self.roles.tool or "tool",
           tools = {
-            call_id = tool_call.id,
+            call_id = adapter_utils.pairing_id(tool_call),
             name = tool_call["function"].name,
           },
           content = output,

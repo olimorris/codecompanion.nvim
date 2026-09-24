@@ -404,6 +404,29 @@ function M.set_win_options(winnr, opts)
   end
 end
 
+---Apply destination window opts on reuse, resetting other interaction-managed keys to global
+---@param winnr number
+---@param opts? table
+---@return nil
+function M.apply_win_options(winnr, opts)
+  opts = opts or {}
+  local config = require("codecompanion.config")
+  local managed = vim.tbl_extend(
+    "force",
+    {},
+    (config.display.chat.window and config.display.chat.window.opts) or {},
+    (config.display.cli and config.display.cli.window and config.display.cli.window.opts) or {}
+  )
+
+  for k, _ in pairs(managed) do
+    local value = opts[k]
+    if value == nil then
+      value = api.nvim_get_option_value(k, { scope = "global" })
+    end
+    api.nvim_set_option_value(k, value, { scope = "local", win = winnr })
+  end
+end
+
 --- Jump to an existing tab if the file is already opened.
 --- Otherwise, open it in a new tab.
 --- Returns the window ID after the jump.
