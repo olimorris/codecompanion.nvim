@@ -1265,6 +1265,7 @@ The user is working on a %s machine. Please respond with system specific command
     dirs = {
       "~/.config/codecompanion/skills",
       ".codecompanion/skills",
+      "~/.agents/skills",
       "~/.claude/skills",
       ".claude/skills",
     },
