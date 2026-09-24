@@ -112,6 +112,8 @@ function M.mark_reviewed()
 
   store.clear_round(root)
   store.clear_accepted(root)
+  store.clear_sent(root)
+  store.clear_explanations(root)
   return true
 end
 
@@ -150,6 +152,7 @@ function M.consume()
 
   store.clear_comments(root)
   M.mark_reviewed()
+  store.write_sent(root, pending)
   ui.clear_all()
 
   return pending
@@ -159,7 +162,8 @@ end
 ---@return nil
 function M.share()
   local root = get_storage_root()
-  if #store.comments(root) == 0 then
+  local comments = store.comments(root)
+  if #comments == 0 then
     return notify("No comments to share", vim.log.levels.WARN)
   end
 
@@ -169,6 +173,7 @@ function M.share()
   end
 
   M.mark_reviewed()
+  store.write_sent(root, comments)
   ui.clear_all()
   vim.fn.setreg("+", path)
   notify(fmt("Code review ready at `%s` (path copied to the clipboard)", path))
@@ -206,7 +211,7 @@ function M.setup()
     desc = "Snapshot the review baseline at the start of an agent's edits",
     group = group,
     pattern = { "CodeCompanionChatSubmitted", "CodeCompanionCLISent", "CodeCompanionCLISubmitted" },
-    callback = function()
+    callback = function(args)
       local root = baseline.get_root()
       if not root then
         return
@@ -219,6 +224,12 @@ function M.setup()
 
       if baseline.get(root) then
         store.begin_round(root)
+      end
+
+      local bufnr = type(args.data) == "table" and args.data.bufnr or nil
+      if bufnr and baseline.get(root) then
+        local kind = args.match == "CodeCompanionChatSubmitted" and "chat" or "cli"
+        store.set_round_channel(root, { kind = kind, bufnr = bufnr })
       end
     end,
   })

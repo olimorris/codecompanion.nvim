@@ -194,6 +194,12 @@ function CLI.last_cli()
   return nil
 end
 
+---@param bufnr number
+---@return CodeCompanion.CLI|nil
+function CLI.buf_get_cli(bufnr)
+  return clis[bufnr]
+end
+
 ---Find an existing CLI instance by agent name
 ---@param agent_name string
 ---@return CodeCompanion.CLI|nil

@@ -23,9 +23,11 @@ local CONSTANTS = {
 }
 
 ---@class CodeCompanion.CodeReview.Hunk
+---@field added number Lines the hunk adds
 ---@field id number Content hash of the hunk, stable until the change itself changes
 ---@field line number First changed line in the current version of the file
 ---@field path string Path of the changed file, relative to the repo root
+---@field removed number Lines the hunk removes
 ---@field summary string Added/removed counts plus the first line the hunk changes, e.g. "+3 -1 local timeout = 30"
 
 local M = {}
@@ -235,11 +237,16 @@ local function parse_hunks(output)
     elseif new_start and path then
       finish()
       body = {}
+      -- A count of one is left out of the header, so an empty capture means 1
+      local added = tonumber(new_count) or 1
+      local removed = tonumber(old_count) or 1
       table.insert(hunks, {
+        added = added,
         path = path,
         -- Pure deletions report the line before the removal, which can be 0
         line = math.max(tonumber(new_start) or 1, 1),
-        summary = fmt("+%s -%s", new_count ~= "" and new_count or "1", old_count ~= "" and old_count or "1"),
+        removed = removed,
+        summary = fmt("+%d -%d", added, removed),
       })
     elseif body and line:match("^[+%-]") then
       table.insert(body, line)

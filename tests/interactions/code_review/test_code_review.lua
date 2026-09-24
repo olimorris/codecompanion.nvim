@@ -206,6 +206,38 @@ T["Review"]["closing a round off sets a baseline when none exists"] = function()
   h.eq(0, child.lua_get("#baseline.diff(repo)"))
 end
 
+T["Review"]["closing a round off forgets the comments sent before it"] = function()
+  child.lua([[
+    write("a.lua", { "local a = 1" })
+    store.write_sent(repo, { { path = "a.lua", start_line = 1, end_line = 1, code = "", comment = "Rename it" } })
+    review.mark_reviewed()
+  ]])
+
+  h.eq(0, child.lua_get("#store.sent(repo)"))
+end
+
+T["Review"]["closing a round off forgets the explanations given during it"] = function()
+  child.lua([[
+    write("a.lua", { "local a = 1" })
+    store.add_explanation(repo, { path = "a.lua", start_line = 1, end_line = 1, code = "", comment = "Sets a" })
+    review.mark_reviewed()
+  ]])
+
+  h.eq(0, child.lua_get("#store.explanations(repo)"))
+end
+
+T["Review"]["a submitted chat becomes the round's channel"] = function()
+  child.lua([[
+    write("a.lua", { "local a = 1" })
+    vim.api.nvim_exec_autocmds("User", { pattern = "CodeCompanionChatSubmitted", data = { bufnr = 42, id = 7 } })
+  ]])
+
+  h.eq({ kind = "chat", bufnr = 42 }, child.lua_get("store.round_channel(repo)"))
+
+  child.lua("review.mark_reviewed()")
+  h.eq(vim.NIL, child.lua_get("store.round_channel(repo)"))
+end
+
 T["Review"]["closing a round off keeps pending comments"] = function()
   child.lua([[
     store.add_comment(repo, { comment = "Still pending", code = "local a", filetype = "lua", path = "a.lua", start_line = 1, end_line = 1 })

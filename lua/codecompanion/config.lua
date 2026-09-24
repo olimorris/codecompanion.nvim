@@ -971,6 +971,11 @@ The user is working on a %s machine. Please respond with system specific command
           callback = "edit",
           description = "Edit the line in the file itself",
         },
+        explain = {
+          modes = { n = "gx" },
+          callback = "explain",
+          description = "Ask the agent to explain the change, or show its explanation",
+        },
         keymaps = {
           modes = { n = "?" },
           callback = "keymaps",
@@ -994,8 +999,12 @@ The user is working on a %s machine. Please respond with system specific command
           icon = "💬 ", -- The icon to use for a comment
           overflow = "trunc", -- See `:h nvim_buf_set_extmark` for `virt_lines_overflow`
         },
+        explanations = {
+          icon = "💡 ", -- Marks a change the agent has explained
+        },
       },
       opts = {
+        auto_accept = {}, -- Globs for files that never need reviewing, e.g. { "**/*.lock" }
         storage_dir = vim.fs.joinpath(vim.fn.stdpath("data"), "codecompanion", "code_review"),
       },
     },

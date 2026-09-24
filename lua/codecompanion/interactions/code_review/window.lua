@@ -2,6 +2,7 @@ local baseline = require("codecompanion.interactions.code_review.baseline")
 local checklist = require("codecompanion.interactions.code_review.checklist")
 local config = require("codecompanion.config")
 local diff_ui = require("codecompanion.diff.ui")
+local explain = require("codecompanion.interactions.code_review.explain")
 local store = require("codecompanion.interactions.code_review.store")
 local ui = require("codecompanion.interactions.code_review.ui")
 local ui_utils = require("codecompanion.utils.ui")
@@ -18,17 +19,32 @@ local CONSTANTS = {
   CHECKLIST_NAME = "Code Review",
   PANE_NAME = "Code Review Diff",
   HL_ADDED = "CodeCompanionCodeReviewAdded",
+  HL_EXPLANATION = "CodeCompanionCodeReviewExplanation",
+  HL_HEADER = "CodeCompanionCodeReviewHeader",
   HL_PATH = "CodeCompanionCodeReviewPath",
   HL_REMOVED = "CodeCompanionCodeReviewRemoved",
+  HL_SENT = "CodeCompanionCodeReviewSent",
   NAMESPACE = api.nvim_create_namespace("codecompanion.code_review.window"),
+}
+
+local SPAN_HIGHLIGHTS = {
+  added = CONSTANTS.HL_ADDED,
+  errors = "DiagnosticError",
+  explanation = CONSTANTS.HL_EXPLANATION,
+  header = CONSTANTS.HL_HEADER,
+  path = CONSTANTS.HL_PATH,
+  removed = CONSTANTS.HL_REMOVED,
+  sent = CONSTANTS.HL_SENT,
+  warnings = "DiagnosticWarn",
 }
 
 ---@class CodeCompanion.CodeReview.Window.Undo
 ---@field accepted? string[] Hunk ids to take back out of the accepted set
----@field splice? { path: string, start: number, count: number, lines: string[] } Lines to put back, and where
+---@field splices? { path: string, start: number, count: number, lines: string[] }[] Lines to put back, and where, top-down
 
 ---@class CodeCompanion.CodeReview.Window
 ---@field active_path? string
+---@field asking table<string, boolean> Rows an explanation has been requested for, keyed by `path:first`
 ---@field checklist { bufnr: number, winnr: number }
 ---@field diffs table<string, CC.Diff>
 ---@field entries CodeCompanion.CodeReview.Entry[]
@@ -38,6 +54,7 @@ local CONSTANTS = {
 ---@field syncing boolean
 ---@field tabpage number
 ---@field undo CodeCompanion.CodeReview.Window.Undo[]
+---@field watcher? uv.uv_fs_event_t Watches the storage directory for an agent writing an explanation
 
 -- Only ever indexed while a review is open, so the type says what the helpers can rely on
 local review ---@type CodeCompanion.CodeReview.Window
@@ -54,6 +71,10 @@ end
 local function forget()
   pcall(api.nvim_del_augroup_by_name, CONSTANTS.GROUP)
   checklist.discard(review.diffs)
+  if review.watcher then
+    review.watcher:stop()
+    review.watcher:close()
+  end
 
   -- If every hunk has been cleared then start the next round of review
   local reviewed = #review.entries == 0
@@ -140,26 +161,17 @@ local function open_panels(lines)
   }
 end
 
----Colour the added and removed counts on every hunk row
+---Colour the path, counts and diagnostics on every checklist row
 ---@return nil
 local function highlight_checklist()
   api.nvim_buf_clear_namespace(review.checklist.bufnr, CONSTANTS.NAMESPACE, 0, -1)
 
   for row, entry in ipairs(review.entries) do
-    if entry.kind == "file" then
-      api.nvim_buf_set_extmark(review.checklist.bufnr, CONSTANTS.NAMESPACE, row - 1, 0, {
-        end_row = row,
-        hl_group = CONSTANTS.HL_PATH,
+    for name, span in pairs(entry.spans or {}) do
+      api.nvim_buf_set_extmark(review.checklist.bufnr, CONSTANTS.NAMESPACE, row - 1, span[1], {
+        end_col = span[2],
+        hl_group = SPAN_HIGHLIGHTS[name],
       })
-    end
-
-    if entry.spans then
-      for name, hl_group in pairs({ added = CONSTANTS.HL_ADDED, removed = CONSTANTS.HL_REMOVED }) do
-        api.nvim_buf_set_extmark(review.checklist.bufnr, CONSTANTS.NAMESPACE, row - 1, entry.spans[name][1], {
-          end_col = entry.spans[name][2],
-          hl_group = hl_group,
-        })
-      end
     end
   end
 end
@@ -191,6 +203,58 @@ local function show_comments()
   end
 end
 
+---Draw what the user asked for last round above the changes that answer it
+---@return nil
+local function show_sent()
+  for _, entry in ipairs(review.entries) do
+    if entry.path == review.active_path and entry.sent then
+      local virt_lines = {}
+      for _, comment in ipairs(entry.sent) do
+        for index, line in ipairs(vim.split(comment, "\n", { plain = true })) do
+          local prefix = index == 1 and "↳ You asked: " or string.rep(" ", #"↳ You asked: " - 2)
+          table.insert(virt_lines, { { prefix .. line, CONSTANTS.HL_SENT } })
+        end
+      end
+
+      local hunk = review.diffs[entry.path].hunks[entry.hunks[1]]
+      api.nvim_buf_set_extmark(review.pane.bufnr, CONSTANTS.NAMESPACE, hunk.pos[1], 0, {
+        virt_lines = virt_lines,
+        virt_lines_above = true,
+      })
+    end
+  end
+end
+
+---@param entry CodeCompanion.CodeReview.Entry
+---@return string
+local function asking_key(entry)
+  return fmt("%s:%d", entry.path, review.diffs[entry.path].hunks[entry.hunks[1]].to_start)
+end
+
+---Draw the first line of each explanation above the change it describes, or that one has been asked for
+---@return nil
+local function show_explanations()
+  local icon = config.interactions.code_review.display.explanations.icon
+  for _, entry in ipairs(review.entries) do
+    if entry.path == review.active_path and entry.hunks then
+      local text
+      if entry.explanation then
+        text = vim.split(entry.explanation, "\n", { plain = true })[1]
+      elseif review.asking[asking_key(entry)] then
+        text = "asking for an explanation…"
+      end
+
+      if text then
+        local hunk = review.diffs[entry.path].hunks[entry.hunks[1]]
+        api.nvim_buf_set_extmark(review.pane.bufnr, CONSTANTS.NAMESPACE, hunk.pos[1], 0, {
+          virt_lines = { { { icon .. text, CONSTANTS.HL_EXPLANATION } } },
+          virt_lines_above = true,
+        })
+      end
+    end
+  end
+end
+
 ---@param path string
 ---@return nil
 local function show_file(path)
@@ -206,6 +270,8 @@ local function show_file(path)
 
   api.nvim_buf_clear_namespace(review.pane.bufnr, CONSTANTS.NAMESPACE, 0, -1)
   diff_ui.apply_highlights(file_diff, { bufnr = review.pane.bufnr, ns = CONSTANTS.NAMESPACE })
+  show_sent()
+  show_explanations()
   show_comments()
 end
 
@@ -226,19 +292,25 @@ local function hunk_row(hunk)
   return hunk.pos[1] + 1
 end
 
+---The first hunk in a checklist row's group, which is where the row starts in the review pane
+---@param entry CodeCompanion.CodeReview.Entry
+---@return CodeCompanion.diff.Hunk
+local function first_hunk(entry)
+  return review.diffs[entry.path].hunks[entry.hunks[1]]
+end
+
 ---Show the file a checklist row belongs to, scrolled to its hunk
 ---@param row number
 ---@return nil
 local function select_entry(row)
   local entry = review.entries[row]
-  if not entry then
+  if not entry or not entry.path then
     return
   end
 
   show_file(entry.path)
 
-  local hunk = entry.hunk and review.diffs[entry.path].hunks[entry.hunk]
-  centre_on(review.pane.winnr, hunk and hunk_row(hunk) or 1)
+  centre_on(review.pane.winnr, entry.hunks and hunk_row(first_hunk(entry)) or 1)
 end
 
 ---The checklist row for the last hunk the review pane's cursor has reached
@@ -247,10 +319,8 @@ end
 local function checklist_row_for(row)
   local match
   for index, entry in ipairs(review.entries) do
-    if entry.path == review.active_path and entry.hunk then
-      if hunk_row(review.diffs[entry.path].hunks[entry.hunk]) <= row then
-        match = index
-      end
+    if entry.path == review.active_path and entry.hunks and hunk_row(first_hunk(entry)) <= row then
+      match = index
     end
   end
   return match
@@ -292,26 +362,30 @@ local function rebuild()
     return api.nvim_buf_clear_namespace(review.pane.bufnr, CONSTANTS.NAMESPACE, 0, -1)
   end
 
+  -- Row 1 is the header, which has no file to show
   sync_panels(function()
-    row = math.min(row, #built.entries)
+    row = math.max(2, math.min(row, #built.entries))
     pcall(api.nvim_win_set_cursor, review.checklist.winnr, { row, 0 })
     select_entry(row)
   end)
 end
 
+---Move the review pane to the next or previous checklist row in this file
 ---@param step number
 ---@return nil
 local function jump_hunk(step)
-  local hunks = review.diffs[review.active_path].hunks
   local row = api.nvim_win_get_cursor(review.pane.winnr)[1]
 
   local target
-  for _, hunk in ipairs(hunks) do
-    if step > 0 and hunk_row(hunk) > row then
-      target = hunk_row(hunk)
-      break
-    elseif step < 0 and hunk_row(hunk) < row then
-      target = hunk_row(hunk)
+  for _, entry in ipairs(review.entries) do
+    if entry.path == review.active_path and entry.hunks then
+      local start = hunk_row(first_hunk(entry))
+      if step > 0 and start > row then
+        target = start
+        break
+      elseif step < 0 and start < row then
+        target = start
+      end
     end
   end
 
@@ -327,13 +401,13 @@ local function hunk_under_cursor()
 
   if winnr == review.checklist.winnr then
     local entry = review.entries[api.nvim_win_get_cursor(winnr)[1]]
-    return entry and entry.hunk and entry or nil
+    return entry and entry.hunks and entry or nil
   end
 
   local row = api.nvim_win_get_cursor(winnr)[1]
   for _, entry in ipairs(review.entries) do
-    if entry.path == review.active_path and entry.hunk then
-      local hunk = review.diffs[entry.path].hunks[entry.hunk]
+    for _, index in ipairs(entry.path == review.active_path and entry.hunks or {}) do
+      local hunk = review.diffs[entry.path].hunks[index]
       if row > hunk.pos[1] and row <= hunk.pos[1] + hunk.from_count + hunk.to_count then
         return entry
       end
@@ -356,7 +430,7 @@ end
 ---@return CodeCompanion.CodeReview.Entry[]
 local function hunks_in(path)
   return vim.tbl_filter(function(entry)
-    return entry.path == path and entry.hunk ~= nil
+    return entry.path == path and entry.hunks ~= nil
   end, review.entries)
 end
 
@@ -382,12 +456,11 @@ local function accept_hunks(entries)
   rebuild()
 end
 
----Put the working file's lines back to the baseline for one hunk
+---Put the working file's lines back to the baseline for every hunk in a checklist row
 ---@param entry CodeCompanion.CodeReview.Entry
 ---@return nil
-local function revert_hunk(entry)
+local function revert_hunks(entry)
   local file_diff = review.diffs[entry.path]
-  local hunk = file_diff.hunks[entry.hunk]
 
   local bufnr = vim.fn.bufadd(vim.fs.joinpath(review.root, entry.path))
   vim.fn.bufload(bufnr)
@@ -396,11 +469,17 @@ local function revert_hunk(entry)
     return notify(fmt("`%s` has unsaved changes", entry.path), vim.log.levels.WARN)
   end
 
-  local at = hunk.to_count > 0 and hunk.to_start or hunk.to_start + 1
-  local restored = vim.list_slice(file_diff.from.lines, hunk.from_start, hunk.from_start + hunk.from_count - 1)
-  local replaced = api.nvim_buf_get_lines(bufnr, at - 1, at - 1 + hunk.to_count, false)
+  -- Bottom-up, so each splice leaves the working line numbers of the hunks above it intact
+  local splices = {}
+  for position = #entry.hunks, 1, -1 do
+    local hunk = file_diff.hunks[entry.hunks[position]]
+    local at = hunk.to_count > 0 and hunk.to_start or hunk.to_start + 1
+    local restored = vim.list_slice(file_diff.from.lines, hunk.from_start, hunk.from_start + hunk.from_count - 1)
+    local replaced = api.nvim_buf_get_lines(bufnr, at - 1, at - 1 + hunk.to_count, false)
 
-  api.nvim_buf_set_lines(bufnr, at - 1, at - 1 + hunk.to_count, false, restored)
+    api.nvim_buf_set_lines(bufnr, at - 1, at - 1 + hunk.to_count, false, restored)
+    table.insert(splices, 1, { path = entry.path, start = at, count = #restored, lines = replaced })
+  end
 
   -- The buffer stays loaded so the file's own undo history holds the revert, and `noautocmd`
   -- stops a format-on-save autocmd rewriting what was just put back
@@ -408,9 +487,7 @@ local function revert_hunk(entry)
     vim.cmd("silent noautocmd write")
   end)
 
-  table.insert(review.undo, {
-    splice = { path = entry.path, start = at, count = #restored, lines = replaced },
-  })
+  table.insert(review.undo, { splices = splices })
   rebuild()
 end
 
@@ -426,12 +503,13 @@ local function undo_last()
     store.unaccept(review.root, id)
   end
 
-  if last.splice then
-    local bufnr = vim.fn.bufadd(vim.fs.joinpath(review.root, last.splice.path))
+  -- Top-down puts each hunk back at the working line it was reverted from, before the ones below it move
+  for _, splice in ipairs(last.splices or {}) do
+    local bufnr = vim.fn.bufadd(vim.fs.joinpath(review.root, splice.path))
     vim.fn.bufload(bufnr)
 
-    local at = last.splice.start - 1
-    api.nvim_buf_set_lines(bufnr, at, at + last.splice.count, false, last.splice.lines)
+    local at = splice.start - 1
+    api.nvim_buf_set_lines(bufnr, at, at + splice.count, false, splice.lines)
     api.nvim_buf_call(bufnr, function()
       vim.cmd("silent noautocmd write")
     end)
@@ -477,8 +555,7 @@ end
 local function commented_line()
   if api.nvim_get_current_win() == review.checklist.winnr then
     local entry = review.entries[api.nvim_win_get_cursor(review.checklist.winnr)[1]]
-    local hunk = entry and entry.hunk and review.diffs[entry.path].hunks[entry.hunk]
-    return hunk and math.max(hunk.to_start, 1) or nil
+    return entry and entry.hunks and math.max(first_hunk(entry).to_start, 1) or nil
   end
 
   local rows = review.diffs[review.active_path].merged.rows
@@ -515,6 +592,82 @@ local function comment_on_line()
     start_line = line,
     end_line = line,
   }, { on_done = show_comments })
+end
+
+---The change on a row as `-`/`+` lines with the working code around it, for a model that cannot read the repo
+---@param entry CodeCompanion.CodeReview.Entry
+---@return string
+local function snippet_for(entry)
+  local file_diff = review.diffs[entry.path]
+  local lines = {}
+
+  local first = file_diff.hunks[entry.hunks[1]]
+  local last = file_diff.hunks[entry.hunks[#entry.hunks]]
+  local from, to = math.max(first.to_start - 10, 1), math.min(last.to_start + last.to_count + 9, #file_diff.to.lines)
+
+  for line = from, to do
+    table.insert(lines, "  " .. file_diff.to.lines[line])
+  end
+  for _, index in ipairs(entry.hunks) do
+    local hunk = file_diff.hunks[index]
+    for line = hunk.from_start, hunk.from_start + hunk.from_count - 1 do
+      table.insert(lines, "- " .. file_diff.from.lines[line])
+    end
+    for line = hunk.to_start, hunk.to_start + hunk.to_count - 1 do
+      table.insert(lines, "+ " .. file_diff.to.lines[line])
+    end
+  end
+
+  return table.concat(lines, "\n")
+end
+
+---Ask the agent to explain the row under the cursor, or show the explanation it already gave
+---@return nil
+local function explain_row()
+  local entry = hunk_under_cursor()
+  if not entry then
+    return notify("Nothing to explain here", vim.log.levels.WARN)
+  end
+
+  if entry.explanation then
+    local lines = vim.split(entry.explanation, "\n", { plain = true })
+    return ui_utils.create_float(lines, {
+      ft = "markdown",
+      height = math.min(#lines + 2, 20),
+      lock = true,
+      relative = "cursor",
+      style = "minimal",
+      title = "Explanation",
+      width = 80,
+    })
+  end
+
+  local file_diff = review.diffs[entry.path]
+  local first = file_diff.hunks[entry.hunks[1]]
+  local last = file_diff.hunks[entry.hunks[#entry.hunks]]
+  local path = entry.path
+
+  explain.ask({
+    root = review.root,
+    path = path,
+    first = math.max(first.to_start, 1),
+    last = math.max(last.to_start + last.to_count - 1, 1),
+    snippet = snippet_for(entry),
+  }, {
+    on_asked = function()
+      if not is_open() then
+        return
+      end
+      review.asking[asking_key(entry)] = true
+      review.active_path = nil
+      show_file(path)
+    end,
+    on_done = function()
+      if is_open() then
+        rebuild()
+      end
+    end,
+  })
 end
 
 ---Show the window's keymaps in a float
@@ -575,6 +728,7 @@ local ACTIONS = {
     return require("codecompanion.interactions.code_review").edit_comments()
   end,
   edit = edit_line,
+  explain = explain_row,
   keymaps = show_keymaps,
   next_hunk = function()
     return jump_hunk(1)
@@ -584,7 +738,7 @@ local ACTIONS = {
   end,
   revert = function()
     local entry = hunk_under_cursor()
-    return entry and revert_hunk(entry)
+    return entry and revert_hunks(entry)
   end,
   share = function()
     return require("codecompanion.interactions.code_review").share()
@@ -658,6 +812,21 @@ local function setup_sync()
     end,
   })
 
+  -- An agent writes its explanation from outside Neovim, so a file watcher is the only cue to redraw
+  local storage_dir = vim.fs.dirname(store.explanations_path(review.root))
+  if vim.uv.fs_stat(storage_dir) then
+    review.watcher = vim.uv.new_fs_event()
+    review.watcher:start(
+      storage_dir,
+      {},
+      vim.schedule_wrap(function()
+        if is_open() then
+          rebuild()
+        end
+      end)
+    )
+  end
+
   api.nvim_create_autocmd("TabClosed", {
     desc = "Forget the review once its tab page has gone",
     group = group,
@@ -713,6 +882,7 @@ function M.open()
   local panels = open_panels(built.lines)
 
   review = {
+    asking = {},
     checklist = panels.checklist,
     diffs = built.diffs,
     entries = built.entries,
@@ -729,7 +899,8 @@ function M.open()
   setup_sync()
 
   sync_panels(function()
-    select_entry(1)
+    pcall(api.nvim_win_set_cursor, review.checklist.winnr, { 2, 0 })
+    select_entry(2)
   end)
   api.nvim_set_current_win(review.checklist.winnr)
 end

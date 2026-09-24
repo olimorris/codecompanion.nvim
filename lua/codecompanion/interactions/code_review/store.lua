@@ -157,36 +157,20 @@ function M.comments_path(root)
   return vim.fs.joinpath(get_branch_dir(root), "comments.md")
 end
 
----Return all pending comments for a repo
----@param root string
+---@param path string
 ---@return CodeCompanion.CodeReview.Comment[]
-function M.comments(root)
-  local path = M.comments_path(root)
+local function read_blocks(path)
   if not files.exists(path) then
     return {}
   end
-
   return parse(files.read(path))
 end
 
----Append a comment to the store
----@param root string
----@param comment CodeCompanion.CodeReview.Comment
----@return nil
-function M.add_comment(root, comment)
-  local path = M.comments_path(root)
-  local existing = files.exists(path) and files.read(path) or ""
-  local separator = existing ~= "" and "\n" or ""
-
-  files.write_to_path(path, existing .. separator .. format(comment) .. "\n")
-end
-
----Write the pending comments to disk, or, delete the file if there are none
----@param root string
+---Write comments as markdown sections, or delete the file when there are none
+---@param path string
 ---@param comments CodeCompanion.CodeReview.Comment[]
 ---@return nil
-function M.write_comments(root, comments)
-  local path = M.comments_path(root)
+local function write_blocks(path, comments)
   if #comments == 0 then
     return delete(path)
   end
@@ -197,6 +181,39 @@ function M.write_comments(root, comments)
   end
 
   files.write_to_path(path, table.concat(blocks, "\n") .. "\n")
+end
+
+---Return all pending comments for a repo
+---@param root string
+---@return CodeCompanion.CodeReview.Comment[]
+function M.comments(root)
+  return read_blocks(M.comments_path(root))
+end
+
+---@param path string
+---@param comment CodeCompanion.CodeReview.Comment
+---@return nil
+local function append_block(path, comment)
+  local existing = files.exists(path) and files.read(path) or ""
+  local separator = existing ~= "" and "\n" or ""
+
+  files.write_to_path(path, existing .. separator .. format(comment) .. "\n")
+end
+
+---Append a comment to the store
+---@param root string
+---@param comment CodeCompanion.CodeReview.Comment
+---@return nil
+function M.add_comment(root, comment)
+  append_block(M.comments_path(root), comment)
+end
+
+---Write the pending comments to disk, or, delete the file if there are none
+---@param root string
+---@param comments CodeCompanion.CodeReview.Comment[]
+---@return nil
+function M.write_comments(root, comments)
+  write_blocks(M.comments_path(root), comments)
 end
 
 ---Delete all pending comments for a repo
@@ -227,6 +244,79 @@ function M.submit(root)
   return M.review_path(root)
 end
 
+local sent_path = branch_file("sent.md")
+
+---The comments sent with the last review, kept so the agent's response can be read against them
+---@param root string
+---@return CodeCompanion.CodeReview.Comment[]
+function M.sent(root)
+  return read_blocks(sent_path(root))
+end
+
+---@param root string
+---@param comments CodeCompanion.CodeReview.Comment[]
+---@return nil
+function M.write_sent(root, comments)
+  write_blocks(sent_path(root), comments)
+end
+
+---@param root string
+---@return nil
+function M.clear_sent(root)
+  delete(sent_path(root))
+end
+
+local explanations_path = branch_file("explanations.md")
+
+---The file an agent is asked to write its explanations to, one `## path:first-last` section per change
+---@param root string
+---@return string
+function M.explanations_path(root)
+  return explanations_path(root)
+end
+
+---@param root string
+---@return CodeCompanion.CodeReview.Comment[]
+function M.explanations(root)
+  return read_blocks(explanations_path(root))
+end
+
+---Record an explanation written on the agent's behalf, when a fresh model answered instead
+---@param root string
+---@param explanation CodeCompanion.CodeReview.Comment
+---@return nil
+function M.add_explanation(root, explanation)
+  append_block(explanations_path(root), explanation)
+end
+
+---@param root string
+---@return nil
+function M.clear_explanations(root)
+  delete(explanations_path(root))
+end
+
+local channel_path = branch_file("channel.json")
+
+---Remember which chat or CLI buffer is driving the round, so its agent can be asked about the changes
+---@param root string
+---@param channel CodeCompanion.CodeReview.Channel
+---@return nil
+function M.set_round_channel(root, channel)
+  files.write_to_path(channel_path(root), vim.json.encode(channel))
+end
+
+---@param root string
+---@return CodeCompanion.CodeReview.Channel|nil
+function M.round_channel(root)
+  local path = channel_path(root)
+  if not files.exists(path) then
+    return nil
+  end
+
+  local ok, channel = pcall(vim.json.decode, files.read(path))
+  return ok and channel or nil
+end
+
 local round_path = branch_file("round")
 
 ---Mark a round of agent work as begun, so the baseline holds until it's reviewed
@@ -248,6 +338,7 @@ end
 ---@return nil
 function M.clear_round(root)
   delete(round_path(root))
+  delete(channel_path(root))
 end
 
 local accepted_path = branch_file("accepted.txt")
