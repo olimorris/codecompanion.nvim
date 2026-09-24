@@ -72,8 +72,8 @@ Everything else is a keymap inside the window.
 
 The window opens in its own tab page with two panels:
 
-- The **checklist** on the left is every changed file with its hunks nested underneath. Moving the cursor onto a hunk scrolls the file alongside it
-- The **review pane** on the right is the whole file, not just the hunk, so you can judge a change against the code around it. The gutter shows the line number in the working file, and any comments you've left appear above the lines they were written on
+- The **checklist** on the left is every changed file with its hunks nested underneath. Moving the cursor onto a hunk scrolls the file alongside it. A file row shows the lines still to review in it and, when the file is open in a buffer, its error and warning counts. The first row is the size of the round: `3 files, 12 hunks in 5 rows, 1 with errors, 2 auto-accepted`
+- The **review pane** on the right is the whole file, not just the hunk, so you can judge a change against the code around it. The gutter shows the line number in the working file, and any comments you've left appear above the lines they were written on.
 
 Both are ordinary splits, so `<C-w>` and your own window keymaps work as they always do.
 
@@ -84,19 +84,32 @@ Both are ordinary splits, so `<C-w>` and your own window keymaps work as they al
 | `gc` | Comment on the line under the cursor |
 | `gC` | Edit the pending comments by hand |
 | `gs` | Share the review with an agent outside of CodeCompanion |
+| `gx` | Ask the agent to explain the change, or show the explanation it gave |
 | `u` | Undo the last accept or revert |
 | `i` / `I` | Open the real file at this line, to edit it yourself |
-| `]h` / `[h` | Move to the next or previous hunk in this file |
+| `]h` / `[h` | Move to the next or previous row in this file |
 | `?` | List these keymaps |
 
 Accepting a hunk folds it into the snapshot, so it reads as ordinary context rather than as an edit. Reverting writes the original lines back to the file. Either way the hunk stops being a difference and leaves the list, and a file disappears once its last hunk has gone. The review is a to-do list of things to clear, not a record of what you did.
 
 `ga` and `gr` act on what is literally under the cursor. Between hunks in the review pane they do nothing. On a file row, `ga` accepts the whole file at once, which saves clearing a lockfile or a generated file a hunk at a time.
 
+Files are listed with the ones most likely to need you first: files with errors, then the files with the most changed lines in the round. The order is fixed for the round, so accepting a hunk never moves the file you're in. Files you never want to see, such as lockfiles, can be [auto-accepted](/configuration/code-review#auto-accepting-files).
+
+Neighbouring hunks are grouped into one row, so a rename that touches a function in six places is one row to accept, revert or step to with `]h`. Hunks inside the same function, method or class are grouped, using Neovim's Tree-sitter parser for the file's language, and the row is named for it: `+6 -6  in build_diff`, or `+24 -0  new build_diff` when the whole function arrived in this round. Hunks outside any scope, or in a language with no parser, are grouped when six or fewer unchanged lines separate them, which is the same gap a plain `git diff` folds into one hunk.
+
 When the last hunk goes, the window says `No edits left to review` and the round is closed off as soon as you leave it.
 
 > [!NOTE]
 > The review pane is not writable. Its rows don't map cleanly onto the file - a deleted line doesn't exist on disk - so `i` and `I` take you to the real file at the matching line instead, with your LSP and formatting intact
+
+## Asking for an Explanation
+
+A diff tells you what changed. Only the agent that made the change can tell you why. `gx` on a row asks it: the question goes to the chat buffer or CLI that started the round, and the answer comes back beside the code rather than in a conversation you have to scroll.
+
+The agent is asked to write a few sentences to a file CodeCompanion owns, under a heading for the change. When the file changes, the row gains an icon, the first line of the explanation appears above the change in the review pane, and `gx` again opens the whole thing in a float. The file lives with the review's other state, outside the repository, so writing it never shows up as a change and a second Neovim instance, or a later session, sees the same explanations.
+
+If the round wasn't started from CodeCompanion, `gx` asks which terminal the agent is running in and remembers your answer. Choosing a terminal pastes the question into it, so expect to interrupt whatever the agent is doing. The last choice on the list is a fresh model, which has none of the agent's context: it can say what the code does, not why it was written.
 
 ## Commenting
 
@@ -111,6 +124,8 @@ You can then type your comment in the input, followed by the same keymaps you us
 A comment doesn't settle a hunk. You can accept a change and still comment on it, and a reverted hunk still sends its comment so the agent knows why.
 
 A comment is only ever in one place: **pending in the file, or sent in the chat buffer**. When you share a review, the virtual text clears and the comments appear in the chat buffer instead.
+
+Your comments come back in the next review. A row whose lines you commented on last round ends in `↳`, and the review pane shows what you asked above the change, so you read the agent's response against the request rather than from memory. The match is by line, give or take a few, so a response that landed far from the comment isn't marked.
 
 ### Editing and Deleting
 
