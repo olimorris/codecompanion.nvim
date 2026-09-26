@@ -244,6 +244,16 @@ function M.submit(root)
   return M.review_path(root)
 end
 
+---Move a submitted review back to the pending comments, when the round it belonged to could not be closed
+---@param root string
+---@return nil
+function M.unsubmit(root)
+  local ok, error = files.rename(M.review_path(root), M.comments_path(root))
+  if not ok then
+    log:error("[Code Review] Could not restore the pending comments: `%s`", error)
+  end
+end
+
 local sent_path = branch_file("sent.md")
 
 ---The comments sent with the last review, kept so the agent's response can be read against them
@@ -257,7 +267,11 @@ end
 ---@param comments CodeCompanion.CodeReview.Comment[]
 ---@return nil
 function M.write_sent(root, comments)
-  write_blocks(sent_path(root), comments)
+  -- Only the next review's markers depend on this file, so failing to write it must not stop the comments being sent
+  local ok, error = pcall(write_blocks, sent_path(root), comments)
+  if not ok then
+    log:error("[Code Review] Could not record the sent comments: `%s`", error)
+  end
 end
 
 ---@param root string

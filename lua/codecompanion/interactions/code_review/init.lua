@@ -154,8 +154,8 @@ function M.consume()
     return nil
   end
 
-  store.clear_comments(root)
   store.write_sent(root, pending)
+  store.clear_comments(root)
   ui.clear_all()
 
   return pending
@@ -170,13 +170,14 @@ function M.share()
     return notify("No comments to share", vim.log.levels.WARN)
   end
 
-  if not M.mark_reviewed() then
-    return
-  end
-
   local path = store.submit(root)
   if not path then
     return
+  end
+
+  -- Put the comments back if the round can't be closed, so sharing again covers the same changes
+  if not M.mark_reviewed() then
+    return store.unsubmit(root)
   end
 
   store.write_sent(root, comments)

@@ -253,4 +253,37 @@ T["Window"]["Branch from a cleared review still shows every change on the branch
   )
 end
 
+T["Window"]["DOES NOT undo a reverted addition once lines have been added above it"] = function()
+  child.lua([[
+    write("a.lua", { "local a = 1", "local c = 3" })
+    baseline.snapshot(repo)
+    write("a.lua", { "local a = 1", "local b = 2", "local c = 3" })
+    window.open()
+  ]])
+  child.type_keys("j", "gr")
+  child.lua([[write("a.lua", { "-- added by the agent", "local a = 1", "local c = 3" })]])
+  child.type_keys("u")
+
+  h.eq({ "-- added by the agent", "local a = 1", "local c = 3" }, child.lua_get("read('a.lua')"))
+end
+
+T["Window"]["a refused undo can be tried again once the file is saved"] = function()
+  child.lua("write_two_rows(); window.open()")
+  child.type_keys("j", "gr")
+  child.lua([[
+    bufnr = vim.fn.bufadd(vim.fs.joinpath(repo, "a.lua"))
+    reverted = vim.api.nvim_buf_get_lines(bufnr, 0, -1, false)
+    vim.api.nvim_buf_set_lines(bufnr, 0, 0, false, { "-- typed but not saved" })
+  ]])
+  child.type_keys("u")
+  h.eq("  return 1", child.lua_get("read('a.lua')[2]"))
+
+  child.lua([[
+    vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, reverted)
+    vim.bo[bufnr].modified = false
+  ]])
+  child.type_keys("u")
+  h.eq("  return 10", child.lua_get("read('a.lua')[2]"))
+end
+
 return T

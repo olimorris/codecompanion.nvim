@@ -37,7 +37,8 @@ local SPAN_HIGHLIGHTS = {
 
 ---@class CodeCompanion.CodeReview.Window.Undo
 ---@field accepted? string[] Hunk ids to take back out of the accepted set
----@field splices? { path: string, start: number, count: number, lines: string[], restored: string[] }[] Lines to put back, and where, top-down
+---@field splices? { path: string, start: number, count: number, lines: string[] }[] Lines to put back, and where, top-down
+---@field reverted? string[] The whole file as the revert left it, so undo can tell if anything has touched it since
 
 ---@class CodeCompanion.CodeReview.Window
 ---@field active_path? string
@@ -467,11 +468,7 @@ local function revert_hunks(entry)
     local replaced = api.nvim_buf_get_lines(bufnr, at - 1, at - 1 + hunk.to_count, false)
 
     api.nvim_buf_set_lines(bufnr, at - 1, at - 1 + hunk.to_count, false, restored)
-    table.insert(
-      splices,
-      1,
-      { path = entry.path, start = at, count = #restored, lines = replaced, restored = restored }
-    )
+    table.insert(splices, 1, { path = entry.path, start = at, count = #restored, lines = replaced })
   end
 
   -- The buffer stays loaded so the file's own undo history holds the revert, and `noautocmd`
@@ -480,32 +477,27 @@ local function revert_hunks(entry)
     vim.cmd("silent noautocmd write")
   end)
 
-  table.insert(review.undo, { splices = splices })
+  table.insert(review.undo, { splices = splices, reverted = api.nvim_buf_get_lines(bufnr, 0, -1, false) })
   rebuild()
 end
 
----Put back the lines a revert replaced, unless the file has changed since and they would overwrite it
----@param splices { path: string, start: number, count: number, lines: string[], restored: string[] }[]
----@return nil
-local function undo_revert(splices)
-  local path = splices[1].path
+---Put back the lines a revert replaced, unless the file has changed since and they would land in the wrong place
+---@param undo CodeCompanion.CodeReview.Window.Undo
+---@return boolean
+local function undo_revert(undo)
+  local path = undo.splices[1].path
   local bufnr = load_saved_file(path)
   if not bufnr then
-    return
+    return false
   end
 
-  -- Each splice above has not been undone yet, so it still shifts the ones below it
-  local shift = 0
-  for _, splice in ipairs(splices) do
-    local at = splice.start - 1 + shift
-    if not vim.deep_equal(api.nvim_buf_get_lines(bufnr, at, at + splice.count, false), splice.restored) then
-      return notify(fmt("`%s` has changed since the revert, so it cannot be undone", path), vim.log.levels.WARN)
-    end
-    shift = shift + splice.count - #splice.lines
+  if not vim.deep_equal(api.nvim_buf_get_lines(bufnr, 0, -1, false), undo.reverted) then
+    notify(fmt("`%s` has changed since the revert, so it cannot be undone", path), vim.log.levels.WARN)
+    return false
   end
 
   -- Top-down puts each hunk back at the working line it was reverted from, before the ones below it move
-  for _, splice in ipairs(splices) do
+  for _, splice in ipairs(undo.splices) do
     local at = splice.start - 1
     api.nvim_buf_set_lines(bufnr, at, at + splice.count, false, splice.lines)
   end
@@ -513,13 +505,19 @@ local function undo_revert(splices)
   api.nvim_buf_call(bufnr, function()
     vim.cmd("silent noautocmd write")
   end)
+  return true
 end
 
 ---Take back the last accept or revert
 ---@return nil
 local function undo_last()
-  local last = table.remove(review.undo)
+  local last = review.undo[#review.undo]
   if not last then
+    return
+  end
+
+  -- A refused undo stays on the stack, so it can be tried again once the file is saved or put back
+  if last.splices and not undo_revert(last) then
     return
   end
 
@@ -527,10 +525,7 @@ local function undo_last()
     store.unaccept(review.root, id)
   end
 
-  if last.splices then
-    undo_revert(last.splices)
-  end
-
+  table.remove(review.undo)
   rebuild()
 end
 

@@ -190,6 +190,23 @@ T["Review"]["consume keeps the comments pending when the round can't be closed"]
   h.eq(1, child.lua_get("#review.pending()"))
 end
 
+T["Review"]["consume still hands over the comments when the sent record can't be written"] = function()
+  child.lua([[
+    write("a.lua", { "local a = 1" })
+    submit()
+    write("a.lua", { "local a = 100" })
+    store.add_comment(repo, { comment = "Why 100?", code = "local a = 100", filetype = "lua", path = "a.lua", start_line = 1, end_line = 1 })
+
+    local files = require("codecompanion.utils.files")
+    local write_to_path = files.write_to_path
+    files.write_to_path = function() error("disk full") end
+    pcall(function() consumed = review.consume() end)
+    files.write_to_path = write_to_path
+  ]])
+
+  h.eq("Why 100?", child.lua_get("consumed[1].comment"))
+end
+
 T["Review"]["consume returns nil when there are no comments"] = function()
   h.eq(vim.NIL, child.lua_get("review.consume()"))
 end
@@ -208,6 +225,40 @@ T["Review"]["share moves the comments to the review file and advances the baseli
   h.eq(0, child.lua_get("#baseline.diff(repo)"))
   h.is_true(child.lua_get([[require("codecompanion.utils.files").exists(store.review_path(repo))]]))
   h.expect_contains("Why 100?", child.lua_get([[require("codecompanion.utils.files").read(store.review_path(repo))]]))
+end
+
+T["Review"]["share keeps the comments pending when the round can't be closed"] = function()
+  child.lua([[
+    write("a.lua", { "local a = 1" })
+    submit()
+    write("a.lua", { "local a = 100" })
+    store.add_comment(repo, { comment = "Why 100?", code = "local a = 100", filetype = "lua", path = "a.lua", start_line = 1, end_line = 1 })
+
+    local snapshot = baseline.snapshot
+    baseline.snapshot = function() return nil end
+    review.share()
+    baseline.snapshot = snapshot
+  ]])
+
+  h.eq(1, child.lua_get("#review.pending()"))
+  h.is_true(child.lua_get("store.round_open(repo)"))
+end
+
+T["Review"]["share leaves the round open when the review file can't be written"] = function()
+  child.lua([[
+    write("a.lua", { "local a = 1" })
+    submit()
+    write("a.lua", { "local a = 100" })
+    store.add_comment(repo, { comment = "Why 100?", code = "local a = 100", filetype = "lua", path = "a.lua", start_line = 1, end_line = 1 })
+
+    local submit_review = store.submit
+    store.submit = function() return nil end
+    review.share()
+    store.submit = submit_review
+  ]])
+
+  h.eq(1, child.lua_get("#review.pending()"))
+  h.is_true(child.lua_get("store.round_open(repo)"))
 end
 
 T["Review"]["share does nothing when there are no comments"] = function()
