@@ -252,9 +252,6 @@ end
 ---Join lines ensuring they have a trailing newline. Fixed #3338
 ---@param lines string[]
 ---@return string
----A terminating newline, or appending a line reports the previous last line as changed
----@param lines string[]
----@return string
 function M.join_with_newline(lines)
   if #lines == 0 then
     return ""
