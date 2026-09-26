@@ -247,6 +247,56 @@ function M.get_status()
   return status
 end
 
+---Get the prompts from every ready MCP server, sorted by server then prompt name
+---@param opts { callback: fun(prompts: { server: string, prompt: MCP.Prompt }[]) }
+---@return nil
+function M.get_prompts(opts)
+  local ready_clients = vim.tbl_filter(function(client)
+    return client.ready
+  end, vim.tbl_values(clients))
+
+  local prompts = {}
+  local pending = #ready_clients
+  if pending == 0 then
+    return opts.callback(prompts)
+  end
+
+  for _, client in ipairs(ready_clients) do
+    client:list_prompts({
+      callback = function(server_prompts)
+        for _, prompt in ipairs(server_prompts) do
+          table.insert(prompts, { server = client.name, prompt = prompt })
+        end
+
+        pending = pending - 1
+        if pending > 0 then
+          return
+        end
+
+        table.sort(prompts, function(a, b)
+          if a.server ~= b.server then
+            return a.server < b.server
+          end
+          return a.prompt.name < b.prompt.name
+        end)
+        opts.callback(prompts)
+      end,
+    })
+  end
+end
+
+---Get a prompt from an MCP server with its arguments filled in
+---@param opts { server: string, name: string, arguments?: table<string, string>, callback: fun(ok: boolean, result_or_error: MCP.GetPromptResult|string) }
+---@return nil
+function M.get_prompt(opts)
+  local client = clients[opts.server]
+  if not (client and client.ready) then
+    return opts.callback(false, string.format("MCP server `%s` is not running", opts.server))
+  end
+
+  client:get_prompt(opts.name, { arguments = opts.arguments, callback = opts.callback })
+end
+
 ---Cancel all pending MCP requests for a specific chat buffer
 ---@param chat_id number
 ---@param reason? string

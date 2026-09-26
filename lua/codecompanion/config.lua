@@ -516,6 +516,13 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
             provider = "default", -- snacks|default
           },
         },
+        ["mcp-prompts"] = {
+          path = "interactions.chat.slash_commands.builtin.mcp_prompts",
+          description = "Insert a prompt from an MCP server",
+          opts = {
+            contains_code = false,
+          },
+        },
         ["now"] = {
           path = "interactions.chat.slash_commands.builtin.now",
           description = "Insert the current date and time",

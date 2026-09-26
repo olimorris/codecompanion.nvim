@@ -62,6 +62,25 @@
 ---@field isError? boolean
 ---@field content MCP.ContentBlock[]
 
+---@class MCP.PromptArgument
+---@field name string
+---@field description? string
+---@field required? boolean
+
+---@class MCP.Prompt
+---@field name string
+---@field title? string
+---@field description? string
+---@field arguments? MCP.PromptArgument[]
+
+---@class MCP.PromptMessage
+---@field role "user"|"assistant"
+---@field content MCP.ContentBlock
+
+---@class MCP.GetPromptResult
+---@field description? string
+---@field messages MCP.PromptMessage[]
+
 ---@meta Tree-sitter
 
 ---@class vim.treesitter.LanguageTree

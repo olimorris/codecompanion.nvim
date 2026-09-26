@@ -12,6 +12,8 @@ To use MCP servers within CodeCompanion, refer to the [tools](/usage/chat-buffer
 
 If [enabled](/configuration/mcp#enabling-servers), the servers will be started when you open a chat buffer for the first time. However, you can use the [MCP slash command](/usage/chat-buffer/slash-commands#mcp) to start or stop servers manually.
 
+Prompts from running servers can be added to the chat buffer with the [MCP prompts slash command](/usage/chat-buffer/slash-commands#mcp-prompts).
+
 ## Implementation
 
 
@@ -27,7 +29,7 @@ If [enabled](/configuration/mcp#enabling-servers), the servers will be started w
 | Client: Elicitation                    | ❌        | |
 | Server: Completion                     | ❌        | |
 | Server: Pagination                     | ✅        |                                                             |
-| Server: Prompts                        | ❌        | |
+| Server: Prompts                        | ✅        | Currently only supports Text Content from user messages     |
 | Server: Resources                      | ❌        | |
 | Server: Tools                          | ✅        | Currently only supports Text Content                        |
 | Server: Tool list changed notification | ❌        | |
