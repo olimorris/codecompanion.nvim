@@ -7,7 +7,7 @@ description: "Configure code reviews in CodeCompanion - comment styling, the rev
 > [!IMPORTANT]
 > Code reviews are still in **beta**. As such, the workflow below is subject to change.
 
-CodeCompanion enables users to undertake code reviews and easily share feedback with an agent. Find out how they work in the [usage guide](/usage/code-review).
+Find out how code reviews work in the [usage guide](/usage/code-review).
 
 ## Disabling
 
@@ -25,7 +25,7 @@ require("codecompanion").setup({
 
 ## Comment Styling
 
-Comments you haven't sent yet are shown as virtual text above the line they were left on. They can be configured with
+Pending comments are shown as virtual text above the line they were left on:
 
 ```lua
 require("codecompanion").setup({
@@ -43,10 +43,9 @@ require("codecompanion").setup({
 })
 ```
 
-
 ## Editor Context
 
-When you share a review with the [code_review](/usage/chat-buffer/editor-context#code-review) editor context, the tag itself is replaced in your message with a short phrase before it's sent. For example, the prompt:
+The [code_review](/usage/chat-buffer/editor-context#code-review) editor context is replaced with a short phrase before your message is sent. For example:
 
 ```md
 Can you action #{code_review}
@@ -119,7 +118,6 @@ require("codecompanion").setup({
           modes = { n = { "i", "I" } },
           callback = "edit",
           description = "Edit the line in the file itself",
-          visible = false,
         },
         keymaps = {
           modes = { n = "?" },
@@ -130,12 +128,12 @@ require("codecompanion").setup({
         next_hunk = {
           modes = { n = "]h" },
           callback = "next_hunk",
-          description = "Move to the next hunk",
+          description = "Move to the next row",
         },
         previous_hunk = {
           modes = { n = "[h" },
           callback = "previous_hunk",
-          description = "Move to the previous hunk",
+          description = "Move to the previous row",
         },
       },
     },
@@ -162,7 +160,7 @@ require("codecompanion").setup({
 
 ## Auto-Accepting Files
 
-Some files never need a human to read them: lockfiles, generated code, compiled docs. List them as globs and they are left out of the review window altogether, closing off with the round as if you had accepted them:
+Lockfiles, generated code and compiled docs rarely need reading. Files matching these globs are left out of the review window, as if you had accepted them:
 
 ```lua
 require("codecompanion").setup({
@@ -176,11 +174,11 @@ require("codecompanion").setup({
 })
 ```
 
-Paths are relative to the repository root and the globs follow `:h vim.glob`, so `*` stays within one directory and `**/` matches any depth.
+Paths are relative to the repository root. Globs follow `:h vim.glob`, so `*` stays within one directory and `**/` matches any depth.
 
 ## Storage Location
 
-You can change the default storage location for code review assets with:
+To change where reviews are stored:
 
 ```lua
 require("codecompanion").setup({

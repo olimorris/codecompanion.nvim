@@ -189,12 +189,12 @@ end
 
 T["Checklist"]["names a row for the function around a call, not the call"] = function()
   child.lua([[
-    write("a.lua", { "local M = {}", "", "function M.complete()", "  return vim", "    .iter({ 'A' })", "    :totable()", "end" })
+    write("a.lua", { "local M = {}", "", "function M.complete()", "  local x = 1", "  return vim", "    .iter({ 'A' })", "    :totable()", "end" })
     baseline.snapshot(repo)
-    write("a.lua", { "local M = {}", "", "function M.complete()", "  return vim", "    .iter({ 'A', 'B' })", "    :totable()", "end" })
+    write("a.lua", { "local M = {}", "", "function M.complete()", "  local x = 2", "  return vim", "    .iter({ 'A', 'B' })", "    :totable()", "end" })
   ]])
 
-  h.eq({ "1 file, 1 hunk", "a.lua  +1 -1", "  +1 -1  in M.complete" }, child.lua_get("build()"))
+  h.eq({ "1 file, 2 hunks in 1 row", "a.lua  +2 -2", "  +2 -2  in M.complete" }, child.lua_get("build()"))
 end
 
 T["Checklist"]["accepting a row settles an addition git folds into the change beside it"] = function()
@@ -239,7 +239,7 @@ T["Checklist"]["DOES NOT group hunks in different functions"] = function()
   ]])
 
   local lines = child.lua_get("build()")
-  h.eq({ "1 file, 2 hunks", "a.lua  +2 -2", "  +1 -1  in first", "  +1 -1  in second" }, lines)
+  h.eq({ "1 file, 2 hunks", "a.lua  +2 -2", "  +1 -1  return 10", "  +1 -1  return 20" }, lines)
 end
 
 T["Checklist"]["groups hunks a git diff context apart when there is no parser"] = function()
@@ -288,7 +288,7 @@ T["Checklist"]["shows far fewer rows than hunks across a round"] = function()
     "2 files, 7 hunks in 3 rows, 1 auto-accepted",
     "a.lua  +4 -4",
     "  +3 -3  in M.first",
-    "  +1 -1  in M.second",
+    "  +1 -1  return 20",
     "notes.txt  +3 -3",
     "  +3 -3  ONE",
   }, child.lua_get("build()"))

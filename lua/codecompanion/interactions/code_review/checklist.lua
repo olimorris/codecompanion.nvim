@@ -325,8 +325,11 @@ local function summarise(opts)
   local scope = opts.group.scope
   local name = scope and scope:field("name")[1]
   if scope and name and opts.source then
-    local relation = is_new_scope({ scope = scope, file_diff = file_diff, hunks = opts.group.hunks }) and "new" or "in"
-    label = relation .. " " .. vim.treesitter.get_node_text(name, opts.source)
+    local is_new = is_new_scope({ scope = scope, file_diff = file_diff, hunks = opts.group.hunks })
+    -- A single change reads best as the line itself; the scope only earns its place when it summarises more
+    if is_new or #opts.group.hunks > 1 then
+      label = (is_new and "new " or "in ") .. vim.treesitter.get_node_text(name, opts.source)
+    end
   end
 
   local added_text, removed_text = fmt("+%d", added), fmt("-%d", removed)

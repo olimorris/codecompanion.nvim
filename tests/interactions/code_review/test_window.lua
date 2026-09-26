@@ -78,7 +78,7 @@ T["Window"]["accepting a row takes it off the list and leaves the file alone"] =
   child.lua("write_two_rows(); window.open()")
   child.type_keys("j", "ga")
 
-  h.eq({ "1 file, 1 hunk", "a.lua  +1 -1", "  +1 -1  in second" }, child.lua_get("get_rows()"))
+  h.eq({ "1 file, 1 hunk", "a.lua  +1 -1", "  +1 -1  return 20" }, child.lua_get("get_rows()"))
   h.eq("  return 10", child.lua_get("read('a.lua')[2]"))
 end
 
@@ -93,14 +93,14 @@ T["Window"]["undoing an accept brings the row back"] = function()
   child.lua("write_two_rows(); window.open()")
   child.type_keys("j", "ga", "u")
 
-  h.eq({ "1 file, 2 hunks", "a.lua  +2 -2", "  +1 -1  in first", "  +1 -1  in second" }, child.lua_get("get_rows()"))
+  h.eq({ "1 file, 2 hunks", "a.lua  +2 -2", "  +1 -1  return 10", "  +1 -1  return 20" }, child.lua_get("get_rows()"))
 end
 
 T["Window"]["reverting a row puts the baseline lines back in the file"] = function()
   child.lua("write_two_rows(); window.open()")
   child.type_keys("j", "gr")
 
-  h.eq({ "1 file, 1 hunk", "a.lua  +1 -1", "  +1 -1  in second" }, child.lua_get("get_rows()"))
+  h.eq({ "1 file, 1 hunk", "a.lua  +1 -1", "  +1 -1  return 20" }, child.lua_get("get_rows()"))
   h.eq("  return 1", child.lua_get("read('a.lua')[2]"))
   h.eq("  return 20", child.lua_get("read('a.lua')[5]"))
 end
