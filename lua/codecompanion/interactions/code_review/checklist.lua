@@ -336,18 +336,19 @@ local function summarise(opts)
   local added_start = 2
   local removed_start = added_start + #added_text + 1
 
-  local text = fmt("  %s %s  %s", added_text, removed_text, label)
+  local text = fmt("  %s %s  ", added_text, removed_text)
   local spans = {
     added = { added_start, added_start + #added_text },
     removed = { removed_start, removed_start + #removed_text },
   }
 
+  -- Ahead of the label so a long changed line can't push it out of the non-wrapping pane
   if opts.sent and #opts.sent > 0 then
-    text = text .. " ↳"
-    spans.sent = { #text - #"↳", #text }
+    spans.sent = { #text, #text + #"↳" }
+    text = text .. "↳ "
   end
 
-  return { text = text, spans = spans }
+  return { text = text .. label, spans = spans }
 end
 
 ---The checklist row for a file: its name, the lines left to review in it and any diagnostics against it

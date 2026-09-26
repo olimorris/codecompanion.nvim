@@ -303,7 +303,7 @@ T["Checklist"]["marks a row with the comment sent against its lines last round"]
     write("a.lua", { "local A = 10", "local b = 2", "local c = 3" })
   ]])
 
-  h.eq({ "1 file, 1 hunk", "a.lua  +1 -1", "  +1 -1  local A = 10 ↳" }, child.lua_get("build()"))
+  h.eq({ "1 file, 1 hunk", "a.lua  +1 -1", "  +1 -1  ↳ local A = 10" }, child.lua_get("build()"))
   h.eq({ "Use a constant" }, child.lua_get("entry_field(3, 'sent')"))
 end
 
