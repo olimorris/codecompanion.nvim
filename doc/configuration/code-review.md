@@ -1,8 +1,11 @@
 ---
-description: "Configure code reviews in CodeCompanion - comment styling, the diff view and its providers, quickfix keymaps, and where reviews are stored."
+description: "Configure code reviews in CodeCompanion - comment styling, the review window's keymaps, and where reviews are stored."
 ---
 
 # Configuring Code Reviews
+
+> [!IMPORTANT]
+> Code reviews are still in **beta**. As such, the workflow below is subject to change.
 
 CodeCompanion enables users to undertake code reviews and easily share feedback with an agent. Find out how they work in the [usage guide](/usage/code-review).
 
@@ -29,9 +32,9 @@ require("codecompanion").setup({
   interactions = {
     code_review = {
       display = {
-        virtual_text = {
+        comments = {
           enabled = true, -- Show pending comments as virtual text in the buffer
-          icon = "💬 ", -- The icon to use for virtual text
+          icon = "💬 ", -- The icon to use for a comment
           overflow = "trunc", -- See `:h nvim_buf_set_extmark` for `virt_lines_overflow`
         },
       },
@@ -40,40 +43,6 @@ require("codecompanion").setup({
 })
 ```
 
-
-## Diff View
-
-Pressing `d` on a quickfix entry shows it as a diff against the baseline. The diff can be configurd with:
-
-```lua
-require("codecompanion").setup({
-  interactions = {
-    code_review = {
-      display = {
-        diff = {
-          enabled = true, -- Set to false to render nothing, especially if you're using your own provider
-          layout = "vertical", -- vertical or horizontal
-          provider = "native", -- "native": Neovim's own diff (default), or a function to render the hunk yourself
-        },
-      },
-    },
-  },
-})
-```
-
-If you don't wish to use the `native` Neovim provider, you can set a custom function. A function provider receives the hunk to render:
-
-```lua
-provider = function(target)
-  -- target = { root, path, baseline_ref, line, id }
-  vim.cmd("DiffviewOpen " .. target.baseline_ref .. " -- " .. target.path)
-end,
-```
-
-`baseline_ref` is the stable `refs/worktree/codecompanion/baseline` alias, so the same value works with `gitsigns`, `diffview`, or any git-diff plugin.
-
-> [!TIP]
-> The native provider does not touch your `diffopt` config
 
 ## Editor Context
 
@@ -109,7 +78,7 @@ require("codecompanion").setup({
 
 ## Keymaps
 
-Keymaps are bound solely to the code review's quickfix window. The default keymaps are:
+Keymaps are bound solely to the review window's two panels. The default keymaps are:
 
 ```lua
 require("codecompanion").setup({
@@ -117,30 +86,64 @@ require("codecompanion").setup({
     code_review = {
       keymaps = {
         accept = {
-          modes = { n = "a" },
-          callback = "keymaps.accept",
-          description = "Accept the hunk under the cursor",
+          modes = { n = "ga" },
+          callback = "accept",
+          description = "Accept the hunk, or whole file, under the cursor",
+        },
+        revert = {
+          modes = { n = "gr" },
+          callback = "revert",
+          description = "Revert the hunk under the cursor",
         },
         comment = {
-          modes = { n = "c" },
-          callback = "keymaps.comment",
-          description = "Comment on the hunk under the cursor",
+          modes = { n = "gc" },
+          callback = "comment",
+          description = "Comment on the line under the cursor",
         },
-        diff = {
-          modes = { n = "d" },
-          callback = "keymaps.diff",
-          description = "Diff the hunk under the cursor against the baseline",
+        comments = {
+          modes = { n = "gC" },
+          callback = "comments",
+          description = "Edit the pending comments by hand",
         },
-        ignore = {
-          modes = { n = "x" },
-          callback = "keymaps.ignore",
-          description = "Ignore the hunk's file until the baseline advances",
+        share = {
+          modes = { n = "gs" },
+          callback = "share",
+          description = "Share comments for an agent outside of CodeCompanion",
+        },
+        undo = {
+          modes = { n = "u" },
+          callback = "undo",
+          description = "Undo the last accept or revert",
+        },
+        edit = {
+          modes = { n = { "i", "I" } },
+          callback = "edit",
+          description = "Edit the line in the file itself",
+          visible = false,
+        },
+        keymaps = {
+          modes = { n = "?" },
+          callback = "keymaps",
+          description = "Show these keymaps",
+          visible = false,
+        },
+        next_hunk = {
+          modes = { n = "]h" },
+          callback = "next_hunk",
+          description = "Move to the next hunk",
+        },
+        previous_hunk = {
+          modes = { n = "[h" },
+          callback = "previous_hunk",
+          description = "Move to the previous hunk",
         },
       },
     },
   },
 })
 ```
+
+Pressing `?` in either panel lists the keymaps. Set `visible = false` to keep one out of that list.
 
 To disable a keymap:
 
@@ -149,13 +152,31 @@ require("codecompanion").setup({
   interactions = {
     code_review = {
       keymaps = {
-        -- Disable the ignore keymap
-        ignore = false,
+        -- Disable the share keymap
+        share = false,
       },
     },
   },
 })
 ```
+
+## Auto-Accepting Files
+
+Some files never need a human to read them: lockfiles, generated code, compiled docs. List them as globs and they are left out of the review window altogether, closing off with the round as if you had accepted them:
+
+```lua
+require("codecompanion").setup({
+  interactions = {
+    code_review = {
+      opts = {
+        auto_accept = { "**/*.lock", "**/package-lock.json", "doc/**/*.txt" },
+      },
+    },
+  },
+})
+```
+
+Paths are relative to the repository root and the globs follow `:h vim.glob`, so `*` stays within one directory and `**/` matches any depth.
 
 ## Storage Location
 

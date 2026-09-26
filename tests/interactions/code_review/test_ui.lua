@@ -61,7 +61,7 @@ T["UI"]["shows the pending comments for a file, and clears them when the review 
     ui.refresh()
     bufnr = open("a.txt")
 
-    icon = config.interactions.code_review.display.virtual_text.icon
+    icon = config.interactions.code_review.display.comments.icon
     expected = { icon .. "Why 1?", icon .. "Outlived", icon .. "its code" }
   ]])
 

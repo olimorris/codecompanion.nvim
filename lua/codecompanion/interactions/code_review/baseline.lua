@@ -1,3 +1,4 @@
+local diff = require("codecompanion.diff")
 local hash = require("codecompanion.utils.hash")
 local log = require("codecompanion.utils.log")
 
@@ -23,9 +24,11 @@ local CONSTANTS = {
 }
 
 ---@class CodeCompanion.CodeReview.Hunk
+---@field added number Lines the hunk adds
 ---@field id number Content hash of the hunk, stable until the change itself changes
----@field line number First changed line in the current version of the file
+---@field line number First changed line in the current version of the file, or the line a pure deletion sits after
 ---@field path string Path of the changed file, relative to the repo root
+---@field removed number Lines the hunk removes
 ---@field summary string Added/removed counts plus the first line the hunk changes, e.g. "+3 -1 local timeout = 30"
 
 local M = {}
@@ -235,11 +238,15 @@ local function parse_hunks(output)
     elseif new_start and path then
       finish()
       body = {}
+      -- A count of one is left out of the header, so an empty capture means 1
+      local added = tonumber(new_count) or 1
+      local removed = tonumber(old_count) or 1
       table.insert(hunks, {
+        added = added,
         path = path,
-        -- Pure deletions report the line before the removal, which can be 0
-        line = math.max(tonumber(new_start) or 1, 1),
-        summary = fmt("+%s -%s", new_count ~= "" and new_count or "1", old_count ~= "" and old_count or "1"),
+        line = tonumber(new_start) or 1,
+        removed = removed,
+        summary = fmt("+%d -%d", added, removed),
       })
     elseif body and line:match("^[+%-]") then
       table.insert(body, line)
@@ -317,6 +324,28 @@ function M.get(root)
   return sha
 end
 
+---The commit where the checked-out branch left the default branch
+---@param root string
+---@return string|nil
+function M.fork_point(root)
+  local default_branch = git(root, { "symbolic-ref", "--quiet", "--short", "refs/remotes/origin/HEAD" }) or "main"
+  return git(root, { "merge-base", "HEAD", default_branch })
+end
+
+---Point the baseline ref at an existing commit
+---@param root string
+---@param commit string
+---@return boolean
+function M.set(root, commit)
+  local ref = ref_for(root)
+  if not git(root, { "update-ref", ref, commit }) then
+    return false
+  end
+
+  sync_alias(root, ref)
+  return true
+end
+
 ---Snapshot the worktree to the baseline ref, returning the new commit sha
 ---@param root string
 ---@return string|nil
@@ -359,7 +388,17 @@ function M.diff(root)
   local ref = ref_for(root)
   sync_alias(root, ref)
 
-  local output = git(root, { "diff", "--no-color", "--no-ext-diff", "--unified=0", ref, worktree })
+  -- Split the same way as the review window's `vim.diff`, or its rows can't be matched to these hunks
+  local output = git(root, {
+    "diff",
+    "--no-color",
+    "--no-ext-diff",
+    "--unified=0",
+    "--diff-algorithm=" .. diff.LINE_OPTS.algorithm,
+    diff.LINE_OPTS.indent_heuristic and "--indent-heuristic" or "--no-indent-heuristic",
+    ref,
+    worktree,
+  })
   if not output or output == "" then
     return {}
   end

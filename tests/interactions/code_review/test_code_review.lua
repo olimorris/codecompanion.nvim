@@ -13,7 +13,6 @@ T = new_set({
 
         baseline = require("codecompanion.interactions.code_review.baseline")
         config = require("codecompanion.config")
-        keymaps = require("codecompanion.interactions.code_review.keymaps")
         review = require("codecompanion.interactions.code_review")
         store = require("codecompanion.interactions.code_review.store")
 
@@ -23,6 +22,10 @@ T = new_set({
 
         write = function(path, lines)
           vim.fn.writefile(lines, vim.fs.joinpath(repo, path))
+        end
+
+        git = function(...)
+          vim.system({ "git", "-C", repo, "-c", "user.name=Test", "-c", "user.email=test@test", ... }):wait()
         end
 
         submit = function()
@@ -43,15 +46,6 @@ T = new_set({
         package.loaded["codecompanion.utils"].notify = function(message)
           table.insert(notifications, message)
         end
-
-        -- Put a list of the user's own in the quickfix, so a review taking it over is visible
-        own_quickfix = function()
-          vim.fn.setqflist({}, " ", { title = "the user's own list", items = { { text = "a hit" } } })
-        end
-
-        review_owns_quickfix = function()
-          return vim.fn.getqflist({ title = 0 }).title == "CodeCompanion Code Review"
-        end
       ]])
     end,
     pre_case = function()
@@ -65,15 +59,6 @@ T = new_set({
         repo = vim.uv.fs_realpath(repo)
         vim.system({ "git", "-C", repo, "init", "--quiet" }):wait()
         vim.cmd.cd(repo)
-
-        -- Every case shares one quickfix buffer, so release any maps the last one left on it
-        keymaps.restore()
-
-        -- Free the whole stack, so a case that never reaches `setqflist` can't read the last one's list
-        vim.fn.setqflist({}, "f")
-
-        -- One case swaps in a provider of its own, which would otherwise stand for the rest of them
-        config.interactions.code_review.display.diff.provider = "native"
 
         notifications = {}
       ]])
@@ -215,87 +200,64 @@ T["Review"]["share does nothing when there are no comments"] = function()
   h.is_false(child.lua_get([[require("codecompanion.utils.files").exists(store.review_path(repo))]]))
 end
 
-T["Review"]["approve sets a baseline when none exists"] = function()
+T["Review"]["closing a round off sets a baseline when none exists"] = function()
   child.lua([[
     write("a.lua", { "local a = 1" })
-    review.approve()
+    review.mark_reviewed()
   ]])
 
   h.expect_match(child.lua_get("baseline.get(repo)"), "^%x+$")
   h.eq(0, child.lua_get("#baseline.diff(repo)"))
 end
 
-T["Review"]["approve advances the baseline but keeps pending comments"] = function()
+T["Review"]["closing a round off forgets the comments sent before it"] = function()
+  child.lua([[
+    write("a.lua", { "local a = 1" })
+    store.write_sent(repo, { { path = "a.lua", start_line = 1, end_line = 1, code = "", comment = "Rename it" } })
+    review.mark_reviewed()
+  ]])
+
+  h.eq(0, child.lua_get("#store.sent(repo)"))
+end
+
+T["Review"]["Branch reviews every change since the branch left main"] = function()
+  child.lua([[
+    write("a.lua", { "local a = 1" })
+    git("add", "--all")
+    git("commit", "--quiet", "-m", "init")
+    git("branch", "-M", "main")
+    git("checkout", "--quiet", "-b", "feature")
+
+    write("b.lua", { "local b = 1" })
+    git("add", "--all")
+    git("commit", "--quiet", "-m", "add b")
+    write("a.lua", { "local a = 10" })
+
+    review.mark_reviewed()
+    store.accept(repo, 123)
+
+    review.open_window = function() end
+    review.review_branch()
+
+    -- A prompt sent mid-review must not snapshot over the start of the branch
+    submit()
+  ]])
+
+  h.eq(0, child.lua_get("vim.tbl_count(store.accepted(repo))"))
+  h.eq(
+    { "a.lua", "b.lua" },
+    child.lua_get("vim.iter(baseline.diff(repo)):map(function(hunk) return hunk.path end):totable()")
+  )
+end
+
+T["Review"]["closing a round off keeps pending comments"] = function()
   child.lua([[
     store.add_comment(repo, { comment = "Still pending", code = "local a", filetype = "lua", path = "a.lua", start_line = 1, end_line = 1 })
-    review.approve()
+    review.mark_reviewed()
   ]])
 
   h.eq(1, child.lua_get("#review.pending()"))
   h.expect_match(child.lua_get("baseline.get(repo)"), "^%x+$")
-end
-
-T["Review"]["open leaves the quickfix alone when there is no baseline"] = function()
-  child.lua([[
-    own_quickfix()
-    review.open()
-  ]])
-
-  h.is_false(child.lua_get("review_owns_quickfix()"))
-end
-
-T["Review"]["open leaves the quickfix alone when nothing has changed since the baseline"] = function()
-  child.lua([[
-    write("a.lua", { "local a = 1" })
-    baseline.snapshot(repo)
-    own_quickfix()
-    review.open()
-  ]])
-
-  h.is_false(child.lua_get("review_owns_quickfix()"))
-end
-
-T["Review"]["open leaves the quickfix alone when the worktree can't be read"] = function()
-  child.lua([[
-    write("a.lua", { "local a = 1" })
-    baseline.snapshot(repo)
-    write("a.lua", { "local a = 100" })
-
-    -- A lock another Neovim holds, so the diff can't be trusted and must not be read as "no edits"
-    local index = vim.fs.joinpath(
-      vim.trim(vim.system({ "git", "-C", repo, "rev-parse", "--absolute-git-dir" }, { text = true }):wait().stdout),
-      "codecompanion-index"
-    )
-    vim.fn.writefile({}, index .. ".lock")
-
-    own_quickfix()
-    review.open()
-  ]])
-
-  h.is_false(child.lua_get("review_owns_quickfix()"))
-end
-
-T["Review"]["open lists a quickfix entry per hunk, however the change was made"] = function()
-  child.lua([[
-    write("a.lua", { "local a = 1", "local b = 2", "local c = 3" })
-    write("b.lua", { "local d = 4" })
-    baseline.snapshot(repo)
-
-    -- The agent's tools report a.lua, but the b.lua edit it made with a shell command is reported by nothing
-    write("a.lua", { "local a = 1", "local b = 20", "local c = 3" })
-    write("b.lua", { "local d = 40" })
-
-    own_quickfix()
-    review.open()
-  ]])
-
-  local qf = child.lua_get("vim.fn.getqflist()")
-  h.eq(2, #qf)
-  h.eq(2, qf[1].lnum)
-  h.is_true(child.lua_get("vim.endswith(vim.fn.bufname(vim.fn.getqflist()[1].bufnr), 'a.lua')"))
-  h.is_true(child.lua_get("vim.endswith(vim.fn.bufname(vim.fn.getqflist()[2].bufnr), 'b.lua')"))
-  -- Anchors the cases asserting a review *didn't* take the quickfix over
-  h.is_true(child.lua_get("review_owns_quickfix()"))
 end
 
 T["Review"]["the first submission after a review re-baselines, dropping the user's own work"] = function()
@@ -303,7 +265,7 @@ T["Review"]["the first submission after a review re-baselines, dropping the user
     write("a.lua", { "local a = 1" })
     submit()
     write("a.lua", { "local a = 1", "-- from the agent" })
-    review.approve()
+    review.mark_reviewed()
 
     -- A pull brings work of its own, and the user edits a file by hand
     write("b.lua", { "-- from upstream" })
@@ -311,11 +273,11 @@ T["Review"]["the first submission after a review re-baselines, dropping the user
     submit()
 
     write("a.lua", { "local a = 1", "-- from the agent", "-- typed by hand", "-- from the next round" })
-    review.open()
+    hunks = baseline.diff(repo)
   ]])
 
-  h.eq(1, child.lua_get("#vim.fn.getqflist()"))
-  h.eq("+1 -0 -- from the next round", child.lua_get("vim.fn.getqflist()[1].text"))
+  h.eq(1, child.lua_get("#hunks"))
+  h.eq("+1 -0 -- from the next round", child.lua_get("hunks[1].summary"))
 end
 
 T["Review"]["a round the agent changed nothing in closes, so the next one re-baselines"] = function()
@@ -333,12 +295,12 @@ T["Review"]["a round the agent changed nothing in closes, so the next one re-bas
     submit()
 
     write("a.lua", { "local a = 1", "-- typed by hand", "-- from the agent" })
-    review.open()
+    hunks = baseline.diff(repo)
   ]])
 
   h.is_false(child.lua_get("closed"))
-  h.eq(1, child.lua_get("#vim.fn.getqflist()"))
-  h.eq("+1 -0 -- from the agent", child.lua_get("vim.fn.getqflist()[1].text"))
+  h.eq(1, child.lua_get("#hunks"))
+  h.eq("+1 -0 -- from the agent", child.lua_get("hunks[1].summary"))
 end
 
 T["Review"]["a round the agent edited in stays open"] = function()
@@ -363,8 +325,8 @@ T["Review"]["a round still to be reviewed keeps its baseline"] = function()
     submit()
     after_edit = baseline.get(repo)
 
-    review.approve()
-    approved = baseline.get(repo)
+    review.mark_reviewed()
+    reviewed = baseline.get(repo)
 
     -- A comment they haven't sent yet
     store.add_comment(repo, { comment = "Why 10?", code = "local a = 10", filetype = "lua", path = "a.lua", start_line = 1, end_line = 1 })
@@ -373,207 +335,7 @@ T["Review"]["a round still to be reviewed keeps its baseline"] = function()
   ]])
 
   h.eq(child.lua_get("before"), child.lua_get("after_edit"))
-  h.eq(child.lua_get("approved"), child.lua_get("after_comment"))
-end
-
-T["Review"]["accept keeps the hunk out of later reviews, until the baseline advances"] = function()
-  child.lua([[
-    write("a.lua", { "local a = 1" })
-    write("b.lua", { "local b = 2" })
-    baseline.snapshot(repo)
-    write("a.lua", { "local a = 10" })
-    write("b.lua", { "local b = 20" })
-
-    -- open leaves the cursor in the quickfix window, on the a.lua hunk
-    review.open()
-    review.accept()
-  ]])
-
-  h.eq(1, child.lua_get("#vim.fn.getqflist()"))
-
-  child.lua([[review.open()]])
-  h.eq(1, child.lua_get("#vim.fn.getqflist()"))
-  h.is_true(child.lua_get("vim.endswith(vim.fn.bufname(vim.fn.getqflist()[1].bufnr), 'b.lua')"))
-
-  child.lua([[review.open({ scope = "all" })]])
-  h.eq(2, child.lua_get("#vim.fn.getqflist()"))
-
-  child.lua([[review.approve()]])
-  h.is_true(child.lua_get("next(store.accepted(repo)) == nil"))
-end
-
-T["Review"]["an accepted hunk returns when the change changes"] = function()
-  child.lua([[
-    write("a.lua", { "local a = 1" })
-    baseline.snapshot(repo)
-    write("a.lua", { "local a = 10" })
-
-    review.open()
-    review.accept()
-    write("a.lua", { "local a = 100" })
-    review.open()
-  ]])
-
-  h.eq(1, child.lua_get("#vim.fn.getqflist()"))
-end
-
-T["Review"]["accept does nothing without a review entry"] = function()
-  child.lua([[
-    vim.fn.setqflist({}, " ", { items = {} })
-    review.accept()
-  ]])
-
-  h.is_true(child.lua_get("next(store.accepted(repo)) == nil"))
-end
-
-T["Review"]["ignore drops every hunk in the file, until the baseline advances"] = function()
-  child.lua([[
-    write("a.lua", { "local a = 1", "local b = 2", "local c = 3" })
-    write("b.lua", { "local d = 4" })
-    baseline.snapshot(repo)
-    write("a.lua", { "local a = 10", "local b = 2", "local c = 30" })
-    write("b.lua", { "local d = 40" })
-
-    -- open leaves the cursor in the quickfix window, on the first a.lua hunk
-    review.open()
-    review.ignore()
-  ]])
-
-  h.eq(1, child.lua_get("#vim.fn.getqflist()"))
-
-  child.lua([[review.open()]])
-  h.eq(1, child.lua_get("#vim.fn.getqflist()"))
-  h.is_true(child.lua_get("vim.endswith(vim.fn.bufname(vim.fn.getqflist()[1].bufnr), 'b.lua')"))
-
-  child.lua([[review.open({ scope = "all" })]])
-  h.eq(3, child.lua_get("#vim.fn.getqflist()"))
-
-  child.lua([[review.approve()]])
-  h.is_true(child.lua_get("next(store.ignored(repo)) == nil"))
-end
-
-T["Review"]["comment from the quickfix list targets the hunk"] = function()
-  child.lua([[
-    stub_input("Why 10?")
-    write("a.lua", { "local a = 1" })
-    baseline.snapshot(repo)
-    write("a.lua", { "local a = 10" })
-
-    review.open()
-    review.comment()
-  ]])
-
-  local pending = child.lua_get("review.pending()")
-  h.eq(1, #pending)
-  h.eq("Why 10?", pending[1].comment)
-  h.eq("a.lua", pending[1].path)
-  h.eq("local a = 10", pending[1].code)
-  h.eq(1, pending[1].start_line)
-  h.eq(1, pending[1].end_line)
-end
-
-T["Review"]["accepting or ignoring a hunk closes the diff it was being read in"] = function()
-  child.lua([[
-    in_diff_mode = function()
-      return #vim.tbl_filter(function(win)
-        return vim.wo[win].diff
-      end, vim.api.nvim_list_wins())
-    end
-
-    -- An extension-less name keeps filetype plugins out of the test
-    write("notes", { "local a = 1" })
-    write("other", { "local b = 2" })
-    baseline.snapshot(repo)
-    write("notes", { "local a = 10" })
-    write("other", { "local b = 20" })
-
-    review.open()
-    review.open_diff()
-    opened = in_diff_mode()
-
-    review.accept()
-    after_accept = in_diff_mode()
-
-    review.open_diff()
-    review.ignore()
-    after_ignore = in_diff_mode()
-  ]])
-
-  h.eq(2, child.lua_get("opened"))
-  h.eq(0, child.lua_get("after_accept"))
-  h.eq(0, child.lua_get("after_ignore"))
-end
-
-T["Review"]["open_diff hands the hunk under the cursor to the configured provider"] = function()
-  child.lua([[
-    -- NOTE: Why is this so tightly coupled to the config?!
-    config.interactions.code_review.display.diff.provider = function(target)
-      captured = target
-    end
-    write("a.lua", { "local a = 1" })
-    baseline.snapshot(repo)
-    write("a.lua", { "local a = 10" })
-
-    review.open()
-    review.open_diff()
-  ]])
-
-  h.eq("a.lua", child.lua_get("captured.path"))
-  h.eq(1, child.lua_get("captured.line"))
-  h.eq(child.lua_get("baseline.alias()"), child.lua_get("captured.baseline_ref"))
-  h.is_true(child.lua_get("captured.id ~= nil"))
-end
-
-T["Review"]["the review keymaps take the quickfix window, and give it back to another list"] = function()
-  child.lua([[
-    -- Which keys are bound is the user's business, so the whole test drives off the config
-    review_keymaps = function()
-      local descriptions = vim.tbl_map(function(map)
-        return map.desc
-      end, vim.api.nvim_buf_get_keymap(0, "n"))
-
-      local found = {}
-      for name, keymap in pairs(config.interactions.code_review.keymaps) do
-        if vim.list_contains(descriptions, keymap.description) then
-          table.insert(found, name)
-        end
-      end
-      table.sort(found)
-      return found
-    end
-
-    write("a.lua", { "local a = 1" })
-    baseline.snapshot(repo)
-    write("a.lua", { "local a = 10" })
-
-    all_keymaps = vim.tbl_keys(config.interactions.code_review.keymaps)
-    table.sort(all_keymaps)
-
-    accept_key = config.interactions.code_review.keymaps.accept.modes.n
-    vim.cmd.copen()
-    vim.keymap.set("n", accept_key, "j", { buffer = 0, desc = "the user's own map" })
-
-    review.open()
-    during_review = review_keymaps()
-
-    vim.fn.setqflist({}, " ", { title = "grep", items = { { text = "hit" } } })
-  ]])
-
-  h.eq(child.lua_get("all_keymaps"), child.lua_get("during_review"))
-
-  -- The review's own key, pressed on a list it doesn't own, hands the window back
-  child.type_keys(child.lua_get("accept_key"))
-
-  child.lua([[
-    after_takeover = review_keymaps()
-    user_map = vim.iter(vim.api.nvim_buf_get_keymap(0, "n")):find(function(map)
-      return map.lhs == accept_key
-    end)
-  ]])
-
-  h.eq({}, child.lua_get("after_takeover"))
-  h.eq("the user's own map", child.lua_get("user_map.desc"))
-  h.eq(0, child.lua_get("#notifications"))
+  h.eq(child.lua_get("reviewed"), child.lua_get("after_comment"))
 end
 
 return T

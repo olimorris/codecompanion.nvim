@@ -157,36 +157,20 @@ function M.comments_path(root)
   return vim.fs.joinpath(get_branch_dir(root), "comments.md")
 end
 
----Return all pending comments for a repo
----@param root string
+---@param path string
 ---@return CodeCompanion.CodeReview.Comment[]
-function M.comments(root)
-  local path = M.comments_path(root)
+local function read_blocks(path)
   if not files.exists(path) then
     return {}
   end
-
   return parse(files.read(path))
 end
 
----Append a comment to the store
----@param root string
----@param comment CodeCompanion.CodeReview.Comment
----@return nil
-function M.add_comment(root, comment)
-  local path = M.comments_path(root)
-  local existing = files.exists(path) and files.read(path) or ""
-  local separator = existing ~= "" and "\n" or ""
-
-  files.write_to_path(path, existing .. separator .. format(comment) .. "\n")
-end
-
----Write the pending comments to disk, or, delete the file if there are none
----@param root string
+---Write comments as markdown sections, or delete the file when there are none
+---@param path string
 ---@param comments CodeCompanion.CodeReview.Comment[]
 ---@return nil
-function M.write_comments(root, comments)
-  local path = M.comments_path(root)
+local function write_blocks(path, comments)
   if #comments == 0 then
     return delete(path)
   end
@@ -197,6 +181,39 @@ function M.write_comments(root, comments)
   end
 
   files.write_to_path(path, table.concat(blocks, "\n") .. "\n")
+end
+
+---Return all pending comments for a repo
+---@param root string
+---@return CodeCompanion.CodeReview.Comment[]
+function M.comments(root)
+  return read_blocks(M.comments_path(root))
+end
+
+---@param path string
+---@param comment CodeCompanion.CodeReview.Comment
+---@return nil
+local function append_block(path, comment)
+  local existing = files.exists(path) and files.read(path) or ""
+  local separator = existing ~= "" and "\n" or ""
+
+  files.write_to_path(path, existing .. separator .. format(comment) .. "\n")
+end
+
+---Append a comment to the store
+---@param root string
+---@param comment CodeCompanion.CodeReview.Comment
+---@return nil
+function M.add_comment(root, comment)
+  append_block(M.comments_path(root), comment)
+end
+
+---Write the pending comments to disk, or, delete the file if there are none
+---@param root string
+---@param comments CodeCompanion.CodeReview.Comment[]
+---@return nil
+function M.write_comments(root, comments)
+  write_blocks(M.comments_path(root), comments)
 end
 
 ---Delete all pending comments for a repo
@@ -225,6 +242,28 @@ function M.submit(root)
   end
 
   return M.review_path(root)
+end
+
+local sent_path = branch_file("sent.md")
+
+---The comments sent with the last review, kept so the agent's response can be read against them
+---@param root string
+---@return CodeCompanion.CodeReview.Comment[]
+function M.sent(root)
+  return read_blocks(sent_path(root))
+end
+
+---@param root string
+---@param comments CodeCompanion.CodeReview.Comment[]
+---@return nil
+function M.write_sent(root, comments)
+  write_blocks(sent_path(root), comments)
+end
+
+---@param root string
+---@return nil
+function M.clear_sent(root)
+  delete(sent_path(root))
 end
 
 local round_path = branch_file("round")
@@ -267,35 +306,28 @@ function M.accept(root, id)
   append(accepted_path(root), tostring(id))
 end
 
+---Take a hunk back out of the accepted set
+---@param root string
+---@param id number|string
+---@return nil
+function M.unaccept(root, id)
+  local path = accepted_path(root)
+  local kept = vim.tbl_filter(function(line)
+    return line ~= tostring(id)
+  end, read_lines(path))
+
+  if #kept == 0 then
+    return delete(path)
+  end
+
+  files.write_to_path(path, table.concat(kept, "\n") .. "\n")
+end
+
 ---Forget the accepted hunks for a repo
 ---@param root string
 ---@return nil
 function M.clear_accepted(root)
   delete(accepted_path(root))
-end
-
-local ignored_files_path = branch_file("ignored_files.txt")
-
----Return the files the user has ignored, as a set of root-relative paths
----@param root string
----@return table<string, boolean>
-function M.ignored(root)
-  return read_set(ignored_files_path(root))
-end
-
----Record a file the user has ignored
----@param root string
----@param path string A path relative to the root
----@return nil
-function M.ignore(root, path)
-  append(ignored_files_path(root), path)
-end
-
----Forget the ignored files for a repo
----@param root string
----@return nil
-function M.clear_ignored(root)
-  delete(ignored_files_path(root))
 end
 
 return M

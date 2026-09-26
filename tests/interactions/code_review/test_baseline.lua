@@ -112,7 +112,7 @@ T["Baseline"]["diff reports deleted files"] = function()
   local hunks = child.lua_get("baseline.diff(repo)")
   h.eq(1, #hunks)
   h.eq("b.lua", hunks[1].path)
-  h.eq(1, hunks[1].line)
+  h.eq(0, hunks[1].line)
   -- Nothing was added, so the removed line is all there is to show
   h.eq("+0 -2 local b = 1", hunks[1].summary)
 end
