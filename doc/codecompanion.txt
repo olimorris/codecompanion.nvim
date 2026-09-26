@@ -941,6 +941,9 @@ started when you open a chat buffer for the first time. However, you can use
 the |codecompanion-usage-chat-buffer-slash-commands-mcp| to start or stop
 servers manually.
 
+Prompts from running servers can be added to the chat buffer with the
+|codecompanion-usage-chat-buffer-slash-commands-mcp-prompts|.
+
 
 IMPLEMENTATION                              *codecompanion-mcp-implementation*
 
@@ -968,7 +971,8 @@ IMPLEMENTATION                              *codecompanion-mcp-implementation*
 
   Server: Pagination        ✅          
 
-  Server: Prompts           ❌          
+  Server: Prompts           ✅          Currently only supports Text Content
+                                        from user messages
 
   Server: Resources         ❌          
 
@@ -6303,6 +6307,18 @@ This is applied at a global level, so starting/stopping servers in one chat
 buffer will affect all other chat buffers. A `snacks.nvim` and `vim.ui.select`
 provider is available for selecting which MCP servers to start/stop.
 
+
+/MCP-PROMPTS ~
+
+The `mcp-prompts` slash command adds a prompt
+<https://modelcontextprotocol.io/specification/2025-11-25/server/prompts> from
+a running MCP server to the chat buffer, ready for you to edit before sending.
+After selecting a prompt, you'll be asked for each of its arguments in turn.
+Optional arguments can be left blank, and cancelling at any point adds nothing.
+
+
+  [!NOTE] Only the text from a prompt's `user` messages is added. Images,
+  resources and `assistant` messages are skipped
 
 /MODE ~
 
