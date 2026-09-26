@@ -1,5 +1,25 @@
 # Changelog
 
+## [19.26.0](https://github.com/olimorris/codecompanion.nvim/compare/v19.25.0...v19.26.0) (2026-09-24)
+
+
+### Features
+
+* **adapters:** add Serply web search adapter ([#3395](https://github.com/olimorris/codecompanion.nvim/issues/3395)) ([3af636c](https://github.com/olimorris/codecompanion.nvim/commit/3af636c9892c70c5a4e91604718bf902076aff26))
+* **adapters:** can hide http adapters from chat and inline ([#3401](https://github.com/olimorris/codecompanion.nvim/issues/3401)) ([5f8841d](https://github.com/olimorris/codecompanion.nvim/commit/5f8841d9ddc8cfdb202f84ae26b704beb4e14ce8))
+* **chat:** pasted filepaths and urls can resolve as context ([#3398](https://github.com/olimorris/codecompanion.nvim/issues/3398)) ([6aff924](https://github.com/olimorris/codecompanion.nvim/commit/6aff92415234a52c62556e59381b29803ec2c01d))
+* **prompts:** can yolo via a prompt library item ([#3396](https://github.com/olimorris/codecompanion.nvim/issues/3396)) ([4e93ca9](https://github.com/olimorris/codecompanion.nvim/commit/4e93ca935a4309f7d77fdd9094bf05ed6a550bff))
+* **skills:** add `~/.agents/skills` as a default dir ([#3410](https://github.com/olimorris/codecompanion.nvim/issues/3410)) ([f05b716](https://github.com/olimorris/codecompanion.nvim/commit/f05b7160da00450a62795ea81b493cebf8ecd773))
+
+
+### Bug Fixes
+
+* **adapters:** switching copilot models ([#3403](https://github.com/olimorris/codecompanion.nvim/issues/3403)) ([3e3de84](https://github.com/olimorris/codecompanion.nvim/commit/3e3de8479e6bf5773bfce8bbaada297925cae174))
+* **log:** schedule notifications outside fast events ([#3408](https://github.com/olimorris/codecompanion.nvim/issues/3408)) ([5319d84](https://github.com/olimorris/codecompanion.nvim/commit/5319d842938d9a971d2aa38be57f4ecf120ef83b))
+* **skills:** allow descriptions to span multiple lines ([#3409](https://github.com/olimorris/codecompanion.nvim/issues/3409)) ([ff4a913](https://github.com/olimorris/codecompanion.nvim/commit/ff4a913c3bb6ace172edd2e4cf6cd1d43200aea0))
+* **tools:** can set `enabled = false` ([#3399](https://github.com/olimorris/codecompanion.nvim/issues/3399)) ([9833ab6](https://github.com/olimorris/codecompanion.nvim/commit/9833ab677869d0c6d83f58fedb77a53a8a2b23be))
+* **ui:** reuse window when cycling or creating chats ([#3344](https://github.com/olimorris/codecompanion.nvim/issues/3344)) ([d8d328b](https://github.com/olimorris/codecompanion.nvim/commit/d8d328b3b8377139ba6b267dab3f16e2c7051164))
+
 ## [19.25.0](https://github.com/olimorris/codecompanion.nvim/compare/v19.24.1...v19.25.0) (2026-09-15)
 
 
