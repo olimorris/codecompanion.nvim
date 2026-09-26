@@ -187,6 +187,16 @@ T["Checklist"]["labels a function added in the round as new"] = function()
   h.eq({ "1 file, 1 hunk", "a.lua  +4 -0", "  +4 -0  new M.second" }, child.lua_get("build()"))
 end
 
+T["Checklist"]["names a row for the function around a call, not the call"] = function()
+  child.lua([[
+    write("a.lua", { "local M = {}", "", "function M.complete()", "  return vim", "    .iter({ 'A' })", "    :totable()", "end" })
+    baseline.snapshot(repo)
+    write("a.lua", { "local M = {}", "", "function M.complete()", "  return vim", "    .iter({ 'A', 'B' })", "    :totable()", "end" })
+  ]])
+
+  h.eq({ "1 file, 1 hunk", "a.lua  +1 -1", "  +1 -1  in M.complete" }, child.lua_get("build()"))
+end
+
 T["Checklist"]["accepting a row settles an addition git folds into the change beside it"] = function()
   child.lua([[
     local body = { "local M = {}", "", "function M.first(a)" }
@@ -202,6 +212,20 @@ T["Checklist"]["accepting a row settles an addition git folds into the change be
 
   -- `linematch` shows the change and the insertion as two hunks; git's `--unified=0` reports one
   h.eq({ "1 file, 2 hunks in 1 row", "a.lua  +2 -1", "  +2 -1  in M.first" }, child.lua_get("build()"))
+
+  child.lua("accept_row(3)")
+  h.eq({}, child.lua_get("build()"))
+end
+
+T["Checklist"]["accepting a row settles a deletion linematch splits off the change beside it"] = function()
+  child.lua([[
+    write("a.lua", { "local a = 1", "local one = 1", "local two = 2", "local b = 2" })
+    baseline.snapshot(repo)
+    write("a.lua", { "local a = 1", "local two = 20", "local b = 2" })
+  ]])
+
+  -- `linematch` shows a deletion then a change; git reports one hunk that starts below the deletion
+  h.eq({ "1 file, 2 hunks in 1 row", "a.lua  +1 -2", "  +1 -2  local one = 1" }, child.lua_get("build()"))
 
   child.lua("accept_row(3)")
   h.eq({}, child.lua_get("build()"))
@@ -297,18 +321,6 @@ T["Checklist"]["DOES NOT mark a row far from any sent comment"] = function()
   ]])
 
   h.eq({ "1 file, 1 hunk", "a.lua  +1 -1", "  +1 -1  local n20 = 2000" }, child.lua_get("build()"))
-end
-
-T["Checklist"]["marks a row with the explanation written against its lines"] = function()
-  child.lua([[
-    write("a.lua", { "local a = 1", "local b = 2", "local c = 3" })
-    baseline.snapshot(repo)
-    write("a.lua", { "local a = 10", "local b = 2", "local c = 3" })
-    store.add_explanation(repo, { path = "a.lua", start_line = 1, end_line = 1, code = "", comment = "Raises the default.\nIt was too low." })
-  ]])
-
-  h.eq({ "1 file, 1 hunk", "a.lua  +1 -1", "  +1 -1  local a = 10 💡" }, child.lua_get("build()"))
-  h.eq("Raises the default.\nIt was too low.", child.lua_get("entry_field(3, 'explanation')"))
 end
 
 return T

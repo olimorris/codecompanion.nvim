@@ -19,7 +19,6 @@ local M = {}
 ---@field kind "header"|"file"|"hunk"
 ---@field path? string Absent on the header row
 ---@field sent? string[] Comments sent last round against these lines, so the response can be read against the ask
----@field explanation? string What the agent, or a model, said this change does
 ---@field spans? table<string, number[]> Byte ranges to highlight, keyed by what they show: `path`, `added`, `removed`, `errors`, `warnings`
 
 ---Throw away the scratch buffers holding each file's diff
@@ -108,22 +107,32 @@ local function working_span(hunk)
   return first, math.max(first, hunk.to_start + hunk.to_count - 1)
 end
 
----The ids of the baseline hunks whose working lines overlap a displayed hunk's
+---The working lines a hunk sits between, so a pure deletion has a position too
+---@param start number
+---@param count number
+---@return number after, number last
+local function get_gap(start, count)
+  if count == 0 then
+    return start, start
+  end
+  return start - 1, start + count - 1
+end
+
+---The id of the baseline hunk a displayed hunk was split from
 ---@param opts { git_hunks: CodeCompanion.CodeReview.Hunk[], hunk: CodeCompanion.diff.Hunk }
 ---@return string[]
 local function get_baseline_ids(opts)
-  local first, last = working_span(opts.hunk)
+  local after, last = get_gap(opts.hunk.to_start, opts.hunk.to_count)
 
-  -- Overlap rather than first line: `linematch` can split what git reports as one hunk into two
-  local ids = {}
+  -- Both sides use the same algorithm, so `linematch` only ever splits a git hunk and never crosses one
   for _, git_hunk in ipairs(opts.git_hunks) do
-    local git_last = math.max(git_hunk.line, git_hunk.line + git_hunk.added - 1)
-    if git_hunk.line <= last and git_last >= first then
-      table.insert(ids, tostring(git_hunk.id))
+    local git_after, git_last = get_gap(git_hunk.line, git_hunk.added)
+    if git_after <= after and last <= git_last then
+      return { tostring(git_hunk.id) }
     end
   end
 
-  return ids
+  return {}
 end
 
 ---Rewrite the baseline side so the accepted hunks read as context rather than as edits
@@ -214,7 +223,9 @@ local function get_scope(opts)
   local node = opts.root:named_descendant_for_range(first - 1, 0, last - 1, 0)
   while node do
     local kind = node:type()
-    if kind:match("function") or kind:match("method") or kind:match("class") then
+    -- A body separates a definition from a call or index sharing its words, e.g. Lua's `function_call`
+    local has_body = node:field("body")[1] ~= nil
+    if has_body and (kind:match("function") or kind:match("method") or kind:match("class")) then
       return node
     end
     node = node:parent()
@@ -296,7 +307,7 @@ local function get_nearby_comments(opts)
 end
 
 ---The checklist row for a group of hunks, named for the scope they sit in when the parser knows it
----@param opts { file_diff: CC.Diff, group: { hunks: number[], scope?: TSNode }, source?: string, sent?: string[], explanation?: string }
+---@param opts { file_diff: CC.Diff, group: { hunks: number[], scope?: TSNode }, source?: string, sent?: string[] }
 ---@return { text: string, spans: { added: number[], removed: number[] } }
 local function summarise(opts)
   local file_diff = opts.file_diff
@@ -331,12 +342,6 @@ local function summarise(opts)
   if opts.sent and #opts.sent > 0 then
     text = text .. " ↳"
     spans.sent = { #text - #"↳", #text }
-  end
-
-  if opts.explanation then
-    local icon = vim.trim(config.interactions.code_review.display.explanations.icon)
-    text = text .. " " .. icon
-    spans.explanation = { #text - #icon, #text }
   end
 
   return { text = text, spans = spans }
@@ -462,7 +467,6 @@ function M.build(opts)
   local root = opts.root
   local accepted = store.accepted(root)
   local sent = store.sent(root)
-  local explanations = store.explanations(root)
   local changed, by_path, auto_accepted = get_pending_hunks(root)
 
   local paths, diffs, diagnostics = {}, {}, {}
@@ -493,13 +497,11 @@ function M.build(opts)
     for _, group in ipairs(groups) do
       local nearby = { path = path, file_diff = diffs[path], hunks = group.hunks }
       local sent_here = get_nearby_comments(vim.tbl_extend("force", nearby, { comments = sent }))
-      local explained = get_nearby_comments(vim.tbl_extend("force", nearby, { comments = explanations }))
       local summary = summarise({
         file_diff = diffs[path],
         group = group,
         source = parsed and parsed.source,
         sent = sent_here,
-        explanation = explained[#explained],
       })
 
       local ids = {}
@@ -513,7 +515,6 @@ function M.build(opts)
         hunks = group.hunks,
         ids = ids,
         sent = #sent_here > 0 and sent_here or nil,
-        explanation = explained[#explained],
         spans = summary.spans,
       })
       table.insert(lines, summary.text)

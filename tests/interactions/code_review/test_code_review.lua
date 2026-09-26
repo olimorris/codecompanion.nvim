@@ -24,6 +24,10 @@ T = new_set({
           vim.fn.writefile(lines, vim.fs.joinpath(repo, path))
         end
 
+        git = function(...)
+          vim.system({ "git", "-C", repo, "-c", "user.name=Test", "-c", "user.email=test@test", ... }):wait()
+        end
+
         submit = function()
           vim.api.nvim_exec_autocmds("User", { pattern = "CodeCompanionChatSubmitted" })
         end
@@ -216,26 +220,34 @@ T["Review"]["closing a round off forgets the comments sent before it"] = functio
   h.eq(0, child.lua_get("#store.sent(repo)"))
 end
 
-T["Review"]["closing a round off forgets the explanations given during it"] = function()
+T["Review"]["Branch reviews every change since the branch left main"] = function()
   child.lua([[
     write("a.lua", { "local a = 1" })
-    store.add_explanation(repo, { path = "a.lua", start_line = 1, end_line = 1, code = "", comment = "Sets a" })
+    git("add", "--all")
+    git("commit", "--quiet", "-m", "init")
+    git("branch", "-M", "main")
+    git("checkout", "--quiet", "-b", "feature")
+
+    write("b.lua", { "local b = 1" })
+    git("add", "--all")
+    git("commit", "--quiet", "-m", "add b")
+    write("a.lua", { "local a = 10" })
+
     review.mark_reviewed()
+    store.accept(repo, 123)
+
+    review.open_window = function() end
+    review.review_branch()
+
+    -- A prompt sent mid-review must not snapshot over the start of the branch
+    submit()
   ]])
 
-  h.eq(0, child.lua_get("#store.explanations(repo)"))
-end
-
-T["Review"]["a submitted chat becomes the round's channel"] = function()
-  child.lua([[
-    write("a.lua", { "local a = 1" })
-    vim.api.nvim_exec_autocmds("User", { pattern = "CodeCompanionChatSubmitted", data = { bufnr = 42, id = 7 } })
-  ]])
-
-  h.eq({ kind = "chat", bufnr = 42 }, child.lua_get("store.round_channel(repo)"))
-
-  child.lua("review.mark_reviewed()")
-  h.eq(vim.NIL, child.lua_get("store.round_channel(repo)"))
+  h.eq(0, child.lua_get("vim.tbl_count(store.accepted(repo))"))
+  h.eq(
+    { "a.lua", "b.lua" },
+    child.lua_get("vim.iter(baseline.diff(repo)):map(function(hunk) return hunk.path end):totable()")
+  )
 end
 
 T["Review"]["closing a round off keeps pending comments"] = function()

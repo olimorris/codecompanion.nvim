@@ -64,6 +64,7 @@ You never have to set or advance it yourself. A round closes off when you send y
 | Command | Description |
 | --- | --- |
 | `:CodeCompanionCodeReview` | Open the review window |
+| `:CodeCompanionCodeReview Branch` | Review every change on the branch since it left the default branch |
 | `:CodeCompanionCodeReview Comment` | Comment on the current line or visual selection, or edit the comment already there |
 
 Everything else is a keymap inside the window.
@@ -84,7 +85,6 @@ Both are ordinary splits, so `<C-w>` and your own window keymaps work as they al
 | `gc` | Comment on the line under the cursor |
 | `gC` | Edit the pending comments by hand |
 | `gs` | Share the review with an agent outside of CodeCompanion |
-| `gx` | Ask the agent to explain the change, or show the explanation it gave |
 | `u` | Undo the last accept or revert |
 | `i` / `I` | Open the real file at this line, to edit it yourself |
 | `]h` / `[h` | Move to the next or previous row in this file |
@@ -103,13 +103,15 @@ When the last hunk goes, the window says `No edits left to review` and the round
 > [!NOTE]
 > The review pane is not writable. Its rows don't map cleanly onto the file - a deleted line doesn't exist on disk - so `i` and `I` take you to the real file at the matching line instead, with your LSP and formatting intact
 
-## Asking for an Explanation
+## Reviewing a Branch
 
-A diff tells you what changed. Only the agent that made the change can tell you why. `gx` on a row asks it: the question goes to the chat buffer or CLI that started the round, and the answer comes back beside the code rather than in a conversation you have to scroll.
+To review everything a branch has changed, not just the agent's last round:
 
-The agent is asked to write a few sentences to a file CodeCompanion owns, under a heading for the change. When the file changes, the row gains an icon, the first line of the explanation appears above the change in the review pane, and `gx` again opens the whole thing in a float. The file lives with the review's other state, outside the repository, so writing it never shows up as a change and a second Neovim instance, or a later session, sees the same explanations.
+```
+:CodeCompanionCodeReview Branch
+```
 
-If the round wasn't started from CodeCompanion, `gx` asks which terminal the agent is running in and remembers your answer. Choosing a terminal pastes the question into it, so expect to interrupt whatever the agent is doing. The last choice on the list is a fresh model, which has none of the agent's context: it can say what the code does, not why it was written.
+The review starts from where the branch left the default branch (`origin/HEAD`, or `main` when there's no remote) and includes your uncommitted work. Hunks you had already accepted come back, and pending comments are kept. Once you've cleared the last row, reviews go back to following the agent's rounds.
 
 ## Commenting
 

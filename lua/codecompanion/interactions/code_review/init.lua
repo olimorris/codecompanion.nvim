@@ -113,7 +113,6 @@ function M.mark_reviewed()
   store.clear_round(root)
   store.clear_accepted(root)
   store.clear_sent(root)
-  store.clear_explanations(root)
   return true
 end
 
@@ -185,6 +184,25 @@ function M.open_window()
   return require("codecompanion.interactions.code_review.window").open()
 end
 
+---Review every change the branch has made since it left the default branch
+---@return nil
+function M.review_branch()
+  local root = baseline.get_root()
+  local fork_point = root and baseline.fork_point(root)
+  if not fork_point then
+    return notify("Could not find where this branch left the default branch", vim.log.levels.WARN)
+  end
+
+  if not baseline.set(root, fork_point) then
+    return notify("Could not move the review to the start of the branch", vim.log.levels.ERROR)
+  end
+
+  store.clear_accepted(root)
+  -- Hold the fork point as the baseline until the review is done, or the next submission would snapshot over it
+  store.begin_round(root)
+  M.open_window()
+end
+
 ---Open the pending comments file for editing by hand
 ---@return nil
 function M.edit_comments()
@@ -211,7 +229,7 @@ function M.setup()
     desc = "Snapshot the review baseline at the start of an agent's edits",
     group = group,
     pattern = { "CodeCompanionChatSubmitted", "CodeCompanionCLISent", "CodeCompanionCLISubmitted" },
-    callback = function(args)
+    callback = function()
       local root = baseline.get_root()
       if not root then
         return
@@ -224,12 +242,6 @@ function M.setup()
 
       if baseline.get(root) then
         store.begin_round(root)
-      end
-
-      local bufnr = type(args.data) == "table" and args.data.bufnr or nil
-      if bufnr and baseline.get(root) then
-        local kind = args.match == "CodeCompanionChatSubmitted" and "chat" or "cli"
-        store.set_round_channel(root, { kind = kind, bufnr = bufnr })
       end
     end,
   })

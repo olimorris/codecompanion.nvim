@@ -973,11 +973,6 @@ The user is working on a %s machine. Please respond with system specific command
           callback = "edit",
           description = "Edit the line in the file itself",
         },
-        explain = {
-          modes = { n = "gx" },
-          callback = "explain",
-          description = "Ask the agent to explain the change, or show its explanation",
-        },
         keymaps = {
           modes = { n = "?" },
           callback = "keymaps",
@@ -1000,9 +995,6 @@ The user is working on a %s machine. Please respond with system specific command
           enabled = true, -- Show pending comments as virtual text in the buffer
           icon = "💬 ", -- The icon to use for a comment
           overflow = "trunc", -- See `:h nvim_buf_set_extmark` for `virt_lines_overflow`
-        },
-        explanations = {
-          icon = "💡 ", -- Marks a change the agent has explained
         },
       },
       opts = {

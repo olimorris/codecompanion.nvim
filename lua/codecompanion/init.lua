@@ -119,6 +119,9 @@ CodeCompanion.code_review = function(args)
   local code_review = require("codecompanion.interactions.code_review")
   local subcommand = args.subcommand
 
+  if subcommand == "branch" then
+    return code_review.review_branch()
+  end
   if subcommand == "comment" then
     return code_review.comment(args)
   end

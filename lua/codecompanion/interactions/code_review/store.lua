@@ -266,57 +266,6 @@ function M.clear_sent(root)
   delete(sent_path(root))
 end
 
-local explanations_path = branch_file("explanations.md")
-
----The file an agent is asked to write its explanations to, one `## path:first-last` section per change
----@param root string
----@return string
-function M.explanations_path(root)
-  return explanations_path(root)
-end
-
----@param root string
----@return CodeCompanion.CodeReview.Comment[]
-function M.explanations(root)
-  return read_blocks(explanations_path(root))
-end
-
----Record an explanation written on the agent's behalf, when a fresh model answered instead
----@param root string
----@param explanation CodeCompanion.CodeReview.Comment
----@return nil
-function M.add_explanation(root, explanation)
-  append_block(explanations_path(root), explanation)
-end
-
----@param root string
----@return nil
-function M.clear_explanations(root)
-  delete(explanations_path(root))
-end
-
-local channel_path = branch_file("channel.json")
-
----Remember which chat or CLI buffer is driving the round, so its agent can be asked about the changes
----@param root string
----@param channel CodeCompanion.CodeReview.Channel
----@return nil
-function M.set_round_channel(root, channel)
-  files.write_to_path(channel_path(root), vim.json.encode(channel))
-end
-
----@param root string
----@return CodeCompanion.CodeReview.Channel|nil
-function M.round_channel(root)
-  local path = channel_path(root)
-  if not files.exists(path) then
-    return nil
-  end
-
-  local ok, channel = pcall(vim.json.decode, files.read(path))
-  return ok and channel or nil
-end
-
 local round_path = branch_file("round")
 
 ---Mark a round of agent work as begun, so the baseline holds until it's reviewed
@@ -338,7 +287,6 @@ end
 ---@return nil
 function M.clear_round(root)
   delete(round_path(root))
-  delete(channel_path(root))
 end
 
 local accepted_path = branch_file("accepted.txt")

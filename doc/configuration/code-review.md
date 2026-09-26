@@ -160,26 +160,6 @@ require("codecompanion").setup({
 })
 ```
 
-## Explanations
-
-When an agent explains a change, the row is marked with an icon and the explanation's first line is shown above the change in the review pane:
-
-```lua
-require("codecompanion").setup({
-  interactions = {
-    code_review = {
-      display = {
-        explanations = {
-          icon = "💡 ", -- Marks a change the agent has explained
-        },
-      },
-    },
-  },
-})
-```
-
-A fresh model is offered as a fallback when the agent can't be reached; it uses the [background](/configuration/others#background) adapter.
-
 ## Auto-Accepting Files
 
 Some files never need a human to read them: lockfiles, generated code, compiled docs. List them as globs and they are left out of the review window altogether, closing off with the round as if you had accepted them:

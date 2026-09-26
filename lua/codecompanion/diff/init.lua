@@ -51,6 +51,9 @@ local CONSTANTS = {
   },
 }
 
+---How whole files are split into hunks, which the code review's git diff must match
+M.LINE_OPTS = CONSTANTS.DIFF_LINE_OPTS
+
 ---@diagnostic disable-next-line: deprecated
 local diff_fn = vim.text.diff or vim.diff
 

@@ -42,7 +42,6 @@ The plugin sets the following highlight groups during setup:
 - `CodeCompanionChatToolText` - Tool output text in the chat buffer (overrides markdown rendering)
 - `CodeCompanionChatEditorContext` - Editor context in the chat buffer
 - `CodeCompanionCodeReviewComment` - Comments in code reviews
-- `CodeCompanionCodeReviewExplanation` - An agent's explanation of a change in the review window
 - `CodeCompanionCodeReviewHeader` - The round summary at the top of the review window
 - `CodeCompanionCodeReviewSent` - Comments from the last review, shown above the changes that answer them
 - `CodeCompanionVirtualText` - All other virtual text in the plugin
