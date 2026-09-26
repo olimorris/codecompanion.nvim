@@ -710,6 +710,7 @@ local ACTIONS = {
   undo = undo_last,
 }
 
+---@return nil
 local function set_keymaps()
   for _, map in pairs(config.interactions.code_review.keymaps or {}) do
     local keys = type(map) == "table" and map.modes and map.modes.n or nil
@@ -729,6 +730,7 @@ local function set_keymaps()
   end
 end
 
+---@return nil
 local function setup_sync()
   local group = api.nvim_create_augroup(CONSTANTS.GROUP, { clear = true })
 
