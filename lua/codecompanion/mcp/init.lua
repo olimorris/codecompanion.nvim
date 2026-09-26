@@ -249,7 +249,6 @@ end
 
 ---Get the prompts from every ready MCP server, sorted by server then prompt name
 ---@param opts { callback: fun(prompts: { server: string, prompt: MCP.Prompt }[]) }
----@return nil
 function M.get_prompts(opts)
   local ready_clients = vim.tbl_filter(function(client)
     return client.ready
@@ -287,7 +286,6 @@ end
 
 ---Get a prompt from an MCP server with its arguments filled in
 ---@param opts { server: string, name: string, arguments?: table<string, string>, callback: fun(ok: boolean, result_or_error: MCP.GetPromptResult|string) }
----@return nil
 function M.get_prompt(opts)
   local client = clients[opts.server]
   if not (client and client.ready) then

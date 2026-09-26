@@ -70,6 +70,15 @@ T["MCP Prompts"]["adds the text from user messages to the chat buffer"] = functi
   h.expect_not_contains("I'll create the issue", result.buffer)
 end
 
+T["MCP Prompts"]["adds the text under a new user header after a response"] = function()
+  local buffer = child.lua([[
+    chat:add_buf_message({ role = "llm", content = "Hi there" })
+    return run_with_answers({ "Login bug", "" })
+  ]])
+
+  h.expect_contains("Hi there\n\n## foo\n\nCreate an issue titled Login bug", buffer)
+end
+
 T["MCP Prompts"]["DOES NOT get the prompt when a required argument is blank"] = function()
   local result = child.lua([[
     local buffer = run_with_answers({ "" })

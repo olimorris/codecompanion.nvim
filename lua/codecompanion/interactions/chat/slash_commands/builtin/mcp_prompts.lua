@@ -9,12 +9,12 @@ local CONSTANTS = {
   PROMPT = "Select an MCP prompt",
 }
 
----@param item { server: string, prompt: MCP.Prompt }
+---@param server_prompt { server: string, prompt: MCP.Prompt }
 ---@return string
-local function format_item(item)
-  local label = fmt("%s: %s", item.server, item.prompt.title or item.prompt.name)
-  if item.prompt.description then
-    return fmt("%s - %s", label, item.prompt.description)
+local function format_item(server_prompt)
+  local label = fmt("%s: %s", server_prompt.server, server_prompt.prompt.title or server_prompt.prompt.name)
+  if server_prompt.prompt.description then
+    return fmt("%s - %s", label, server_prompt.prompt.description)
   end
   return label
 end
@@ -32,7 +32,6 @@ end
 ---Ask for each of the prompt's arguments in turn, stopping if the user cancels
 ---@param prompt MCP.Prompt
 ---@param opts { callback: fun(arguments: table<string, string>) }
----@return nil
 local function ask_for_arguments(prompt, opts)
   -- Without this, a prompt with no arguments sends `[]` and servers expecting an object reject it
   local arguments = vim.empty_dict()
@@ -98,7 +97,6 @@ function SlashCommand.enabled()
   return true
 end
 
----@return nil
 function SlashCommand:execute()
   mcp.get_prompts({
     callback = function(prompts)
@@ -127,7 +125,6 @@ end
 ---Get the prompt from the server and add its text to the chat buffer
 ---@param selected { server: string, prompt: MCP.Prompt }
 ---@param opts { arguments: table<string, string> }
----@return nil
 function SlashCommand:output(selected, opts)
   mcp.get_prompt({
     server = selected.server,
@@ -137,13 +134,22 @@ function SlashCommand:output(selected, opts)
       if not ok then
         return utils.notify(result --[[@as string]], vim.log.levels.ERROR)
       end
+      if not vim.api.nvim_buf_is_valid(self.Chat.bufnr) then
+        return
+      end
+      if self.Chat.current_request then
+        return utils.notify(
+          fmt("MCP prompt `%s` was not added as the chat is responding", selected.prompt.name),
+          vim.log.levels.WARN
+        )
+      end
 
       local text = get_user_text(result --[[@as MCP.GetPromptResult]])
       if text == "" then
         return utils.notify(fmt("MCP prompt `%s` has no text to add", selected.prompt.name), vim.log.levels.WARN)
       end
 
-      self.Chat:add_buf_message({ content = text })
+      self.Chat:add_buf_message({ role = config.constants.USER_ROLE, content = text })
     end,
   })
 end

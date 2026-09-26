@@ -619,7 +619,6 @@ end
 
 ---List the prompts available from the MCP server
 ---@param opts { callback: fun(prompts: MCP.Prompt[]) }
----@return nil
 function Client:list_prompts(opts)
   assert(self.ready, "MCP Server is not ready.")
   if not self.server_capabilities.prompts then
@@ -631,7 +630,7 @@ function Client:list_prompts(opts)
     self:request("prompts/list", { cursor = cursor }, function(resp)
       if resp.error then
         log:error("[MCP::Client::%s] prompts/list failed: [%s] %s", self.name, resp.error.code, resp.error.message)
-        return opts.callback({})
+        return opts.callback(all_prompts)
       end
 
       vim.list_extend(all_prompts, resp.result and resp.result.prompts or {})

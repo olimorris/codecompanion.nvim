@@ -496,6 +496,28 @@ T["MCP Client"]["prompts are loaded in pages"] = function()
   h.eq({ "first", "second" }, result)
 end
 
+T["MCP Client"]["keeps earlier pages of prompts when a later page fails"] = function()
+  local result = child.lua([[
+    setup_default_initialization({ tools = {}, prompts = {} })
+    setup_tool_list()
+    start_client_and_wait_loaded()
+
+    TRANSPORT:expect_jsonrpc_call("prompts/list", function(params)
+      if params.cursor == nil then
+        return "result", { prompts = { { name = "first" } }, nextCursor = "2" }
+      end
+      return "error", { code = -32603, message = "Internal error" }
+    end, { repeats = 2 })
+
+    local prompts
+    CLI:list_prompts({ callback = function(result) prompts = result end })
+    vim.wait(1000, function() return prompts ~= nil end)
+    return vim.tbl_map(function(prompt) return prompt.name end, prompts)
+  ]])
+
+  h.eq({ "first" }, result)
+end
+
 T["MCP Client"]["can get prompts with arguments"] = function()
   local result = child.lua([[
     setup_default_initialization({ tools = {}, prompts = {} })
