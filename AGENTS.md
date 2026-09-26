@@ -7,7 +7,7 @@ This is a Neovim plugin written in Lua, which allows developers to code with LLM
 - `make format` - StyLua (120 cols, 2 spaces). Run before committing.
 - `make test` - full test suite (Mini.Test)
 - `make test_file FILE=path` - targeted tests
-- `make docs` - regenerate vimdoc. Run this after changing any docs pages
+- `make docs` - regenerate vimdoc. Run this after changing any docs pages. Read `VOICE.md` before editing anything in `doc/`
 
 ## Code conventions
 
