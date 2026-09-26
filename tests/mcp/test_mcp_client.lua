@@ -23,11 +23,11 @@ local T = MiniTest.new_set({
             :totable()
         end
 
-        function setup_default_initialization()
+        function setup_default_initialization(capabilities)
           TRANSPORT:expect_jsonrpc_call("initialize", function(params)
             return "result", {
               protocolVersion = params.protocolVersion,
-              capabilities = { tools = {} },
+              capabilities = capabilities or { tools = {} },
               serverInfo = { name = "Test MCP Server", version = "1.0.0" },
             }
           end)
@@ -472,6 +472,83 @@ T["MCP Client"]["cancel_request_from_chat cancels requests for specific chat"] =
   -- Verify cancellation notification was sent with correct params
   h.eq(child.lua_get("CANCEL_PARAMS.requestId"), child.lua_get("REQ_ID_1"))
   h.eq(child.lua_get("CANCEL_PARAMS.reason"), "User stopped")
+end
+
+T["MCP Client"]["prompts are loaded in pages"] = function()
+  local result = child.lua([[
+    setup_default_initialization({ tools = {}, prompts = {} })
+    setup_tool_list()
+    start_client_and_wait_loaded()
+
+    TRANSPORT:expect_jsonrpc_call("prompts/list", function(params)
+      if params.cursor == nil then
+        return "result", { prompts = { { name = "first" } }, nextCursor = "2" }
+      end
+      return "result", { prompts = { { name = "second" } } }
+    end, { repeats = 2 })
+
+    local prompts
+    CLI:list_prompts({ callback = function(result) prompts = result end })
+    vim.wait(1000, function() return prompts ~= nil end)
+    return vim.tbl_map(function(prompt) return prompt.name end, prompts)
+  ]])
+
+  h.eq({ "first", "second" }, result)
+end
+
+T["MCP Client"]["keeps earlier pages of prompts when a later page fails"] = function()
+  local result = child.lua([[
+    setup_default_initialization({ tools = {}, prompts = {} })
+    setup_tool_list()
+    start_client_and_wait_loaded()
+
+    TRANSPORT:expect_jsonrpc_call("prompts/list", function(params)
+      if params.cursor == nil then
+        return "result", { prompts = { { name = "first" } }, nextCursor = "2" }
+      end
+      return "error", { code = -32603, message = "Internal error" }
+    end, { repeats = 2 })
+
+    local prompts
+    CLI:list_prompts({ callback = function(result) prompts = result end })
+    vim.wait(1000, function() return prompts ~= nil end)
+    return vim.tbl_map(function(prompt) return prompt.name end, prompts)
+  ]])
+
+  h.eq({ "first" }, result)
+end
+
+T["MCP Client"]["can get prompts with arguments"] = function()
+  local result = child.lua([[
+    setup_default_initialization({ tools = {}, prompts = {} })
+    setup_tool_list()
+    start_client_and_wait_loaded()
+
+    TRANSPORT:expect_jsonrpc_call("prompts/get", function(params)
+      if params.name == "fetch" then
+        local text = "Contents of " .. params.arguments.url
+        return "result", { messages = { { role = "user", content = { type = "text", text = text } } } }
+      end
+      return "error", { code = -32602, message = "Unknown prompt" }
+    end, { repeats = 2 })
+
+    local results = {}
+    local function append_result(ok, result_or_error)
+      table.insert(results, { ok, result_or_error })
+    end
+    CLI:get_prompt("fetch", { arguments = { url = "https://example.com" }, callback = append_result })
+    CLI:get_prompt("missing", { callback = append_result })
+    vim.wait(1000, function() return #results == 2 end)
+    return results
+  ]])
+
+  h.eq({
+    {
+      true,
+      { messages = { { role = "user", content = { type = "text", text = "Contents of https://example.com" } } } },
+    },
+    { false, "MCP JSONRPC error: [-32602] Unknown prompt" },
+  }, result)
 end
 
 return T

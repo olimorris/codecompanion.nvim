@@ -617,4 +617,65 @@ function Client:refresh_tools()
   load_tools()
 end
 
+---List the prompts available from the MCP server
+---@param opts { callback: fun(prompts: MCP.Prompt[]) }
+function Client:list_prompts(opts)
+  assert(self.ready, "MCP Server is not ready.")
+  if not self.server_capabilities.prompts then
+    return opts.callback({})
+  end
+
+  local all_prompts = {} ---@type MCP.Prompt[]
+  local function load_prompts(cursor)
+    self:request("prompts/list", { cursor = cursor }, function(resp)
+      if resp.error then
+        log:error("[MCP::Client::%s] prompts/list failed: [%s] %s", self.name, resp.error.code, resp.error.message)
+        return opts.callback(all_prompts)
+      end
+
+      vim.list_extend(all_prompts, resp.result and resp.result.prompts or {})
+
+      local next_cursor = resp.result and resp.result.nextCursor
+      if next_cursor then
+        return load_prompts(next_cursor)
+      end
+
+      opts.callback(all_prompts)
+    end)
+  end
+
+  load_prompts()
+end
+
+---Get a prompt from the MCP server with its arguments filled in
+---@param name string
+---@param opts { arguments?: table<string, string>, callback: fun(ok: boolean, result_or_error: MCP.GetPromptResult|string) }
+---@return number req_id
+function Client:get_prompt(name, opts)
+  assert(self.ready, "MCP Server is not ready.")
+
+  return self:request("prompts/get", {
+    name = name,
+    arguments = opts.arguments,
+  }, function(resp)
+    if resp.error then
+      log:error(
+        "[MCP::Client::%s] Get prompt failed for %s: [%s] %s",
+        self.name,
+        name,
+        resp.error.code,
+        resp.error.message
+      )
+      return opts.callback(false, string.format("MCP JSONRPC error: [%s] %s", resp.error.code, resp.error.message))
+    end
+
+    if not resp.result or not resp.result.messages then
+      log:debug("[MCP::Client::%s] Malformed prompt response for %s", self.name, name)
+      return opts.callback(false, "MCP get_prompt received malformed response")
+    end
+
+    opts.callback(true, resp.result --[[@as MCP.GetPromptResult]])
+  end)
+end
+
 return Client
