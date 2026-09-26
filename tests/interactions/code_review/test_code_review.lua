@@ -173,6 +173,23 @@ T["Review"]["consume drains the comments and advances the baseline"] = function(
   h.eq(0, child.lua_get("#baseline.diff(repo)")) -- The commented change is now part of the baseline, so nothing is left to review
 end
 
+T["Review"]["consume keeps the comments pending when the round can't be closed"] = function()
+  child.lua([[
+    write("a.lua", { "local a = 1" })
+    submit()
+    write("a.lua", { "local a = 100" })
+    store.add_comment(repo, { comment = "Why 100?", code = "local a = 100", filetype = "lua", path = "a.lua", start_line = 1, end_line = 1 })
+
+    local snapshot = baseline.snapshot
+    baseline.snapshot = function() return nil end
+    consumed = review.consume()
+    baseline.snapshot = snapshot
+  ]])
+
+  h.eq(vim.NIL, child.lua_get("consumed"))
+  h.eq(1, child.lua_get("#review.pending()"))
+end
+
 T["Review"]["consume returns nil when there are no comments"] = function()
   h.eq(vim.NIL, child.lua_get("review.consume()"))
 end

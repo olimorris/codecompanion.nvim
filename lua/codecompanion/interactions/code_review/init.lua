@@ -149,8 +149,12 @@ function M.consume()
     return nil
   end
 
+  -- Keep the comments pending if the round can't be closed, so they can be sent again
+  if not M.mark_reviewed() then
+    return nil
+  end
+
   store.clear_comments(root)
-  M.mark_reviewed()
   store.write_sent(root, pending)
   ui.clear_all()
 
@@ -166,12 +170,15 @@ function M.share()
     return notify("No comments to share", vim.log.levels.WARN)
   end
 
+  if not M.mark_reviewed() then
+    return
+  end
+
   local path = store.submit(root)
   if not path then
     return
   end
 
-  M.mark_reviewed()
   store.write_sent(root, comments)
   ui.clear_all()
   vim.fn.setreg("+", path)
@@ -187,6 +194,9 @@ end
 ---Review every change the branch has made since it left the default branch
 ---@return nil
 function M.review_branch()
+  -- Closing a cleared review snapshots the worktree, which would land on top of the fork point
+  require("codecompanion.interactions.code_review.window").close()
+
   local root = baseline.get_root()
   local fork_point = root and baseline.fork_point(root)
   if not fork_point then

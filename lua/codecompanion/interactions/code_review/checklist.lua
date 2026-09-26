@@ -136,14 +136,14 @@ local function get_baseline_ids(opts)
 end
 
 ---Rewrite the baseline side so the accepted hunks read as context rather than as edits
----@param opts { from: string[], to: string[], hunks: CodeCompanion.diff.Hunk[] } `hunks` are the accepted ones
+---@param opts { from: string[], to: string[], accepted: CodeCompanion.diff.Hunk[] }
 ---@return string[]
 local function fold_accepted_into_baseline(opts)
   local folded = opts.from
 
   -- Bottom-up, or an earlier splice shifts the line numbers of the ones below it
-  for index = #opts.hunks, 1, -1 do
-    local hunk = opts.hunks[index]
+  for index = #opts.accepted, 1, -1 do
+    local hunk = opts.accepted[index]
     local at = hunk.kind == "add" and hunk.from_start + 1 or hunk.from_start
 
     local spliced = vim.list_slice(folded, 1, at - 1)
@@ -183,7 +183,7 @@ local function build_diff(opts)
   return create_diff({
     root = opts.root,
     path = opts.path,
-    from = fold_accepted_into_baseline({ from = from, to = to, hunks = settled }),
+    from = fold_accepted_into_baseline({ from = from, to = to, accepted = settled }),
     to = to,
   })
 end
@@ -382,13 +382,17 @@ end
 
 ---The baseline hunks still awaiting review, grouped by the file they belong to
 ---@param root string
----@return string[] paths
+---@return string[]|nil paths Nil when the worktree couldn't be read
 ---@return table<string, CodeCompanion.CodeReview.Hunk[]> by_path
 ---@return number auto_accepted Files left out because the config says they never need reviewing
 local function get_pending_hunks(root)
-  local paths, by_path, auto_accepted = {}, {}, {}
+  local hunks = baseline.diff(root)
+  if not hunks then
+    return nil, {}, 0
+  end
 
-  for _, git_hunk in ipairs(baseline.diff(root) or {}) do
+  local paths, by_path, auto_accepted = {}, {}, {}
+  for _, git_hunk in ipairs(hunks) do
     local path = git_hunk.path
     if is_auto_accepted(path) then
       auto_accepted[path] = true
@@ -462,12 +466,16 @@ end
 
 ---Build the checklist rows, the entry each row selects and the diff behind each file
 ---@param opts { root: string }
----@return { entries: CodeCompanion.CodeReview.Entry[], lines: string[], diffs: table<string, CC.Diff> }
+---@return { entries: CodeCompanion.CodeReview.Entry[], lines: string[], diffs: table<string, CC.Diff> }|nil
 function M.build(opts)
   local root = opts.root
+  local changed, by_path, auto_accepted = get_pending_hunks(root)
+  if not changed then
+    return nil
+  end
+
   local accepted = store.accepted(root)
   local sent = store.sent(root)
-  local changed, by_path, auto_accepted = get_pending_hunks(root)
 
   local paths, diffs, diagnostics = {}, {}, {}
   for _, path in ipairs(changed) do

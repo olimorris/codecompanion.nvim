@@ -37,7 +37,7 @@ local SPAN_HIGHLIGHTS = {
 
 ---@class CodeCompanion.CodeReview.Window.Undo
 ---@field accepted? string[] Hunk ids to take back out of the accepted set
----@field splices? { path: string, start: number, count: number, lines: string[] }[] Lines to put back, and where, top-down
+---@field splices? { path: string, start: number, count: number, lines: string[], restored: string[] }[] Lines to put back, and where, top-down
 
 ---@class CodeCompanion.CodeReview.Window
 ---@field active_path? string
@@ -302,6 +302,9 @@ end
 ---@return nil
 local function rebuild()
   local built = checklist.build({ root = review.root })
+  if not built then
+    return notify("Could not read the worktree", vim.log.levels.ERROR)
+  end
   if vim.deep_equal(built.lines, api.nvim_buf_get_lines(review.checklist.bufnr, 0, -1, false)) then
     return checklist.discard(built.diffs)
   end
@@ -416,17 +419,43 @@ local function accept_hunks(entries)
   rebuild()
 end
 
+---Load a file into a buffer holding what is saved on disk, refusing one with unsaved changes
+---@param path string
+---@return number|nil bufnr
+local function load_saved_file(path)
+  local bufnr = vim.fn.bufadd(vim.fs.joinpath(review.root, path))
+  vim.fn.bufload(bufnr)
+
+  if vim.bo[bufnr].modified then
+    notify(fmt("`%s` has unsaved changes", path), vim.log.levels.WARN)
+    return nil
+  end
+
+  -- A buffer loaded before an agent saved the file still holds the old lines, and writing it would undo the agent
+  if not vim.deep_equal(api.nvim_buf_get_lines(bufnr, 0, -1, false), checklist.read_file_lines(review.root, path)) then
+    api.nvim_buf_call(bufnr, function()
+      vim.cmd("silent edit!")
+    end)
+  end
+
+  return bufnr
+end
+
 ---Put the working file's lines back to the baseline for every hunk in a checklist row
 ---@param entry CodeCompanion.CodeReview.Entry
 ---@return nil
 local function revert_hunks(entry)
   local file_diff = review.diffs[entry.path]
 
-  local bufnr = vim.fn.bufadd(vim.fs.joinpath(review.root, entry.path))
-  vim.fn.bufload(bufnr)
+  local bufnr = load_saved_file(entry.path)
+  if not bufnr then
+    return
+  end
 
-  if vim.bo[bufnr].modified then
-    return notify(fmt("`%s` has unsaved changes", entry.path), vim.log.levels.WARN)
+  -- The row's line numbers come from the diff, so they only hold while the file is unchanged since it was drawn
+  if not vim.deep_equal(api.nvim_buf_get_lines(bufnr, 0, -1, false), file_diff.to.lines) then
+    notify(fmt("`%s` changed since the review was drawn, so the review has been refreshed", entry.path))
+    return rebuild()
   end
 
   -- Bottom-up, so each splice leaves the working line numbers of the hunks above it intact
@@ -438,7 +467,11 @@ local function revert_hunks(entry)
     local replaced = api.nvim_buf_get_lines(bufnr, at - 1, at - 1 + hunk.to_count, false)
 
     api.nvim_buf_set_lines(bufnr, at - 1, at - 1 + hunk.to_count, false, restored)
-    table.insert(splices, 1, { path = entry.path, start = at, count = #restored, lines = replaced })
+    table.insert(
+      splices,
+      1,
+      { path = entry.path, start = at, count = #restored, lines = replaced, restored = restored }
+    )
   end
 
   -- The buffer stays loaded so the file's own undo history holds the revert, and `noautocmd`
@@ -449,6 +482,37 @@ local function revert_hunks(entry)
 
   table.insert(review.undo, { splices = splices })
   rebuild()
+end
+
+---Put back the lines a revert replaced, unless the file has changed since and they would overwrite it
+---@param splices { path: string, start: number, count: number, lines: string[], restored: string[] }[]
+---@return nil
+local function undo_revert(splices)
+  local path = splices[1].path
+  local bufnr = load_saved_file(path)
+  if not bufnr then
+    return
+  end
+
+  -- Each splice above has not been undone yet, so it still shifts the ones below it
+  local shift = 0
+  for _, splice in ipairs(splices) do
+    local at = splice.start - 1 + shift
+    if not vim.deep_equal(api.nvim_buf_get_lines(bufnr, at, at + splice.count, false), splice.restored) then
+      return notify(fmt("`%s` has changed since the revert, so it cannot be undone", path), vim.log.levels.WARN)
+    end
+    shift = shift + splice.count - #splice.lines
+  end
+
+  -- Top-down puts each hunk back at the working line it was reverted from, before the ones below it move
+  for _, splice in ipairs(splices) do
+    local at = splice.start - 1
+    api.nvim_buf_set_lines(bufnr, at, at + splice.count, false, splice.lines)
+  end
+
+  api.nvim_buf_call(bufnr, function()
+    vim.cmd("silent noautocmd write")
+  end)
 end
 
 ---Take back the last accept or revert
@@ -463,16 +527,8 @@ local function undo_last()
     store.unaccept(review.root, id)
   end
 
-  -- Top-down puts each hunk back at the working line it was reverted from, before the ones below it move
-  for _, splice in ipairs(last.splices or {}) do
-    local bufnr = vim.fn.bufadd(vim.fs.joinpath(review.root, splice.path))
-    vim.fn.bufload(bufnr)
-
-    local at = splice.start - 1
-    api.nvim_buf_set_lines(bufnr, at, at + splice.count, false, splice.lines)
-    api.nvim_buf_call(bufnr, function()
-      vim.cmd("silent noautocmd write")
-    end)
+  if last.splices then
+    undo_revert(last.splices)
   end
 
   rebuild()
@@ -490,6 +546,10 @@ end
 ---Open the working file at the row under the cursor, in the tab the review was opened from
 ---@return nil
 local function edit_line()
+  if not review.active_path then
+    return
+  end
+
   local rows = review.diffs[review.active_path].merged.rows
   local cursor = api.nvim_win_get_cursor(review.pane.winnr)[1]
 
@@ -510,19 +570,42 @@ local function edit_line()
   vim.cmd("startinsert")
 end
 
----The working line the cursor sits on, or the line a checklist hunk starts at
----@return number|nil
-local function commented_line()
+---The working line to comment on and the code it quotes, from the cursor or the checklist hunk under it
+---@return { line: number, code: string }|nil
+local function get_commented_line()
+  if not review.active_path then
+    return nil
+  end
+  local file_diff = review.diffs[review.active_path]
+
   if api.nvim_get_current_win() == review.checklist.winnr then
     local entry = review.entries[api.nvim_win_get_cursor(review.checklist.winnr)[1]]
-    return entry and entry.hunks and math.max(first_hunk(entry).to_start, 1) or nil
+    if not (entry and entry.hunks) then
+      return nil
+    end
+    local line = math.max(first_hunk(entry).to_start, 1)
+    return { line = line, code = file_diff.to.lines[line] or "" }
   end
 
-  local rows = review.diffs[review.active_path].merged.rows
-  local row = rows[api.nvim_win_get_cursor(review.pane.winnr)[1]]
+  local rows = file_diff.merged.rows
+  local cursor = api.nvim_win_get_cursor(review.pane.winnr)[1]
+  local row = rows[cursor]
+  if not row then
+    return nil
+  end
+  if row.to then
+    return { line = row.to, code = file_diff.to.lines[row.to] }
+  end
 
-  -- A deleted row has no line in the working file, so the comment lands on the line it sat after
-  return row and (row.to or row.from) or nil
+  -- A deleted row has no working line, so the comment sits on the one above it and quotes what was removed
+  local line = 1
+  for above = cursor - 1, 1, -1 do
+    if rows[above].to then
+      line = rows[above].to
+      break
+    end
+  end
+  return { line = line, code = file_diff.from.lines[row.from] }
 end
 
 ---Comment on the line under the cursor, or change the comment already there
@@ -537,20 +620,18 @@ local function comment_on_line()
     end
   end
 
-  local line = commented_line()
-  if not line then
+  local commented = get_commented_line()
+  if not commented then
     return notify("Nothing to comment on here", vim.log.levels.WARN)
   end
 
   local path = review.active_path
-  local lines = checklist.read_file_lines(review.root, path)
-
   code_review.add_comment({
-    code = lines[line] or "",
+    code = commented.code,
     filetype = vim.filetype.match({ filename = vim.fs.joinpath(review.root, path) }),
     path = path,
-    start_line = line,
-    end_line = line,
+    start_line = commented.line,
+    end_line = commented.line,
   }, { on_done = show_comments })
 end
 
@@ -629,7 +710,6 @@ local ACTIONS = {
   undo = undo_last,
 }
 
----@return nil
 local function set_keymaps()
   for _, map in pairs(config.interactions.code_review.keymaps or {}) do
     local keys = type(map) == "table" and map.modes and map.modes.n or nil
@@ -649,7 +729,6 @@ local function set_keymaps()
   end
 end
 
----@return nil
 local function setup_sync()
   local group = api.nvim_create_augroup(CONSTANTS.GROUP, { clear = true })
 
@@ -742,7 +821,12 @@ function M.open()
   M.close()
 
   local built = checklist.build({ root = root })
+  if not built then
+    return notify("Could not read the worktree", vim.log.levels.ERROR)
+  end
   if #built.entries == 0 then
+    -- Nothing needs a person, even if auto-accepted files changed, so the round is done
+    require("codecompanion.interactions.code_review").mark_reviewed()
     return notify("No edits to review")
   end
 

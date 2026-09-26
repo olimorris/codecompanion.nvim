@@ -328,8 +328,22 @@ end
 ---@param root string
 ---@return string|nil
 function M.fork_point(root)
-  local default_branch = git(root, { "symbolic-ref", "--quiet", "--short", "refs/remotes/origin/HEAD" }) or "main"
-  return git(root, { "merge-base", "HEAD", default_branch })
+  local candidates = { "main", "master" }
+  local configured = git(root, { "config", "--get", "init.defaultBranch" })
+  if configured then
+    table.insert(candidates, 1, configured)
+  end
+  local remote = git(root, { "symbolic-ref", "--quiet", "--short", "refs/remotes/origin/HEAD" })
+  if remote then
+    table.insert(candidates, 1, remote)
+  end
+
+  for _, branch in ipairs(candidates) do
+    local fork_point = git(root, { "merge-base", "HEAD", branch })
+    if fork_point then
+      return fork_point
+    end
+  end
 end
 
 ---Point the baseline ref at an existing commit

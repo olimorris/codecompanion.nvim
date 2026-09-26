@@ -258,6 +258,18 @@ T["Baseline"]["a lock another Neovim still holds is left alone"] = function()
   h.is_true(child.lua_get("vim.uv.fs_stat(index .. '.lock') ~= nil"))
 end
 
+T["Baseline"]["finds the fork point on a default branch that isn't called main"] = function()
+  child.lua([[
+    commit("init")
+    vim.system({ "git", "-C", repo, "branch", "-M", "master" }):wait()
+    fork = vim.trim(vim.system({ "git", "-C", repo, "rev-parse", "HEAD" }, { text = true }):wait().stdout)
+    checkout("-b", "feature")
+    commit("on the branch")
+  ]])
+
+  h.eq(child.lua_get("fork"), child.lua_get("baseline.fork_point(repo)"))
+end
+
 T["Baseline"]["the alias ref points at the branch baseline"] = function()
   child.lua([[
     write("a.lua", { "local a = 1" })

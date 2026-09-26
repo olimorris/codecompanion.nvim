@@ -13,7 +13,18 @@ T = new_set({
 
         baseline = require("codecompanion.interactions.code_review.baseline")
         config = require("codecompanion.config")
+        review = require("codecompanion.interactions.code_review")
+        store = require("codecompanion.interactions.code_review.store")
         window = require("codecompanion.interactions.code_review.window")
+
+        git = function(...)
+          vim.system({ "git", "-C", repo, "-c", "user.name=Test", "-c", "user.email=test@test", ... }):wait()
+        end
+
+        focus_pane_row = function(row)
+          vim.api.nvim_set_current_win(vim.fn.bufwinid(vim.fn.bufnr("Code Review Diff")))
+          vim.api.nvim_win_set_cursor(0, { row, 0 })
+        end
 
         write = function(path, lines)
           vim.fn.writefile(lines, vim.fs.joinpath(repo, path))
@@ -46,6 +57,7 @@ T = new_set({
 
         storage_dir = vim.fn.tempname()
         config.interactions.code_review.opts.storage_dir = storage_dir
+        config.interactions.code_review.opts.auto_accept = {}
 
         repo = vim.fn.tempname()
         vim.fn.mkdir(repo, "p")
@@ -132,6 +144,113 @@ T["Window"]["reverting a grouped row restores every hunk in it, and undo puts th
 
   child.type_keys("u")
   h.eq(child.lua_get("edited"), child.lua_get("read('a.lua')"))
+end
+
+T["Window"]["DOES NOT revert over lines an agent saved after the review was drawn"] = function()
+  child.lua([[
+    write_two_rows()
+    vim.fn.bufload(vim.fn.bufadd(vim.fs.joinpath(repo, "a.lua")))
+    window.open()
+
+    agent_saved = { "local function first()", "  return 10", "end", "-- a new line from the agent", "local function second()", "  return 20", "end" }
+    write("a.lua", agent_saved)
+  ]])
+  child.type_keys("j", "gr")
+
+  h.eq(child.lua_get("agent_saved"), child.lua_get("read('a.lua')"))
+  h.eq(
+    { "`a.lua` changed since the review was drawn, so the review has been refreshed" },
+    child.lua_get("notifications")
+  )
+end
+
+T["Window"]["DOES NOT undo a revert once the reverted lines have changed"] = function()
+  child.lua("write_two_rows(); window.open()")
+  child.type_keys("j", "gr")
+  child.lua([[
+    changed = read("a.lua")
+    changed[2] = "  return 100"
+    write("a.lua", changed)
+  ]])
+  child.type_keys("u")
+
+  h.eq(child.lua_get("changed"), child.lua_get("read('a.lua')"))
+  h.eq({ "`a.lua` has changed since the revert, so it cannot be undone" }, child.lua_get("notifications"))
+end
+
+T["Window"]["commenting on a deleted line anchors to the line above and quotes what was removed"] = function()
+  child.lua([[
+    write("a.lua", { "local a = 1", "local gone = 2", "local c = 3" })
+    baseline.snapshot(repo)
+    write("a.lua", { "local a = 1", "local c = 3" })
+
+    package.loaded["codecompanion.interactions.shared.input"].open = function(opts)
+      opts.on_submit("Why remove this?")
+    end
+
+    window.open()
+    focus_pane_row(2)
+  ]])
+  child.type_keys("gc")
+
+  h.eq(1, child.lua_get("store.comments(repo)[1].start_line"))
+  h.eq("local gone = 2", child.lua_get("store.comments(repo)[1].code"))
+end
+
+T["Window"]["opening a round whose only changes are auto-accepted closes it"] = function()
+  child.lua([[
+    config.interactions.code_review.opts.auto_accept = { "*.lock" }
+    write("a.lock", { "v1" })
+    baseline.snapshot(repo)
+    store.begin_round(repo)
+    write("a.lock", { "v2" })
+
+    window.open()
+  ]])
+
+  h.is_false(child.lua_get("store.round_open(repo)"))
+end
+
+T["Window"]["reports a worktree it cannot read and leaves the round open"] = function()
+  child.lua([[
+    write("a.lua", { "local a = 1" })
+    baseline.snapshot(repo)
+    store.begin_round(repo)
+
+    local diff = baseline.diff
+    baseline.diff = function() return nil end
+    window.open()
+    baseline.diff = diff
+  ]])
+
+  h.eq({ "Could not read the worktree" }, child.lua_get("notifications"))
+  h.is_true(child.lua_get("store.round_open(repo)"))
+end
+
+T["Window"]["Branch from a cleared review still shows every change on the branch"] = function()
+  child.lua([[
+    write("a.lua", { "local a = 1" })
+    git("add", "--all")
+    git("commit", "--quiet", "-m", "init")
+    git("branch", "-M", "main")
+    git("checkout", "--quiet", "-b", "feature")
+    write("b.lua", { "local b = 1" })
+    git("add", "--all")
+    git("commit", "--quiet", "-m", "add b")
+
+    baseline.snapshot(repo)
+    write("a.lua", { "local a = 10" })
+    window.open()
+  ]])
+  child.type_keys("ga")
+  h.eq({ "No edits left to review" }, child.lua_get("get_rows()"))
+
+  child.lua("review.review_branch()")
+
+  h.eq(
+    { "2 files, 2 hunks", "a.lua  +1 -1", "  +1 -1  local a = 10", "b.lua  +1 -0", "  +1 -0  local b = 1" },
+    child.lua_get("get_rows()")
+  )
 end
 
 return T
