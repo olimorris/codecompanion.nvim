@@ -389,14 +389,16 @@ function M.diff(root)
   sync_alias(root, ref)
 
   -- Split the same way as the review window's `vim.diff`, or its rows can't be matched to these hunks
-  local algorithm = { "--diff-algorithm=histogram", "--indent-heuristic" }
-  local output = git(
-    root,
-    vim.list_extend(
-      { "diff", "--no-color", "--no-ext-diff", "--unified=0" },
-      vim.list_extend(algorithm, { ref, worktree })
-    )
-  )
+  local output = git(root, {
+    "diff",
+    "--no-color",
+    "--no-ext-diff",
+    "--unified=0",
+    "--diff-algorithm=" .. diff.LINE_OPTS.algorithm,
+    diff.LINE_OPTS.indent_heuristic and "--indent-heuristic" or "--no-indent-heuristic",
+    ref,
+    worktree,
+  })
   if not output or output == "" then
     return {}
   end
