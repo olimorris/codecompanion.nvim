@@ -1,5 +1,12 @@
 # Changelog
 
+## [19.27.0](https://github.com/olimorris/codecompanion.nvim/compare/v19.26.0...v19.27.0) (2026-09-26)
+
+
+### Features
+
+* **mcp:** add support for prompts ([#3412](https://github.com/olimorris/codecompanion.nvim/issues/3412)) ([72578d3](https://github.com/olimorris/codecompanion.nvim/commit/72578d316bf60ae9fd32d9267ab4bcfb85e2d0be))
+
 ## [19.26.0](https://github.com/olimorris/codecompanion.nvim/compare/v19.25.0...v19.26.0) (2026-09-24)
 
 
