@@ -211,11 +211,16 @@ function M.build(opts)
 
       if opts.preview then
         local previewer = require("fzf-lua.previewer.builtin").buffer_or_file:extend()
-        function previewer:parse_entry(entry)
+        function previewer:entry_to_file(entry)
           local item = find_by_display(items, entry)
           return { path = item and item.path }
         end
-        display.previewer = previewer
+        -- fzf-lua's `tbl_deep_extend` merge with its defaults drops the class metatable; `_ctor` survives it
+        display.previewer = {
+          _ctor = function()
+            return previewer
+          end,
+        }
       end
 
       fzf.provider.fzf_exec(
