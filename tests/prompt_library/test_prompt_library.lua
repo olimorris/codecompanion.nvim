@@ -298,6 +298,43 @@ T["Prompt Library"]["can start the chat buffer in an approval mode"] = function(
   h.eq("yolo", mode)
 end
 
+T["Prompt Library"]["can start the chat buffer in ask mode when the default is auto"] = function()
+  local mode = child.lua([[
+    codecompanion.setup({
+      interactions = {
+        chat = {
+          tools = {
+            opts = {
+              approval_mode = "auto",
+            },
+          },
+        },
+      },
+      prompt_library = {
+        ["Careful"] = {
+          strategy = "chat",
+          description = "Asks before every tool",
+          opts = {
+            alias = "careful",
+            index = 1,
+            approval_mode = "ask",
+          },
+          prompts = {
+            {
+              role = "user",
+              content = "Use all of the tools",
+            },
+          },
+        },
+      },
+    })
+    codecompanion.prompt("careful")
+    local approvals = require("codecompanion.interactions.chat.tools.approvals")
+    return approvals:get_mode(codecompanion.last_chat().bufnr)
+  ]])
+  h.eq("ask", mode)
+end
+
 T["Prompt Library"]["yolo_mode starts the chat buffer in auto mode"] = function()
   local mode = child.lua([[
     codecompanion.setup({

@@ -612,9 +612,10 @@ function Chat.new(args)
   self.aug = api.nvim_create_augroup(CONSTANTS.AUTOCMD_GROUP .. ":" .. self.bufnr, { clear = false })
 
   local approval_mode = args.approval_mode or (args.yolo_mode and "auto")
-  if approval_mode and approval_mode ~= "ask" then
+  if approval_mode and approval_mode ~= approvals:get_mode(self.bufnr) then
     approvals:set_mode(self.bufnr, { mode = approval_mode })
-    utils.notify(("Approval mode: %s"):format(approval_mode == "yolo" and "YOLO" or "Auto"), vim.log.levels.INFO)
+    local labels = { ask = "Ask", auto = "Auto", yolo = "YOLO" }
+    utils.notify(("Approval mode: %s"):format(labels[approval_mode]), vim.log.levels.INFO)
   end
 
   if not init_parsers(self) then

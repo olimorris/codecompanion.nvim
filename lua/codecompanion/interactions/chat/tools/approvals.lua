@@ -108,7 +108,7 @@ end
 ---@param bufnr number
 ---@return CodeCompanion.Tools.ApprovalMode
 function Approvals:get_mode(bufnr)
-  return modes[bufnr] or "ask"
+  return modes[bufnr] or config.interactions.chat.tools.opts.approval_mode
 end
 
 ---@param bufnr number

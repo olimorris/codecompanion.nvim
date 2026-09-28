@@ -326,6 +326,9 @@ The user is working on a %s machine. Please respond with system specific command
           },
         },
         opts = {
+          ---The approval mode every chat buffer starts in
+          ---@type CodeCompanion.Tools.ApprovalMode
+          approval_mode = "ask",
           auto_submit_errors = true, -- Send any errors to the LLM automatically?
           auto_submit_success = true, -- Send any successful output to the LLM automatically?
           max_output_tokens = 30000, -- Truncate a tool's output above this many tokens, or the model's limit if lower
@@ -1551,11 +1554,12 @@ end
 ---@param tools table
 local function migrate_yolo_tool_opts(tools)
   local warned = {}
-  local function warn(legacy, name)
-    if not warned[legacy] then
-      warned[legacy] = true
+  ---@param opts { legacy: string, replacement: string }
+  local function warn(opts)
+    if not warned[opts.legacy] then
+      warned[opts.legacy] = true
       vim.notify(
-        ("[CodeCompanion] The `%s` tool option is deprecated. Use `%s` instead."):format(legacy, name),
+        ("[CodeCompanion] The `%s` tool option is deprecated. Use `%s` instead."):format(opts.legacy, opts.replacement),
         vim.log.levels.WARN,
         { title = "CodeCompanion" }
       )
@@ -1565,12 +1569,12 @@ local function migrate_yolo_tool_opts(tools)
   for _, tool in pairs(tools) do
     local opts = type(tool) == "table" and type(tool.opts) == "table" and tool.opts or {}
     if opts.allowed_in_yolo_mode ~= nil then
-      warn("allowed_in_yolo_mode", "protect")
+      warn({ legacy = "allowed_in_yolo_mode", replacement = "protect" })
       opts.protect = not opts.allowed_in_yolo_mode
       opts.allowed_in_yolo_mode = nil
     end
     if opts.judge_in_yolo_mode ~= nil then
-      warn("judge_in_yolo_mode", "judge")
+      warn({ legacy = "judge_in_yolo_mode", replacement = "judge" })
       opts.judge = opts.judge_in_yolo_mode
       opts.judge_in_yolo_mode = nil
     end
@@ -1643,9 +1647,6 @@ M.setup = function(args)
     M.config.interactions.chat.opts.context_management.trigger = nil
   end
 
-  -- TODO: Deprecate in v20.0.0 and remove in v21.0.0
-  migrate_yolo_tool_opts(M.config.interactions.chat.tools)
-
   M.config.interactions.chat.keymaps = remove_disabled_keymaps(M.config.interactions.chat.keymaps)
   M.config.interactions.cli.keymaps = remove_disabled_keymaps(M.config.interactions.cli.keymaps)
   M.config.interactions.inline.keymaps = remove_disabled_keymaps(M.config.interactions.inline.keymaps)
@@ -1655,6 +1656,9 @@ M.setup = function(args)
   if project_config then
     M.config = vim.tbl_deep_extend("force", M.config, project_config)
   end
+
+  -- TODO: Deprecate in v20.0.0 and remove in v21.0.0
+  migrate_yolo_tool_opts(M.config.interactions.chat.tools)
 
   M.config.INFO_NS = vim.api.nvim_create_namespace("CodeCompanion-info")
   M.config.ERROR_NS = vim.api.nvim_create_namespace("CodeCompanion-error")

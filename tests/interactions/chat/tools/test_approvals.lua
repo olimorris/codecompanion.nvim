@@ -25,6 +25,9 @@ local T = new_set({
                     safe_commands = { "git status", "ls" },
                   },
                 },
+                opts = {
+                  approval_mode = "ask",
+                },
               },
             },
           },
@@ -162,6 +165,21 @@ T["modes"]["are buffer-specific"] = function()
   child.lua([[Approvals:set_mode(1, { mode = 'yolo' })]])
   h.eq(true, child.lua([[return Approvals:is_approved(1, { tool_name = 'any_tool' })]]))
   h.eq(false, child.lua([[return Approvals:is_approved(2, { tool_name = 'any_tool' })]]))
+end
+
+T["modes"]["start in the configured approval mode"] = function()
+  child.lua([[require('codecompanion.config').interactions.chat.tools.opts.approval_mode = 'auto']])
+  h.eq("auto", child.lua([[return Approvals:get_mode(1)]]))
+  h.eq(true, child.lua([[return Approvals:is_approved(1, { tool_name = 'some_tool' })]]))
+end
+
+T["modes"]["return to the configured approval mode after reset()"] = function()
+  child.lua([[
+    require('codecompanion.config').interactions.chat.tools.opts.approval_mode = 'auto'
+    Approvals:set_mode(1, { mode = 'yolo' })
+    Approvals:reset(1)
+  ]])
+  h.eq("auto", child.lua([[return Approvals:get_mode(1)]]))
 end
 
 T["modes"]["toggle_yolo_mode() switches between ask and auto"] = function()

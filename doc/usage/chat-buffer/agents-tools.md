@@ -411,7 +411,25 @@ Press `gty` in the chat buffer to choose how tools are approved:
 - **Auto** - Tools run without asking, apart from protected tools and commands that aren't on your safe list
 - **YOLO** - Everything runs without asking
 
-Every chat buffer starts in Ask. In Auto mode, a protected tool always asks first. `delete_file` is protected by default:
+Every chat buffer starts in Ask. To start in a different mode:
+
+```lua
+require("codecompanion").setup({
+  interactions = {
+    chat = {
+      tools = {
+        opts = {
+          approval_mode = "auto", -- Can be "ask", "auto" or "yolo"
+        },
+      },
+    },
+  },
+})
+```
+
+Clearing the approvals with `gtx` returns the chat buffer to this mode.
+
+In Auto mode, a protected tool always asks first. `delete_file` is protected by default:
 
 ```lua
 require("codecompanion").setup({
@@ -456,7 +474,7 @@ If you've enabled the [LLM judge](/configuration/chat-buffer#llm-judge), it deci
 
 A [prompt library](/configuration/prompt-library#options) item can start its chat buffer in a given mode with `opts.approval_mode = "auto"`.
 
-Approval modes also apply to ACP agents. In Auto mode, reads, searches, edits and fetches are approved, commands are checked against the `run_command` safe list, and everything else asks.
+Approval modes also apply to ACP agents. In Auto mode, reads, searches, edits and fetches are approved, and everything else asks. Any shell command is checked against the `run_command` safe list, even when the agent labels it as a read or a search.
 
 > [!WARNING]
 > YOLO mode runs every tool, including protected ones, without asking. Only use it in an environment where you can recover from lost data. You are responsible for any damage caused whilst using it
