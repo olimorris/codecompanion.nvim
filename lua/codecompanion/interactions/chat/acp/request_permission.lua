@@ -1,6 +1,7 @@
 local log = require("codecompanion.utils.log")
 local utils = require("codecompanion.utils")
 
+local approvals = require("codecompanion.interactions.chat.tools.approvals")
 local labels = require("codecompanion.interactions.chat.tools.labels")
 
 local fmt = string.format
@@ -12,6 +13,9 @@ local ACP_OPTIONS = {
   reject_once = { label = labels.reject, keymap = "reject" },
   reject_always = { label = labels.reject_always },
 }
+
+---Ref: https://agentclientprotocol.com/protocol/schema#toolkind
+local AUTO_APPROVED_KINDS = { edit = true, fetch = true, read = true, search = true }
 
 local M = {}
 
@@ -245,12 +249,39 @@ local function approve_in_chat(permission, choices, prompt_opts)
   })
 end
 
+---Does the chat's approval mode let the agent go ahead without asking?
+---@param chat CodeCompanion.Chat
+---@param tool_call? table
+---@return boolean
+local function is_approved_by_mode(chat, tool_call)
+  local mode = approvals:get_mode(chat.bufnr)
+  if mode == "yolo" then
+    return true
+  end
+  if mode ~= "auto" or type(tool_call) ~= "table" then
+    return false
+  end
+  if AUTO_APPROVED_KINDS[tool_call.kind] then
+    return true
+  end
+
+  local raw_input = type(tool_call.rawInput) == "table" and tool_call.rawInput or {}
+  return tool_call.kind == "execute" and approvals.is_safe_command(raw_input.command)
+end
+
 ---Show the permission request to the user and handle their response
 ---@param chat CodeCompanion.Chat
 ---@param request table
 ---@return nil
 function M.confirm(chat, request)
   local tool_call = request.tool_call
+
+  local allow_once = build_kind_map(request.options).allow_once
+  if allow_once and is_approved_by_mode(chat, tool_call) then
+    log:debug("[acp::request_permission] Approved by the chat's approval mode")
+    return request.respond(allow_once, false)
+  end
+
   local has_diff = tool_call and requires_diff(tool_call)
 
   local permission = { chat = chat, request = request }

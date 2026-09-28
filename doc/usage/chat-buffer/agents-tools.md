@@ -157,6 +157,7 @@ Can you use @{delete_file} to delete the quotes.lua file?
 ```
 
 **Options:**
+- `protect` always ask before deleting a file in Auto mode? (Default: true)
 - `require_approval_before` require approval before deleting a file? (Default: true)
 
 ### fetch_webpage
@@ -326,6 +327,7 @@ The LLM is specifically instructed to detect if you're running a test suite, and
 
 **Options:**
 - `require_approval_before` require approval before running a command? (Default: true)
+- `safe_commands` commands that run without asking in Auto mode (Default: `{ "git status", "ls", "pwd" }`)
 
 ### search_help
 
@@ -401,18 +403,63 @@ Certain tools with potentially destructive capabilities have an additional layer
 
 Approvals can be reset for the given chat buffer by using the `gtx` keymap.
 
-### YOLO mode
+### Approval Modes
 
-To bypass the approval system, you can use `gty` in the chat buffer to enable YOLO mode. This will automatically approve all tool executions without prompting the user. However, some tools such as `run_command` and `delete_file` are excluded from this as they have `allowed_in_yolo_mode = false` set by default.
+Press `gty` in the chat buffer to choose how tools are approved:
 
-A [prompt library](/configuration/prompt-library#options) item can start its chat buffer in YOLO mode with `opts.yolo_mode = true`.
+- **Ask** - Approve each tool before it runs
+- **Auto** - Tools run without asking, apart from protected tools and commands that aren't on your safe list
+- **YOLO** - Everything runs without asking
 
-If you've configured the [LLM judge](/configuration/chat-buffer#llm-judge) then a tool's commands will be sent to an LLM to verify that they're safe. This assumes that your chosen adapter supports structured outputs and the tool itself supports the judge. The [delete_file](#delete_file) and [run_command](#run_command) tools support this out of the box.
+Every chat buffer starts in Ask. In Auto mode, a protected tool always asks first. `delete_file` is protected by default:
 
-If the judge decides the action is safe, it executes immediately and the verdict is cached so re-running the exact same command won't be re-judged that session. For example, approving `make test` does not result in `make test && rm -rf foo` being auto-approved. If the request to the judge fails, or the adapter can't produce structured output, the tool will require manual approval.
+```lua
+require("codecompanion").setup({
+  interactions = {
+    chat = {
+      tools = {
+        ["delete_file"] = {
+          opts = {
+            protect = true,
+          },
+        },
+      },
+    },
+  },
+})
+```
+
+In Auto mode, `run_command` asks first unless the command is on its safe list:
+
+```lua
+require("codecompanion").setup({
+  interactions = {
+    chat = {
+      tools = {
+        ["run_command"] = {
+          opts = {
+            safe_commands = { "git status", "git diff", "make test" },
+          },
+        },
+      },
+    },
+  },
+})
+```
+
+A command is safe if it starts with an entry on the list, so `git status` also covers `git status --short`. **A command that chains, nests or redirects, with `;`, `&`, `|`, `>`, `<`, `$(` a backtick or a new line, is never treated as safe.**
+
+> [!IMPORTANT]
+> An entry covers every flag the command accepts. Only add commands whose flags can't write files or run other programs - `git diff --output=notes.txt` writes a file and `rg --pre` runs one
+
+If you've enabled the [LLM judge](/configuration/chat-buffer#llm-judge), it decides on commands that aren't on the safe list instead of asking you.
+
+A [prompt library](/configuration/prompt-library#options) item can start its chat buffer in a given mode with `opts.approval_mode = "auto"`.
+
+Approval modes also apply to ACP agents. In Auto mode, reads, searches, edits and fetches are approved, commands are checked against the `run_command` safe list, and everything else asks.
 
 > [!WARNING]
-> Running tools in YOLO mode is dangerous and it is recommend that you only use it in a safe environment where potential data loss can be recovered. You are responsible for any damage that may occur when using YOLO mode.
+> YOLO mode runs every tool, including protected ones, without asking. Only use it in an environment where you can recover from lost data. You are responsible for any damage caused whilst using it
 
 ## Compatibility
 

@@ -270,8 +270,36 @@ T["Prompt Library"]["can ignore system prompt"] = function()
   h.eq(false, has_system_tag)
 end
 
-T["Prompt Library"]["can start the chat buffer in yolo mode"] = function()
-  local is_approved = child.lua([[
+T["Prompt Library"]["can start the chat buffer in an approval mode"] = function()
+  local mode = child.lua([[
+    codecompanion.setup({
+      prompt_library = {
+        ["Yolo"] = {
+          strategy = "chat",
+          description = "Runs tools without approvals",
+          opts = {
+            alias = "yolo",
+            index = 1,
+            approval_mode = "yolo",
+          },
+          prompts = {
+            {
+              role = "user",
+              content = "Use all of the tools",
+            },
+          },
+        },
+      },
+    })
+    codecompanion.prompt("yolo")
+    local approvals = require("codecompanion.interactions.chat.tools.approvals")
+    return approvals:get_mode(codecompanion.last_chat().bufnr)
+  ]])
+  h.eq("yolo", mode)
+end
+
+T["Prompt Library"]["yolo_mode starts the chat buffer in auto mode"] = function()
+  local mode = child.lua([[
     codecompanion.setup({
       prompt_library = {
         ["Yolo"] = {
@@ -293,9 +321,9 @@ T["Prompt Library"]["can start the chat buffer in yolo mode"] = function()
     })
     codecompanion.prompt("yolo")
     local approvals = require("codecompanion.interactions.chat.tools.approvals")
-    return approvals:is_approved(codecompanion.last_chat().bufnr, { tool_name = "read_file" })
+    return approvals:get_mode(codecompanion.last_chat().bufnr)
   ]])
-  h.eq(true, is_approved)
+  h.eq("auto", mode)
 end
 
 T["Prompt Library"]["malformed message is never formed, even if the current mode doesn't match the prompt's mode"] = function()

@@ -221,10 +221,10 @@ The user is working on a %s machine. Please respond with system specific command
           path = "interactions.chat.tools.builtin.delete_file",
           description = "Delete a file in the current working directory",
           opts = {
-            allowed_in_yolo_mode = false,
+            judge = false,
+            protect = true,
             require_approval_before = true,
             require_cmd_approval = true,
-            judge_in_yolo_mode = false,
           },
         },
         ["fetch_webpage"] = {
@@ -296,10 +296,10 @@ The user is working on a %s machine. Please respond with system specific command
           path = "interactions.chat.tools.builtin.run_command",
           description = "Run shell commands initiated by the LLM",
           opts = {
-            allowed_in_yolo_mode = false,
+            judge = false,
             require_approval_before = true,
             require_cmd_approval = true,
-            judge_in_yolo_mode = false,
+            safe_commands = { "git status", "ls", "pwd" }, -- Commands which run without asking in auto mode
             timeout = 300000, -- Timeout for commands (milliseconds) - 5 mins by default
           },
         },
@@ -777,7 +777,7 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
           modes = { n = "gty" },
           index = 20,
           callback = "keymaps.yolo_mode",
-          description = "Toggle YOLO/auto-approval of tool calls",
+          description = "Choose how tool calls are approved",
         },
         goto_file_under_cursor = {
           modes = { n = "gR" },
@@ -1547,6 +1547,36 @@ local function remove_disabled_keymaps(keymaps)
   return enabled
 end
 
+---Move the yolo mode tool options over to their approval mode equivalents
+---@param tools table
+local function migrate_yolo_tool_opts(tools)
+  local warned = {}
+  local function warn(legacy, name)
+    if not warned[legacy] then
+      warned[legacy] = true
+      vim.notify(
+        ("[CodeCompanion] The `%s` tool option is deprecated. Use `%s` instead."):format(legacy, name),
+        vim.log.levels.WARN,
+        { title = "CodeCompanion" }
+      )
+    end
+  end
+
+  for _, tool in pairs(tools) do
+    local opts = type(tool) == "table" and type(tool.opts) == "table" and tool.opts or {}
+    if opts.allowed_in_yolo_mode ~= nil then
+      warn("allowed_in_yolo_mode", "protect")
+      opts.protect = not opts.allowed_in_yolo_mode
+      opts.allowed_in_yolo_mode = nil
+    end
+    if opts.judge_in_yolo_mode ~= nil then
+      warn("judge_in_yolo_mode", "judge")
+      opts.judge = opts.judge_in_yolo_mode
+      opts.judge_in_yolo_mode = nil
+    end
+  end
+end
+
 ---@param args? table
 M.setup = function(args)
   args = vim.deepcopy(args or {})
@@ -1612,6 +1642,9 @@ M.setup = function(args)
     end
     M.config.interactions.chat.opts.context_management.trigger = nil
   end
+
+  -- TODO: Deprecate in v20.0.0 and remove in v21.0.0
+  migrate_yolo_tool_opts(M.config.interactions.chat.tools)
 
   M.config.interactions.chat.keymaps = remove_disabled_keymaps(M.config.interactions.chat.keymaps)
   M.config.interactions.cli.keymaps = remove_disabled_keymaps(M.config.interactions.cli.keymaps)
