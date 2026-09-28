@@ -17,6 +17,8 @@ local ACP_OPTIONS = {
 ---Ref: https://agentclientprotocol.com/protocol/schema#toolkind
 local AUTO_APPROVED_KINDS = { edit = true, fetch = true, read = true, search = true }
 
+local SHELLS = { bash = true, sh = true, zsh = true }
+
 local M = {}
 
 ---Find the first reject option from the request options
@@ -249,6 +251,25 @@ local function approve_in_chat(permission, choices, prompt_opts)
   })
 end
 
+---Get the shell command from an agent's input, which Codex sends as an argv array such as `{ "bash", "-lc", "ls" }`
+---@param command any
+---@return string|nil
+local function get_shell_command(command)
+  if type(command) ~= "table" then
+    return command
+  end
+  for _, part in ipairs(command) do
+    if type(part) ~= "string" then
+      return nil
+    end
+  end
+
+  if #command == 3 and SHELLS[vim.fs.basename(command[1])] and (command[2] == "-c" or command[2] == "-lc") then
+    return command[3]
+  end
+  return table.concat(command, " ")
+end
+
 ---Does the chat's approval mode let the agent go ahead without asking?
 ---@param chat CodeCompanion.Chat
 ---@param tool_call? table
@@ -265,7 +286,7 @@ local function is_approved_by_mode(chat, tool_call)
   -- Codex sends shell commands as reads and searches, so a command is judged on the command itself
   local raw_input = type(tool_call.rawInput) == "table" and tool_call.rawInput or {}
   if tool_call.kind == "execute" or raw_input.command ~= nil then
-    return approvals.is_safe_command(raw_input.command)
+    return approvals.is_safe_command(get_shell_command(raw_input.command))
   end
 
   return AUTO_APPROVED_KINDS[tool_call.kind] == true
@@ -278,12 +299,11 @@ end
 function M.confirm(chat, request)
   local tool_call = request.tool_call
 
-  local kinds = build_kind_map(request.options)
-  -- Only YOLO falls back to allow_always, as the agent keeps that grant after the chat leaves the mode
-  local allow = kinds.allow_once or (approvals:get_mode(chat.bufnr) == "yolo" and kinds.allow_always)
-  if allow and is_approved_by_mode(chat, tool_call) then
+  -- Never allow_always, as the agent keeps that grant after the chat leaves the mode
+  local allow_once = build_kind_map(request.options).allow_once
+  if allow_once and is_approved_by_mode(chat, tool_call) then
     log:debug("[acp::request_permission] Approved by the chat's approval mode")
-    return request.respond(allow, false)
+    return request.respond(allow_once, false)
   end
 
   local has_diff = tool_call and requires_diff(tool_call)

@@ -440,6 +440,22 @@ T["auto mode prompts for a read that runs a command NOT on the safe list"] = fun
   h.eq({ prompted = true }, result)
 end
 
+T["auto mode approves a Codex command that IS on the safe list"] = function()
+  local result = confirm_in_mode({
+    mode = "auto",
+    tool_call = { kind = "search", title = "ls", rawInput = { command = { "/bin/bash", "-lc", "ls -la" } } },
+  })
+  h.eq({ prompted = false, option_id = "allow_once_id" }, result)
+end
+
+T["auto mode prompts for a Codex command that IS NOT on the safe list"] = function()
+  local result = confirm_in_mode({
+    mode = "auto",
+    tool_call = { kind = "search", title = "rg", rawInput = { command = { "bash", "-lc", "rg TODO | xargs rm" } } },
+  })
+  h.eq({ prompted = true }, result)
+end
+
 T["auto mode prompts for a delete"] = function()
   local result = confirm_in_mode({ mode = "auto", tool_call = { kind = "delete", title = "Delete notes.md" } })
   h.eq({ prompted = true }, result)
@@ -455,19 +471,10 @@ local allow_always_only = {
   { optionId = "reject_once_id", name = "Reject", kind = "reject_once" },
 }
 
-T["yolo mode approves without prompting when the agent only offers allow_always"] = function()
+T["yolo mode prompts when the agent only offers allow_always"] = function()
   local result = confirm_in_mode({
     mode = "yolo",
     tool_call = { kind = "delete", title = "Delete notes.md" },
-    options = allow_always_only,
-  })
-  h.eq({ prompted = false, option_id = "allow_always_id" }, result)
-end
-
-T["auto mode prompts when the agent only offers allow_always"] = function()
-  local result = confirm_in_mode({
-    mode = "auto",
-    tool_call = { kind = "read", title = "Read README.md" },
     options = allow_always_only,
   })
   h.eq({ prompted = true }, result)
