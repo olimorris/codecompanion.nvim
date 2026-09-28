@@ -17,7 +17,17 @@ local ACP_OPTIONS = {
 ---Ref: https://agentclientprotocol.com/protocol/schema#toolkind
 local AUTO_APPROVED_KINDS = { edit = true, fetch = true, read = true, search = true }
 
-local SHELLS = { bash = true, sh = true, zsh = true }
+local SHELLS = {
+  ["bash"] = true,
+  ["sh"] = true,
+  ["zsh"] = true,
+  ["/bin/bash"] = true,
+  ["/bin/sh"] = true,
+  ["/bin/zsh"] = true,
+  ["/usr/bin/bash"] = true,
+  ["/usr/bin/sh"] = true,
+  ["/usr/bin/zsh"] = true,
+}
 
 local M = {}
 
@@ -264,7 +274,7 @@ local function get_shell_command(command)
     end
   end
 
-  if #command == 3 and SHELLS[vim.fs.basename(command[1])] and (command[2] == "-c" or command[2] == "-lc") then
+  if #command == 3 and SHELLS[command[1]] and (command[2] == "-c" or command[2] == "-lc") then
     return command[3]
   end
   return table.concat(command, " ")
@@ -272,9 +282,10 @@ end
 
 ---Does the chat's approval mode let the agent go ahead without asking?
 ---@param chat CodeCompanion.Chat
----@param tool_call? table
+---@param opts { tool_call?: table }
 ---@return boolean
-local function is_approved_by_mode(chat, tool_call)
+local function is_approved_by_mode(chat, opts)
+  local tool_call = opts.tool_call
   local mode = approvals:get_mode(chat.bufnr)
   if mode == "yolo" then
     return true
@@ -301,7 +312,7 @@ function M.confirm(chat, request)
 
   -- Never allow_always, as the agent keeps that grant after the chat leaves the mode
   local allow_once = build_kind_map(request.options).allow_once
-  if allow_once and is_approved_by_mode(chat, tool_call) then
+  if allow_once and is_approved_by_mode(chat, { tool_call = tool_call }) then
     log:debug("[acp::request_permission] Approved by the chat's approval mode")
     return request.respond(allow_once, false)
   end

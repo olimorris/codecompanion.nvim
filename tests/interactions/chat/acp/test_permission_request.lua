@@ -456,6 +456,14 @@ T["auto mode prompts for a Codex command that IS NOT on the safe list"] = functi
   h.eq({ prompted = true }, result)
 end
 
+T["auto mode prompts for a safe command run by a shell outside the system paths"] = function()
+  local result = confirm_in_mode({
+    mode = "auto",
+    tool_call = { kind = "search", title = "ls", rawInput = { command = { "/tmp/bash", "-lc", "ls" } } },
+  })
+  h.eq({ prompted = true }, result)
+end
+
 T["auto mode prompts for a delete"] = function()
   local result = confirm_in_mode({ mode = "auto", tool_call = { kind = "delete", title = "Delete notes.md" } })
   h.eq({ prompted = true }, result)
