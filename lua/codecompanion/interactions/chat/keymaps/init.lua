@@ -645,8 +645,8 @@ M.yolo_mode = {
     vim.ui.select(modes, {
       prompt = "Approval mode for this chat",
       format_item = function(item)
-        local suffix = item.mode == current and " (current)" or ""
-        return ("%s - %s%s"):format(item.label, item.description, suffix)
+        local marker = item.mode == current and "* " or "  "
+        return ("%s%s - %s"):format(marker, item.label, item.description)
       end,
     }, function(choice)
       if not choice then

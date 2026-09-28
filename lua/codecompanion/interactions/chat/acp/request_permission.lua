@@ -261,7 +261,7 @@ local function approve_in_chat(permission, choices, prompt_opts)
   })
 end
 
----Get the shell command from an agent's input, which Codex sends as an argv array such as `{ "bash", "-lc", "ls" }`
+---Get the shell command from an agent's input
 ---@param command any
 ---@return string|nil
 local function get_shell_command(command)
@@ -274,9 +274,11 @@ local function get_shell_command(command)
     end
   end
 
+  -- NOTE: Codex sends as an argv array such as `{ "bash", "-lc", "ls" }`
   if #command == 3 and SHELLS[command[1]] and (command[2] == "-c" or command[2] == "-lc") then
     return command[3]
   end
+
   return table.concat(command, " ")
 end
 
