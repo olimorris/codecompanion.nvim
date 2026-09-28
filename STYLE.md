@@ -141,10 +141,10 @@ LuaCATS annotations are expected on public APIs.
 
 **A function description is exactly one line.** No multi-paragraph rationale, no usage examples, no "why we cache this" essays. If you can't summarise the function in one line, split the function.
 
-**Drop the description entirely when the name already says it,** and drop annotations that carry no information.
+**Drop the description entirely when the name already says it,** and make sure the annotations match what the function does.
 
 ```lua
--- ❌ Description restates the name; the return annotation says nothing
+-- ❌ Description restates the name; the return annotation is wrong
 ---Get the chat buffer number
 ---@param chat CodeCompanion.Chat
 ---@return nil

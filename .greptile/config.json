@@ -26,7 +26,7 @@
     },
     {
       "id": "empty-annotations",
-      "rule": "Flag LuaCATS annotations that carry no information: a '---@return nil' on a function that returns nothing, a description line that only restates the function name, and inline explanations appended to '---@param' lines (rename the param instead).",
+      "rule": "Flag LuaCATS annotations that carry no information: a description line that only restates the function name, and inline explanations appended to '---@param' lines (rename the param instead). A '---@return nil' on a function that returns nothing is expected, not empty.",
       "scope": [
         "**/*.lua"
       ],

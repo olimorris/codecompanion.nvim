@@ -946,39 +946,66 @@ The user is working on a %s machine. Please respond with system specific command
       enabled = true,
       keymaps = {
         accept = {
-          modes = { n = "a" },
-          callback = "keymaps.accept",
-          description = "Accept the hunk under the cursor",
+          modes = { n = "ga" },
+          callback = "accept",
+          description = "Accept the hunk, or whole file, under the cursor",
+        },
+        revert = {
+          modes = { n = "gr" },
+          callback = "revert",
+          description = "Revert the hunk under the cursor",
         },
         comment = {
-          modes = { n = "c" },
-          callback = "keymaps.comment",
-          description = "Comment on the hunk under the cursor",
+          modes = { n = "gc" },
+          callback = "comment",
+          description = "Comment on the line under the cursor",
         },
-        diff = {
-          modes = { n = "d" },
-          callback = "keymaps.diff",
-          description = "Diff the hunk under the cursor against the baseline",
+        comments = {
+          modes = { n = "gC" },
+          callback = "comments",
+          description = "Edit the pending comments by hand",
         },
-        ignore = {
-          modes = { n = "x" },
-          callback = "keymaps.ignore",
-          description = "Ignore the hunk's file until the baseline advances",
+        share = {
+          modes = { n = "gs" },
+          callback = "share",
+          description = "Share comments for an agent outside of CodeCompanion",
+        },
+        undo = {
+          modes = { n = "u" },
+          callback = "undo",
+          description = "Undo the last accept or revert",
+        },
+        edit = {
+          modes = { n = { "i", "I" } },
+          callback = "edit",
+          description = "Edit the line in the file itself",
+        },
+        keymaps = {
+          modes = { n = "?" },
+          callback = "keymaps",
+          description = "Show these keymaps",
+          visible = false, -- The float itself says it
+        },
+        next_hunk = {
+          modes = { n = "]h" },
+          callback = "next_hunk",
+          description = "Move to the next hunk",
+        },
+        previous_hunk = {
+          modes = { n = "[h" },
+          callback = "previous_hunk",
+          description = "Move to the previous hunk",
         },
       },
       display = {
-        diff = {
-          enabled = true, -- Disable to bring your own diff plugin, pointed at the baseline ref
-          layout = "vertical", -- vertical|horizontal
-          provider = "native", -- "native"|fun(target: CodeCompanion.CodeReview.DiffTarget)
-        },
-        virtual_text = {
+        comments = {
           enabled = true, -- Show pending comments as virtual text in the buffer
-          icon = "💬 ", -- The icon to use for virtual text
+          icon = "💬 ", -- The icon to use for a comment
           overflow = "trunc", -- See `:h nvim_buf_set_extmark` for `virt_lines_overflow`
         },
       },
       opts = {
+        auto_accept = {}, -- Globs for files that never need reviewing, e.g. { "**/*.lock" }
         storage_dir = vim.fs.joinpath(vim.fn.stdpath("data"), "codecompanion", "code_review"),
       },
     },

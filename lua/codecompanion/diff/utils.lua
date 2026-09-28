@@ -252,7 +252,7 @@ end
 ---Join lines ensuring they have a trailing newline. Fixed #3338
 ---@param lines string[]
 ---@return string
-local function join_with_newline(lines)
+function M.join_with_newline(lines)
   if #lines == 0 then
     return ""
   end
@@ -267,7 +267,7 @@ function M.unified(from_lines, to_lines)
   ---@diagnostic disable-next-line: deprecated
   local diff_fn = vim.text.diff or vim.diff
   local result =
-    diff_fn(join_with_newline(from_lines), join_with_newline(to_lines), { result_type = "unified", ctxlen = 3 })
+    diff_fn(M.join_with_newline(from_lines), M.join_with_newline(to_lines), { result_type = "unified", ctxlen = 3 })
   result = (result or ""):gsub("\n$", "")
 
   return result

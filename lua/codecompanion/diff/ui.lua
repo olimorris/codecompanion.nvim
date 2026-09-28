@@ -205,6 +205,15 @@ end
 ---@param bufnr number
 ---@return nil
 function DiffUI:apply_extmarks(diff, bufnr)
+  return M.apply_highlights(diff, { bufnr = bufnr, ns = self.ns })
+end
+
+---Apply the merged view's line and word highlights to a buffer
+---@param diff CC.Diff
+---@param opts { bufnr: number, ns: number }
+---@return nil
+function M.apply_highlights(diff, opts)
+  local bufnr = opts.bufnr
   local line_count = api.nvim_buf_line_count(bufnr)
   if line_count == 0 then
     return utils.notify("Cannot apply diff to empty buffer", vim.log.levels.ERROR)
@@ -219,23 +228,23 @@ function DiffUI:apply_extmarks(diff, bufnr)
     local row = hl.row - 1 -- Convert to 0-indexed
 
     if row >= 0 and row < line_count then
-      local opts = {}
+      local extmark = {}
 
       if hl.type == "deletion" then
-        opts.line_hl_group = "CodeCompanionDiffDelete"
+        extmark.line_hl_group = "CodeCompanionDiffDelete"
         if diff.marker_delete then
-          opts.sign_text = diff.marker_delete
-          opts.sign_hl_group = "CodeCompanionDiffDelete"
+          extmark.sign_text = diff.marker_delete
+          extmark.sign_hl_group = "CodeCompanionDiffDelete"
         end
       elseif hl.type == "addition" then
-        opts.line_hl_group = "CodeCompanionDiffAdd"
+        extmark.line_hl_group = "CodeCompanionDiffAdd"
         if diff.marker_add then
-          opts.sign_text = diff.marker_add
-          opts.sign_hl_group = "CodeCompanionDiffAdd"
+          extmark.sign_text = diff.marker_add
+          extmark.sign_hl_group = "CodeCompanionDiffAdd"
         end
       end
 
-      pcall(api.nvim_buf_set_extmark, bufnr, self.ns, row, 0, opts)
+      pcall(api.nvim_buf_set_extmark, bufnr, opts.ns, row, 0, extmark)
 
       -- Apply word-level highlights using virtual text overlay
       -- This allows word highlights to show background colors over line highlights
@@ -249,7 +258,7 @@ function DiffUI:apply_extmarks(diff, bufnr)
           for _, range in ipairs(hl.word_hl) do
             local word_text = line:sub(range.col + 1, range.end_col)
             if word_text ~= "" then
-              pcall(api.nvim_buf_set_extmark, bufnr, self.ns, row, range.col, {
+              pcall(api.nvim_buf_set_extmark, bufnr, opts.ns, row, range.col, {
                 virt_text = { { word_text, word_hl_group } },
                 virt_text_pos = "overlay",
                 hl_mode = "combine",

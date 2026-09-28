@@ -112,7 +112,7 @@ T["Baseline"]["diff reports deleted files"] = function()
   local hunks = child.lua_get("baseline.diff(repo)")
   h.eq(1, #hunks)
   h.eq("b.lua", hunks[1].path)
-  h.eq(1, hunks[1].line)
+  h.eq(0, hunks[1].line)
   -- Nothing was added, so the removed line is all there is to show
   h.eq("+0 -2 local b = 1", hunks[1].summary)
 end
@@ -256,6 +256,18 @@ T["Baseline"]["a lock another Neovim still holds is left alone"] = function()
   -- Nil rather than an empty list, so a caller can tell this apart from there being no changes
   h.eq(vim.NIL, child.lua_get("hunks"))
   h.is_true(child.lua_get("vim.uv.fs_stat(index .. '.lock') ~= nil"))
+end
+
+T["Baseline"]["finds the fork point on a default branch that isn't called main"] = function()
+  child.lua([[
+    commit("init")
+    vim.system({ "git", "-C", repo, "branch", "-M", "master" }):wait()
+    fork = vim.trim(vim.system({ "git", "-C", repo, "rev-parse", "HEAD" }, { text = true }):wait().stdout)
+    checkout("-b", "feature")
+    commit("on the branch")
+  ]])
+
+  h.eq(child.lua_get("fork"), child.lua_get("baseline.fork_point(repo)"))
 end
 
 T["Baseline"]["the alias ref points at the branch baseline"] = function()

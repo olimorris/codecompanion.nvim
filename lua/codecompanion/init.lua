@@ -119,22 +119,13 @@ CodeCompanion.code_review = function(args)
   local code_review = require("codecompanion.interactions.code_review")
   local subcommand = args.subcommand
 
-  if subcommand == "accept" then
-    return code_review.accept()
-  elseif subcommand == "ignore" then
-    return code_review.ignore()
-  elseif subcommand == "comment" then
-    return code_review.comment(args)
-  elseif subcommand == "comments" then
-    return code_review.edit_comments()
-  elseif subcommand == "approve" or subcommand == "start" then
-    return code_review.approve()
-  elseif subcommand == "share" then
-    return code_review.share()
-  elseif subcommand == "all" then
-    return code_review.open({ scope = "all" })
+  if subcommand == "branch" then
+    return code_review.review_branch()
   end
-  return code_review.open()
+  if subcommand == "comment" then
+    return code_review.comment(args)
+  end
+  return code_review.open_window()
 end
 
 ---Open the files the LLM has edited this session in the quickfix list

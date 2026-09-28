@@ -276,16 +276,7 @@ return {
   {
     cmd = "CodeCompanionCodeReview",
     callback = function(opts)
-      local subcommands = {
-        accept = true,
-        all = true,
-        approve = true,
-        comment = true,
-        comments = true,
-        ignore = true,
-        share = true,
-        start = true,
-      }
+      local subcommands = { branch = true, comment = true }
       local arg = opts.fargs[1] and opts.fargs[1]:lower() or nil
       opts.subcommand = subcommands[arg] and arg or nil
       codecompanion.code_review(opts)
@@ -296,7 +287,7 @@ return {
       nargs = "*",
       complete = function(arg_lead)
         return vim
-          .iter({ "Accept", "All", "Approve", "Comment", "Comments", "Ignore", "Share", "Start" })
+          .iter({ "Branch", "Comment" })
           :filter(function(key)
             return key:find(vim.pesc(arg_lead), 1, true) == 1
           end)

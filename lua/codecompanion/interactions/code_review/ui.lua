@@ -18,8 +18,8 @@ local M = {}
 local anchors = {}
 
 ---@return table
-local function opts()
-  return config.interactions.code_review.display.virtual_text
+local function display()
+  return config.interactions.code_review.display.comments
 end
 
 ---Watch for files being opened, for only as long as there are comments to draw into them
@@ -44,7 +44,7 @@ end
 ---Redraw the comments whenever the buffer holding the comments file is written
 ---@param bufnr number
 ---@return nil
-function M.watch_comments_file(bufnr)
+function M.watch_for_comments(bufnr)
   api.nvim_create_autocmd("BufWritePost", {
     desc = "Redraw the review comments after they've been edited by hand",
     buffer = bufnr,
@@ -61,7 +61,7 @@ end
 
 ---Read the pending comments, resolved once per redraw and shared by every buffer drawn from it
 ---@return CodeCompanion.CodeReview.Pending
-local function pending()
+local function pending_comments()
   local root = baseline.storage_root()
   return { comments = store.comments(root), root = root }
 end
@@ -91,36 +91,49 @@ local function comments_in(bufnr, review)
   return found
 end
 
+---@param opts { bufnr: number, row: number, comment: string, index: number }
+---@return nil
+function M.place_comment(opts)
+  if not display().enabled then
+    return
+  end
+
+  local virt_lines = {}
+  for _, line in ipairs(vim.split(opts.comment, "\n", { plain = true })) do
+    table.insert(virt_lines, { { display().icon .. line, CONSTANTS.HL_GROUP } })
+  end
+
+  -- Row is 0-indexed
+  local id = api.nvim_buf_set_extmark(opts.bufnr, CONSTANTS.NAMESPACE, opts.row, 0, {
+    virt_lines = virt_lines,
+    virt_lines_above = true,
+    virt_lines_overflow = display().overflow,
+  })
+
+  anchors[opts.bufnr] = anchors[opts.bufnr] or {}
+  anchors[opts.bufnr][id] = opts.index
+end
+
 ---Draw the comments a review holds into a buffer
 ---@param bufnr number
 ---@param review CodeCompanion.CodeReview.Pending
 ---@return nil
 local function draw(bufnr, review)
   M.clear(bufnr)
-  if not opts().enabled or not api.nvim_buf_is_loaded(bufnr) then
+  if not display().enabled or not api.nvim_buf_is_loaded(bufnr) then
     return
   end
 
   local last_line = api.nvim_buf_line_count(bufnr)
-  local placed = {}
 
   for _, entry in ipairs(comments_in(bufnr, review)) do
-    local virt_lines = {}
-    for _, line in ipairs(vim.split(entry.comment.comment, "\n", { plain = true })) do
-      table.insert(virt_lines, { { opts().icon .. line, CONSTANTS.HL_GROUP } })
-    end
-
-    -- A comment can outlive the lines it was written against, so keep it in view
-    local row = math.min(entry.comment.start_line, last_line) - 1
-    local id = api.nvim_buf_set_extmark(bufnr, CONSTANTS.NAMESPACE, row, 0, {
-      virt_lines = virt_lines,
-      virt_lines_above = true,
-      virt_lines_overflow = opts().overflow,
+    M.place_comment({
+      bufnr = bufnr,
+      comment = entry.comment.comment,
+      index = entry.index,
+      row = math.min(entry.comment.start_line, last_line) - 1,
     })
-    placed[id] = entry.index
   end
-
-  anchors[bufnr] = placed
 end
 
 ---Remove the rendered comments from a buffer
@@ -137,13 +150,13 @@ end
 ---@param bufnr number
 ---@return nil
 function M.render(bufnr)
-  draw(bufnr, pending())
+  draw(bufnr, pending_comments())
 end
 
 ---Redraw every loaded buffer, so a change to the store is reflected everywhere
 ---@return nil
 function M.refresh()
-  local review = pending()
+  local review = pending_comments()
   watch(#review.comments > 0)
 
   for bufnr, _ in pairs(anchors) do
@@ -180,7 +193,7 @@ function M.comment_at(bufnr, line)
     return
   end
 
-  local review = pending()
+  local review = pending_comments()
   for id, index in pairs(placed) do
     local position = api.nvim_buf_get_extmark_by_id(bufnr, CONSTANTS.NAMESPACE, id, {})
     if position[1] and position[1] + 1 == line and review.comments[index] then

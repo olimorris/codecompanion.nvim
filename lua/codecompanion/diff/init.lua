@@ -51,6 +51,9 @@ local CONSTANTS = {
   },
 }
 
+---How whole files are split into hunks, which the code review's git diff must match
+M.LINE_OPTS = CONSTANTS.DIFF_LINE_OPTS
+
 ---@diagnostic disable-next-line: deprecated
 local diff_fn = vim.text.diff or vim.diff
 
@@ -68,7 +71,7 @@ local diff_fn = vim.text.diff or vim.diff
 ---@field hunks CodeCompanion.diff.Hunk[]
 ---@field from CC.DiffText
 ---@field to CC.DiffText
----@field merged { lines: string[], highlights: { row: number, type: "addition"|"deletion"|"change", word_hl?: { col: number, end_col: number }[] }[] } Merged lines for display
+---@field merged { lines: string[], highlights: { row: number, type: "addition"|"deletion"|"change", word_hl?: { col: number, end_col: number }[] }[], rows: CodeCompanion.diff.Row[] } Merged lines for display
 ---@field marker_add? string The marker to signify a line addition
 ---@field marker_delete? string The marker to signify a line deletion
 
@@ -87,6 +90,10 @@ local diff_fn = vim.text.diff or vim.diff
 ---@field end_row? number
 ---@field type? "addition"|"deletion" Type of extmark for styling
 
+---@class CodeCompanion.diff.Row
+---@field from? number Line in `diff.from.lines` this row shows, absent on an addition
+---@field to? number Line in `diff.to.lines` this row shows, absent on a deletion
+
 ---Diff two strings as arrays of lines
 ---@param a string[]
 ---@param b string[]
@@ -94,8 +101,8 @@ local diff_fn = vim.text.diff or vim.diff
 ---@return number[][]
 function M._diff(a, b, opts)
   opts = opts or CONSTANTS.DIFF_LINE_OPTS
-  local txt_a = table.concat(a, "\n")
-  local txt_b = table.concat(b, "\n")
+  local txt_a = diff_utils.join_with_newline(a)
+  local txt_b = diff_utils.join_with_newline(b)
 
   local result = diff_fn(txt_a, txt_b, opts)
 
@@ -138,8 +145,10 @@ function M._diff_lines(diff, opts)
   -- build out the highlights for the possible hunk types
   local merged_lines = {} ---@type string[]
   local highlights = {} ---@type { row: number, type: "addition"|"deletion"|"change", word_hl?: { col: number, end_col: number }[] }[]
+  local rows = {} ---@type CodeCompanion.diff.Row[]
 
   local from_pos = 1
+  local to_pos = 1
   local merged_row = 0
 
   for _, hunk in ipairs(hunks) do
@@ -154,7 +163,9 @@ function M._diff_lines(diff, opts)
     while from_pos <= stop_at do
       merged_row = merged_row + 1
       table.insert(merged_lines, diff.from.lines[from_pos])
+      rows[merged_row] = { from = from_pos, to = to_pos }
       from_pos = from_pos + 1
+      to_pos = to_pos + 1
     end
 
     ---@type CodeCompanion.diff.Hunk
@@ -185,6 +196,7 @@ function M._diff_lines(diff, opts)
       merged_row = merged_row + 1
       add_extmark(h, merged_row, "deletion")
       table.insert(merged_lines, diff.from.lines[from_start + i])
+      rows[merged_row] = { from = from_start + i }
 
       local word_ranges = word_diff_results[i] and word_diff_results[i].del_ranges or nil
       add_highlight(highlights, merged_row, "deletion", word_ranges)
@@ -196,9 +208,11 @@ function M._diff_lines(diff, opts)
       merged_row = merged_row + 1
       add_extmark(h, merged_row, "addition")
       table.insert(merged_lines, diff.to.lines[to_start + i])
+      rows[merged_row] = { to = to_start + i }
 
       local word_ranges = word_diff_results[i] and word_diff_results[i].add_ranges or nil
       add_highlight(highlights, merged_row, "addition", word_ranges)
+      to_pos = to_pos + 1
     end
   end
 
@@ -206,12 +220,15 @@ function M._diff_lines(diff, opts)
   while from_pos <= #diff.from.lines do
     merged_row = merged_row + 1
     table.insert(merged_lines, diff.from.lines[from_pos])
+    rows[merged_row] = { from = from_pos, to = to_pos }
     from_pos = from_pos + 1
+    to_pos = to_pos + 1
   end
 
   diff.merged = {
     lines = merged_lines,
     highlights = highlights,
+    rows = rows,
   }
 
   return diff
