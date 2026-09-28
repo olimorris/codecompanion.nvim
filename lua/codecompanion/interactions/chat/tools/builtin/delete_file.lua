@@ -136,7 +136,7 @@ return {
     end,
   },
   gates = {
-    ---The action handed to the background judge to vet in yolo mode
+    ---The action handed to the background judge to vet in auto mode
     ---@param self CodeCompanion.Tool.DeleteFile
     ---@param meta { tools: CodeCompanion.Tools }
     ---@return string

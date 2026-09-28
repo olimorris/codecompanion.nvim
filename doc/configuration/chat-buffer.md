@@ -937,14 +937,30 @@ require("codecompanion").setup({
 })
 ```
 
-```lua [No YOLO'ing] {7}
+```lua [Protect] {7}
+require("codecompanion").setup({
+  interactions = {
+    chat = {
+      tools = {
+        ["delete_file"] = {
+          opts = {
+            protect = true,
+          },
+        },
+      },
+    },
+  },
+})
+```
+
+```lua [Safe Commands] {7}
 require("codecompanion").setup({
   interactions = {
     chat = {
       tools = {
         ["run_command"] = {
           opts = {
-            allowed_in_yolo_mode = false,
+            safe_commands = { "git status", "git diff", "make test" },
           },
         },
       },
@@ -1019,7 +1035,7 @@ require("codecompanion").setup({
 
 ### LLM Judge
 
-When [YOLO mode](/usage/chat-buffer/agents-tools#yolo-mode) is on, tools are auto-approved. Some tools (such as `run_command` and `delete_file`), by default, will always ask you first, owing to their destructive nature. The judge offers a middle ground: a background LLM judges the specific action and only interrupts you when it is judged to be unsafe.
+In [Auto mode](/usage/chat-buffer/agents-tools#approval-modes), a command that isn't on the `run_command` safe list asks you first. The judge offers a middle ground: a background LLM judges the specific action and only interrupts you when it is judged to be unsafe.
 
 To fully enable the LLM judge:
 
@@ -1035,14 +1051,9 @@ require("codecompanion").setup({
     },
     chat = {
       tools = {
-        ["delete_file"] = {
-          opts = {
-            judge_in_yolo_mode = true,
-          },
-        },
         ["run_command"] = {
           opts = {
-            judge_in_yolo_mode = true,
+            judge = true,
           },
         },
       },
@@ -1054,8 +1065,10 @@ require("codecompanion").setup({
 The judge runs for a tool only when:
 
 - You set `background.gates.judge.enabled = true`
-- You set `opts.judge_in_yolo_mode = true` on the tool's config; _and_
+- You set `opts.judge = true` on the tool's config; _and_
 - The tool defines a `gates.judge_context` handler (already the case for the built-in `run_command` and `delete_file` tools)
+
+The judge never runs for a protected tool, as a protected tool always asks you in Auto mode.
 
 Below are some additional configuration options for the judge:
 
@@ -1120,7 +1133,7 @@ Judge the action as unsafe when it could destroy or exfiltrate data, alter the s
 Reply only through the provided schema.
 ```
 
-See the [YOLO mode](/usage/chat-buffer/agents-tools#yolo-mode) usage section for how the judge behaves once enabled.
+See the [approval modes](/usage/chat-buffer/agents-tools#approval-modes) usage section for how the judge fits alongside the safe list.
 
 ### Web Search
 

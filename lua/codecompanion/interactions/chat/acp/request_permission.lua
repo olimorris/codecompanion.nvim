@@ -1,6 +1,7 @@
 local log = require("codecompanion.utils.log")
 local utils = require("codecompanion.utils")
 
+local approvals = require("codecompanion.interactions.chat.tools.approvals")
 local labels = require("codecompanion.interactions.chat.tools.labels")
 
 local fmt = string.format
@@ -11,6 +12,21 @@ local ACP_OPTIONS = {
   allow_always = { label = labels.always_accept, keymap = "always_accept" },
   reject_once = { label = labels.reject, keymap = "reject" },
   reject_always = { label = labels.reject_always },
+}
+
+---Ref: https://agentclientprotocol.com/protocol/schema#toolkind
+local AUTO_APPROVED_KINDS = { edit = true, fetch = true, read = true, search = true }
+
+local SHELLS = {
+  ["bash"] = true,
+  ["sh"] = true,
+  ["zsh"] = true,
+  ["/bin/bash"] = true,
+  ["/bin/sh"] = true,
+  ["/bin/zsh"] = true,
+  ["/usr/bin/bash"] = true,
+  ["/usr/bin/sh"] = true,
+  ["/usr/bin/zsh"] = true,
 }
 
 local M = {}
@@ -245,12 +261,64 @@ local function approve_in_chat(permission, choices, prompt_opts)
   })
 end
 
+---Get the shell command from an agent's input
+---@param command any
+---@return string|nil
+local function get_shell_command(command)
+  if type(command) ~= "table" then
+    return command
+  end
+  for _, part in ipairs(command) do
+    if type(part) ~= "string" then
+      return nil
+    end
+  end
+
+  -- NOTE: Codex sends as an argv array such as `{ "bash", "-lc", "ls" }`
+  if #command == 3 and SHELLS[command[1]] and (command[2] == "-c" or command[2] == "-lc") then
+    return command[3]
+  end
+
+  return table.concat(command, " ")
+end
+
+---Does the chat's approval mode let the agent go ahead without asking?
+---@param chat CodeCompanion.Chat
+---@param opts { tool_call?: table }
+---@return boolean
+local function is_approved_by_mode(chat, opts)
+  local tool_call = opts.tool_call
+  local mode = approvals:get_mode(chat.bufnr)
+  if mode == "yolo" then
+    return true
+  end
+  if mode ~= "auto" or type(tool_call) ~= "table" then
+    return false
+  end
+
+  -- Codex sends shell commands as reads and searches, so a command is judged on the command itself
+  local raw_input = type(tool_call.rawInput) == "table" and tool_call.rawInput or {}
+  if tool_call.kind == "execute" or raw_input.command ~= nil then
+    return approvals.is_safe_command(get_shell_command(raw_input.command))
+  end
+
+  return AUTO_APPROVED_KINDS[tool_call.kind] == true
+end
+
 ---Show the permission request to the user and handle their response
 ---@param chat CodeCompanion.Chat
 ---@param request table
 ---@return nil
 function M.confirm(chat, request)
   local tool_call = request.tool_call
+
+  -- Never allow_always, as the agent keeps that grant after the chat leaves the mode
+  local allow_once = build_kind_map(request.options).allow_once
+  if allow_once and is_approved_by_mode(chat, { tool_call = tool_call }) then
+    log:debug("[acp::request_permission] Approved by the chat's approval mode")
+    return request.respond(allow_once, false)
+  end
+
   local has_diff = tool_call and requires_diff(tool_call)
 
   local permission = { chat = chat, request = request }

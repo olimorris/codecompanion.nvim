@@ -1,3 +1,4 @@
+local approvals = require("codecompanion.interactions.chat.tools.approvals")
 local cmd_tool = require("codecompanion.interactions.chat.tools.builtin.cmd_tool")
 local helpers = require("codecompanion.interactions.chat.tools.builtin.helpers")
 
@@ -70,7 +71,13 @@ return cmd_tool({
     end,
   },
   gates = {
-    ---The action handed to the background judge to vet in yolo mode
+    ---@param self CodeCompanion.Tool.RunCommand
+    ---@return boolean
+    is_safe = function(self)
+      return approvals.is_safe_command(self.args.cmd)
+    end,
+
+    ---The action handed to the background judge to vet in auto mode
     ---@param self CodeCompanion.Tool.RunCommand
     ---@param meta {tools: CodeCompanion.Tools}
     ---@return string

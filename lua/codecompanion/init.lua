@@ -193,6 +193,7 @@ CodeCompanion.chat = function(args)
   return require("codecompanion.interactions.chat").new({
     acp_command = acp_command,
     adapter = adapter,
+    approval_mode = args.approval_mode,
     auto_submit = auto_submit,
     buffer_context = context,
     callbacks = args.callbacks,

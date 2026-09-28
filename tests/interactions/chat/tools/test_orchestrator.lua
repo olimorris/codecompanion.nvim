@@ -164,13 +164,16 @@ T["tools only receive output that relates to their execution"] = function()
   h.eq({ "Data 2" }, output)
 end
 
----Queue a tool that is gated by the background judge, in yolo mode, replying with a canned verdict
----@param verdict { safe: boolean, reason: string }
-local function setup_yolo_mode_with_judge(verdict)
-  child.lua(string.format(
-    [[
+---Queue a tool in auto mode, with the judge stubbed to reply with a canned verdict
+---@param opts { verdict?: { safe: boolean, reason: string }, protect?: boolean, is_safe?: boolean }
+local function setup_auto_mode(opts)
+  local verdict = opts.verdict or { safe = false, reason = "not judged" }
+  child.lua(
+    string.format(
+      [[
     _G.executed = {}
     _G.prompted_with = nil
+    _G.judged_context = nil
 
     -- The judge, stubbed so no request is made. Registered under a module path
     -- so it also covers `gates.judge.action` being configurable
@@ -192,10 +195,10 @@ local function setup_yolo_mode_with_judge(verdict)
             dangerous = {
               enabled = true,
               opts = {
-                allowed_in_yolo_mode = false,
+                judge = true,
+                protect = %s,
                 require_approval_before = true,
                 require_cmd_approval = true,
-                judge_in_yolo_mode = true,
               },
               callback = function()
                 return {
@@ -215,10 +218,10 @@ local function setup_yolo_mode_with_judge(verdict)
                     },
                   },
                   opts = {
-                    allowed_in_yolo_mode = false,
+                    judge = true,
+                    protect = %s,
                     require_approval_before = true,
                     require_cmd_approval = true,
-                    judge_in_yolo_mode = true,
                   },
                   output = {
                     cmd_string = function()
@@ -226,6 +229,9 @@ local function setup_yolo_mode_with_judge(verdict)
                     end,
                   },
                   gates = {
+                    is_safe = function()
+                      return %s
+                    end,
                     judge_context = function()
                       return "rm -rf /"
                     end,
@@ -241,7 +247,7 @@ local function setup_yolo_mode_with_judge(verdict)
     local chat, tools = h.setup_chat_buffer(cfg)
     _G.chat, _G.tools = chat, tools
 
-    require("codecompanion.interactions.chat.tools.approvals"):toggle_yolo_mode(tools.bufnr)
+    require("codecompanion.interactions.chat.tools.approvals"):set_mode(tools.bufnr, { mode = "auto" })
 
     local ap = require("codecompanion.interactions.chat.helpers.approval_prompt")
     ap.request = function(_, opts)
@@ -251,12 +257,16 @@ local function setup_yolo_mode_with_judge(verdict)
     _G.tools:execute(_G.chat, { { ["function"] = { name = "dangerous", arguments = "{}" } } })
     vim.wait(250)
   ]],
-    vim.inspect(verdict)
-  ))
+      vim.inspect(verdict),
+      tostring(opts.protect == true),
+      tostring(opts.protect == true),
+      tostring(opts.is_safe == true)
+    )
+  )
 end
 
 T["safe verdict runs the tool without prompting"] = function()
-  setup_yolo_mode_with_judge({ safe = true, reason = "reads only" })
+  setup_auto_mode({ verdict = { safe = true, reason = "reads only" } })
 
   h.eq({ "dangerous" }, child.lua_get("_G.executed"))
   h.eq(vim.NIL, child.lua_get("_G.prompted_with"))
@@ -264,10 +274,26 @@ T["safe verdict runs the tool without prompting"] = function()
 end
 
 T["unsafe verdict prompts with the judge's reason instead of running"] = function()
-  setup_yolo_mode_with_judge({ safe = false, reason = "deletes the filesystem" })
+  setup_auto_mode({ verdict = { safe = false, reason = "deletes the filesystem" } })
 
   h.eq({}, child.lua_get("_G.executed"))
   h.eq('Run the "dangerous" tool?\nJudge: _"deletes the filesystem"_', child.lua_get("_G.prompted_with"))
+end
+
+T["safe command runs without judging or prompting"] = function()
+  setup_auto_mode({ is_safe = true })
+
+  h.eq({ "dangerous" }, child.lua_get("_G.executed"))
+  h.eq(vim.NIL, child.lua_get("_G.judged_context"))
+  h.eq(vim.NIL, child.lua_get("_G.prompted_with"))
+end
+
+T["protected tool prompts without judging, even for a safe command"] = function()
+  setup_auto_mode({ protect = true, is_safe = true, verdict = { safe = true, reason = "reads only" } })
+
+  h.eq({}, child.lua_get("_G.executed"))
+  h.eq(vim.NIL, child.lua_get("_G.judged_context"))
+  h.eq('Run the "dangerous" tool?', child.lua_get("_G.prompted_with"))
 end
 
 return T

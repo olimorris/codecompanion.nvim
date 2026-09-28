@@ -14,10 +14,19 @@ local T = new_set({
             chat = {
               tools = {
                 some_tool = {},
-                restricted_tool = {
+                protected_tool = {
                   opts = {
-                    allowed_in_yolo_mode = false,
+                    protect = true,
                   },
+                },
+                run_command = {
+                  opts = {
+                    require_cmd_approval = true,
+                    safe_commands = { "git status", "ls" },
+                  },
+                },
+                opts = {
+                  approval_mode = "ask",
                 },
               },
             },
@@ -129,113 +138,90 @@ T["is_approved()"]["returns true for approved tool"] = function()
   h.eq(result, true)
 end
 
-T["yolo mode"] = new_set()
+T["modes"] = new_set()
 
-T["yolo mode"]["toggle_yolo_mode() enables yolo mode"] = function()
-  child.lua([[
-    Approvals:toggle_yolo_mode(1)
-  ]])
-
-  -- Any tool should be approved in yolo mode
-  local result = child.lua([[
-    return Approvals:is_approved(1, { tool_name = 'any_random_tool' })
-  ]])
-
-  h.eq(result, true)
+T["modes"]["auto approves a tool that is NOT protected"] = function()
+  child.lua([[Approvals:set_mode(1, { mode = 'auto' })]])
+  h.eq(true, child.lua([[return Approvals:is_approved(1, { tool_name = 'some_tool' })]]))
 end
 
-T["yolo mode"]["toggle_yolo_mode() disables yolo mode when called twice"] = function()
-  child.lua([[
-    Approvals:toggle_yolo_mode(1)
-    Approvals:toggle_yolo_mode(1)
-  ]])
-
-  local result = child.lua([[
-    return Approvals:is_approved(1, { tool_name = 'unapproved_tool' })
-  ]])
-
-  h.eq(result, false)
+T["modes"]["auto DOES NOT approve a tool that IS protected"] = function()
+  child.lua([[Approvals:set_mode(1, { mode = 'auto' })]])
+  h.eq(false, child.lua([[return Approvals:is_approved(1, { tool_name = 'protected_tool' })]]))
 end
 
-T["yolo mode"]["approves all tools by default"] = function()
-  child.lua([[
-    Approvals:toggle_yolo_mode(1)
-  ]])
-
-  local tool1 = child.lua([[
-    return Approvals:is_approved(1, { tool_name = 'some_tool' })
-  ]])
-  local tool2 = child.lua([[
-    return Approvals:is_approved(1, { tool_name = 'another_tool' })
-  ]])
-
-  h.eq(tool1, true)
-  h.eq(tool2, true)
+T["modes"]["auto leaves cmd-approved tools to their own checks"] = function()
+  child.lua([[Approvals:set_mode(1, { mode = 'auto' })]])
+  h.eq(false, child.lua([[return Approvals:is_approved(1, { tool_name = 'run_command', cmd = 'git status' })]]))
 end
 
-T["yolo mode"]["respects allowed_in_yolo_mode = false"] = function()
-  child.lua([[
-    -- Ensure the config is properly set before toggling yolo mode
-    package.loaded['codecompanion.config'].interactions.chat.tools.restricted_tool = {
-      opts = {
-        allowed_in_yolo_mode = false,
-      },
-    }
-
-    Approvals:toggle_yolo_mode(1)
-  ]])
-
-  -- Debug: check what the config actually contains
-  local config_check = child.lua([[
-    local cfg = require('codecompanion.config')
-    local tool_cfg = cfg.interactions.chat.tools.restricted_tool
-    return {
-      exists = tool_cfg ~= nil,
-      has_opts = tool_cfg and tool_cfg.opts ~= nil,
-      allowed_value = tool_cfg and tool_cfg.opts and tool_cfg.opts.allowed_in_yolo_mode
-    }
-  ]])
-
-  local restricted = child.lua([[
-    return Approvals:is_approved(1, { tool_name = 'restricted_tool' })
-  ]])
-  local allowed = child.lua([[
-    return Approvals:is_approved(1, { tool_name = 'some_tool' })
-  ]])
-
-  h.eq(restricted, false)
-  h.eq(allowed, true)
+T["modes"]["yolo approves a tool that IS protected"] = function()
+  child.lua([[Approvals:set_mode(1, { mode = 'yolo' })]])
+  h.eq(true, child.lua([[return Approvals:is_approved(1, { tool_name = 'protected_tool' })]]))
+  h.eq(true, child.lua([[return Approvals:is_approved(1, { tool_name = 'run_command', cmd = 'rm -rf /' })]]))
 end
 
---TODO: Should not take precedence over individual approvals
-T["yolo mode"]["takes precedence over individual approvals"] = function()
-  child.lua([[
-    Approvals:always(1, { tool_name = 'read_file' })
-    Approvals:toggle_yolo_mode(1)
-  ]])
-
-  -- Should approve tools that weren't explicitly added
-  local result = child.lua([[
-    return Approvals:is_approved(1, { tool_name = 'some_other_tool' })
-  ]])
-
-  h.eq(result, true)
+T["modes"]["are buffer-specific"] = function()
+  child.lua([[Approvals:set_mode(1, { mode = 'yolo' })]])
+  h.eq(true, child.lua([[return Approvals:is_approved(1, { tool_name = 'any_tool' })]]))
+  h.eq(false, child.lua([[return Approvals:is_approved(2, { tool_name = 'any_tool' })]]))
 end
 
-T["yolo mode"]["is buffer-specific"] = function()
+T["modes"]["start in the configured approval mode"] = function()
+  child.lua([[require('codecompanion.config').interactions.chat.tools.opts.approval_mode = 'auto']])
+  h.eq("auto", child.lua([[return Approvals:get_mode(1)]]))
+  h.eq(true, child.lua([[return Approvals:is_approved(1, { tool_name = 'some_tool' })]]))
+end
+
+T["modes"]["return to the configured approval mode after reset()"] = function()
   child.lua([[
+    require('codecompanion.config').interactions.chat.tools.opts.approval_mode = 'auto'
+    Approvals:set_mode(1, { mode = 'yolo' })
+    Approvals:reset(1)
+  ]])
+  h.eq("auto", child.lua([[return Approvals:get_mode(1)]]))
+end
+
+T["modes"]["toggle_yolo_mode() switches between ask and auto"] = function()
+  local modes = child.lua([[
+    local modes = {}
     Approvals:toggle_yolo_mode(1)
+    table.insert(modes, Approvals:get_mode(1))
+    Approvals:toggle_yolo_mode(1)
+    table.insert(modes, Approvals:get_mode(1))
+    return modes
   ]])
+  h.eq({ "auto", "ask" }, modes)
+end
 
-  local buf1_result = child.lua([[
-    return Approvals:is_approved(1, { tool_name = 'any_tool' })
-  ]])
-  local buf2_result = child.lua([[
-    return Approvals:is_approved(2, { tool_name = 'any_tool' })
-  ]])
+T["is_safe_command()"] = new_set()
 
-  h.eq(buf1_result, true)
-  h.eq(buf2_result, false)
+T["is_safe_command()"]["accepts a command on the safe list, with or without flags"] = function()
+  h.eq(true, child.lua([[return Approvals.is_safe_command('git status')]]))
+  h.eq(true, child.lua([[return Approvals.is_safe_command('git status --short')]]))
+end
+
+T["is_safe_command()"]["rejects a command that only shares a prefix with the safe list"] = function()
+  h.eq(false, child.lua([[return Approvals.is_safe_command('lsblk')]]))
+end
+
+T["is_safe_command()"]["rejects a safe command that chains, nests or redirects"] = function()
+  local results = child.lua([[
+    local results = {}
+    for _, cmd in ipairs({
+      'ls; rm -rf /',
+      'ls && rm -rf /',
+      'ls | sh',
+      'ls > files.txt',
+      'ls $(rm -rf /)',
+      'ls `rm -rf /`',
+      'ls\nrm -rf /',
+    }) do
+      table.insert(results, Approvals.is_safe_command(cmd))
+    end
+    return results
+  ]])
+  h.eq({ false, false, false, false, false, false, false }, results)
 end
 
 T["reset()"] = new_set()
@@ -258,9 +244,9 @@ T["reset()"]["clears all approvals for buffer"] = function()
   h.eq(result2, false)
 end
 
-T["reset()"]["clears yolo mode"] = function()
+T["reset()"]["clears the mode"] = function()
   child.lua([[
-    Approvals:toggle_yolo_mode(1)
+    Approvals:set_mode(1, { mode = 'yolo' })
     Approvals:reset(1)
   ]])
 
@@ -465,18 +451,16 @@ T["command-level approvals"]["resets command approvals with reset()"] = function
   h.eq(approved, false)
 end
 
-T["command-level approvals"]["respects an always-accepted command even when yolo mode disallows the tool"] = function()
+T["command-level approvals"]["respects an always-accepted command for a protected tool in auto mode"] = function()
   child.lua([[
-    -- Mirrors the real run_command config: opted out of yolo mode, but still
-    -- cmd-approvable
     package.loaded['codecompanion.config'].interactions.chat.tools.run_command = {
       opts = {
-        allowed_in_yolo_mode = false,
+        protect = true,
         require_cmd_approval = true,
       },
     }
 
-    Approvals:toggle_yolo_mode(1)
+    Approvals:set_mode(1, { mode = 'auto' })
     Approvals:always(1, { tool_name = 'run_command', cmd = 'rake' })
   ]])
 
@@ -489,24 +473,6 @@ T["command-level approvals"]["respects an always-accepted command even when yolo
 
   h.eq(approved_cmd, true)
   h.eq(other_cmd, false)
-end
-
-T["command-level approvals"]["yolo mode overrides cmd approval requirement"] = function()
-  child.lua([[
-    package.loaded['codecompanion.config'].interactions.chat.tools.run_command = {
-      opts = {
-        require_cmd_approval = true,
-      },
-    }
-
-    Approvals:toggle_yolo_mode(1)
-  ]])
-
-  local approved = child.lua([[
-    return Approvals:is_approved(1, { tool_name = 'run_command', cmd = 'any command' })
-  ]])
-
-  h.eq(approved, true)
 end
 
 return T

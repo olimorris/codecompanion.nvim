@@ -16,10 +16,6 @@
           read_file = true,
         },
         [2] = {
-          -- Takes precedence in this chat
-          yolo_mode = true,
-        },
-        [3] = {
           run_command = {
             -- Commands that has have approved
             ["ls -la"] = true,
@@ -40,6 +36,11 @@ local log = require("codecompanion.utils.log")
 
 ---@type table<string, string[]>
 local approved = {}
+
+---@alias CodeCompanion.Tools.ApprovalMode "ask"|"auto"|"yolo"
+
+---@type table<number, CodeCompanion.Tools.ApprovalMode>
+local modes = {}
 
 ---@class CodeCompanion.Tools.Approvals
 local Approvals = {}
@@ -69,46 +70,54 @@ function Approvals:always(bufnr, args)
   approved[bufnr][args.tool_name] = true
 end
 
----Check if a tool has been approved for a given chat buffer
----If no tool_name is provided, checks if yolo mode is enabled
+---Check if a tool has been approved for a given chat buffer, by the mode or by the user
 ---@param bufnr number
 ---@param args { cmd?: string, tool_name?: string }
 function Approvals:is_approved(bufnr, args)
+  args = args or {}
+  local mode = self:get_mode(bufnr)
+  if mode == "yolo" then
+    return true
+  end
+
+  local tool_cfg = args.tool_name and config.interactions.chat.tools and config.interactions.chat.tools[args.tool_name]
+  local tool_opts = (tool_cfg and tool_cfg.opts) or {}
+
+  -- Tools approved per command are vetted command by command in auto mode, via their safe list or the judge
+  if mode == "auto" and not tool_opts.protect and not tool_opts.require_cmd_approval then
+    return true
+  end
+
   local approvals = approved[bufnr]
-  if not approvals then
+  if not approvals or not args.tool_name then
     return false
   end
 
   log:debug("Approvals for %s: %s", bufnr, approvals)
 
-  local tool_cfg = args
-    and args.tool_name
-    and config.interactions.chat.tools
-    and config.interactions.chat.tools[args.tool_name]
-
-  -- Yolo mode grants blanket approval, unless the tool opts out of it. When
-  -- it opts out, fall through to the tool's own (possibly cmd-level) approvals
-  -- so that an explicit "always accept" still gets respected.
-  local disallowed_in_yolo_mode = tool_cfg and tool_cfg.opts and tool_cfg.opts.allowed_in_yolo_mode == false
-  if approvals.yolo_mode and not disallowed_in_yolo_mode then
-    return true
-  end
-
-  if tool_cfg and tool_cfg.opts and tool_cfg.opts.require_cmd_approval then
+  if tool_opts.require_cmd_approval then
     if not approvals[args.tool_name] then
       return false
     end
     return approvals[args.tool_name][args.cmd] == true
   end
 
-  if args and args.tool_name then
-    return approvals[args.tool_name] == true
-  end
-
-  return false
+  return approvals[args.tool_name] == true
 end
 
----Toggle yolo mode for a given chat buffer
+---@param bufnr number
+---@return CodeCompanion.Tools.ApprovalMode
+function Approvals:get_mode(bufnr)
+  return modes[bufnr] or config.interactions.chat.tools.opts.approval_mode
+end
+
+---@param bufnr number
+---@param opts { mode: CodeCompanion.Tools.ApprovalMode }
+function Approvals:set_mode(bufnr, opts)
+  modes[bufnr] = opts.mode
+end
+
+---Toggle between the ask and auto modes for a given chat buffer
 ---@param bufnr? number
 ---@return boolean
 function Approvals:toggle_yolo_mode(bufnr)
@@ -116,17 +125,37 @@ function Approvals:toggle_yolo_mode(bufnr)
     bufnr = vim.api.nvim_get_current_buf()
   end
 
-  if not approved[bufnr] then
-    approved[bufnr] = {}
+  if self:get_mode(bufnr) == "ask" then
+    self:set_mode(bufnr, { mode = "auto" })
+    return true
   end
 
-  if approved[bufnr]["yolo_mode"] then
-    approved[bufnr]["yolo_mode"] = nil
+  self:set_mode(bufnr, { mode = "ask" })
+  return false
+end
+
+---Can a shell command run without asking, in auto mode?
+---@param cmd? string
+---@return boolean
+function Approvals.is_safe_command(cmd)
+  if type(cmd) ~= "string" then
     return false
   end
 
-  approved[bufnr]["yolo_mode"] = true
-  return true
+  cmd = vim.trim(cmd)
+  if cmd == "" or cmd:find("[;&|<>`\n\r]") or cmd:find("$(", 1, true) then
+    return false
+  end
+
+  local run_command = config.interactions.chat.tools and config.interactions.chat.tools["run_command"]
+  local safe_commands = (run_command and run_command.opts and run_command.opts.safe_commands) or {}
+  for _, safe_command in ipairs(safe_commands) do
+    if cmd == safe_command or vim.startswith(cmd, safe_command .. " ") then
+      return true
+    end
+  end
+
+  return false
 end
 
 ---Reset the approvals for a given chat buffer
@@ -134,6 +163,7 @@ end
 ---@return nil
 function Approvals:reset(bufnr)
   approved[bufnr] = nil
+  modes[bufnr] = nil
 end
 
 ---List all approvals

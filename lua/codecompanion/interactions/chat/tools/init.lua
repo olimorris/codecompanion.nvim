@@ -222,7 +222,7 @@ function Tools:set_autocmds()
             })
           end
 
-          if approvals:is_approved(self.bufnr) then
+          if approvals:get_mode(self.bufnr) ~= "ask" then
             return auto_submit()
           end
           if self.status == CONSTANTS.STATUS_ERROR and self.tools_config.opts.auto_submit_errors then

@@ -376,4 +376,116 @@ T["diff flow -> empty oldText and newText does not show diff"] = function()
   h.eq(false, result.canceled)
 end
 
+---Send a permission request through a chat in the given approval mode
+---@param opts { mode: string, tool_call: table, options?: table }
+---@return { prompted: boolean, option_id?: string }
+local function confirm_in_mode(opts)
+  return child.lua(
+    [[
+    local mode, tool_call, options = ...
+    local result = { prompted = false }
+    local ap = require("codecompanion.interactions.chat.helpers.approval_prompt")
+    ap.request = function()
+      result.prompted = true
+    end
+
+    local chat = { bufnr = 1 }
+    require("codecompanion.interactions.chat.tools.approvals"):set_mode(chat.bufnr, { mode = mode })
+    require("codecompanion.interactions.chat.acp.request_permission").confirm(chat, {
+      tool_call = tool_call,
+      options = options,
+      respond = function(option_id)
+        result.option_id = option_id
+      end,
+    })
+    return result
+  ]],
+    {
+      opts.mode,
+      opts.tool_call,
+      opts.options or {
+        { optionId = "allow_once_id", name = "Allow", kind = "allow_once" },
+        { optionId = "reject_once_id", name = "Reject", kind = "reject_once" },
+      },
+    }
+  )
+end
+
+T["auto mode approves a read without prompting"] = function()
+  local result = confirm_in_mode({ mode = "auto", tool_call = { kind = "read", title = "Read README.md" } })
+  h.eq({ prompted = false, option_id = "allow_once_id" }, result)
+end
+
+T["auto mode approves a command that IS on the safe list"] = function()
+  local result = confirm_in_mode({
+    mode = "auto",
+    tool_call = { kind = "execute", title = "git status", rawInput = { command = "git status --short" } },
+  })
+  h.eq({ prompted = false, option_id = "allow_once_id" }, result)
+end
+
+T["auto mode prompts for a command that IS NOT on the safe list"] = function()
+  local result = confirm_in_mode({
+    mode = "auto",
+    tool_call = { kind = "execute", title = "rm", rawInput = { command = "rm -rf build" } },
+  })
+  h.eq({ prompted = true }, result)
+end
+
+T["auto mode prompts for a read that runs a command NOT on the safe list"] = function()
+  local result = confirm_in_mode({
+    mode = "auto",
+    tool_call = { kind = "search", title = "rg", rawInput = { command = "rg TODO | xargs rm" } },
+  })
+  h.eq({ prompted = true }, result)
+end
+
+T["auto mode approves a Codex command that IS on the safe list"] = function()
+  local result = confirm_in_mode({
+    mode = "auto",
+    tool_call = { kind = "search", title = "ls", rawInput = { command = { "/bin/bash", "-lc", "ls -la" } } },
+  })
+  h.eq({ prompted = false, option_id = "allow_once_id" }, result)
+end
+
+T["auto mode prompts for a Codex command that IS NOT on the safe list"] = function()
+  local result = confirm_in_mode({
+    mode = "auto",
+    tool_call = { kind = "search", title = "rg", rawInput = { command = { "bash", "-lc", "rg TODO | xargs rm" } } },
+  })
+  h.eq({ prompted = true }, result)
+end
+
+T["auto mode prompts for a safe command run by a shell outside the system paths"] = function()
+  local result = confirm_in_mode({
+    mode = "auto",
+    tool_call = { kind = "search", title = "ls", rawInput = { command = { "/tmp/bash", "-lc", "ls" } } },
+  })
+  h.eq({ prompted = true }, result)
+end
+
+T["auto mode prompts for a delete"] = function()
+  local result = confirm_in_mode({ mode = "auto", tool_call = { kind = "delete", title = "Delete notes.md" } })
+  h.eq({ prompted = true }, result)
+end
+
+T["yolo mode approves a delete without prompting"] = function()
+  local result = confirm_in_mode({ mode = "yolo", tool_call = { kind = "delete", title = "Delete notes.md" } })
+  h.eq({ prompted = false, option_id = "allow_once_id" }, result)
+end
+
+local allow_always_only = {
+  { optionId = "allow_always_id", name = "Always allow", kind = "allow_always" },
+  { optionId = "reject_once_id", name = "Reject", kind = "reject_once" },
+}
+
+T["yolo mode prompts when the agent only offers allow_always"] = function()
+  local result = confirm_in_mode({
+    mode = "yolo",
+    tool_call = { kind = "delete", title = "Delete notes.md" },
+    options = allow_always_only,
+  })
+  h.eq({ prompted = true }, result)
+end
+
 return T

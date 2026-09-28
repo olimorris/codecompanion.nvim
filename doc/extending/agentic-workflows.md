@@ -24,6 +24,7 @@ require("codecompanion").setup({
       strategy = "workflow",
       description = "Use a workflow to repeatedly edit then test code",
       opts = {
+        approval_mode = "auto",
         index = 5,
         is_default = true,
         short_name = "et",
@@ -35,10 +36,6 @@ require("codecompanion").setup({
             role = "user",
             opts = { auto_submit = false },
             content = function()
-              -- Leverage YOLO mode which disables the requirement of approvals and automatically saves any edited buffer
-              local approvals = require("codecompanion.interactions.chat.tools.approvals")
-              approvals:toggle_yolo_mode()
-
               return [[### Instructions
 
 Your instructions here
@@ -89,10 +86,6 @@ prompts = {
       role = "user",
       opts = { auto_submit = false },
       content = function()
-        -- Leverage YOLO mode which disables the requirement of approvals and automatically saves any edited buffer
-        local approvals = require("codecompanion.interactions.chat.tools.approvals")
-        approvals:toggle_yolo_mode()
-
         -- Some clear instructions for the LLM to follow
         return [[### Instructions
 

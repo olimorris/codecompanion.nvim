@@ -264,6 +264,12 @@ function Orchestrator:_setup_handlers()
       end
       return nil
     end,
+    is_safe = function()
+      if self.tool and self.tool.gates and self.tool.gates.is_safe then
+        return self.tool.gates.is_safe(self.tool, { tools = self.tools })
+      end
+      return false
+    end,
   }
 end
 
@@ -375,9 +381,13 @@ function Orchestrator:setup_next_tool(input)
     return self:execute_tool({ cmd = cmd, input = input })
   end
 
-  -- In yolo mode, let a background judge decide whether to execute or ask the user for approval
-  if self:_should_run_judge() then
-    return self:_run_judge({ cmd = cmd, input = input })
+  if Approvals:get_mode(self.tools.bufnr) == "auto" and not self.tool.opts.protect then
+    if self.gates.is_safe() then
+      return self:execute_tool({ cmd = cmd, input = input })
+    end
+    if self:_should_run_judge() then
+      return self:_run_judge({ cmd = cmd, input = input })
+    end
   end
 
   return self:_prompt_for_approval({ cmd = cmd, input = input })
@@ -451,13 +461,10 @@ function Orchestrator:_should_run_judge()
   if not (judge and judge.enabled) then
     return false
   end
-  if not self.tool.opts.judge_in_yolo_mode then
+  if not self.tool.opts.judge then
     return false
   end
-  if not (self.tool.gates and self.tool.gates.judge_context) then
-    return false
-  end
-  return Approvals:is_approved(self.tools.bufnr)
+  return self.tool.gates and self.tool.gates.judge_context ~= nil
 end
 
 ---Run the background judge, then execute the tool or fall back to a prompt

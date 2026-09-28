@@ -64,7 +64,8 @@
 ---@field tools? table<string> List of tools to preload in the chat buffer
 ---@field intro_message? string The welcome message that is displayed in the chat buffer
 ---@field window_opts? table Window configuration options for the chat buffer
----@field yolo_mode? boolean Automatically approve all tool calls
+---@field approval_mode? CodeCompanion.Tools.ApprovalMode How tool calls are approved
+---@field yolo_mode? boolean Deprecated. Use `approval_mode = "auto"`
 
 local adapter_utils = require("codecompanion.adapters.utils")
 local adapters = require("codecompanion.adapters")
@@ -610,9 +611,11 @@ function Chat.new(args)
   self.bufnr = create_chat_buf()
   self.aug = api.nvim_create_augroup(CONSTANTS.AUTOCMD_GROUP .. ":" .. self.bufnr, { clear = false })
 
-  if args.yolo_mode then
-    approvals:toggle_yolo_mode(self.bufnr)
-    utils.notify("YOLO mode enabled!", vim.log.levels.INFO)
+  local approval_mode = args.approval_mode or (args.yolo_mode and "auto")
+  if approval_mode and approval_mode ~= approvals:get_mode(self.bufnr) then
+    approvals:set_mode(self.bufnr, { mode = approval_mode })
+    local labels = { ask = "Ask", auto = "Auto", yolo = "YOLO" }
+    utils.notify(("Approval mode: %s"):format(labels[approval_mode]), vim.log.levels.INFO)
   end
 
   if not init_parsers(self) then
