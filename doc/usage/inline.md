@@ -8,7 +8,7 @@ description: "Write and refactor code directly in Neovim buffers using CodeCompa
   <video controls muted title="Inline interaction demo" src="https://github.com/user-attachments/assets/dcddcb85-cba0-4017-9723-6e6b7f080fee"></video>
 </p>
 
-As per the [Getting Started](/getting-started.md#inline) guide, the inline interaction enables you to code directly into a Neovim buffer. Simply run `:CodeCompanion <your prompt>`, or make a visual selection to send that as context to the LLM alongside your prompt.
+As per the [Getting Started](/getting-started#editing-inline) guide, the inline interaction enables you to code directly into a Neovim buffer. Simply run `:CodeCompanion <your prompt>`, or make a visual selection to send that as context to the LLM alongside your prompt.
 
 For convenience, you can call prompts from the [prompt library](/configuration/prompt-library) via the interaction. For example, `:'<,'>CodeCompanion /tests` would ask the LLM to create some unit tests from the selected text.
 

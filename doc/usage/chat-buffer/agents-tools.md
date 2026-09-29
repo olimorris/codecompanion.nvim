@@ -349,7 +349,7 @@ Use @{web_search} to find the latest version of Neovim?
 Use @{web_search} to search neovim.io and explain how I can configure a new language server
 ```
 
-The tool supports numerous adapters that you'll need to [configure](/configuration/chat-buffer#web-search).
+The tool supports numerous adapters that you'll need to [configure](/configuration/tools#web-search).
 
 ## Adapter Tools
 
@@ -470,7 +470,7 @@ A command is safe if it starts with an entry on the list, so `git status` also c
 > [!IMPORTANT]
 > An entry covers every flag the command accepts. Only add commands whose flags can't write files or run other programs - `git diff --output=notes.txt` writes a file and `rg --pre` runs one
 
-If you've enabled the [LLM judge](/configuration/chat-buffer#llm-judge), it decides on commands that aren't on the safe list instead of asking you.
+If you've enabled the [LLM judge](/configuration/tools#llm-judge), it decides on commands that aren't on the safe list instead of asking you.
 
 A [prompt library](/configuration/prompt-library#options) item can start its chat buffer in a given mode with `opts.approval_mode = "auto"`.
 

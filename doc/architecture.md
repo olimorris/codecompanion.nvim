@@ -19,7 +19,7 @@ When a user breaches the context window, the conversation **ends** and it **cann
 
 ### In the Chat Buffer
 
-Firstly, CodeCompanion manages context by paying close attention to the number of tokens in the [chat buffer](/usage/chat-buffer/), matching them against a defined trigger threshold in your config, which can be [customised](/configuration/chat-buffer#context-management).
+Firstly, CodeCompanion manages context by paying close attention to the number of tokens in the [chat buffer](/usage/chat-buffer/), matching them against a defined trigger threshold in your config, which can be [customised](/configuration/context-management).
 
 CodeCompanion uses two thresholds: an **editing** trigger (default `0.65` of the context window) and a **compaction** trigger (default `0.85`). When the chat buffer crosses the lower threshold, context editing begins. If it later crosses the upper threshold then compaction runs. The lower threshold ensures that the lower risk editing action is triggered more often, buying more time before compaction is required.
 
