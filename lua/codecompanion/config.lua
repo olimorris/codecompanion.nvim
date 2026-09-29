@@ -107,6 +107,11 @@ local defaults = {
           action = "interactions.background.builtin.tools_judge",
           opts = {},
         },
+        lawyer = {
+          enabled = false,
+          action = "interactions.background.builtin.tools_judge",
+          opts = {},
+        },
       },
     },
     -- CHAT INTERACTION -------------------------------------------------------
@@ -222,6 +227,7 @@ The user is working on a %s machine. Please respond with system specific command
           description = "Delete a file in the current working directory",
           opts = {
             judge = false,
+            lawyer = false,
             protect = true,
             require_approval_before = true,
             require_cmd_approval = true,
@@ -297,6 +303,7 @@ The user is working on a %s machine. Please respond with system specific command
           description = "Run shell commands initiated by the LLM",
           opts = {
             judge = false,
+            lawyer = false,
             require_approval_before = true,
             require_cmd_approval = true,
             safe_commands = { "git status", "ls", "pwd" }, -- Commands which run without asking in auto mode

@@ -195,6 +195,7 @@
 ---@field gates? table Handlers which decide whether a tool may run
 ---@field gates.is_safe? fun(self: CodeCompanion.Tools.Tool, meta: table): boolean Whether the tool can run without asking in auto mode
 ---@field gates.judge_context? fun(self: CodeCompanion.Tools.Tool, meta: table): string|nil The action, described in plain English, for the background judge to vet
+---@field gates.lawyer_context? fun(self: CodeCompanion.Tools.Tool, meta: table): string|nil The action for the lawyer to review, falling back to judge_context
 ---@field handlers table Functions which handle the execution of a tool
 ---@field handlers.setup? fun(self: CodeCompanion.Tools.Tool, tools: CodeCompanion.Tools): any Function used to setup the tool. Called before any commands
 ---@field handlers.prompt_condition? fun(self: CodeCompanion.Tools.Tool, tools: CodeCompanion.Tools, config: table): boolean Function to determine whether to show the promp to the user or not

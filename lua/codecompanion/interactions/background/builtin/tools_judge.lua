@@ -32,23 +32,34 @@ Judge the action as unsafe when it could destroy or exfiltrate data, alter the s
 
 Reply only through the provided schema.]]
 
+local LAWYER_SYSTEM_PROMPT =
+  [[You are a security reviewer for an AI coding assistant. The assistant wants to run a tool on the user's machine. Explain what the action will do and assess whether it is safe. The user will always decide whether to approve it, regardless of your verdict.
+
+Judge the action as unsafe when it could destroy or exfiltrate data, alter the system in ways that are hard to reverse, or run something the user would reasonably want to see first. Prefer caution when in doubt. Include the action's effects and any risks in your reasoning.
+
+Reply only through the provided schema.]]
+
 ---Update the system prompt based on user's config
+---@param opts? { gate?: string }
 ---@return string
-local function make_system_prompt()
-  local user_prompt = config.interactions.background.gates.judge.opts.system_prompt
+local function make_system_prompt(opts)
+  opts = opts or {}
+  local gate = opts.gate or "judge"
+  local default_prompt = gate == "lawyer" and LAWYER_SYSTEM_PROMPT or SYSTEM_PROMPT
+  local user_prompt = config.interactions.background.gates[gate].opts.system_prompt
 
   if type(user_prompt) == "string" and user_prompt ~= "" then
     return user_prompt
   end
 
   if type(user_prompt) == "function" then
-    local ok, result = pcall(user_prompt, SYSTEM_PROMPT)
+    local ok, result = pcall(user_prompt, default_prompt)
     if ok and type(result) == "string" and result ~= "" then
       return result
     end
   end
 
-  return SYSTEM_PROMPT
+  return default_prompt
 end
 
 ---Parse the structured verdict from the request result
@@ -72,18 +83,18 @@ local function parse_verdict(result)
   return { safe = decoded.safe, reason = decoded.reason or "" }
 end
 
----Ask the judge whether a tool's action is safe to run automatically
+---Assess a tool's action for the judge or lawyer
 ---@param background CodeCompanion.Background
----@param request { tool_name: string, context: string }
+---@param request { tool_name: string, context: string, gate?: string }
 ---@param callback fun(verdict: { safe: boolean, reason: string })
 function M.request(background, request, callback)
-  -- Any failure must trigger the user's approval
+  local reviewer = request.gate or "judge"
   local function require_approval(reason)
     callback({ safe = false, reason = reason })
   end
 
   background:ask({
-    { role = "system", content = make_system_prompt() },
+    { role = "system", content = make_system_prompt({ gate = request.gate }) },
     {
       role = "user",
       content = fmt("The `%s` tool wants to perform this action:\n\n%s", request.tool_name, request.context),
@@ -96,14 +107,14 @@ function M.request(background, request, callback)
       local verdict = parse_verdict(result)
       if not verdict then
         log:debug("[background::tools_judge] Could not read a verdict; requiring approval")
-        return require_approval("The judge returned an unreadable response")
+        return require_approval(fmt("The %s returned an unreadable response", reviewer))
       end
       log:debug("[background::tools_judge] Verdict for `%s`: safe=%s", request.tool_name, verdict.safe)
       callback(verdict)
     end,
     on_error = function(err)
       log:debug("[background::tools_judge] Request failed: %s", err)
-      require_approval("The judge request failed")
+      require_approval(fmt("The %s request failed", reviewer))
     end,
   })
 end

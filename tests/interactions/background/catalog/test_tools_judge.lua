@@ -79,4 +79,47 @@ T["tools_judge"]["requires approval when the request errors"] = function()
   h.eq(verdict.safe, false)
 end
 
+T["tools_judge"]["lawyer uses its own system prompt"] = function()
+  local prompts = child.lua([[
+    local config = require("codecompanion.config")
+    local prompts = {}
+    local background = {
+      ask = function(_, messages)
+        table.insert(prompts, messages[1].content)
+      end,
+    }
+    config.interactions.background.gates.judge.opts.system_prompt = "Judge guidance"
+    builtin.request(background, { tool_name = "run_command", context = "ls", gate = "lawyer" }, function() end)
+    config.interactions.background.gates.lawyer.opts.system_prompt = function(default)
+      return default .. "\nProject guidance"
+    end
+    builtin.request(background, { tool_name = "run_command", context = "ls", gate = "lawyer" }, function() end)
+    config.interactions.background.gates.lawyer.opts.system_prompt = "Lawyer guidance"
+    builtin.request(background, { tool_name = "run_command", context = "ls", gate = "lawyer" }, function() end)
+    config.interactions.background.gates.judge.opts.system_prompt = nil
+    config.interactions.background.gates.lawyer.opts.system_prompt = nil
+    return prompts
+  ]])
+
+  h.eq(true, prompts[1]:find("The user will always decide", 1, true) ~= nil)
+  h.eq(prompts[1] .. "\nProject guidance", prompts[2])
+  h.eq("Lawyer guidance", prompts[3])
+end
+
+T["tools_judge"]["lawyer reports unreadable responses and request failures"] = function()
+  local verdicts = child.lua([[
+    local verdicts = {}
+    local request = { tool_name = "run_command", context = "rm -rf /", gate = "lawyer" }
+    local function capture(verdict)
+      table.insert(verdicts, verdict)
+    end
+    builtin.request(_G.background_returning({ output = { content = "not json" } }), request, capture)
+    builtin.request(_G.background_erroring, request, capture)
+    return verdicts
+  ]])
+
+  h.eq({ safe = false, reason = "The lawyer returned an unreadable response" }, verdicts[1])
+  h.eq({ safe = false, reason = "The lawyer request failed" }, verdicts[2])
+end
+
 return T

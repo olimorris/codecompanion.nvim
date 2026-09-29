@@ -1135,6 +1135,41 @@ Reply only through the provided schema.
 
 See the [approval modes](/usage/chat-buffer/agents-tools#approval-modes) usage section for how the judge fits alongside the safe list.
 
+### LLM Lawyer
+
+The lawyer reviews a tool call before you approve it, showing a safety verdict and an explanation of its effects and risks. Unlike the [judge](/configuration/chat-buffer#llm-judge), it asks you for approval for both safe and unsafe verdicts.
+
+To enable the lawyer for shell commands:
+
+```lua
+require("codecompanion").setup({
+  interactions = {
+    background = {
+      gates = {
+        lawyer = {
+          enabled = true,
+        },
+      },
+    },
+    chat = {
+      tools = {
+        ["run_command"] = {
+          opts = {
+            lawyer = true,
+          },
+        },
+      },
+    },
+  },
+})
+```
+
+The lawyer runs when a tool needs approval in Ask or Auto mode, including protected tools. Commands on the safe list in Auto mode, previously approved calls and tools in YOLO mode keep their existing approval behaviour. If both the lawyer and judge are enabled for a call that needs review, the lawyer takes precedence.
+
+Built-in `run_command` and `delete_file` tools provide review context. Custom tools can define `gates.lawyer_context`, which receives the tool and a table containing `tools`, and returns a description of the action. If it isn't defined, the lawyer uses `gates.judge_context`.
+
+You can set `background.gates.lawyer.adapter`, `action` and `opts.system_prompt` in the same way as the judge. The lawyer has its own default prompt; a custom prompt can be a string or a function receiving that default. If the review fails, the tool still asks for your approval.
+
 ### Web Search
 
 The [web_search](/usage/chat-buffer/agents-tools#web-search) tool is a built-in tool that allows an LLM to perform web searches using an adapter. Currently, CodeCompanion supports [DuckDuckGo](https://duckduckgo.com), [Jina](https://www.jina.ai), [Serply](https://serply.io) and [Tavily](https://www.tavily.com) adapters.

@@ -61,6 +61,8 @@ The events that are fired from within the plugin are:
 - `CodeCompanionToolsFinished` - Fired when the tool system has finished running all tools
 - `CodeCompanionToolsJudgeStarted` - Fired when the background judge begins vetting a tool call
 - `CodeCompanionToolsJudgeFinished` - Fired when the background judge returns its verdict
+- `CodeCompanionToolsLawyerStarted` - Fired when the background lawyer begins reviewing a tool call
+- `CodeCompanionToolsLawyerFinished` - Fired when the background lawyer returns its verdict
 
 
 In addition to these events, the chat buffer has its own **callback system** for hooking into lifecycle events like `on_before_submit`, `on_checkpoint` and `on_tool_output`. These callbacks receive the chat instance and can inspect or mutate chat state. See the [callbacks](/configuration/chat-buffer#callbacks) section for details.

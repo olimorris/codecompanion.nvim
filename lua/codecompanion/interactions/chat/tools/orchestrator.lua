@@ -264,6 +264,12 @@ function Orchestrator:_setup_handlers()
       end
       return nil
     end,
+    lawyer_context = function()
+      if self.tool.gates and self.tool.gates.lawyer_context then
+        return self.tool.gates.lawyer_context(self.tool, { tools = self.tools })
+      end
+      return self.gates.judge_context()
+    end,
     is_safe = function()
       if self.tool and self.tool.gates and self.tool.gates.is_safe then
         return self.tool.gates.is_safe(self.tool, { tools = self.tools })
@@ -385,16 +391,21 @@ function Orchestrator:setup_next_tool(input)
     if self.gates.is_safe() then
       return self:execute_tool({ cmd = cmd, input = input })
     end
-    if self:_should_run_judge() then
-      return self:_run_judge({ cmd = cmd, input = input })
-    end
+  end
+
+  if self:_should_run_lawyer() then
+    return self:_run_lawyer({ cmd = cmd, input = input })
+  end
+
+  if Approvals:get_mode(self.tools.bufnr) == "auto" and not self.tool.opts.protect and self:_should_run_judge() then
+    return self:_run_judge({ cmd = cmd, input = input })
   end
 
   return self:_prompt_for_approval({ cmd = cmd, input = input })
 end
 
 ---Ask the user to approve the pending tool before it runs
----@param args { cmd: function, input?: any, reason?: string }
+---@param args { cmd: function, input?: any, reason?: string, description?: string }
 ---@return nil
 function Orchestrator:_prompt_for_approval(args)
   local cmd, input = args.cmd, args.input
@@ -413,6 +424,7 @@ function Orchestrator:_prompt_for_approval(args)
   require("codecompanion.interactions.chat.helpers.approval_prompt").request(self.tools.chat, {
     id = self.id,
     name = self.tool.name,
+    description = args.description,
     prompt = prompt,
     choices = {
       {
@@ -465,6 +477,19 @@ function Orchestrator:_should_run_judge()
     return false
   end
   return self.tool.gates and self.tool.gates.judge_context ~= nil
+end
+
+---Should a background lawyer vet this tool and describe it before we ask the user to approve it?
+---@return boolean
+function Orchestrator:_should_run_lawyer()
+  local lawyer = config.interactions.background.gates and config.interactions.background.gates.lawyer
+  if not (lawyer and lawyer.enabled) then
+    return false
+  end
+  if not self.tool.opts.lawyer then
+    return false
+  end
+  return self.tool.gates and (self.tool.gates.lawyer_context ~= nil or self.tool.gates.judge_context ~= nil)
 end
 
 ---Run the background judge, then execute the tool or fall back to a prompt
@@ -527,6 +552,53 @@ function Orchestrator:cancel_pending_tools()
     if not ok then
       return log:error("Failed to run cancelled handler for tool %s: %s", tostring(pending_tool.name), err)
     end
+  end
+end
+
+---Run the background lawyer, then ask the user with its verdict
+---@param opts { cmd: function, input?: any }
+---@return nil
+function Orchestrator:_run_lawyer(opts)
+  local lawyer = config.interactions.background.gates.lawyer
+  local background = require("codecompanion.interactions.background").new({
+    adapter = lawyer.adapter or config.interactions.background.adapter,
+  })
+  local action = require("codecompanion.interactions.background.callbacks").resolve(lawyer.action)
+  local context = self.gates.lawyer_context()
+  if not background or not action or context == nil then
+    log:debug("[Orchestrator::_run_lawyer] Cannot run the lawyer; asking the user")
+    return self:_prompt_for_approval(opts)
+  end
+
+  utils.fire("ToolsLawyerStarted", {
+    bufnr = self.tools.bufnr,
+    context = context,
+    id = self.id,
+    tool = self.tool.name,
+  })
+
+  local ok, err = pcall(action.request, background, {
+    tool_name = self.tool.name,
+    context = context,
+    gate = "lawyer",
+  }, function(verdict)
+    if self.cancelled then
+      return
+    end
+    utils.fire("ToolsLawyerFinished", {
+      bufnr = self.tools.bufnr,
+      id = self.id,
+      reason = verdict.reason,
+      safe = verdict.safe,
+      status = verdict.safe and "success" or "error",
+      tool = self.tool.name,
+    })
+    local description = fmt("Lawyer: **%s**\n\n%s", verdict.safe and "Safe" or "Unsafe", verdict.reason)
+    return self:_prompt_for_approval(vim.tbl_extend("force", opts, { description = description }))
+  end)
+  if not ok then
+    log:error("[Orchestrator::_run_lawyer] Request failed: %s", err)
+    return self:_prompt_for_approval(opts)
   end
 end
 

@@ -1,4 +1,4 @@
-*codecompanion.txt*        For NVIM v0.11       Last change: 2026 September 28
+*codecompanion.txt*        For NVIM v0.11       Last change: 2026 September 29
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -2967,6 +2967,55 @@ The default system prompt for the judge is:
 
 See the |codecompanion-usage-chat-buffer-agents-tools-approval-modes| usage
 section for how the judge fits alongside the safe list.
+
+
+LLM LAWYER
+
+The lawyer reviews a tool call before you approve it, showing a safety verdict
+and an explanation of its effects and risks. Unlike the
+|codecompanion-configuration-chat-buffer-llm-judge|, it asks you for approval
+for both safe and unsafe verdicts.
+
+To enable the lawyer for shell commands:
+
+>lua
+    require("codecompanion").setup({
+      interactions = {
+        background = {
+          gates = {
+            lawyer = {
+              enabled = true,
+            },
+          },
+        },
+        chat = {
+          tools = {
+            ["run_command"] = {
+              opts = {
+                lawyer = true,
+              },
+            },
+          },
+        },
+      },
+    })
+<
+
+The lawyer runs when a tool needs approval in Ask or Auto mode, including
+protected tools. Commands on the safe list in Auto mode, previously approved
+calls and tools in YOLO mode keep their existing approval behaviour. If both
+the lawyer and judge are enabled for a call that needs review, the lawyer takes
+precedence.
+
+Built-in `run_command` and `delete_file` tools provide review context. Custom
+tools can define `gates.lawyer_context`, which receives the tool and a table
+containing `tools`, and returns a description of the action. If it isn't
+defined, the lawyer uses `gates.judge_context`.
+
+You can set `background.gates.lawyer.adapter`, `action` and
+`opts.system_prompt` in the same way as the judge. The lawyer has its own
+default prompt; a custom prompt can be a string or a function receiving that
+default. If the review fails, the tool still asks for your approval.
 
 
 WEB SEARCH
@@ -7114,6 +7163,8 @@ The events that are fired from within the plugin are:
 - `CodeCompanionToolsFinished` - Fired when the tool system has finished running all tools
 - `CodeCompanionToolsJudgeStarted` - Fired when the background judge begins vetting a tool call
 - `CodeCompanionToolsJudgeFinished` - Fired when the background judge returns its verdict
+- `CodeCompanionToolsLawyerStarted` - Fired when the background lawyer begins reviewing a tool call
+- `CodeCompanionToolsLawyerFinished` - Fired when the background lawyer returns its verdict
 
 In addition to these events, the chat buffer has its own **callback system**
 for hooking into lifecycle events like `on_before_submit`, `on_checkpoint` and

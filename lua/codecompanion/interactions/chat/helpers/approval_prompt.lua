@@ -14,7 +14,13 @@ local M = {}
 ---@return string
 local function build_message(opts)
   local title = opts.title or "Approval Required"
+  local description = opts.description or ""
   local lines = { "", "", "---", "**" .. title .. "**", "" }
+
+  if description ~= "" then
+    table.insert(lines, description)
+    table.insert(lines, "")
+  end
 
   if opts.prompt then
     table.insert(lines, opts.prompt)
@@ -50,7 +56,7 @@ end
 
 ---Request approval from the user via the chat buffer
 ---@param chat CodeCompanion.Chat
----@param opts { id: string|number, title?: string, prompt?: string, name?: string, choices: CodeCompanion.Chat.ApprovalChoice[] }
+---@param opts { id: string|number, title?: string, description?: string, prompt?: string, name?: string, choices: CodeCompanion.Chat.ApprovalChoice[] }
 ---@return fun(choice_label: string) on_done Callback to finalize the prompt from external code (e.g. diff keymaps)
 function M.request(chat, opts)
   local bufnr = chat.bufnr

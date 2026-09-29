@@ -165,9 +165,10 @@ T["tools only receive output that relates to their execution"] = function()
 end
 
 ---Queue a tool in auto mode, with the judge stubbed to reply with a canned verdict
----@param opts { verdict?: { safe: boolean, reason: string }, protect?: boolean, is_safe?: boolean }
+---@param opts { verdict?: { safe: boolean, reason: string }, protect?: boolean, is_safe?: boolean, lawyer?: boolean, mode?: string, render?: boolean, fail?: boolean, deferred?: boolean }
 local function setup_auto_mode(opts)
   local verdict = opts.verdict or { safe = false, reason = "not judged" }
+  child.lua("_G.review_options = " .. vim.inspect(opts))
   child.lua(
     string.format(
       [[
@@ -180,14 +181,25 @@ local function setup_auto_mode(opts)
     package.loaded["stub_judge"] = {
       request = function(_, request, callback)
         _G.judged_context = request.context
-        callback(%s)
+        _G.reviewer = request.gate or "judge"
+        if _G.review_options.fail then
+          error("review failed")
+        end
+        if _G.review_options.deferred then
+          _G.finish_review = function() callback(%s) end
+          return
+        end
+        callback(_G.review_options.verdict or { safe = false, reason = "not judged" })
       end,
     }
 
     local cfg = {
       interactions = {
         background = {
-          gates = { judge = { enabled = true, action = "stub_judge" } },
+          gates = {
+            judge = { enabled = true, action = "stub_judge" },
+            lawyer = { enabled = _G.review_options.lawyer == true, action = "stub_judge" },
+          },
         },
         chat = {
           tools = {
@@ -196,6 +208,7 @@ local function setup_auto_mode(opts)
               enabled = true,
               opts = {
                 judge = true,
+                lawyer = _G.review_options.lawyer == true,
                 protect = %s,
                 require_approval_before = true,
                 require_cmd_approval = true,
@@ -219,6 +232,7 @@ local function setup_auto_mode(opts)
                   },
                   opts = {
                     judge = true,
+                    lawyer = _G.review_options.lawyer == true,
                     protect = %s,
                     require_approval_before = true,
                     require_cmd_approval = true,
@@ -247,11 +261,19 @@ local function setup_auto_mode(opts)
     local chat, tools = h.setup_chat_buffer(cfg)
     _G.chat, _G.tools = chat, tools
 
-    require("codecompanion.interactions.chat.tools.approvals"):set_mode(tools.bufnr, { mode = "auto" })
+    require("codecompanion.interactions.chat.tools.approvals"):set_mode(tools.bufnr, {
+      mode = _G.review_options.mode or "auto",
+    })
 
     local ap = require("codecompanion.interactions.chat.helpers.approval_prompt")
-    ap.request = function(_, opts)
+    local request_approval = ap.request
+    ap.request = function(chat, opts)
       _G.prompted_with = opts.prompt
+      _G.review_description = opts.description
+      _G.approval_choices = opts.choices
+      if _G.review_options.render then
+        return request_approval(chat, opts)
+      end
     end
 
     _G.tools:execute(_G.chat, { { ["function"] = { name = "dangerous", arguments = "{}" } } })
@@ -294,6 +316,76 @@ T["protected tool prompts without judging, even for a safe command"] = function(
   h.eq({}, child.lua_get("_G.executed"))
   h.eq(vim.NIL, child.lua_get("_G.judged_context"))
   h.eq('Run the "dangerous" tool?', child.lua_get("_G.prompted_with"))
+end
+
+T["safe lawyer verdict prompts instead of automatically approving"] = function()
+  setup_auto_mode({ lawyer = true, verdict = { safe = true, reason = "reads only" }, render = true })
+
+  h.eq({}, child.lua_get("_G.executed"))
+  h.eq("lawyer", child.lua_get("_G.reviewer"))
+  h.eq("Lawyer: **Safe**\n\nreads only", child.lua_get("_G.review_description"))
+  h.eq(
+    true,
+    child.lua([[
+    local content = table.concat(vim.api.nvim_buf_get_lines(_G.chat.bufnr, 0, -1, false), "\n")
+    return content:find("Lawyer: **Safe**", 1, true) ~= nil and content:find("reads only", 1, true) ~= nil
+  ]])
+  )
+  h.eq(
+    false,
+    child.lua([[
+    return require("codecompanion.interactions.chat.tools.approvals"):is_approved(_G.tools.bufnr, {
+      cmd = "rm -rf /", tool_name = "dangerous",
+    })
+  ]])
+  )
+end
+
+T["unsafe lawyer verdict prompts with its reasoning"] = function()
+  setup_auto_mode({ lawyer = true, verdict = { safe = false, reason = "deletes the filesystem" } })
+
+  h.eq({}, child.lua_get("_G.executed"))
+  h.eq("Lawyer: **Unsafe**\n\ndeletes the filesystem", child.lua_get("_G.review_description"))
+  h.eq('Run the "dangerous" tool?', child.lua_get("_G.prompted_with"))
+end
+
+T["lawyer reviews protected tools in ask mode"] = function()
+  setup_auto_mode({ lawyer = true, protect = true, mode = "ask", verdict = { safe = true, reason = "reads only" } })
+
+  h.eq({}, child.lua_get("_G.executed"))
+  h.eq("lawyer", child.lua_get("_G.reviewer"))
+  h.eq("Lawyer: **Safe**\n\nreads only", child.lua_get("_G.review_description"))
+end
+
+T["lawyer runs the tool only after the user accepts"] = function()
+  setup_auto_mode({ lawyer = true, verdict = { safe = false, reason = "deletes files" } })
+  h.eq({}, child.lua_get("_G.executed"))
+
+  child.lua([[
+    for _, choice in ipairs(_G.approval_choices) do
+      if choice.label == "Accept" then choice.callback() end
+    end
+    vim.wait(250)
+  ]])
+  h.eq({ "dangerous" }, child.lua_get("_G.executed"))
+end
+
+T["lawyer failure still asks for approval"] = function()
+  setup_auto_mode({ lawyer = true, fail = true })
+
+  h.eq({}, child.lua_get("_G.executed"))
+  h.eq('Run the "dangerous" tool?', child.lua_get("_G.prompted_with"))
+end
+
+T["cancelled lawyer review does not create an approval prompt"] = function()
+  setup_auto_mode({ lawyer = true, deferred = true })
+  child.lua([[
+    _G.chat.tool_orchestrator:cancel()
+    _G.finish_review()
+  ]])
+
+  h.eq({}, child.lua_get("_G.executed"))
+  h.eq(vim.NIL, child.lua_get("_G.prompted_with"))
 end
 
 return T
