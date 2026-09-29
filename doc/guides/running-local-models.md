@@ -37,8 +37,7 @@ require("codecompanion").setup({
 
 The model is the tag you see in `ollama list`. In the chat buffer, press `ga` to switch to any other model you've pulled.
 
-> [!WARNING]
-> **Image needed:** The `ga` picker in a chat buffer after choosing Ollama, listing the locally pulled models such as `qwen3:8b` and `gpt-oss:20b`
+<img src="https://github.com/user-attachments/assets/51bccd16-3de6-4509-8474-813d5ce93c07" alt="Local models listed" />
 
 ## Choosing the Model
 

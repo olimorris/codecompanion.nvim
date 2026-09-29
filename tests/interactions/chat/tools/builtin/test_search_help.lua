@@ -55,20 +55,20 @@ T["outline scoped to a section lists its subsections"] = function()
 end
 
 T["read returns a section verbatim when addressed by tag"] = function()
-  local output = execute({ command = "read", section = "codecompanion-integrations-herdr" })
+  local output = execute({ command = "read", section = "codecompanion-installation-help" })
 
-  h.expect_contains("HERDR", output)
-  h.expect_contains("Integrations > HERDR", output)
+  h.expect_contains("HELP", output)
+  h.expect_contains("Installation > HELP", output)
 end
 
 T["read returns a section when addressed by a trailing heading path"] = function()
-  local output = execute({ command = "read", section = "Integrations > HERDR" })
+  local output = execute({ command = "read", section = "Installation > HELP" })
 
-  h.expect_contains("codecompanion-integrations-herdr", output)
+  h.expect_contains("codecompanion-installation-help", output)
 end
 
 T["read excludes the chapter rule belonging to the next section"] = function()
-  local output = execute({ command = "read", section = "codecompanion-integrations-herdr" })
+  local output = execute({ command = "read", section = "codecompanion-installation-help" })
 
   h.expect_not_contains("======", output)
 end
@@ -90,7 +90,7 @@ end
 T["search groups hits under the section containing them"] = function()
   local output = execute({ command = "search", query = "pertab" })
 
-  h.expect_contains("Usage > QUICKLY ACCESSING A CHAT BUFFER", output)
+  h.expect_contains("Usage > CHAT BUFFER > MULTIPLE CHATS", output)
   h.expect_match(output, "%d+: .*pertab")
 end
 

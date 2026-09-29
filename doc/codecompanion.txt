@@ -1,4 +1,4 @@
-*codecompanion.txt*        For NVIM v0.11       Last change: 2026 September 28
+*codecompanion.txt*        For NVIM v0.11       Last change: 2026 September 29
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -283,8 +283,6 @@ Open a file in your project and run:
     :CodeCompanionChat
 <
 
-
-
 This opens a `chat buffer`. Type a message and send it with `<C-s>` in insert
 mode or `<CR>` in normal mode. To share the file you opened the chat from, add
 `#{buffer}` to your message:
@@ -311,10 +309,6 @@ message to let it read, create and edit files:
     @{files} Add a docstring to each function in #{buffer}
 <
 
-
-  [!WARNING] **Video needed:** Sending `@{files} Add a docstring to each function
-  in #{buffer}`, approving the read with `g2`, then keeping the edit from the
-  diff with `g2`
 Some tools, like reading a file, ask for your approval before they run. The
 chat buffer lists your options:
 
@@ -631,8 +625,7 @@ the LLM has called a tool or returned reasoning, you can only change the model,
 not the adapter** - start a new chat instead.
 
 
-  [!WARNING] **Image needed:** The `ga` adapter picker open over a chat buffer,
-  with the current adapter marked `*` at the top
+
 
   [!NOTE] `ga` is disabled when `display.chat.show_settings = true`. Change the
   model in the settings at the top of the chat buffer instead
@@ -834,9 +827,7 @@ apply and `}` and `{` move between hunks. See
 |codecompanion-configuration-diff| to change the threshold.
 
 
-  [!WARNING] **Image needed:** A Claude Code permission request in the chat
-  buffer, showing a small inline diff and the `gv`/`g1`/`g2`/`g3`/`g4` options
-  beneath it
+
 Your chat's |codecompanion-usage-chat-buffer-agents-tools-approval-modes| also
 applies to the agent. Press `gty` to choose one:
 
@@ -986,8 +977,7 @@ The model is the tag you see in `ollama list`. In the chat buffer, press `ga`
 to switch to any other model you've pulled.
 
 
-  [!WARNING] **Image needed:** The `ga` picker in a chat buffer after choosing
-  Ollama, listing the locally pulled models such as `qwen3:8b` and `gpt-oss:20b`
+
 
 CHOOSING THE MODEL ~
 
@@ -1503,8 +1493,7 @@ For `run_command` and `delete_file`, **Always accept only covers that exact
 command or file**. Approving `make format` doesn't approve `make test`.
 
 
-  [!WARNING] **Image needed:** The chat buffer showing a `run_command` approval
-  prompt for `make test`, with the `g1` to `g4` options listed beneath it
+
 After `create_file` or `insert_edit_into_file` produces a change, you're asked
 to confirm it. Small diffs are shown in the chat buffer and larger ones open in
 a floating window, which `gv` opens on demand. The same `g1` to `g4` keymaps
@@ -1538,8 +1527,7 @@ afterwards. In Auto and YOLO, tool results are always sent back to the LLM,
 whatever |codecompanion-configuration-tools-auto-submit-recursion| is set to.
 
 
-  [!WARNING] **Image needed:** The `gty` picker open over a chat buffer, showing
-  the Ask, Auto and YOLO options with the current mode marked
+
 To start every chat buffer in a different mode:
 
 >lua
@@ -2248,8 +2236,7 @@ leave on everywhere. Cursor's frontmatter, such as `globs` and `alwaysApply`,
 isn't interpreted - every matching file is shared in full.
 
 
-  [!WARNING] **Image needed:** A new chat buffer in a project with an
-  `AGENTS.md`, showing the rules file listed in the chat's context
+
 
 PERSONAL RULES IN EVERY PROJECT ~
 

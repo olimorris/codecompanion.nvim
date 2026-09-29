@@ -78,8 +78,6 @@ Open a file in your project and run:
 :CodeCompanionChat
 ```
 
-<img src="https://github.com/user-attachments/assets/597299d2-36b3-469e-b69c-4d8fd14838f8" alt="Chat buffer">
-
 This opens a _chat buffer_. Type a message and send it with `<C-s>` in insert mode or `<CR>` in normal mode. To share the file you opened the chat from, add `#{buffer}` to your message:
 
 ```md
@@ -98,8 +96,9 @@ An LLM can't touch your files until you give it _tools_. Add `@{files}` to your 
 @{files} Add a docstring to each function in #{buffer}
 ```
 
-> [!WARNING]
-> **Video needed:** Sending `@{files} Add a docstring to each function in #{buffer}`, approving the read with `g2`, then keeping the edit from the diff with `g2`
+<p>
+  <video controls muted title="Tool editing demo" src="https://github.com/user-attachments/assets/9bfed2e2-c089-49ef-8d4d-7d92f7c0c359"></video>
+</p>
 
 Some tools, like reading a file, ask for your approval before they run. The chat buffer lists your options:
 
@@ -146,7 +145,7 @@ You don't need a chat buffer for smaller changes. Select some code and run:
 ```
 
 <p>
-  <video controls muted title="Inline interaction demo" src="https://github.com/user-attachments/assets/dcddcb85-cba0-4017-9723-6e6b7f080fee"></video>
+  <video controls muted title="Inline interaction demo" src="https://github.com/user-attachments/assets/ed3014be-11ff-4583-93da-efcb5d7ca0d6"></video>
 </p>
 
 The LLM rewrites the selection in place and shows you a diff. Keep it with `g2` or undo it with `g3`. See [Inline](/usage/inline) for more.
