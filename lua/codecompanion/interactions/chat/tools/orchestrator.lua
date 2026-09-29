@@ -593,7 +593,7 @@ function Orchestrator:_run_lawyer(opts)
       status = verdict.safe and "success" or "error",
       tool = self.tool.name,
     })
-    local description = fmt("Lawyer: **%s**\n\n%s", verdict.safe and "Safe" or "Unsafe", verdict.reason)
+    local description = fmt("Lawyer: **%s**\n\n%s\n---", verdict.safe and "Safe" or "Unsafe", verdict.reason)
     return self:_prompt_for_approval(vim.tbl_extend("force", opts, { description = description }))
   end)
   if not ok then
