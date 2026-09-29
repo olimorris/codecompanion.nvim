@@ -97,7 +97,7 @@ An LLM can't touch your files until you give it _tools_. Add `@{files}` to your 
 ```
 
 <p>
-  <video controls muted title="Tool editing demo" src="https://github.com/user-attachments/assets/9bfed2e2-c089-49ef-8d4d-7d92f7c0c359"></video>
+  <video controls muted title="Tool editing demo" src="https://github.com/user-attachments/assets/4d63d4ea-b625-4549-a946-eb3db24eb078"></video>
 </p>
 
 Some tools, like reading a file, ask for your approval before they run. The chat buffer lists your options:
