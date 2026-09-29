@@ -193,6 +193,26 @@ It's important to note that some messages, such as system prompts or context pro
 
 The message history cannot be altered directly in the chat buffer. However, it can be modified in the debug window. This window is simply a Lua buffer which the user can edit as they wish. To persist any changes, the chat buffer keymaps for sending a message (defaults: `<CR>` or `<C-s>`) can be used.
 
+## Multiple Chats
+
+You can have as many chat buffers open as you like. Cycle between them with `{` and `}`, and use `:CodeCompanionChat Toggle` to show or hide the last one.
+
+By default, opening or cycling to a chat hides whichever chat is currently visible. To give each tab its own chat, so activity in one tab never closes or takes over a chat in another:
+
+```lua
+require("codecompanion").setup({
+  display = {
+    chat = {
+      window = {
+        pertab = true,
+      },
+    },
+  },
+})
+```
+
+With `pertab` enabled, `{` and `}` only cycle through chats that are visible in the current tab or not visible anywhere, and `:CodeCompanionChat Toggle` jumps to the tab a chat lives in.
+
 ## Settings
 
 <img src="https://github.com/user-attachments/assets/01f1e482-1f7b-474f-ae23-f25cc637f40a" alt="Settings" />

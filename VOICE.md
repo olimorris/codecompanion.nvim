@@ -51,6 +51,7 @@ require("codecompanion").setup({
 ## Lists and Tables
 
 - More than two parallel things (commands, keymaps, events, feature support) go in a table
+- Three columns at most, as any more squashes the text on the site. If a column only differs for one or two rows, say so in a sentence after the table. If every row needs a sentence, use a bulleted list instead
 - Table descriptions are fragments with no trailing full stop: "Accept the current hunk, keeping it out of future reviews"
 - Numbered lists for steps the user performs in order. Bulleted lists for options, with a bold name and a dash: `- **Chat** - A chat buffer where you can converse with an LLM`
 
@@ -69,6 +70,7 @@ Use GitHub-style callouts, one or two sentences, often with no full stop:
 ## Emphasis and Links
 
 - Italics when introducing a term or naming a thing: the _baseline_, the _fetch_ slash command
+- Define a term where the reader first meets it on the page, even if another page explains it. That includes its first appearance as a config key, such as `interactions = {`
 - Bold for the one rule in a section the reader must not miss: "**Submitting the input empty deletes the comment**"
 - Link to other doc pages with absolute paths and anchors: `[/skills](/usage/chat-buffer/slash-commands#skills)`. Link generously rather than repeating content from another page
 

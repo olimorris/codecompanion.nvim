@@ -743,7 +743,7 @@ tools:
 :::
 
 ::: tip Disabling all tools
-Setting `tools` to `none` will prevent any tools from being loaded in the chat, including any [default tools](/configuration/chat-buffer#default-tools):
+Setting `tools` to `none` will prevent any tools from being loaded in the chat, including any [default tools](/configuration/tools#default-tools):
 
 ::: code-group
 
