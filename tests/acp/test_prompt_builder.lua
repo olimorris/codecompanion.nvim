@@ -446,4 +446,80 @@ T["Prompt Builder"]["handle_done clears the active prompt when no follow-up is s
   h.eq(result.active_is_nil, true)
 end
 
+T["Prompt Builder"]["handle_error DOES NOT clear a follow-up prompt started by the error handler"] = function()
+  local result = child.lua([[
+    local connection = make_test_connection("test-session-error-followup")
+
+    local follow_up = nil
+    local first = connection:session_prompt({ { type = "text", text = "first" } })
+      :on_error(function()
+        follow_up = connection:session_prompt({ { type = "text", text = "btw" } })
+          :with_options({ silent = true })
+        follow_up:send()
+      end)
+      :with_options({ silent = true })
+
+    first:send()
+    first:handle_error("boom")
+
+    return { active_is_follow_up = connection._active_prompt == follow_up }
+  ]])
+
+  h.eq(result.active_is_follow_up, true)
+end
+
+T["Prompt Builder"]["handle_error clears the active prompt when no follow-up is started"] = function()
+  local result = child.lua([[
+    local connection = make_test_connection("test-session-error-no-followup")
+
+    local prompt = connection:session_prompt({ { type = "text", text = "first" } })
+      :with_options({ silent = true })
+
+    prompt:send()
+    prompt:handle_error("boom")
+
+    return { active_is_nil = connection._active_prompt == nil }
+  ]])
+
+  h.eq(result.active_is_nil, true)
+end
+
+T["Prompt Builder"]["cancel DOES NOT clear a follow-up prompt started by the cancel handler"] = function()
+  local result = child.lua([[
+    local connection = make_test_connection("test-session-cancel-followup")
+
+    local follow_up = nil
+    local first = connection:session_prompt({ { type = "text", text = "first" } })
+      :on_cancel(function()
+        follow_up = connection:session_prompt({ { type = "text", text = "btw" } })
+          :with_options({ silent = true })
+        follow_up:send()
+      end)
+      :with_options({ silent = true })
+
+    first:send()
+    first:cancel()
+
+    return { active_is_follow_up = connection._active_prompt == follow_up }
+  ]])
+
+  h.eq(result.active_is_follow_up, true)
+end
+
+T["Prompt Builder"]["cancel clears the active prompt when no follow-up is started"] = function()
+  local result = child.lua([[
+    local connection = make_test_connection("test-session-cancel-no-followup")
+
+    local prompt = connection:session_prompt({ { type = "text", text = "first" } })
+      :with_options({ silent = true })
+
+    prompt:send()
+    prompt:cancel()
+
+    return { active_is_nil = connection._active_prompt == nil }
+  ]])
+
+  h.eq(result.active_is_nil, true)
+end
+
 return T
