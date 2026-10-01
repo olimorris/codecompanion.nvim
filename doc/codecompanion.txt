@@ -1,4 +1,4 @@
-*codecompanion.txt*        For NVIM v0.11       Last change: 2026 September 29
+*codecompanion.txt*         For NVIM v0.11        Last change: 2026 October 01
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -6481,8 +6481,10 @@ AVAILABLE EVENTS ~
   on_ready                Chat is ready for the next   -
                           turn (after LLM response)    
 
-  on_completed            LLM response has been fully  { status }
-                          processed                    
+  on_completed            LLM response has been fully  { status, error }
+                          processed, with error        
+                          describing the failure when  
+                          status is "error"            
 
   on_cancelled            Request has been             -
                           stopped/cancelled            

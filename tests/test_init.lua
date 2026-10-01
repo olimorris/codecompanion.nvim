@@ -327,4 +327,27 @@ T["cli()"]["without visual selection does not include selection content"] = func
   h.eq(true, result.no_selected_code)
 end
 
+T["chat()"] = new_set({
+  hooks = {
+    pre_once = function()
+      h.child_start(child)
+      child.lua([[h = require("tests.helpers"); h.setup_plugin()]])
+    end,
+    post_once = child.stop,
+  },
+})
+
+T["chat()"]["params.model sets the model the adapter sends"] = function()
+  local result = child.lua([[
+    local chat = require("codecompanion").chat({
+      auto_submit = false,
+      hidden = true,
+      params = { adapter = "test_adapter", model = "gpt-4o" },
+    })
+    return chat.adapter.model.name
+  ]])
+
+  h.eq("gpt-4o", result)
+end
+
 return T

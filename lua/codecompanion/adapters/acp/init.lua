@@ -91,21 +91,16 @@ function Adapter.resolve(adapter, opts)
       return Adapter.resolve(adapter.name)
     end
 
-    if opts.model then
-      adapter = vim.tbl_deep_extend("force", vim.deepcopy(adapter), {
-        defaults = { model = opts.model },
-      })
-    end
-
-    if opts.mode then
-      adapter = vim.tbl_deep_extend("force", vim.deepcopy(adapter), {
-        defaults = { mode = opts.mode },
-      })
-    end
-
     if opts.session_config_options then
       adapter = vim.tbl_deep_extend("force", vim.deepcopy(adapter), {
         defaults = { session_config_options = opts.session_config_options },
+      })
+    end
+
+    -- A configured session model or mode takes precedence over `defaults.model` and `defaults.mode`
+    if opts.model or opts.mode then
+      adapter = vim.tbl_deep_extend("force", vim.deepcopy(adapter), {
+        defaults = { session_config_options = { model = opts.model, mode = opts.mode } },
       })
     end
 
@@ -116,18 +111,15 @@ function Adapter.resolve(adapter, opts)
     end
     adapter = Adapter.extend(config.adapters.acp[adapter] or adapter)
 
-    if opts.model then
-      adapter.defaults = adapter.defaults or {}
-      adapter.defaults.model = opts.model
-    end
-    if opts.mode then
-      adapter.defaults = adapter.defaults or {}
-      adapter.defaults.mode = opts.mode
-    end
     if opts.session_config_options then
       adapter.defaults = adapter.defaults or {}
       adapter.defaults.session_config_options =
         vim.tbl_deep_extend("force", adapter.defaults.session_config_options or {}, opts.session_config_options)
+    end
+    if opts.model or opts.mode then
+      adapter.defaults = adapter.defaults or {}
+      adapter.defaults.session_config_options =
+        vim.tbl_extend("force", adapter.defaults.session_config_options or {}, { model = opts.model, mode = opts.mode })
     end
   elseif type(adapter) == "function" then
     adapter = adapter()

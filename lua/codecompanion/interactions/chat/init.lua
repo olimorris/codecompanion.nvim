@@ -187,6 +187,16 @@ local function backfill_estimated_tokens(messages)
   end
 end
 
+---Turn a failed request's reason into the text passed to `on_completed`
+---@param reason string|table
+---@return string
+local function describe_error(reason)
+  if type(reason) == "table" then
+    return reason.body or vim.inspect(reason)
+  end
+  return reason
+end
+
 ---Get the appropriate client for the adapter type
 ---@param adapter CodeCompanion.HTTPAdapter|CodeCompanion.ACPAdapter
 ---@return table
@@ -1284,7 +1294,7 @@ function Chat:_submit_http(payload)
         end
       elseif self.status == CONSTANTS.STATUS_ERROR then
         log:error("[chat::_submit_http] Error: %s", result.output)
-        self:done(output)
+        self:done(output, nil, nil, nil, { error = describe_error(result.output) })
       end
     end
   end
@@ -1304,8 +1314,9 @@ function Chat:_submit_http(payload)
         return
       end
       self.status = CONSTANTS.STATUS_ERROR
-      log:error("[chat::_submit_http] Error: %s", (err and (err.stderr or err.message)) or "unknown")
-      self:done(output)
+      local reason = (err and (err.stderr or err.message)) or "unknown"
+      log:error("[chat::_submit_http] Error: %s", reason)
+      self:done(output, nil, nil, nil, { error = describe_error(reason) })
     end,
     bufnr = self.bufnr,
     interaction = "chat",
@@ -1505,7 +1516,7 @@ end
 ---@param reasoning? table The reasoning output from the LLM
 ---@param tools? table The tools output from the LLM
 ---@param meta? table Any metadata from the LLM
----@param opts? { status: "stopped" } The reason the done method was called
+---@param opts? { status?: "stopped", error?: string } The reason the done method was called
 ---@return nil
 function Chat:done(output, reasoning, tools, meta, opts)
   opts = opts or {}
@@ -1613,15 +1624,19 @@ function Chat:done(output, reasoning, tools, meta, opts)
   if require("codecompanion.interactions.chat.context_management").apply(self) then
     return
   end
-  self:finish()
+  self:finish({ error = opts.error })
 end
 
 ---End the turn, handing the chat buffer back to the user
+---@param opts? { error?: string }
 ---@return nil
-function Chat:finish()
+function Chat:finish(opts)
+  opts = opts or {}
+  -- Captured first as `ready_for_input` resets the status to an empty string
+  local status = self.status
   self:ready_for_input()
 
-  self:dispatch("on_completed", { status = self.status })
+  self:dispatch("on_completed", { status = status, error = opts.error })
   utils.fire("ChatDone", { bufnr = self.bufnr, id = self.id })
 end
 

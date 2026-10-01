@@ -225,12 +225,11 @@ T["Prompt Library"]["can specify acp_opts for ACP adapters"] = function()
     codecompanion.prompt("test_acp_opts")
     local chat = codecompanion.last_chat()
     return {
-      model = chat.adapter.defaults.model,
       session_config_options = chat.adapter.defaults.session_config_options,
     }
   ]])
 
-  h.eq("Haiku", result.model)
+  h.eq("Haiku", result.session_config_options.model)
   h.eq("auto", result.session_config_options.mode)
   h.eq("low", result.session_config_options.thought_level)
 end

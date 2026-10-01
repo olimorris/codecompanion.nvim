@@ -562,7 +562,7 @@ T["ACP Adapter"]["model in opts gets merged into defaults"] = function()
     local adapter = acp_adapter.resolve(_G.test_acp_adapter, { model = "haiku" })
     return {
       name = adapter.name,
-      default_model = adapter.defaults and adapter.defaults.model,
+      default_model = adapter.defaults.session_config_options.model,
     }
   ]])
 
@@ -570,12 +570,28 @@ T["ACP Adapter"]["model in opts gets merged into defaults"] = function()
   h.eq("haiku", result.default_model)
 end
 
+T["ACP Adapter"]["model and mode in opts override the configured session options"] = function()
+  local result = child.lua([[
+    local acp_adapter = require("codecompanion.adapters.acp")
+    local adapter = acp_adapter.resolve(
+      vim.tbl_deep_extend("force", _G.test_acp_adapter, {
+        defaults = { session_config_options = { model = "sonnet", mode = "default" } },
+      }),
+      { model = "haiku", mode = "plan" }
+    )
+    return adapter.defaults.session_config_options
+  ]])
+
+  h.eq("haiku", result.model)
+  h.eq("plan", result.mode)
+end
+
 T["ACP Adapter"]["preserves other defaults when setting model"] = function()
   local result = child.lua([[
     local acp_adapter = require("codecompanion.adapters.acp")
     local adapter = acp_adapter.resolve(_G.test_acp_adapter, { model = "opus" })
     return {
-      model = adapter.defaults.model,
+      model = adapter.defaults.session_config_options.model,
       -- Check that other defaults are preserved
       has_timeout = adapter.defaults.timeout ~= nil,
       has_mcp_servers = adapter.defaults.mcpServers ~= nil,
