@@ -484,7 +484,7 @@ function ACPHandler:handle_error(error)
     { type = self.chat.MESSAGE_TYPES.LLM_MESSAGE }
   )
 
-  self.chat:done(self.output)
+  self.chat:done(self.output, nil, nil, nil, { error = error })
 end
 
 return ACPHandler

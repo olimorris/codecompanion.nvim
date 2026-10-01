@@ -1,4 +1,4 @@
-*codecompanion.txt*        For NVIM v0.11       Last change: 2026 September 30
+*codecompanion.txt*         For NVIM v0.11        Last change: 2026 October 01
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -6483,8 +6483,8 @@ AVAILABLE EVENTS ~
 
   on_completed            LLM response has been fully  { status, error }
                           processed, with error        
-                          holding the response body    
-                          when status is "error"       
+                          describing the failure when  
+                          status is "error"            
 
   on_cancelled            Request has been             -
                           stopped/cancelled            

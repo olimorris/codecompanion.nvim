@@ -278,6 +278,32 @@ T["ACPHandler"]["handles connection errors"] = function()
   h.eq(nil, result.request_returned)
 end
 
+T["ACPHandler"]["passes the agent's error to on_completed"] = function()
+  local result = child.lua([[
+    local chat = h.setup_chat_buffer({}, {
+      name = "test_acp",
+      config = {
+        name = "test_acp",
+        type = "acp",
+        handlers = { form_messages = function(a, m) return m end }
+      }
+    })
+
+    local completion
+    chat:add_callback("on_completed", function(_, args)
+      completion = args
+    end)
+
+    local handler = require("codecompanion.interactions.chat.acp.handler").new(chat)
+    handler:handle_error("The agent exited unexpectedly")
+
+    return completion
+  ]])
+
+  h.eq("error", result.status)
+  h.eq("The agent exited unexpectedly", result.error)
+end
+
 T["ACPHandler"]["integrates with chat submit flow"] = function()
   local result = child.lua([[
     -- Create chat with ACP adapter

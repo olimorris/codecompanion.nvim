@@ -39,7 +39,6 @@
 ---@field _btw? string The user's "by the way" message which is queued for sending to an LLM
 ---@field _compacting? boolean Whether a compaction request is currently in flight
 ---@field _last_role string The last role that was rendered in the chat buffer
----@field _request_error? string The reason the last request failed, passed to `on_completed`
 ---@field _status table Bookkeeping for the current status virtual text (extmark id + status flag)
 ---@field _tool_monitors? table A table of tool monitors that are currently running in the chat buffer
 
@@ -186,6 +185,16 @@ local function backfill_estimated_tokens(messages)
       msg._meta.estimated_tokens = tokens.calculate(msg.content)
     end
   end
+end
+
+---Turn a failed request's reason into the text passed to `on_completed`
+---@param reason string|table
+---@return string
+local function describe_error(reason)
+  if type(reason) == "table" then
+    return reason.body or vim.inspect(reason)
+  end
+  return reason
 end
 
 ---Get the appropriate client for the adapter type
@@ -1285,7 +1294,7 @@ function Chat:_submit_http(payload)
         end
       elseif self.status == CONSTANTS.STATUS_ERROR then
         log:error("[chat::_submit_http] Error: %s", result.output)
-        self:done(output)
+        self:done(output, nil, nil, nil, { error = describe_error(result.output) })
       end
     end
   end
@@ -1307,8 +1316,7 @@ function Chat:_submit_http(payload)
       self.status = CONSTANTS.STATUS_ERROR
       local reason = (err and (err.stderr or err.message)) or "unknown"
       log:error("[chat::_submit_http] Error: %s", reason)
-      self._request_error = type(reason) == "table" and (reason.body or vim.inspect(reason)) or reason
-      self:done(output)
+      self:done(output, nil, nil, nil, { error = describe_error(reason) })
     end,
     bufnr = self.bufnr,
     interaction = "chat",
@@ -1508,7 +1516,7 @@ end
 ---@param reasoning? table The reasoning output from the LLM
 ---@param tools? table The tools output from the LLM
 ---@param meta? table Any metadata from the LLM
----@param opts? { status: "stopped" } The reason the done method was called
+---@param opts? { status?: "stopped", error?: string } The reason the done method was called
 ---@return nil
 function Chat:done(output, reasoning, tools, meta, opts)
   opts = opts or {}
@@ -1616,19 +1624,19 @@ function Chat:done(output, reasoning, tools, meta, opts)
   if require("codecompanion.interactions.chat.context_management").apply(self) then
     return
   end
-  self:finish()
+  self:finish({ error = opts.error })
 end
 
 ---End the turn, handing the chat buffer back to the user
+---@param opts? { error?: string }
 ---@return nil
-function Chat:finish()
+function Chat:finish(opts)
+  opts = opts or {}
   -- Captured first as `ready_for_input` resets the status to an empty string
   local status = self.status
-  local request_error = self._request_error
-  self._request_error = nil
   self:ready_for_input()
 
-  self:dispatch("on_completed", { status = status, error = request_error })
+  self:dispatch("on_completed", { status = status, error = opts.error })
   utils.fire("ChatDone", { bufnr = self.bufnr, id = self.id })
 end
 
