@@ -828,6 +828,32 @@ T["Chat"]["on_before_submit leaves buffer editable after cancellation"] = functi
   h.eq(true, result.modifiable)
 end
 
+T["Chat"]["on_completed receives the error from a failed request"] = function()
+  local result = child.lua([[
+    local body = '{"error":{"message":"The requested model is not supported."}}'
+    require("codecompanion.http").static.methods.post.default = function(opts)
+      opts.callback({ status = 400, body = body })
+      return { args = {}, shutdown = function() end }
+    end
+
+    local completion
+    _G.chat:add_callback("on_completed", function(_, args)
+      completion = args
+    end)
+
+    _G.chat:add_buf_message({ role = "user", content = "Hello" })
+    _G.chat:submit()
+    vim.wait(1000, function()
+      return completion ~= nil
+    end)
+
+    return completion
+  ]])
+
+  h.eq("error", result.status)
+  h.eq('{"error":{"message":"The requested model is not supported."}}', result.error)
+end
+
 T["Chat"]["on_tool_output callback receives correct args"] = function()
   local result = child.lua([[
     local chat = _G.chat

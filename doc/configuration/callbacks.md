@@ -16,7 +16,7 @@ Callbacks allow you to hook into the chat buffer's lifecycle and react to specif
 | `on_checkpoint` | Fires at safe points during the chat lifecycle. Messages are mutable | `{ adapter, estimated_tokens, messages, reported_tokens }` |
 | `on_tool_output` | Before tool output is added to the chat. Mutate `args.for_llm`/`args.for_user` to modify | `{ tool, for_llm, for_user }` |
 | `on_ready` | Chat is ready for the next turn (after LLM response) | - |
-| `on_completed` | LLM response has been fully processed | `{ status }` |
+| `on_completed` | LLM response has been fully processed, with `error` holding the response body when `status` is `"error"` | `{ status, error }` |
 | `on_cancelled` | Request has been stopped/cancelled | - |
 | `on_closed` | Chat buffer has been closed | - |
 

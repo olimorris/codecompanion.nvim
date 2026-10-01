@@ -39,6 +39,7 @@
 ---@field _btw? string The user's "by the way" message which is queued for sending to an LLM
 ---@field _compacting? boolean Whether a compaction request is currently in flight
 ---@field _last_role string The last role that was rendered in the chat buffer
+---@field _request_error? string The reason the last request failed, passed to `on_completed`
 ---@field _status table Bookkeeping for the current status virtual text (extmark id + status flag)
 ---@field _tool_monitors? table A table of tool monitors that are currently running in the chat buffer
 
@@ -1304,7 +1305,9 @@ function Chat:_submit_http(payload)
         return
       end
       self.status = CONSTANTS.STATUS_ERROR
-      log:error("[chat::_submit_http] Error: %s", (err and (err.stderr or err.message)) or "unknown")
+      local reason = (err and (err.stderr or err.message)) or "unknown"
+      log:error("[chat::_submit_http] Error: %s", reason)
+      self._request_error = type(reason) == "table" and (reason.body or vim.inspect(reason)) or reason
       self:done(output)
     end,
     bufnr = self.bufnr,
@@ -1619,9 +1622,13 @@ end
 ---End the turn, handing the chat buffer back to the user
 ---@return nil
 function Chat:finish()
+  -- Captured first as `ready_for_input` resets the status to an empty string
+  local status = self.status
+  local request_error = self._request_error
+  self._request_error = nil
   self:ready_for_input()
 
-  self:dispatch("on_completed", { status = self.status })
+  self:dispatch("on_completed", { status = status, error = request_error })
   utils.fire("ChatDone", { bufnr = self.bufnr, id = self.id })
 end
 
