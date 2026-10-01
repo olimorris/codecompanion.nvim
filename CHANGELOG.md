@@ -1,5 +1,20 @@
 # Changelog
 
+## [19.27.0](https://github.com/olimorris/codecompanion.nvim/compare/v19.26.0...v19.27.0) (2026-10-01)
+
+
+### Features
+
+* **chat:** better tool approval modes ([#3418](https://github.com/olimorris/codecompanion.nvim/issues/3418)) ([77e14ff](https://github.com/olimorris/codecompanion.nvim/commit/77e14ffff1bea6cec6ad01397ffd5148a5c785ca))
+* **code_review:** show changes in tab and splits ([#3411](https://github.com/olimorris/codecompanion.nvim/issues/3411)) ([c69893c](https://github.com/olimorris/codecompanion.nvim/commit/c69893c2260b3eaaf8c21c9eaf42e8e8c5475025))
+* **mcp:** add support for prompts ([#3412](https://github.com/olimorris/codecompanion.nvim/issues/3412)) ([72578d3](https://github.com/olimorris/codecompanion.nvim/commit/72578d316bf60ae9fd32d9267ab4bcfb85e2d0be))
+
+
+### Bug Fixes
+
+* **chat:** use the model passed in via params ([#3422](https://github.com/olimorris/codecompanion.nvim/issues/3422)) ([170c287](https://github.com/olimorris/codecompanion.nvim/commit/170c287f4e838534c0316b34a4fc886578f09e88))
+* **skills:** preview in fzf-lua ([#3416](https://github.com/olimorris/codecompanion.nvim/issues/3416)) ([8cd0052](https://github.com/olimorris/codecompanion.nvim/commit/8cd0052083f0ae4f03b95e0a857fde68acf468c8))
+
 ## [19.26.0](https://github.com/olimorris/codecompanion.nvim/compare/v19.25.0...v19.26.0) (2026-09-24)
 
 
