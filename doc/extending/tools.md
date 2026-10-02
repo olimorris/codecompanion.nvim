@@ -56,9 +56,8 @@ sequenceDiagram
         O->>T: handlers.on_exit()
     end
 
-    TS->>TS: reset()
-    TS->>C: Fire "ToolsFinished" autocmd
-    TS->>C: tools_done()
+    O->>C: Fire "ToolsFinished" autocmd
+    C->>L: Agent loop sends the tools' output back
 ```
 
 ## Building Your First Tool

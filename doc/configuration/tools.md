@@ -156,25 +156,6 @@ require("codecompanion").setup({
 
 :::
 
-## Auto Submit (Recursion)
-
-When a tool executes, it can be useful to automatically send its output back to the LLM. This is turned on by default and can be configured with:
-
-```lua {6-7}
-require("codecompanion").setup({
-  interactions = {
-    chat = {
-      tools = {
-        opts = {
-          auto_submit_errors = true, -- Send any errors to the LLM automatically?
-          auto_submit_success = true, -- Send any successful output to the LLM automatically?
-        },
-      }
-    }
-  }
-})
-```
-
 ## Default Tools
 
 You can configure the plugin to automatically add tools and tool groups to new chat buffers:

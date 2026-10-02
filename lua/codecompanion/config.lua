@@ -328,8 +328,6 @@ The user is working on a %s machine. Please respond with system specific command
           ---The approval mode every chat buffer starts in
           ---@type CodeCompanion.Tools.ApprovalMode
           approval_mode = "ask",
-          auto_submit_errors = true, -- Send any errors to the LLM automatically?
-          auto_submit_success = true, -- Send any successful output to the LLM automatically?
           max_output_tokens = 30000, -- Truncate a tool's output above this many tokens, or the model's limit if lower
           notify_on_approval = true, -- Notify the user when a tool requires approval?,
 

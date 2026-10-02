@@ -198,6 +198,9 @@ return {
         return {
           role = self.roles.tool or "tool",
           tool_name = tool_call["function"]["name"],
+          tools = {
+            call_id = adapter_utils.pairing_id(tool_call),
+          },
           content = output,
           opts = { visible = false },
         }

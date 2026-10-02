@@ -11,6 +11,10 @@ T = new_set({
       child.lua([[
         h = require('tests.helpers')
         config = require("tests.config")
+        -- End the loop after the tools, as the follow-up request would never be answered
+        require("codecompanion.interactions.chat.agent_loop").after_tools = function(tools)
+          tools:reset()
+        end
       ]])
     end,
     post_case = function()
