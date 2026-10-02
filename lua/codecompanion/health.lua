@@ -52,8 +52,8 @@ local function parser_available(filetype)
 end
 
 function M.check()
-  if vim.fn.has("nvim-0.11") == 0 then
-    error("codecompanion.nvim requires Neovim 0.11+")
+  if vim.fn.has("nvim-0.12") == 0 then
+    error("codecompanion.nvim requires Neovim 0.12+")
   end
 
   local log = require("codecompanion.utils.log")
