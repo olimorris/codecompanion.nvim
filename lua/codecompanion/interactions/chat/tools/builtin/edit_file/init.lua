@@ -135,12 +135,11 @@ local function split_lines(text)
   return vim.split((text:gsub("\r\n", "\n")), "\n", { plain = true })
 end
 
----@param from_lines string[]
----@param to_lines string[]
+---@param opts { from_lines: string[], to_lines: string[] }
 ---@return number
-local function get_first_changed_line(from_lines, to_lines)
-  for i = 1, math.max(#from_lines, #to_lines) do
-    if from_lines[i] ~= to_lines[i] then
+local function get_first_changed_line(opts)
+  for i = 1, math.max(#opts.from_lines, #opts.to_lines) do
+    if opts.from_lines[i] ~= opts.to_lines[i] then
       return i
     end
   end
@@ -169,7 +168,7 @@ local function review_edit(tools, opts)
       end
       utils.fire("FileEdited", {
         bufnr = target.bufnr,
-        line = get_first_changed_line(from_lines, to_lines),
+        line = get_first_changed_line({ from_lines = from_lines, to_lines = to_lines }),
         path = target.path,
         tool = "edit_file",
       })
