@@ -34,19 +34,19 @@ jobs:
           DEPLOY_HOOK: ${{ secrets.CLOUDFLARE_DEPLOY_HOOK }}
         run: curl --fail --silent --show-error --output /dev/null -X POST "$DEPLOY_HOOK"
 
-  luarocks-upload:
-    runs-on: ubuntu-latest
-    needs: release
-    if: ${{ needs.release.outputs.release_created == 'true' }}
+  # luarocks-upload:
+  #   runs-on: ubuntu-latest
+  #   needs: release
+  #   if: ${{ needs.release.outputs.release_created == 'true' }}
 
-    steps:
-      - uses: actions/checkout@v6
-        with:
-          ref: ${{ needs.release.outputs.tag_name }}
-      - name: Upload to LuaRocks
-        uses: nvim-neorocks/luarocks-tag-release@v7
-        env:
-          LUAROCKS_API_KEY: ${{ secrets.LUAROCKS_API_KEY }}
-        with:
-          labels: |
-            neovim
+  #   steps:
+  #     - uses: actions/checkout@v6
+  #       with:
+  #         ref: ${{ needs.release.outputs.tag_name }}
+  #     - name: Upload to LuaRocks
+  #       uses: nvim-neorocks/luarocks-tag-release@v7
+  #       env:
+  #         LUAROCKS_API_KEY: ${{ secrets.LUAROCKS_API_KEY }}
+  #       with:
+  #         labels: |
+  #           neovim
