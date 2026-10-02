@@ -9,9 +9,9 @@ return {
     files.delete(ctx.test_file)
   end,
 
-  description = "Read a realistic Ruby API client, then make two edits in one call",
+  description = "Read a realistic Ruby API client, then make two edits",
   name = "Real-world Ruby client",
-  tools = { "read_file", "insert_edit_into_file" },
+  tools = { "read_file", "edit_file" },
 
   setup = function()
     local input_path = vim.fs.joinpath(FIXTURES, input_file)
@@ -22,7 +22,7 @@ return {
 
   prompt = function(ctx)
     return string.format(
-      [[First use @{read_file} to read `%s`, then use @{insert_edit_into_file} to make two changes in a single tool call:
+      [[First use @{read_file} to read `%s`, then use @{edit_file} to make two changes:
 
 1. Change `DEFAULT_TIMEOUT` from `5` to `30`
 2. Add a `patch` method between `post` and `delete`:

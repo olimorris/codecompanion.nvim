@@ -14,7 +14,7 @@ tests/scripts/tool_testing/
   .env                   # API keys (gitignored)
   .env.example
   scenarios/
-    insert_edit_into_file/   # 13 scenarios covering key failure modes
+    edit_file/               # 14 scenarios covering key failure modes
 ```
 
 @./tests/scripts/tool_testing/README.md
@@ -48,7 +48,7 @@ tests/scripts/tool_testing/
 - **Colourisation** — all ANSI codes are applied in `test.sh` via awk (Lua outputs plain text). Nerd Font icons for PASS/FAIL/ERROR are injected there too.
 - **Success rate thresholds** — configurable in `config.thresholds`: `error_below` (red) and `warn_below` (amber); green at or above `warn_below`.
 
-## Scenario coverage (insert_edit_into_file)
+## Scenario coverage (edit_file)
 
 13 scenarios. Covers: simple file edit, tab-indented Python, replace-all, empty `new_string` deletion, top-of-file insertion, adjacent edits, CRLF line endings, Unicode content, JSON editing, trailing whitespace, targeted edit, real-world Python, real-world Ruby.
 
@@ -60,14 +60,10 @@ make deps  # first time only
 ./tests/scripts/tool_testing/test.sh run --adapter=anthropic --verbose
 ./tests/scripts/tool_testing/test.sh run --scenario="CRLF line endings"
 ./tests/scripts/tool_testing/test.sh run --scenario="CRLF line endings" --adapter=openai
-./tests/scripts/tool_testing/test.sh run --tool=insert_edit_into_file
+./tests/scripts/tool_testing/test.sh run --tool=edit_file
 ./tests/scripts/tool_testing/test.sh run --repeat=5
 ./tests/scripts/tool_testing/test.sh run --csv
 ./tests/scripts/tool_testing/test.sh results
 ./tests/scripts/tool_testing/test.sh failures
 ```
-
-## Baseline goal
-
-Run the full harness against `insert_edit_into_file` before the new `edit_file` tool lands, to establish a per-failure-mode pass rate. Then compare new vs old once Stage 1 of the rewrite is done.
 

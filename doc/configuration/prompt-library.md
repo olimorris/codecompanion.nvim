@@ -725,7 +725,7 @@ interaction: chat
 description: A prompt that loads tools
 tools:
   - run_command
-  - insert_edit_into_file
+  - edit_file
 ---
 ```
 
@@ -735,7 +735,7 @@ tools:
   description = "A prompt that loads tools",
   tools = {
     "run_command",
-    "insert_edit_into_file",
+    "edit_file",
   },
 },
 ```

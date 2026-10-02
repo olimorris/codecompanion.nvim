@@ -45,11 +45,11 @@ All commands are run from the repo root.
 # Single adapter
 ./tests/scripts/tool_testing/test.sh run --adapter=anthropic
 
-# Single tool (runs all scenarios in scenarios/insert_edit_into_file/)
-./tests/scripts/tool_testing/test.sh run --tool=insert_edit_into_file
+# Single tool (runs all scenarios in scenarios/edit_file/)
+./tests/scripts/tool_testing/test.sh run --tool=edit_file
 
 # Single adapter + single tool
-./tests/scripts/tool_testing/test.sh run --adapter=anthropic --tool=insert_edit_into_file
+./tests/scripts/tool_testing/test.sh run --adapter=anthropic --tool=edit_file
 
 # Single adapter, single model
 ./tests/scripts/tool_testing/test.sh run --adapter=anthropic --model=claude-haiku-4-5
@@ -172,7 +172,7 @@ Scenarios are organised by tool under `scenarios/<tool_name>/`. Drop a `.lua` fi
 
 ```
 scenarios/
-  insert_edit_into_file/
+  edit_file/
     simple_file_edit.lua
     multiple_edits.lua
     tool_group.lua
@@ -185,7 +185,7 @@ scenarios/
 Each scenario returns a table with four functions. The recommended pattern is to declare `CONTENT` and `EXPECTED` at the top of the file so both are visible at a glance:
 
 ````lua
--- scenarios/insert_edit_into_file/my_scenario.lua
+-- scenarios/edit_file/my_scenario.lua
 local CONTENT = {
   "local M = {}",
   "return M",
@@ -204,8 +204,8 @@ local EXPECTED = {
 return {
   name = "My scenario",
   description = "What this tests",
-  tools = { "insert_edit_into_file" },
-  tools_required = { "insert_edit_into_file" },  -- fail if tool was never called
+  tools = { "edit_file" },
+  tools_required = { "edit_file" },  -- fail if tool was never called
 
   setup = function()
     local test_file = vim.fn.tempname() .. ".lua"
@@ -215,7 +215,7 @@ return {
 
   prompt = function(ctx)
     return string.format(
-      "Use @{insert_edit_into_file} to add a `greet` function to `%s`.\n\n```lua\n%s\n```\n\nDo not ask for permission — call the tool directly.",
+      "Use @{edit_file} to add a `greet` function to `%s`.\n\n```lua\n%s\n```\n\nDo not ask for permission — call the tool directly.",
       ctx.test_file,
       table.concat(CONTENT, "\n")
     )
