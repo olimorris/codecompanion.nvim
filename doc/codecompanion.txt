@@ -3197,7 +3197,8 @@ buffer and saved, and any other file keeps its line endings.
 before editing a buffer? (Default: false) - `require_approval_before.file`
 (boolean) Require approval before editing a file? (Default: false) -
 `require_confirmation_after` (boolean) Require confirmation of the diff before
-the edit is written? (Default: true)
+the edit is written? (Default: true) - `file_size_limit_mb` (number) Files
+larger than this aren't edited (Default: 2)
 
 
 FETCH_WEBPAGE

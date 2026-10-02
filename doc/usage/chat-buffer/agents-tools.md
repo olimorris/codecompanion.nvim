@@ -185,6 +185,7 @@ The text being replaced must match the file exactly, including indentation. If i
 - `require_approval_before.buffer` (boolean) Require approval before editing a buffer? (Default: false)
 - `require_approval_before.file` (boolean) Require approval before editing a file? (Default: false)
 - `require_confirmation_after` (boolean) Require confirmation of the diff before the edit is written? (Default: true)
+- `file_size_limit_mb` (number) Files larger than this aren't edited (Default: 2)
 
 ### fetch_webpage
 

@@ -145,7 +145,7 @@ Follow the JSON schema carefully and include ALL required properties.
 Always output valid JSON when using a tool.
 Use tools to take actions rather than asking the user to do it manually.
 If you say you'll take an action, go ahead and do it.
-Never say the name of a tool to a user — e.g. say "I'll edit the file" not "I'll use the edit_file tool".
+Never say the name of a tool to a user - e.g. say "I'll edit the file" not "I'll use the edit_file tool".
 Prefer calling multiple tools in parallel when possible.
 Use file paths given by the user or by tool output.
 </toolUseInstructions>
@@ -236,6 +236,7 @@ The user is working on a %s machine. Please respond with system specific command
               file = false, -- For editing files in the current working directory
             },
             require_confirmation_after = true, -- Require confirmation from the user before accepting the edit?
+            file_size_limit_mb = 2, -- Files larger than this are not edited
           },
         },
         ["fetch_webpage"] = {

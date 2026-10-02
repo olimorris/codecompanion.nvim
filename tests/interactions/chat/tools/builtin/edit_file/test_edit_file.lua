@@ -62,6 +62,14 @@ T["Edit File"]["keeps CRLF line endings when the model sends LF"] = function()
   h.eq("local function greet()\r\n  return 'Hi, '\r\nend\r\n", child.lua_get("_G.read_raw()"))
 end
 
+T["Edit File"]["DOES NOT change line endings OUTSIDE the edit in a mixed file"] = function()
+  child.lua([[
+    _G.write_raw("local a = 1\r\nlocal b = 2\nlocal c = 3\r\n")
+    _G.run_edit({ old_string = "local b = 2", new_string = "local b = 20" })
+  ]])
+  h.eq("local a = 1\r\nlocal b = 20\nlocal c = 3\r\n", child.lua_get("_G.read_raw()"))
+end
+
 T["Edit File"]["edits a file already loaded in a buffer"] = function()
   child.lua([[
     _G.write_raw("local x = 1\nlocal y = 2\n")
@@ -112,6 +120,37 @@ T["Edit File"]["DOES NOT overwrite a BUFFER that changed during review"] = funct
   ]])
   h.expect_contains("the buffer changed after the edit was proposed", output)
   h.eq({ "local x = 99" }, child.lua_get("vim.api.nvim_buf_get_lines(vim.fn.bufnr(_G.TEST_FILE), 0, -1, false)"))
+end
+
+T["Edit File"]["DOES NOT edit a file OVER the size limit"] = function()
+  local output = child.lua([[
+    _G.write_raw(string.rep("x", 2 * 1024 * 1024) .. "\nlocal x = 1\n")
+    return _G.run_edit({ old_string = "local x = 1", new_string = "local x = 2" })
+  ]])
+  h.expect_contains("larger than the 2 MB limit", output)
+end
+
+T["Edit File"]["reports a buffer that is not modifiable back to the LLM"] = function()
+  local output = child.lua([[
+    _G.write_raw("local x = 1\n")
+    vim.cmd("edit " .. _G.TEST_FILE)
+    vim.bo[vim.fn.bufnr(_G.TEST_FILE)].modifiable = false
+    return _G.run_edit({ old_string = "local x = 1", new_string = "local x = 2" })
+  ]])
+  h.expect_contains("the buffer could not be changed", output)
+  h.eq("local x = 1\n", child.lua_get("_G.read_raw()"))
+end
+
+T["Edit File"]["restores a buffer that could not be saved"] = function()
+  local output = child.lua([[
+    _G.write_raw("local x = 1\n")
+    vim.uv.fs_chmod(_G.TEST_FILE, tonumber("444", 8))
+    vim.cmd("edit " .. _G.TEST_FILE)
+    return _G.run_edit({ old_string = "local x = 1", new_string = "local x = 2" })
+  ]])
+  h.expect_contains("the buffer could not be saved", output)
+  h.eq({ "local x = 1" }, child.lua_get("vim.api.nvim_buf_get_lines(vim.fn.bufnr(_G.TEST_FILE), 0, -1, false)"))
+  h.eq(false, child.lua_get("vim.bo[vim.fn.bufnr(_G.TEST_FILE)].modified"))
 end
 
 T["Edit File"]["fires FileEdited with the first changed line"] = function()

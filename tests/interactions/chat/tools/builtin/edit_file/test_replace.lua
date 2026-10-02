@@ -95,6 +95,32 @@ T["Replace"]["only curls the quote type found in the match"] = function()
   h.eq("Say “hi” now, don't wait\n", result.content)
 end
 
+T["Replace"]["counts curly-quoted matches that differ in their quotes"] = function()
+  local result = apply("“hi” and ”hi“\n", { old_string = [["hi"]], new_string = [["bye"]] })
+  h.eq(nil, result.content)
+  h.expect_contains("matches 2 places", result.error)
+end
+
+T["Replace"]["replaces every curly-quoted match with replace_all"] = function()
+  local result = apply("“hi” and ”hi“\n", { old_string = [["hi"]], new_string = [["bye"]], replace_all = true })
+  h.eq("“bye” and “bye”\n", result.content)
+end
+
+T["Replace"]["matches LF old_string against CRLF content and writes CRLF"] = function()
+  local result = apply("a\r\nb\r\n", { old_string = "a\nb", new_string = "a\nx\nb" })
+  h.eq("a\r\nx\r\nb\r\n", result.content)
+end
+
+T["Replace"]["uses the edited line's own ending in a mixed file"] = function()
+  local result = apply("a\r\nb\nc\r\n", { old_string = "b", new_string = "b\nb2" })
+  h.eq("a\r\nb\nb2\nc\r\n", result.content)
+end
+
+T["Replace"]["removes the CRLF when deleting a whole line"] = function()
+  local result = apply("a\r\nb\r\nc\r\n", { old_string = "b", new_string = "" })
+  h.eq("a\r\nc\r\n", result.content)
+end
+
 T["Replace"]["matches a CRLF old_string against LF content"] = function()
   local result = apply("a\nb\n", { old_string = "a\r\nb", new_string = "a\r\nc" })
   h.eq("a\nc\n", result.content)

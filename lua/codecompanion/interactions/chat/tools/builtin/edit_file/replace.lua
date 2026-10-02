@@ -8,59 +8,84 @@ local EM_DASH = "\226\128\148"
 local EN_DASH = "\226\128\147"
 local LETTER = "[%a\128-\255]"
 
+---@class CodeCompanion.Tool.EditFile.NormalizedText
+---@field text string
+---@field to_original fun(position: number): number
+
+---Replace every match of the pattern, keeping a way to map positions back to the original text
 ---@param text string
----@return string
-local function normalize_quotes(text)
-  return (text:gsub(CURLY_QUOTE_PATTERN, CURLY_QUOTES))
+---@param opts { pattern: string, replacements: table<string, string> }
+---@return CodeCompanion.Tool.EditFile.NormalizedText
+local function normalize(text, opts)
+  local shifts = {}
+  local removed = 0
+  local normalized = text:gsub("()(" .. opts.pattern .. ")", function(position, match)
+    local replacement = opts.replacements[match]
+    removed = removed + #match - #replacement
+    table.insert(shifts, { from = position + #match - removed, shift = removed })
+    return replacement
+  end)
+
+  return {
+    text = normalized,
+    to_original = function(position)
+      local low, high, shift = 1, #shifts, 0
+      while low <= high do
+        local middle = math.floor((low + high) / 2)
+        if shifts[middle].from <= position then
+          shift = shifts[middle].shift
+          low = middle + 1
+        else
+          high = middle - 1
+        end
+      end
+      return position + shift
+    end,
+  }
 end
 
----Return the start position of every non-overlapping match
+---Return the start and exclusive finish of every non-overlapping match
 ---@param content string
 ---@param search string
----@return number[]
+---@return { start: number, finish: number }[]
 local function find_all(content, search)
-  local positions = {}
+  local spans = {}
   local from = 1
   while true do
     local start = content:find(search, from, true)
     if not start then
-      return positions
+      return spans
     end
-    table.insert(positions, start)
+    table.insert(spans, { start = start, finish = start + #search })
     from = start + #search
   end
 end
 
----Convert a position in the quote-normalized content to the same character's position in the original
----@param content string
----@param normalized_position number
----@return number
-local function get_original_position(content, normalized_position)
-  local shift = 0
-  for quote_start in content:gmatch("()" .. CURLY_QUOTE_PATTERN) do
-    if quote_start - shift >= normalized_position then
-      break
-    end
-    -- A curly quote is 3 bytes but normalizes to 1, pushing every later position back by 2
-    shift = shift + 2
-  end
-  return normalized_position + shift
-end
-
----Find the text in the content that matches the search once curly quotes are straightened
+---Find every match in the original content, ignoring line endings and, if nothing matches, curly quotes
 ---@param content string
 ---@param search string
----@return string|nil
-local function find_with_straight_quotes(content, search)
-  local normalized_search = normalize_quotes(search)
-  local normalized_start = normalize_quotes(content):find(normalized_search, 1, true)
-  if not normalized_start then
-    return nil
+---@return { spans: { start: number, finish: number }[], restyle: boolean }
+local function find_matches(content, search)
+  local lf = normalize(content, { pattern = "\r\n", replacements = { ["\r\n"] = "\n" } })
+  local spans = find_all(lf.text, search)
+  local to_original = lf.to_original
+  local restyle = false
+
+  if #spans == 0 then
+    local quotes = { pattern = CURLY_QUOTE_PATTERN, replacements = CURLY_QUOTES }
+    local straight = normalize(lf.text, quotes)
+    spans = find_all(straight.text, normalize(search, quotes).text)
+    to_original = function(position)
+      return lf.to_original(straight.to_original(position))
+    end
+    restyle = true
   end
 
-  local start = get_original_position(content, normalized_start)
-  local finish = get_original_position(content, normalized_start + #normalized_search)
-  return content:sub(start, finish - 1)
+  for _, span in ipairs(spans) do
+    span.start = to_original(span.start)
+    span.finish = to_original(span.finish)
+  end
+  return { spans = spans, restyle = restyle }
 end
 
 ---@param text string
@@ -103,22 +128,31 @@ local function is_line_start(content, position)
   return position == 1 or content:sub(position - 1, position - 1) == "\n"
 end
 
+---Use the line ending inside the match, or else the one on the line the match sits on
+---@param content string
+---@param span { start: number, finish: number }
+---@return string
+local function get_line_ending(content, span)
+  return content:sub(span.start, span.finish - 1):match("\r?\n") or content:match("\r?\n", span.finish) or "\n"
+end
+
 ---Replace each match, consuming the trailing newline when whole lines are deleted
 ---@param content string
----@param opts { search: string, replacement: string, positions: number[] }
+---@param opts { spans: { start: number, finish: number }[], replace: fun(matched: string, line_ending: string): string }
 ---@return string
 local function splice(content, opts)
-  local deletes_lines = opts.replacement == "" and opts.search:sub(-1) ~= "\n"
   local parts = {}
   local cursor = 1
 
-  for _, start in ipairs(opts.positions) do
-    local finish = start + #opts.search
-    if deletes_lines and is_line_start(content, start) and content:sub(finish, finish) == "\n" then
-      finish = finish + 1
+  for _, span in ipairs(opts.spans) do
+    local matched = content:sub(span.start, span.finish - 1)
+    local replacement = opts.replace(matched, get_line_ending(content, span))
+    local finish = span.finish
+    if replacement == "" and matched:sub(-1) ~= "\n" and is_line_start(content, span.start) then
+      finish = finish + #(content:match("^\r?\n", finish) or "")
     end
-    table.insert(parts, content:sub(cursor, start - 1))
-    table.insert(parts, opts.replacement)
+    table.insert(parts, content:sub(cursor, span.start - 1))
+    table.insert(parts, replacement)
     cursor = finish
   end
   table.insert(parts, content:sub(cursor))
@@ -126,7 +160,7 @@ local function splice(content, opts)
   return table.concat(parts)
 end
 
----Replace `old_string` with `new_string` in content that uses LF line endings
+---Replace `old_string` with `new_string`, keeping the file's line endings and curly quotes
 ---@param content string
 ---@param opts { old_string: string, new_string: string, replace_all?: boolean }
 ---@return { content?: string, error?: string }
@@ -146,28 +180,29 @@ function M.apply(content, opts)
     return { error = "`old_string` and `new_string` are identical, so there is nothing to change" }
   end
 
-  local search = old_string
-  if not content:find(search, 1, true) then
-    search = find_with_straight_quotes(content, old_string)
-    if not search then
-      return {
-        error = "`old_string` was not found in the file. It must match the file exactly, including whitespace and indentation",
-      }
-    end
-    new_string = apply_quote_style(new_string, search)
+  local matches = find_matches(content, old_string)
+  if #matches.spans == 0 then
+    return {
+      error = "`old_string` was not found in the file. It must match the file exactly, including whitespace and indentation",
+    }
   end
 
-  local positions = find_all(content, search)
-  if #positions > 1 and not opts.replace_all then
+  if #matches.spans > 1 and not opts.replace_all then
     return {
       error = fmt(
         "`old_string` matches %d places in the file. Include more surrounding lines to make it unique, or set `replace_all` to true to change every match",
-        #positions
+        #matches.spans
       ),
     }
   end
 
-  local edited = splice(content, { search = search, replacement = new_string, positions = positions })
+  local edited = splice(content, {
+    spans = matches.spans,
+    replace = function(matched, line_ending)
+      local replacement = matches.restyle and apply_quote_style(new_string, matched) or new_string
+      return (replacement:gsub("\n", line_ending))
+    end,
+  })
   if edited == content then
     return { error = "The edit made no changes to the file" }
   end

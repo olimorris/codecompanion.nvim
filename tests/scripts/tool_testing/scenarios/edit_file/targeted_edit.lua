@@ -48,13 +48,13 @@ Do not ask for permission — call the tool directly.]],
     local file_len = #files.read(vim.fs.joinpath(FIXTURES, input_file))
     for _, call in ipairs(run.tool_calls) do
       if call.name == "edit_file" then
-        local ok, args = pcall(vim.json.decode, call.arguments)
-        if ok and args and args.edits then
-          for _, edit in ipairs(args.edits) do
-            if edit.old_string and #edit.old_string > file_len * 0.5 then
-              return false, "old_string was more than half the file"
-            end
-          end
+        local args = call.arguments
+        if type(args) == "string" then
+          local ok, decoded = pcall(vim.json.decode, args)
+          args = ok and decoded or {}
+        end
+        if type(args.old_string) == "string" and #args.old_string > file_len * 0.5 then
+          return false, "old_string was more than half the file"
         end
       end
     end

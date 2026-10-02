@@ -27,11 +27,19 @@ local DESCRIPTION = [[Edit an existing file by replacing an exact string with ne
 ---@field write fun(content: string): { error?: string }
 
 ---@param filepath string
+---@param opts { file_size_limit_mb: number }
 ---@return { target?: CodeCompanion.Tool.EditFile.Target, error?: string }
-local function open_file_for_editing(filepath)
+local function open_file_for_editing(filepath, opts)
   local path = file_utils.validate_and_normalize_path(filepath)
   if not path or file_utils.is_dir(path) then
     return { error = fmt("`%s` does not exist. Use the path of an existing file", filepath) }
+  end
+
+  local stat = vim.uv.fs_stat(path)
+  if stat and stat.size > opts.file_size_limit_mb * 1024 * 1024 then
+    return {
+      error = fmt("`%s` is larger than the %s MB limit for editing", filepath, opts.file_size_limit_mb),
+    }
   end
 
   local ok, original = pcall(file_utils.read, path)
@@ -40,10 +48,8 @@ local function open_file_for_editing(filepath)
     return { error = fmt("Could not read `%s`", filepath) }
   end
 
-  local line_ending = original:find("\r\n", 1, true) and "\r\n" or "\n"
-
   local target = {
-    content = (original:gsub("\r\n", "\n")),
+    content = original,
     display_name = vim.fn.fnamemodify(path, ":."),
     ft = vim.filetype.match({ filename = path }) or "text",
     path = path,
@@ -53,7 +59,7 @@ local function open_file_for_editing(filepath)
         return { error = "the file changed after the edit was proposed. Read it again and retry" }
       end
 
-      local write_ok, write_err = pcall(file_utils.write_to_path, path, (content:gsub("\n", line_ending)))
+      local write_ok, write_err = pcall(file_utils.write_to_path, path, content)
       if not write_ok then
         log:error("[Edit File Tool] Could not write %s: %s", path, write_err)
         return { error = "the file could not be written" }
@@ -69,6 +75,31 @@ local function open_file_for_editing(filepath)
   }
 
   return { target = target }
+end
+
+---Replace the buffer's lines and save it, putting the original lines back if the save fails
+---@param bufnr number
+---@param opts { lines: string[], original_lines: string[] }
+---@return { error?: string }
+local function save_buffer(bufnr, opts)
+  local was_modified = vim.bo[bufnr].modified
+  local set_ok, set_err = pcall(api.nvim_buf_set_lines, bufnr, 0, -1, false, opts.lines)
+  if not set_ok then
+    log:error("[Edit File Tool] Could not change buffer %d: %s", bufnr, set_err)
+    return { error = "the buffer could not be changed. It may not be modifiable" }
+  end
+
+  local write_ok, write_err = pcall(api.nvim_buf_call, bufnr, function()
+    vim.cmd("silent write")
+  end)
+  if not write_ok then
+    log:error("[Edit File Tool] Could not save buffer %d: %s", bufnr, write_err)
+    api.nvim_buf_set_lines(bufnr, 0, -1, false, opts.original_lines)
+    vim.bo[bufnr].modified = was_modified
+    return { error = "the buffer could not be saved. It may be read-only" }
+  end
+
+  return {}
 end
 
 ---@param bufnr number
@@ -91,16 +122,17 @@ local function open_buffer_for_editing(bufnr)
         return { error = "the buffer changed after the edit was proposed. Read it again and retry" }
       end
 
-      api.nvim_buf_set_lines(bufnr, 0, -1, false, vim.split(content, "\n", { plain = true }))
-      api.nvim_buf_call(bufnr, function()
-        vim.cmd("silent write")
-      end)
-
-      return {}
+      return save_buffer(bufnr, { lines = vim.split(content, "\n", { plain = true }), original_lines = original_lines })
     end,
   }
 
   return { target = target }
+end
+
+---@param text string
+---@return string[]
+local function split_lines(text)
+  return vim.split((text:gsub("\r\n", "\n")), "\n", { plain = true })
 end
 
 ---@param from_lines string[]
@@ -121,8 +153,8 @@ end
 ---@return nil
 local function review_edit(tools, opts)
   local target = opts.target
-  local from_lines = vim.split(target.content, "\n", { plain = true })
-  local to_lines = vim.split(opts.edited, "\n", { plain = true })
+  local from_lines = split_lines(target.content)
+  local to_lines = split_lines(opts.edited)
 
   return diff.review({
     from_lines = from_lines,
@@ -168,7 +200,8 @@ return {
       end
 
       local bufnr = buf_utils.get_bufnr_from_path(args.filepath)
-      local opened = bufnr and open_buffer_for_editing(bufnr) or open_file_for_editing(args.filepath)
+      local opened = bufnr and open_buffer_for_editing(bufnr)
+        or open_file_for_editing(args.filepath, { file_size_limit_mb = self.tool.opts.file_size_limit_mb })
       if opened.error then
         return opts.output_cb({ status = "error", data = opened.error })
       end
