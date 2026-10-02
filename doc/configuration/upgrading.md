@@ -8,6 +8,111 @@ This document provides a guide for upgrading from one version of CodeCompanion t
 
 CodeCompanion follows [semantic versioning](https://semver.org/) and to avoid breaking changes, it is recommended to pin the plugin to a specific version in your Neovim configuration. The [installation guide](/installation) provides more information on how to do this.
 
+## v19.27.0 to v20.0.0
+
+> [!IMPORTANT]
+> The `openai` and `gemini` adapters now use different APIs. If you use either of them, read the [Adapters](#adapters) section before upgrading
+
+### Adapters
+
+- `openai` now uses OpenAI's [Responses API](https://platform.openai.com/docs/api-reference/responses) and `gemini` uses Google's [Interactions API](https://ai.google.dev/gemini-api/docs/interactions). The previous adapters have been renamed to `openai_legacy` and `gemini_legacy`
+- This includes `extend("openai")` and `extend("gemini")`, so any adapter you've built on them now uses the new APIs
+- The `openai_responses` and `gemini_interactions` adapters have been removed. Use `openai` and `gemini` instead
+- Update any references in your own plugins from `require("codecompanion.adapters.http.openai")` to `require("codecompanion.adapters.http.openai_legacy")`
+- The GitHub Models adapter has been removed
+
+To keep using the previous APIs:
+
+::: code-group
+
+```lua [Interactions]
+require("codecompanion").setup({
+  interactions = {
+    chat = {
+      adapter = "openai_legacy", -- Can be "openai_legacy" or "gemini_legacy"
+    },
+    inline = {
+      adapter = "openai_legacy",
+    },
+  },
+})
+```
+
+```lua [Extending]
+require("codecompanion").setup({
+  adapters = {
+    http = {
+      openai = function()
+        return require("codecompanion.adapters").extend("openai_legacy", { -- [!code ++]
+          env = {
+            api_key = "OPENAI_API_KEY",
+          },
+        })
+      end,
+    },
+  },
+})
+```
+
+:::
+
+### Tools
+
+- The `insert_edit_into_file` tool has been replaced by [edit_file](/usage/chat-buffer/agents-tools#edit-file) ([#3427](https://github.com/olimorris/codecompanion.nvim/pull/3427)). It takes the same options, so rename any references in your config, custom groups and prompts:
+
+```lua
+require("codecompanion").setup({
+  interactions = {
+    chat = {
+      tools = {
+        ["insert_edit_into_file"] = { -- [!code --]
+        ["edit_file"] = { -- [!code ++]
+          opts = {
+            require_confirmation_after = false,
+          },
+        },
+      },
+    },
+  },
+})
+```
+
+- The [web_search](/usage/chat-buffer/agents-tools#web-search) tool now uses DuckDuckGo by default, which doesn't need an API key. Previously it used Tavily
+- The [fetch_webpage](/usage/chat-buffer/agents-tools#fetch-webpage) tool and [/fetch](/usage/chat-buffer/slash-commands#fetch) slash command now use [MarkItDown](https://github.com/microsoft/markitdown) by default. Previously they used Jina
+
+> [!IMPORTANT]
+> MarkItDown runs the `markitdown` CLI on your machine, so it must be installed. `:checkhealth codecompanion` will tell you if it's missing
+
+To keep the previous defaults:
+
+```lua
+require("codecompanion").setup({
+  interactions = {
+    chat = {
+      slash_commands = {
+        ["fetch"] = {
+          opts = {
+            adapter = "jina",
+          },
+        },
+      },
+      tools = {
+        ["fetch_webpage"] = {
+          opts = {
+            adapter = "jina",
+          },
+        },
+        ["web_search"] = {
+          opts = {
+            adapter = "tavily",
+          },
+        },
+      },
+    },
+  },
+})
+```
+
 ## v18.7.0 to v19.0.0
 
 - The Super Diff has now been removed from CodeCompanion ([#2600](https://github.com/olimorris/codecompanion.nvim/pull/2600))

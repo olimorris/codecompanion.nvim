@@ -1,0 +1,464 @@
+local h = require("tests.helpers")
+local tags = require("codecompanion.interactions.shared.tags")
+local adapter
+
+local new_set = MiniTest.new_set
+T = new_set()
+
+T["OpenAI Legacy adapter"] = new_set({
+  hooks = {
+    pre_case = function()
+      adapter = require("codecompanion.adapters").resolve("openai_legacy")
+    end,
+  },
+})
+
+T["OpenAI Legacy adapter"]["it can form messages"] = function()
+  local messages = { {
+    content = "Explain Ruby in two words",
+    role = "user",
+  } }
+
+  h.eq({ messages = messages }, adapter.handlers.form_messages(adapter, messages))
+end
+
+T["OpenAI Legacy adapter"]["it can form messages with images"] = function()
+  local messages = {
+    {
+      content = "How are you?",
+      role = "user",
+    },
+    {
+      content = "I am fine, thanks. How can I help?",
+      role = "assistant",
+    },
+    {
+      content = "somefakebase64encoding",
+      role = "user",
+      context = {
+        id = "<image>https://upload.wikimedia.org/wikipedia/commons/thumb/d/dd/Gfp-wisconsin-madison-the-nature-boardwalk.jpg/2560px-Gfp-wisconsin-madison-the-nature-boardwalk.jpg</image>",
+        mimetype = "image/jpg",
+      },
+      _meta = {
+        tag = tags.IMAGE,
+      },
+      opts = {
+        visible = false,
+      },
+    },
+    {
+      content = "What is this an image of?",
+      role = "user",
+    },
+  }
+
+  local expected = {
+    {
+      content = "How are you?",
+      role = "user",
+    },
+    {
+      content = "I am fine, thanks. How can I help?",
+      role = "assistant",
+    },
+    {
+      content = {
+        {
+          type = "image_url",
+          image_url = {
+            url = "data:image/jpg;base64,somefakebase64encoding",
+          },
+        },
+      },
+      role = "user",
+    },
+    {
+      content = "What is this an image of?",
+      role = "user",
+    },
+  }
+
+  h.eq(expected, adapter.handlers.form_messages(adapter, messages).messages)
+end
+
+T["OpenAI Legacy adapter"]["it can form messages with documents"] = function()
+  local messages = {
+    {
+      content = "somefakebase64encoding",
+      role = "user",
+      context = {
+        id = "<file>report.pdf</file>",
+        mimetype = "application/pdf",
+        path = "report.pdf",
+      },
+      _meta = {
+        tag = tags.DOCUMENT,
+        filetype = "pdf",
+      },
+      opts = {
+        visible = false,
+      },
+    },
+    {
+      content = "What does this PDF say?",
+      role = "user",
+    },
+  }
+
+  local expected = {
+    {
+      content = {
+        {
+          type = "file",
+          file = {
+            filename = "report.pdf",
+            file_data = "data:application/pdf;base64,somefakebase64encoding",
+          },
+        },
+      },
+      role = "user",
+    },
+    {
+      content = "What does this PDF say?",
+      role = "user",
+    },
+  }
+
+  h.eq(expected, adapter.handlers.form_messages(adapter, messages).messages)
+end
+
+T["OpenAI Legacy adapter"]["only PDFs are converted into document blocks"] = function()
+  local messages = {
+    {
+      content = "somefakebase64encoding",
+      role = "user",
+      context = {
+        id = "<file>report.docx</file>",
+        mimetype = "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        path = "report.docx",
+      },
+      _meta = {
+        tag = tags.DOCUMENT,
+        filetype = "docx",
+      },
+      opts = {
+        visible = false,
+      },
+    },
+  }
+
+  local output = adapter.handlers.form_messages(adapter, messages).messages
+
+  h.eq("somefakebase64encoding", output[1].content)
+end
+
+T["OpenAI Legacy adapter"]["it can form messages with tools"] = function()
+  local messages = {
+    {
+      role = "assistant",
+      tools = {
+        calls = {
+          {
+            id = "call_RJU6xfk0OzQF3Gg9cOFS5RY7",
+            ["function"] = {
+              name = "weather",
+              arguments = '{"location": "London", "units": "celsius"}',
+            },
+          },
+          {
+            id = "call_a9oyUMlFhnX8HvqzlfIx5Uek",
+            ["function"] = {
+              name = "weather",
+              arguments = '{"location": "Paris", "units": "celsius"}',
+            },
+          },
+        },
+      },
+    },
+  }
+
+  local expected = {
+    {
+      role = "assistant",
+      tool_calls = {
+        {
+          id = "call_RJU6xfk0OzQF3Gg9cOFS5RY7",
+          ["function"] = {
+            name = "weather",
+            arguments = '{"location": "London", "units": "celsius"}',
+          },
+        },
+        {
+          id = "call_a9oyUMlFhnX8HvqzlfIx5Uek",
+          ["function"] = {
+            name = "weather",
+            arguments = '{"location": "Paris", "units": "celsius"}',
+          },
+        },
+      },
+    },
+  }
+
+  h.eq({ messages = expected }, adapter.handlers.form_messages(adapter, messages))
+end
+
+T["OpenAI Legacy adapter"]["sends the call id of a tool call recorded by the responses endpoint"] = function()
+  local messages = {
+    {
+      role = "assistant",
+      tools = {
+        calls = {
+          {
+            id = "fc_0cf9af0f913994140068e2713964448193a723d7191832a56f",
+            call_id = "call_RJU6xfk0OzQF3Gg9cOFS5RY7",
+            ["function"] = {
+              name = "weather",
+              arguments = '{"location": "London", "units": "celsius"}',
+            },
+          },
+        },
+      },
+    },
+  }
+
+  local expected = {
+    {
+      role = "assistant",
+      tool_calls = {
+        {
+          id = "call_RJU6xfk0OzQF3Gg9cOFS5RY7",
+          ["function"] = {
+            name = "weather",
+            arguments = '{"location": "London", "units": "celsius"}',
+          },
+        },
+      },
+    },
+  }
+
+  h.eq({ messages = expected }, adapter.handlers.form_messages(adapter, messages))
+end
+
+T["OpenAI Legacy adapter"]["it can form tools to be sent to the API"] = function()
+  local weather = require("tests.interactions.chat.tools.builtin.stubs.weather").schema
+  local tools = { weather = { weather } }
+
+  h.eq({ tools = { weather } }, adapter.handlers.form_tools(adapter, tools))
+end
+
+T["OpenAI Legacy adapter"]["can output tool call"] = function()
+  local output = "The weather in London is 15 degrees"
+  local tool_call = {
+    ["function"] = {
+      arguments = '{"location": "London", "units": "celsius"}',
+      name = "weather",
+    },
+    id = "call_RJU6xfk0OzQF3Gg9cOFS5RY7",
+    type = "function",
+  }
+
+  h.eq({
+    content = output,
+    opts = {
+      visible = false,
+    },
+    role = "tool",
+    tools = {
+      call_id = "call_RJU6xfk0OzQF3Gg9cOFS5RY7",
+      name = "weather",
+    },
+  }, adapter.handlers.tools.output_response(adapter, tool_call, output))
+end
+
+T["OpenAI Legacy adapter"]["Streaming"] = new_set()
+
+T["OpenAI Legacy adapter"]["Streaming"]["can output streamed data into the chat buffer"] = function()
+  local output = ""
+  local lines = vim.fn.readfile("tests/adapters/http/stubs/openai_streaming.txt")
+  for _, line in ipairs(lines) do
+    local chat_output = adapter.handlers.chat_output(adapter, line)
+    if chat_output and chat_output.output.content then
+      output = output .. chat_output.output.content
+    end
+  end
+
+  h.expect_starts_with("Dynamic, Flexible", output)
+end
+
+T["OpenAI Legacy adapter"]["Streaming"]["can process tools"] = function()
+  local tools = {}
+  local lines = vim.fn.readfile("tests/adapters/http/stubs/openai_tools_streaming.txt")
+  for _, line in ipairs(lines) do
+    adapter.handlers.chat_output(adapter, line, tools)
+  end
+
+  local tool_output = {
+    {
+      _index = 0,
+      ["function"] = {
+        arguments = '{"location": "London", "units": "celsius"}',
+        name = "weather",
+      },
+      id = "call_RJU6xfk0OzQF3Gg9cOFS5RY7",
+      type = "function",
+    },
+    {
+      _index = 1,
+      ["function"] = {
+        arguments = '{"location": "Paris", "units": "celsius"}',
+        name = "weather",
+      },
+      id = "call_a9oyUMlFhnX8HvqzlfIx5Uek",
+      type = "function",
+    },
+  }
+
+  h.eq(tool_output, tools)
+end
+
+T["OpenAI Legacy adapter"]["No Streaming"] = new_set({
+  hooks = {
+    pre_case = function()
+      adapter = require("codecompanion.adapters").extend("openai_legacy", {
+        opts = {
+          stream = false,
+        },
+      })
+    end,
+  },
+})
+
+T["OpenAI Legacy adapter"]["No Streaming"]["can output for the chat buffer"] = function()
+  local data = vim.fn.readfile("tests/adapters/http/stubs/openai_no_streaming.txt")
+  data = table.concat(data, "\n")
+
+  -- Match the format of the actual request
+  local json = { body = data }
+
+  h.eq("Elegant simplicity.", adapter.handlers.chat_output(adapter, json).output.content)
+end
+
+T["OpenAI Legacy adapter"]["No Streaming"]["can process tools"] = function()
+  local data = vim.fn.readfile("tests/adapters/http/stubs/openai_tools_no_streaming.txt")
+  data = table.concat(data, "\n")
+
+  local tools = {}
+
+  -- Match the format of the actual request
+  local json = { body = data }
+  adapter.handlers.chat_output(adapter, json, tools)
+
+  local tool_output = {
+    {
+      _index = 1,
+      ["function"] = {
+        arguments = '{"location": "London, United Kingdom", "units": "celsius"}',
+        name = "weather",
+      },
+      id = "call_VGkXa0hqNLEe2HSgMO1EpOe6",
+      type = "function",
+    },
+    {
+      _index = 2,
+      ["function"] = {
+        arguments = '{"location": "Paris, France", "units": "celsius"}',
+        name = "weather",
+      },
+      id = "call_HVrmLOHM2Ybd6K7vQj4x8NdQ",
+      type = "function",
+    },
+  }
+  h.eq(tool_output, tools)
+end
+
+T["OpenAI Legacy adapter"]["No Streaming"]["can output for the inline assistant"] = function()
+  local data = vim.fn.readfile("tests/adapters/http/stubs/openai_no_streaming.txt")
+  data = table.concat(data, "\n")
+
+  -- Match the format of the actual request
+  local json = { body = data }
+
+  h.eq("Elegant simplicity.", adapter.handlers.inline_output(adapter, json).output)
+end
+
+T["OpenAI Legacy adapter"]["reasoning_effort enabled"] = function()
+  -- Test when choices is a function and model supports reasoning
+  local adapter_with_reasoning = require("codecompanion.adapters").extend("openai_legacy", {
+    schema = {
+      model = {
+        default = "o1-2024-12-17",
+        choices = function(self)
+          return {
+            ["o1-2024-12-17"] = { opts = { has_vision = true, can_reason = true } },
+            ["gpt-4o"] = { opts = { has_vision = true } },
+          }
+        end,
+      },
+    },
+  })
+  local enabled_result = adapter_with_reasoning.schema.reasoning_effort.enabled(adapter_with_reasoning)
+  h.eq(true, enabled_result)
+
+  -- Test when choices is a function but model doesn't support reasoning
+  local adapter_without_reasoning = require("codecompanion.adapters").extend("openai_legacy", {
+    schema = {
+      model = {
+        default = "gpt-4o",
+        choices = function(self)
+          return {
+            ["o1-2024-12-17"] = { opts = { has_vision = true, can_reason = true } },
+            ["gpt-4o"] = { opts = { has_vision = true } },
+          }
+        end,
+      },
+    },
+  })
+  local enabled_result_false = adapter_without_reasoning.schema.reasoning_effort.enabled(adapter_without_reasoning)
+  h.eq(false, enabled_result_false)
+
+  -- Test when model doesn't exist in choices
+  local adapter_missing_model = require("codecompanion.adapters").extend("openai_legacy", {
+    schema = {
+      model = {
+        default = "nonexistent-model",
+        choices = function(self)
+          return {
+            ["o1-2024-12-17"] = { opts = { has_vision = true, can_reason = true } },
+          }
+        end,
+      },
+    },
+  })
+  local enabled_result_missing = adapter_missing_model.schema.reasoning_effort.enabled(adapter_missing_model)
+  h.eq(false, enabled_result_missing)
+end
+
+T["OpenAI Legacy adapter"]["it can form a structured output"] = function()
+  local schema = {
+    name = "weather",
+    strict = true,
+    schema = {
+      type = "object",
+      properties = {
+        location = { type = "string" },
+      },
+      required = { "location" },
+      additionalProperties = false,
+    },
+  }
+
+  adapter.opts.can_form_structured_outputs = true
+  local output = adapter.handlers.form_structured_output(adapter, schema)
+
+  h.eq("json_schema", output.response_format.type)
+  h.eq("weather", output.response_format.json_schema.name)
+  h.eq(true, output.response_format.json_schema.strict)
+  h.eq(schema.schema, output.response_format.json_schema.schema)
+end
+
+T["OpenAI Legacy adapter"]["form_structured_output returns nil when no schema"] = function()
+  adapter.opts.can_form_structured_outputs = true
+  h.eq(nil, adapter.handlers.form_structured_output(adapter, nil))
+end
+
+return T

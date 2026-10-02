@@ -206,7 +206,7 @@ require("codecompanion").setup({
 
 Pick a model with a context window at least as large as your chat model's, as it has to read the conversation it's summarising. See [Compaction](/configuration/context-management#compaction) for the triggers.
 
-Compaction never runs for agents, as they manage their own context. It also doesn't run for models that compact on the provider's side, such as some `anthropic` and `openai_responses` models, unless you [disable server-side compaction](/configuration/adapters-http#disabling-compaction).
+Compaction never runs for agents, as they manage their own context. It also doesn't run for models that compact on the provider's side, such as some `anthropic` and `openai` models, unless you [disable server-side compaction](/configuration/adapters-http#disabling-compaction).
 
 ## Other Interactions
 

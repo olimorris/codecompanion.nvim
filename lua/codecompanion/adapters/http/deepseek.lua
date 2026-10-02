@@ -1,5 +1,5 @@
 local adapter_utils = require("codecompanion.adapters.utils")
-local openai = require("codecompanion.adapters.http.openai")
+local openai = require("codecompanion.adapters.http.openai_legacy")
 
 ---Set the format of the role and content for the messages from the chat buffer
 ---@param self CodeCompanion.HTTPAdapter

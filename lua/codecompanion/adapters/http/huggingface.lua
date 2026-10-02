@@ -1,7 +1,7 @@
 local Curl = require("plenary.curl")
 local config = require("codecompanion.config")
 local log = require("codecompanion.utils.log")
-local openai = require("codecompanion.adapters.http.openai")
+local openai = require("codecompanion.adapters.http.openai_legacy")
 
 -- Cache variables for models
 local _cached_models

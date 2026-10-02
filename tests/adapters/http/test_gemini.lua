@@ -1,4 +1,5 @@
 local h = require("tests.helpers")
+local tags = require("codecompanion.interactions.shared.tags")
 local adapter
 
 local new_set = MiniTest.new_set
@@ -29,66 +30,16 @@ T["Gemini adapter"]["can form messages to be sent to the API"] = function()
   }
 
   local output = {
-    contents = {
+    input = {
       {
-        role = "user",
-        parts = {
-          { text = "Explain Ruby in two words" },
-        },
+        type = "user_input",
+        content = "Explain Ruby in two words",
       },
     },
-    system_instruction = {
-      parts = {
-        { text = "Follow the user's request" },
-        { text = "Respond in code" },
-      },
-      role = "user",
-    },
+    system_instruction = "Follow the user's request\n\nRespond in code",
   }
 
-  h.eq(output, adapter.handlers.form_messages(adapter, messages))
-end
-
-T["Gemini adapter"]["can form messages with system prompt"] = function()
-  local messages = {
-    {
-      content = "You are a helpful assistant",
-      role = "system",
-    },
-    {
-      content = "hello",
-      role = "user",
-    },
-    {
-      content = "Hi, how can I help?",
-      role = "model",
-    },
-  }
-
-  local output = {
-    contents = {
-      {
-        role = "user",
-        parts = {
-          { text = "hello" },
-        },
-      },
-      {
-        role = "model",
-        parts = {
-          { text = "Hi, how can I help?" },
-        },
-      },
-    },
-    system_instruction = {
-      parts = {
-        { text = "You are a helpful assistant" },
-      },
-      role = "user",
-    },
-  }
-
-  h.eq(output, adapter.handlers.form_messages(adapter, messages))
+  h.eq(output, adapter.handlers.request.build_messages(adapter, messages))
 end
 
 T["Gemini adapter"]["can form messages without system prompt"] = function()
@@ -104,23 +55,19 @@ T["Gemini adapter"]["can form messages without system prompt"] = function()
   }
 
   local output = {
-    contents = {
+    input = {
       {
-        role = "user",
-        parts = {
-          { text = "hello" },
-        },
+        type = "user_input",
+        content = "hello",
       },
       {
-        role = "model",
-        parts = {
-          { text = "Hi, how can I help?" },
-        },
+        type = "model_output",
+        content = { { type = "text", text = "Hi, how can I help?" } },
       },
     },
   }
 
-  h.eq(output, adapter.handlers.form_messages(adapter, messages))
+  h.eq(output, adapter.handlers.request.build_messages(adapter, messages))
 end
 
 T["Gemini adapter"]["can form messages with tool calls and responses"] = function()
@@ -136,7 +83,7 @@ T["Gemini adapter"]["can form messages with tool calls and responses"] = functio
           {
             _index = 1,
             id = "call_1",
-            thought_signature = "Ev0BCvoBAb4",
+            signature = "Ev0BCvoBAb4",
             type = "function",
             ["function"] = {
               arguments = '{"location":"London"}',
@@ -156,71 +103,26 @@ T["Gemini adapter"]["can form messages with tool calls and responses"] = functio
     },
   }
 
-  local output = adapter.handlers.form_messages(adapter, messages)
-
-  -- User message
-  h.eq("user", output.contents[1].role)
-  h.eq("What's the weather?", output.contents[1].parts[1].text)
-
-  -- Model message with functionCall including id and thoughtSignature
-  h.eq("model", output.contents[2].role)
-  h.eq("weather", output.contents[2].parts[1].functionCall.name)
-  h.eq({ location = "London" }, output.contents[2].parts[1].functionCall.args)
-  h.eq("call_1", output.contents[2].parts[1].functionCall.id)
-  h.eq("Ev0BCvoBAb4", output.contents[2].parts[1].thoughtSignature)
-
-  -- Tool response with functionResponse including id
-  h.eq("user", output.contents[3].role)
-  h.eq("weather", output.contents[3].parts[1].functionResponse.name)
-  h.eq({ temperature = 20 }, output.contents[3].parts[1].functionResponse.response)
-  h.eq("call_1", output.contents[3].parts[1].functionResponse.id)
-end
-
-T["Gemini adapter"]["merges consecutive tool responses into one message"] = function()
-  local messages = {
-    {
-      content = "Check weather in both cities",
-      role = "user",
-    },
-    {
-      role = "model",
-      tools = {
-        calls = {
-          {
-            _index = 1,
-            id = "call_1",
-            type = "function",
-            ["function"] = { arguments = '{"location":"London"}', name = "weather" },
-          },
-          {
-            _index = 2,
-            id = "call_2",
-            type = "function",
-            ["function"] = { arguments = '{"location":"Paris"}', name = "weather" },
-          },
-        },
+  local output = {
+    input = {
+      { type = "user_input", content = "What's the weather?" },
+      {
+        type = "function_call",
+        id = "call_1",
+        name = "weather",
+        arguments = { location = "London" },
+        signature = "Ev0BCvoBAb4",
       },
-    },
-    {
-      content = '{"temperature": 15}',
-      role = "tool",
-      tools = { call_id = "call_1", name = "weather" },
-    },
-    {
-      content = '{"temperature": 18}',
-      role = "tool",
-      tools = { call_id = "call_2", name = "weather" },
+      {
+        type = "function_result",
+        name = "weather",
+        call_id = "call_1",
+        result = { { type = "text", text = '{"temperature": 20}' } },
+      },
     },
   }
 
-  local output = adapter.handlers.form_messages(adapter, messages)
-
-  -- Should be 3 entries: user, model (functionCalls), user (merged functionResponses)
-  h.eq(3, #output.contents)
-  h.eq("user", output.contents[3].role)
-  h.eq(2, #output.contents[3].parts)
-  h.eq("weather", output.contents[3].parts[1].functionResponse.name)
-  h.eq("weather", output.contents[3].parts[2].functionResponse.name)
+  h.eq(output, adapter.handlers.request.build_messages(adapter, messages))
 end
 
 T["Gemini adapter"]["can form messages with tool call text content"] = function()
@@ -245,57 +147,116 @@ T["Gemini adapter"]["can form messages with tool call text content"] = function(
     },
   }
 
-  local output = adapter.handlers.form_messages(adapter, messages)
+  local output = adapter.handlers.request.build_messages(adapter, messages)
 
-  -- Model message should have both text and functionCall parts
-  h.eq("model", output.contents[2].role)
-  h.eq(2, #output.contents[2].parts)
-  h.eq("I'll check the weather for you.", output.contents[2].parts[1].text)
-  h.eq("weather", output.contents[2].parts[2].functionCall.name)
+  h.eq(3, #output.input)
+  h.eq("model_output", output.input[2].type)
+  h.eq("I'll check the weather for you.", output.input[2].content[1].text)
+  h.eq("function_call", output.input[3].type)
+  h.eq("weather", output.input[3].name)
+  h.eq({ location = "London" }, output.input[3].arguments)
 end
 
-T["Gemini adapter"]["can handle concatenated tool arguments in form_messages"] = function()
+T["Gemini adapter"]["can form messages with reasoning"] = function()
   local messages = {
     {
-      content = "Read files",
+      content = "What's 2+2?",
       role = "user",
     },
     {
+      content = "4",
+      reasoning = { content = "Let me compute", signature = "sig-abc" },
       role = "model",
-      tools = {
-        calls = {
-          {
-            _index = 1,
-            id = "call_1",
-            type = "function",
-            ["function"] = {
-              arguments = '{"filepath":"1.md","start":0,"end":-1}{"filepath":"2.md","start":0,"end":-1}',
-              name = "read_file",
-            },
-          },
-        },
-      },
     },
   }
 
-  local output = adapter.handlers.form_messages(adapter, messages)
-  local args = output.contents[2].parts[1].functionCall.args
+  local output = adapter.handlers.request.build_messages(adapter, messages)
 
-  h.eq("1.md", args.filepath)
-  h.eq(0, args.start)
-  h.eq(-1, args["end"])
+  h.eq(3, #output.input)
+  h.eq({
+    type = "thought",
+    signature = "sig-abc",
+    summary = { { type = "text", text = "Let me compute" } },
+  }, output.input[2])
+  h.eq({
+    type = "model_output",
+    content = { { type = "text", text = "4" } },
+  }, output.input[3])
+end
+
+T["Gemini adapter"]["can form messages with an image and following text"] = function()
+  local messages = {
+    {
+      content = "base64encodedimage",
+      role = "user",
+      context = { mimetype = "image/jpeg" },
+      _meta = { tag = tags.IMAGE },
+    },
+    {
+      content = "Compare this local image and this remote audio file.",
+      role = "user",
+    },
+  }
+
+  local output = adapter.handlers.request.build_messages(adapter, messages)
+
+  h.eq(1, #output.input)
+  h.eq("user_input", output.input[1].type)
+  h.eq({
+    { type = "image", data = "base64encodedimage", mime_type = "image/jpeg" },
+    { type = "text", text = "Compare this local image and this remote audio file." },
+  }, output.input[1].content)
+end
+
+T["Gemini adapter"]["can form messages with a PDF document and following text"] = function()
+  local messages = {
+    {
+      content = "base64encodedpdf",
+      role = "user",
+      context = { mimetype = "application/pdf", path = "report.pdf" },
+      _meta = { tag = tags.DOCUMENT, filetype = "pdf" },
+    },
+    {
+      content = "Summarize this document",
+      role = "user",
+    },
+  }
+
+  local output = adapter.handlers.request.build_messages(adapter, messages)
+
+  h.eq(1, #output.input)
+  h.eq("user_input", output.input[1].type)
+  h.eq({
+    { type = "document", data = "base64encodedpdf", mime_type = "application/pdf" },
+    { type = "text", text = "Summarize this document" },
+  }, output.input[1].content)
+end
+
+T["Gemini adapter"]["only PDFs are converted into document blocks"] = function()
+  local messages = {
+    {
+      content = "base64encodeddocx",
+      role = "user",
+      context = { mimetype = "application/vnd.openxmlformats-officedocument.wordprocessingml.document" },
+      _meta = { tag = tags.DOCUMENT, filetype = "docx" },
+    },
+  }
+
+  local output = adapter.handlers.request.build_messages(adapter, messages)
+
+  h.eq("user_input", output.input[1].type)
+  h.eq("base64encodeddocx", output.input[1].content)
 end
 
 T["Gemini adapter"]["can form tools to be sent to the API"] = function()
   local weather = require("tests.interactions.chat.tools.builtin.stubs.weather").schema
   local tools = { weather = { weather } }
 
-  local output = adapter.handlers.form_tools(adapter, tools)
+  local output = adapter.handlers.request.build_tools(adapter, tools)
 
   h.eq(1, #output.tools)
-  h.eq(1, #output.tools[1].functionDeclarations)
-
-  local decl = output.tools[1].functionDeclarations[1]
+  local decl = output.tools[1]
+  h.eq("function", decl.type)
   h.eq("weather", decl.name)
   h.eq(weather["function"].description, decl.description)
   h.eq(weather["function"].parameters.type, decl.parameters.type)
@@ -307,16 +268,45 @@ T["Gemini adapter"]["can form tools to be sent to the API"] = function()
   h.eq(nil, decl.parameters.strict)
 end
 
-T["Gemini adapter"]["can normalize tool calls via format_tool_calls"] = function()
+T["Gemini adapter"]["can form the built-in google_search tool"] = function()
+  local tools = {
+    {
+      ["<tool>web_search</tool>"] = {
+        _meta = { adapter_tool = true },
+        description = "Allows the model to search the web via Google Search",
+        name = "web_search",
+      },
+    },
+  }
+
+  h.eq({ tools = { { type = "google_search" } } }, adapter.handlers.request.build_tools(adapter, tools))
+end
+
+T["Gemini adapter"]["can form reasoning output from streamed chunks"] = function()
+  local input = {
+    { content = "Let me " },
+    { content = "think about this" },
+    { signature = "sig-part-1" },
+    { signature = "sig-part-2" },
+  }
+
+  h.eq({
+    content = "Let me think about this",
+    signature = "sig-part-1sig-part-2",
+  }, adapter.handlers.request.build_reasoning(adapter, input))
+end
+
+T["Gemini adapter"]["can normalize tool calls via format_calls"] = function()
   local raw_tools = {
     {
       _index = 1,
       args = { location = "London", units = "celsius" },
+      id = "call_1",
       name = "weather",
     },
   }
 
-  local formatted = adapter.handlers.tools.format_tool_calls(adapter, raw_tools)
+  local formatted = adapter.handlers.tools.format_calls(adapter, raw_tools)
 
   h.eq(1, #formatted)
   h.eq(1, formatted[1]._index)
@@ -329,14 +319,14 @@ T["Gemini adapter"]["can normalize tool calls via format_tool_calls"] = function
   h.eq("celsius", decoded.units)
 end
 
-T["Gemini adapter"]["can format tool response via output_response"] = function()
+T["Gemini adapter"]["can format tool response via format_response"] = function()
   local tool_call = {
     id = "call_123",
     type = "function",
     ["function"] = { arguments = '{"location":"London"}', name = "weather" },
   }
 
-  local result = adapter.handlers.tools.output_response(adapter, tool_call, '{"temperature": 20}')
+  local result = adapter.handlers.tools.format_response(adapter, tool_call, '{"temperature": 20}')
 
   h.eq("tool", result.role)
   h.eq("weather", result.tools.name)
@@ -348,64 +338,81 @@ T["Gemini adapter"]["Streaming"] = new_set()
 
 T["Gemini adapter"]["Streaming"]["can output streamed data into the chat buffer"] = function()
   local output = ""
-  local lines = vim.fn.readfile("tests/adapters/http/stubs/gemini_streaming.txt")
+  local reasoning_signature
+  local lines = vim.fn.readfile("tests/adapters/http/stubs/gemini_interactions_streaming.txt")
   for _, line in ipairs(lines) do
-    local chat_output = adapter.handlers.chat_output(adapter, line)
-    if chat_output and chat_output.output.content then
-      output = output .. chat_output.output.content
+    local chat_output = adapter.handlers.response.parse_chat(adapter, line)
+    if chat_output then
+      if chat_output.output.content then
+        output = output .. chat_output.output.content
+      end
+      if chat_output.output.reasoning and chat_output.output.reasoning.signature then
+        reasoning_signature = (reasoning_signature or "") .. chat_output.output.reasoning.signature
+      end
     end
   end
 
-  h.expect_starts_with("Elegant, dynamic", output)
+  h.eq("AI works ", output)
+  h.eq("EvEFCu4F...", reasoning_signature)
 end
 
-T["Gemini adapter"]["Streaming"]["can process tools"] = function()
-  local tools = {}
-  local lines = vim.fn.readfile("tests/adapters/http/stubs/gemini_tools_streaming.txt")
+T["Gemini adapter"]["Streaming"]["can process reasoning summaries"] = function()
+  local reasoning_content
+  local reasoning_signature
+  local lines = vim.fn.readfile("tests/adapters/http/stubs/gemini_interactions_reasoning_streaming.txt")
   for _, line in ipairs(lines) do
-    adapter.handlers.chat_output(adapter, line, tools)
-  end
-
-  local tool_output = {
-    {
-      _index = 1,
-      args = { location = "London", units = "celsius" },
-      id = "call_1",
-      name = "weather",
-    },
-    {
-      _index = 2,
-      args = { location = "Paris", units = "celsius" },
-      id = "call_2",
-      name = "weather",
-    },
-  }
-
-  h.eq(tool_output, tools)
-end
-
-T["Gemini adapter"]["Streaming"]["can skip thought parts and process tools"] = function()
-  local tools = {}
-  local text = ""
-  local lines = vim.fn.readfile("tests/adapters/http/stubs/gemini_tools_thought_streaming.txt")
-  for _, line in ipairs(lines) do
-    local result = adapter.handlers.chat_output(adapter, line, tools)
-    if result and result.output.content then
-      text = text .. result.output.content
+    local chat_output = adapter.handlers.response.parse_chat(adapter, line)
+    if chat_output and chat_output.output.reasoning then
+      if chat_output.output.reasoning.content then
+        reasoning_content = (reasoning_content or "") .. chat_output.output.reasoning.content
+      end
+      if chat_output.output.reasoning.signature then
+        reasoning_signature = (reasoning_signature or "") .. chat_output.output.reasoning.signature
+      end
     end
   end
 
-  -- Should extract only the functionCall, not the thought text
+  h.expect_starts_with("**Evaluating the clues**", reasoning_content)
+  h.expect_starts_with("EpoGCpcGAXLI2nx/...", reasoning_signature)
+end
+
+T["Gemini adapter"]["Streaming"]["can process a streamed tool call"] = function()
+  -- Regression test: step.start only ever carries a placeholder `{}` for
+  -- arguments; the real arguments arrive later via an `arguments_delta`
+  -- step.delta as a JSON string. Thought summaries stream via a
+  -- `thought_summary` delta with nested `content.text`, not a flat `text` delta.
+  local tools = {}
+  local reasoning_content
+  local lines = vim.fn.readfile("tests/adapters/http/stubs/gemini_interactions_tools_streaming.txt")
+  for _, line in ipairs(lines) do
+    local chat_output = adapter.handlers.response.parse_chat(adapter, line, tools)
+    if chat_output and chat_output.output.reasoning and chat_output.output.reasoning.content then
+      reasoning_content = (reasoning_content or "") .. chat_output.output.reasoning.content
+    end
+  end
+
+  h.expect_starts_with("**Analyzing the Command**", reasoning_content)
+
   h.eq(1, #tools)
-  h.eq("file_search", tools[1].name)
-  h.eq({ query = "README.md" }, tools[1].args)
+  h.eq("run_command", tools[1].name)
+  h.eq('{"cmd":"ls -la"}', tools[1].args)
 
-  -- Should capture id and thoughtSignature for round-tripping
-  h.eq("abc123", tools[1].id)
-  h.eq("Ev0BCvoBAb4", tools[1].thought_signature)
+  local formatted = adapter.handlers.tools.format_calls(adapter, tools)
+  h.eq("run_command", formatted[1]["function"].name)
+  h.eq({ cmd = "ls -la" }, vim.json.decode(formatted[1]["function"].arguments))
+end
 
-  -- Thought text should not appear in output
-  h.eq("", text)
+T["Gemini adapter"]["Streaming"]["can parse tokens from interaction.completed"] = function()
+  local tokens
+  local lines = vim.fn.readfile("tests/adapters/http/stubs/gemini_interactions_streaming.txt")
+  for _, line in ipairs(lines) do
+    local count = adapter.handlers.response.parse_tokens(adapter, line)
+    if count then
+      tokens = count
+    end
+  end
+
+  h.eq(197, tokens)
 end
 
 T["Gemini adapter"]["No Streaming"] = new_set({
@@ -421,46 +428,100 @@ T["Gemini adapter"]["No Streaming"] = new_set({
 })
 
 T["Gemini adapter"]["No Streaming"]["can output for the chat buffer"] = function()
-  local data = vim.fn.readfile("tests/adapters/http/stubs/gemini_no_streaming.txt")
+  local data = vim.fn.readfile("tests/adapters/http/stubs/gemini_interactions_non_streaming.txt")
+  data = table.concat(data, "\n")
+
+  local json = { body = data }
+  local result = adapter.handlers.response.parse_chat(adapter, json)
+
+  h.expect_starts_with("There are 8 paws", result.output.content)
+end
+
+T["Gemini adapter"]["No Streaming"]["can parse tokens"] = function()
+  local data = vim.fn.readfile("tests/adapters/http/stubs/gemini_interactions_non_streaming.txt")
   data = table.concat(data, "\n")
 
   local json = { body = data }
 
-  h.expect_starts_with("Elegant, dynamic.", adapter.handlers.chat_output(adapter, json).output.content)
+  h.eq(240, adapter.handlers.response.parse_tokens(adapter, json))
 end
 
-T["Gemini adapter"]["No Streaming"]["can process tools"] = function()
-  local data = vim.fn.readfile("tests/adapters/http/stubs/gemini_tools_no_streaming.txt")
+T["Gemini adapter"]["No Streaming"]["can process a requested tool call"] = function()
+  local data = vim.fn.readfile("tests/adapters/http/stubs/gemini_interactions_tools_turn1.txt")
   data = table.concat(data, "\n")
 
   local tools = {}
   local json = { body = data }
-  adapter.handlers.chat_output(adapter, json, tools)
+  adapter.handlers.response.parse_chat(adapter, json, tools)
 
-  local tool_output = {
-    {
-      _index = 1,
-      args = { location = "London, UK", units = "celsius" },
-      id = "call_1",
-      name = "weather",
-    },
-    {
-      _index = 2,
-      args = { location = "Paris, France", units = "celsius" },
-      id = "call_2",
-      name = "weather",
-    },
-  }
-  h.eq(tool_output, tools)
+  h.eq(1, #tools)
+  h.eq("call_abc123", tools[1].id)
+  h.eq("get_current_temperature", tools[1].name)
+  h.eq({ location = "London" }, tools[1].args)
+end
+
+T["Gemini adapter"]["No Streaming"]["can process a completed tool call with text"] = function()
+  local data = vim.fn.readfile("tests/adapters/http/stubs/gemini_interactions_tools_completed.txt")
+  data = table.concat(data, "\n")
+
+  local tools = {}
+  local json = { body = data }
+  local result = adapter.handlers.response.parse_chat(adapter, json, tools)
+
+  h.eq(1, #tools)
+  h.eq("get_current_temperature", tools[1].name)
+  h.expect_starts_with("The temperature in London", result.output.content)
 end
 
 T["Gemini adapter"]["No Streaming"]["can output for the inline assistant"] = function()
-  local data = vim.fn.readfile("tests/adapters/http/stubs/gemini_no_streaming.txt")
+  local data = vim.fn.readfile("tests/adapters/http/stubs/gemini_interactions_non_streaming.txt")
   data = table.concat(data, "\n")
 
   local json = { body = data }
 
-  h.expect_starts_with("Elegant, dynamic.", adapter.handlers.inline_output(adapter, json).output)
+  h.expect_starts_with("There are 8 paws", adapter.handlers.response.parse_inline(adapter, json).output)
+end
+
+T["Gemini adapter"]["No Streaming"]["can output an image description"] = function()
+  local data = vim.fn.readfile("tests/adapters/http/stubs/gemini_interactions_vision.txt")
+  data = table.concat(data, "\n")
+
+  local json = { body = data }
+
+  h.expect_starts_with(
+    "The local image displays a pipe organ",
+    adapter.handlers.response.parse_chat(adapter, json).output.content
+  )
+end
+
+T["Gemini adapter"]["No Streaming"]["can output a structured output response"] = function()
+  local data = vim.fn.readfile("tests/adapters/http/stubs/gemini_interactions_structured_output.txt")
+  data = table.concat(data, "\n")
+
+  local json = { body = data }
+  local content = adapter.handlers.response.parse_chat(adapter, json).output.content
+
+  local decoded = vim.json.decode(content)
+  h.eq("Classic Banana Bread", decoded.recipe_name)
+  h.eq(15, decoded.prep_time_minutes)
+end
+
+T["Gemini adapter"]["resolves model capabilities on the first request"] = function()
+  local adapters = require("codecompanion.adapters")
+
+  adapter.schema.model.default = "gemini-3-pro-preview"
+  adapter.schema.model.choices = function(_, opts)
+    if not (opts and opts.async == false) then
+      return {}
+    end
+    return { ["gemini-3-pro-preview"] = { opts = { can_form_structured_outputs = true } } }
+  end
+
+  adapter.parameters = {}
+  adapters.call_handler(adapter, "setup")
+
+  h.eq(true, adapter.opts.can_form_structured_outputs)
+  h.not_eq(nil, adapters.call_handler(adapter, "build_structured_output", { name = "verdict", schema = {} }))
 end
 
 return T

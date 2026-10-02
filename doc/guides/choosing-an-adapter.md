@@ -147,7 +147,7 @@ require("codecompanion").setup({
   adapters = {
     http = {
       opts = {
-        hidden = { azure_openai = true, githubmodels = true, huggingface = true, novita = true },
+        hidden = { azure_openai = true, huggingface = true, novita = true },
       },
     },
   },

@@ -651,7 +651,7 @@ never use:
       adapters = {
         http = {
           opts = {
-            hidden = { azure_openai = true, githubmodels = true, huggingface = true, novita = true },
+            hidden = { azure_openai = true, huggingface = true, novita = true },
           },
         },
       },
@@ -1394,16 +1394,16 @@ THE RESPONSES API
 
 If your provider or gateway serves OpenAI's Responses API
 <https://platform.openai.com/docs/api-reference/responses> at `/v1/responses`,
-extend `openai_responses` instead. CodeCompanion uses it to carry a model's
-reasoning between turns and for server-side compaction. It has no `env.url`, so
-set the full `url`:
+extend `openai` instead. CodeCompanion uses it to carry a model's reasoning
+between turns and for server-side compaction. It has no `env.url`, so set the
+full `url`:
 
 >lua
     require("codecompanion").setup({
       adapters = {
         http = {
           acme_responses = function()
-            return require("codecompanion.adapters").extend("openai_responses", {
+            return require("codecompanion.adapters").extend("openai", {
               formatted_name = "Acme Gateway (Responses)",
               url = "https://llm-gateway.acme.internal/v1/responses",
               env = {
@@ -1941,22 +1941,22 @@ adapter.
 
 CHOOSING A SEARCH PROVIDER ~
 
-The default provider is Tavily, which needs an API key. If you haven't set one,
-every search fails.
+The default provider is DuckDuckGo, which works without an API key. Tavily and
+Serply need one, and if it isn't set, every search fails.
 
   -----------------------------------------------------------------------
   Adapter                 API key                 Notes
   ----------------------- ----------------------- -----------------------
-  tavily                  TAVILY_API_KEY          The default. Returns
-                                                  relevant chunks from
-                                                  each result
+  duckduckgo              None                    The default. Reads
+                                                  DuckDuckGo's HTML
+                                                  results page. Ignores
+                                                  every search option
+
+  tavily                  TAVILY_API_KEY          Returns relevant chunks
+                                                  from each result
 
   serply                  SERPLY_API_KEY          Google results. Returns
                                                   at most 10 per search
-
-  duckduckgo              None                    Reads DuckDuckGo's HTML
-                                                  results page. Ignores
-                                                  every search option
   -----------------------------------------------------------------------
 To pick one:
 
@@ -1964,7 +1964,7 @@ To pick one:
 
   [!IMPORTANT] Don't put `strategies` and `interactions` in the same config.
   `strategies` is the old name, and when it's present your `interactions` table
-  is replaced, so the tool falls back to Tavily
+  is replaced, so the tool falls back to DuckDuckGo
 To read the API key from somewhere else, such as a password manager:
 
 >lua
@@ -2011,7 +2011,8 @@ page, give it |codecompanion--fetching-a-page| too.
 
 SEARCH OPTIONS
 
-The tool passes the options in `opts.opts` to the adapter. The defaults are:
+The tool passes the options in `opts.opts` to the adapter. The defaults are
+below, and only apply to Tavily and Serply:
 
 >lua
     require("codecompanion").setup({
@@ -2078,9 +2079,9 @@ search adapter and its API key aren't used:
   anthropic                           web_search, and web_fetch for
                                       fetching a page
 
-  openai_responses                    web_search
+  openai                              web_search
 
-  gemini_interactions                 web_search, using Google Search
+  gemini                              web_search, using Google Search
 
   openrouter                          web_search, and fetch_webpage in
                                       place of the -fetching-a-page
@@ -2121,11 +2122,10 @@ ways to add a page to the chat:
     Use @{fetch_webpage} to read https://neovim.io/doc/user/lsp.html and tell me how to disable semantic tokens
 <
 
-Both use Jina <https://jina.ai> by default, which works without an API key and
-converts the page into plain text. MarkItDown
-<https://github.com/microsoft/markitdown> is the alternative. It runs the
-`markitdown` CLI on your machine, so it must be installed. Each one has its own
-adapter setting:
+Both use MarkItDown <https://github.com/microsoft/markitdown> by default. It
+runs the `markitdown` CLI on your machine, so it must be installed. Jina
+<https://jina.ai> is the alternative, which works without an API key and
+converts the page into plain text. Each one has its own adapter setting:
 
 >lua
     require("codecompanion").setup({
@@ -2134,14 +2134,14 @@ adapter setting:
           tools = {
             ["fetch_webpage"] = {
               opts = {
-                adapter = "markitdown", -- Can be "jina" or "markitdown"
+                adapter = "jina", -- Can be "jina" or "markitdown"
               },
             },
           },
           slash_commands = {
             ["fetch"] = {
               opts = {
-                adapter = "markitdown", -- Can be "jina" or "markitdown"
+                adapter = "jina", -- Can be "jina" or "markitdown"
               },
             },
           },
@@ -2591,7 +2591,7 @@ it has to read the conversation it's summarising. See
 
 Compaction never runs for agents, as they manage their own context. It also
 doesn't run for models that compact on the provider's side, such as some
-`anthropic` and `openai_responses` models, unless you
+`anthropic` and `openai` models, unless you
 |codecompanion-configuration-adapters-http-disabling-compaction|.
 
 
@@ -3212,9 +3212,8 @@ for the tool.
 <
 
 **Options:** - `adapter` The adapter used to fetch, process and format the
-webpage's content (Default: `jina`). The MarkItDown
-<https://github.com/microsoft/markitdown> adapter is also available as an
-alternative, configurable via
+webpage's content (Default: `markitdown`). The Jina <https://jina.ai> adapter
+is also available as an alternative, configurable via
 |codecompanion-usage-chat-buffer-slash-commands-fetch|.
 
 
@@ -3449,7 +3448,7 @@ In the `anthropic` adapter, the following tools are available:
 
 OPENAI
 
-In the `openai_responses` adapter, the following tools are available:
+In the `openai` adapter, the following tools are available:
 
 - `web_search` - Allow models to search the web for the latest information before generating a response.
 
@@ -4121,13 +4120,13 @@ prompting the same LLM to summarize the chat history into a concise format.
   [!TIP] To better understand a Neovim plugin, send its `config.lua` to your LLM
   via the `fetch` command alongside a prompt
 The `fetch` slash command allows you to add the contents of a URL to the chat
-buffer. By default, the plugin uses the awesome and powerful jina.ai
-<https://jina.ai> to parse the page's content and convert it into plain text.
-You can also use the markitdown <https://github.com/microsoft/markitdown>
-adapter for the same purpose, which adds support for local files and various
-document formats like pdf, docx, etc. For convenience, the slash command will
-cache the output to disk and prompt the user if they wish to restore from the
-cache, should they look to fetch the same URL.
+buffer. By default, it uses the markitdown
+<https://github.com/microsoft/markitdown> CLI to convert the page into
+Markdown, which also supports local files and document formats like pdf and
+docx. You can also use the jina.ai <https://jina.ai> adapter, which converts
+the page into plain text without anything installed locally. For convenience,
+the slash command will cache the output to disk and prompt the user if they
+wish to restore from the cache, should they look to fetch the same URL.
 
 The markitdown adapter runs the `markitdown` CLI, timing out at two minutes.
 This can be modified with:
@@ -5852,9 +5851,9 @@ than being cached, so updating the file takes effect immediately.
 
 DISABLING COMPACTION ~
 
-If you use the `anthropic` or `openai_responses` adapters, then the plugin will
-look to use their server-side compaction capabilities to manage context. If you
-want to disable this:
+If you use the `anthropic` or `openai` adapters, then the plugin will look to
+use their server-side compaction capabilities to manage context. If you want to
+disable this:
 
 >lua
     require("codecompanion").setup({
@@ -6075,39 +6074,21 @@ need authentication, set an API key and pass it via an "Authorization" header:
 
 OPENAI RESPONSES API
 
-CodeCompanion supports OpenAI's Responses API
-<https://platform.openai.com/docs/api-reference/responses> out of the box, via
-a separate adapter:
+The `openai` adapter uses OpenAI's Responses API
+<https://platform.openai.com/docs/api-reference/responses>. To use the Chat
+Completions API <https://platform.openai.com/docs/api-reference/chat> instead:
 
 >lua
     require("codecompanion").setup({
       interactions = {
         chat = {
-          adapter = "openai_responses",
+          adapter = "openai_legacy",
         },
         inline = {
-          adapter = "openai_responses",
+          adapter = "openai_legacy",
         },
       },
     }),
-<
-
-and it can be configured as with any other adapter:
-
->lua
-    require("codecompanion").setup({
-      adapters = {
-        http = {
-          openai_responses = function()
-            return require("codecompanion.adapters").extend("openai_responses", {
-              env = {
-                api_key = "OPENAI_API_KEY",
-              },
-            })
-          end,
-        },
-      },
-    },
 <
 
 By default, CodeCompanion sets `store = false` to ensure that state isn't
@@ -8692,8 +8673,8 @@ EXTENDING WITH ADAPTERS      *codecompanion-extending-extending-with-adapters*
 
 
   [!TIP] Does your LLM state that it is "OpenAI Compatible"? If so, good news,
-  you can extend from the `openai` adapter or use the `openai_compatible` one.
-  Something we did with the xAI
+  you can extend from the `openai_legacy` adapter or use the `openai_compatible`
+  one. Something we did with the xAI
   <https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/adapters/http/xai.lua>
   adapter
 In CodeCompanion, adapters are interfaces that act as a bridge between the
@@ -10756,7 +10737,7 @@ can be accomplished for both Anthropic and the OpenAI responses adapters.
 1. Add the tool to the structure of the adapter:
 
 >lua
-    -- openai_responses.lua
+    -- openai.lua
     -- ... existing code ...
     available_tools = {
       ["web_search"] = {
@@ -11400,9 +11381,9 @@ agentic loop.
 
 SERVER-SIDE COMPACTION
 
-If you're using the `openai_responses` or `anthropic` adapters, then
-CodeCompanion will use their native server-side compaction capabilities. Please
-see the OpenAI compaction documentation
+If you're using the `openai` or `anthropic` adapters, then CodeCompanion will
+use their native server-side compaction capabilities. Please see the OpenAI
+compaction documentation
 <https://developers.openai.com/api/docs/guides/compaction> and Anthropic
 compaction documentation
 <https://platform.claude.com/docs/en/build-with-claude/compaction> for more
@@ -11703,6 +11684,79 @@ CodeCompanion follows semantic versioning <https://semver.org/> and to avoid
 breaking changes, it is recommended to pin the plugin to a specific version in
 your Neovim configuration. The |codecompanion-installation| provides more
 information on how to do this.
+
+
+  [!IMPORTANT] The `openai` and `gemini` adapters now use different APIs. If you
+  use either of them, read the |codecompanion--adapters| section before upgrading
+
+ADAPTERS
+
+- `openai` now uses OpenAI's Responses API <https://platform.openai.com/docs/api-reference/responses> and `gemini` uses Google's Interactions API <https://ai.google.dev/gemini-api/docs/interactions>. The previous adapters have been renamed to `openai_legacy` and `gemini_legacy`
+- This includes `extend("openai")` and `extend("gemini")`, so any adapter you've built on them now uses the new APIs
+- The `openai_responses` and `gemini_interactions` adapters have been removed. Use `openai` and `gemini` instead
+- Update any references in your own plugins from `require("codecompanion.adapters.http.openai")` to `require("codecompanion.adapters.http.openai_legacy")`
+- The GitHub Models adapter has been removed
+
+To keep using the previous APIs:
+
+
+
+TOOLS
+
+- The `insert_edit_into_file` tool has been replaced by |codecompanion-usage-chat-buffer-agents-tools-edit-file| (#3427 <https://github.com/olimorris/codecompanion.nvim/pull/3427>). It takes the same options, so rename any references in your config, custom groups and prompts:
+
+>lua
+    require("codecompanion").setup({
+      interactions = {
+        chat = {
+          tools = {
+            ["insert_edit_into_file"] = { -- [!code --]
+            ["edit_file"] = { -- [!code ++]
+              opts = {
+                require_confirmation_after = false,
+              },
+            },
+          },
+        },
+      },
+    })
+<
+
+- The |codecompanion-usage-chat-buffer-agents-tools-web-search| tool now uses DuckDuckGo by default, which doesn't need an API key. Previously it used Tavily
+- The |codecompanion-usage-chat-buffer-agents-tools-fetch-webpage| tool and |codecompanion-usage-chat-buffer-slash-commands-fetch| slash command now use MarkItDown <https://github.com/microsoft/markitdown> by default. Previously they used Jina
+
+
+  [!IMPORTANT] MarkItDown runs the `markitdown` CLI on your machine, so it must
+  be installed. `:checkhealth codecompanion` will tell you if it's missing
+To keep the previous defaults:
+
+>lua
+    require("codecompanion").setup({
+      interactions = {
+        chat = {
+          slash_commands = {
+            ["fetch"] = {
+              opts = {
+                adapter = "jina",
+              },
+            },
+          },
+          tools = {
+            ["fetch_webpage"] = {
+              opts = {
+                adapter = "jina",
+              },
+            },
+            ["web_search"] = {
+              opts = {
+                adapter = "tavily",
+              },
+            },
+          },
+        },
+      },
+    })
+<
 
 - The Super Diff has now been removed from CodeCompanion (#2600 <https://github.com/olimorris/codecompanion.nvim/pull/2600>)
 - CodeCompanion now only supports a built-in diff which is enabled by default (#2600 <https://github.com/olimorris/codecompanion.nvim/pull/2600>), dropping support for Mini.Diff
