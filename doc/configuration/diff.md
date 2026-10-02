@@ -6,7 +6,7 @@ description: "Configure CodeCompanion's built-in diff engine in Neovim, covering
 
 <img src="https://github.com/user-attachments/assets/8d80ed10-12f2-4c0b-915f-63b70797a6ca" alt="Diff"/>
 
-CodeCompanion has a built-in diff engine that's leveraged throughout the plugin. If you utilize the `insert_edit_into_file` tool or use an ACP adapter, then the plugin will update files and buffers, displaying the changes in a floating window.
+CodeCompanion has a built-in diff engine that's leveraged throughout the plugin. If you utilize the `edit_file` tool or use an ACP adapter, then the plugin will update files and buffers, displaying the changes in a floating window.
 
 For small changes, the diff is shown directly in the chat buffer. This can be controlled by `threshold_for_chat`, which corresponds to the size of the diff in terms of changed lines. For larger changes, the diff will automatically open in a floating window when the chat buffer is active. Or, you will be prompted to view the diff manually (`gv` by default).
 

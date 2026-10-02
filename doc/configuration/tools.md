@@ -21,7 +21,7 @@ require("codecompanion").setup({
             system_prompt = "Describe what the agent should do",
             tools = {
               "run_command",
-              "insert_edit_into_file",
+              "edit_file",
               -- Add your own tools or reuse existing ones
             },
             opts = {

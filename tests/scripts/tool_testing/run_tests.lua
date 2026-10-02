@@ -421,7 +421,7 @@ local function start_scenario_run(opts)
       auto_submit = false,
       hidden = true,
       params = { adapter = adapter_config.name, model = adapter_config.model },
-      yolo_mode = true,
+      approval_mode = "yolo",
     })
   end)
 
@@ -487,6 +487,7 @@ local function start_scenario_run(opts)
   chat:add_callback("on_completed", function(_, completion)
     run.completed = true
     run.status = completion and completion.status
+    run.request_error = completion and completion.error
     run.done = true
   end)
   chat:add_callback("on_cancelled", function()
@@ -510,6 +511,22 @@ local function start_scenario_run(opts)
   end
 
   return run
+end
+
+---Pull the provider's message out of a failed request's response body
+---@param body? string
+---@return string
+local function format_request_error(body)
+  if not body then
+    return "Adapter request failed"
+  end
+  local ok, decoded = pcall(vim.json.decode, body)
+  local provider_error = ok and type(decoded) == "table" and decoded.error
+  if type(provider_error) ~= "table" or not provider_error.message then
+    return body
+  end
+  local code = provider_error.code or provider_error.type
+  return code and string.format("%s (%s)", provider_error.message, code) or provider_error.message
 end
 
 ---Run the scenario's test function and set result.success.
@@ -538,9 +555,7 @@ local function finalize_run(run)
   result.duration_ms = (vim.uv.hrtime() - run.start_time) / 1000000
 
   if run.status == "error" then
-    -- The adapter request failed (bad model name, auth, schema rejection) and
-    -- finished with no content — surface that rather than blaming the tool call
-    result.error = "Adapter request failed — check the model name and API key (see CodeCompanion log)"
+    result.error = format_request_error(run.request_error)
   elseif run.completed then
     local should_test = true
 
@@ -775,7 +790,7 @@ local function run_tests(opts)
         local result = run.result
         local scenario = run.scenario
         local adapter = run.adapter_config
-        log({ msg = string.format("%s :: %s", adapter.model, scenario.name), level = "RUN" })
+        log({ msg = string.format("%s / %s :: %s", adapter.name, adapter.model, scenario.name), level = "RUN" })
         local call_count = #(result.tool_calls or {})
         local calls_str = call_count == 1 and "1 call" or (call_count .. " calls")
         local tokens_str = string.format("%d tokens", result.tokens or 0)

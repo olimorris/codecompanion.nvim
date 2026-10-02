@@ -1,16 +1,17 @@
 local files = require("codecompanion.utils.files")
 local FIXTURES = vim.fn.fnamemodify(debug.getinfo(1, "S").source:sub(2), ":h")
 
-local input_file = "top_of_file_insertion.lua.input"
+local input_file = "unicode_content.lua.input"
+local expected_file = "unicode_content.lua.expected"
 
 return {
   cleanup = function(ctx)
     files.delete(ctx.test_file)
   end,
 
-  description = "Insert a require statement at the very top of the file with no preceding context to anchor on",
-  name = "Top-of-file insertion",
-  tools = { "insert_edit_into_file" },
+  description = "Edit a file containing an emoji",
+  name = "Unicode content",
+  tools = { "edit_file" },
 
   setup = function()
     local input_path = vim.fs.joinpath(FIXTURES, input_file)
@@ -21,14 +22,14 @@ return {
 
   prompt = function(ctx)
     return string.format(
-      [[Use @{insert_edit_into_file} to edit the file at `%s`.
+      [[Use @{edit_file} to edit the file at `%s`.
 
 Current content:
 ```lua
 %s
 ```
 
-Add `local log = require('codecompanion.utils.log')` as the very first line of the file, followed by a blank line before `local M = {}`.
+Change the `error` message from `'Something went wrong 😞'` to `'An error occurred 😞'`. Keep the emoji — only the text changes.
 
 Do not ask for permission — call the tool directly.]],
       ctx.test_file,
@@ -37,10 +38,8 @@ Do not ask for permission — call the tool directly.]],
   end,
 
   test = function(ctx)
-    if vim.fn.executable("luac") == 0 then
-      return false, "luac not available"
-    end
-    local result = vim.system({ "luac", "-p", ctx.test_file }):wait()
-    return result.code == 0, result.code ~= 0 and vim.trim(result.stderr or "") or nil
+    local actual = files.read(ctx.test_file)
+    local expected = files.read(vim.fs.joinpath(FIXTURES, expected_file))
+    return actual == expected, actual ~= expected and "content mismatch" or nil
   end,
 }

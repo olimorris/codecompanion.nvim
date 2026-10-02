@@ -11,7 +11,7 @@ return {
 
   description = "Change one constant in a small file",
   name = "Targeted single-line edit",
-  tools = { "insert_edit_into_file" },
+  tools = { "edit_file" },
 
   setup = function()
     local input_path = vim.fs.joinpath(FIXTURES, input_file)
@@ -22,7 +22,7 @@ return {
 
   prompt = function(ctx)
     return string.format(
-      [[Use @{insert_edit_into_file} to edit the file at `%s`.
+      [[Use @{edit_file} to edit the file at `%s`.
 
 Current content:
 ```lua
@@ -47,14 +47,14 @@ Do not ask for permission — call the tool directly.]],
     -- old_string should be well under half the file length
     local file_len = #files.read(vim.fs.joinpath(FIXTURES, input_file))
     for _, call in ipairs(run.tool_calls) do
-      if call.name == "insert_edit_into_file" then
-        local ok, args = pcall(vim.json.decode, call.arguments)
-        if ok and args and args.edits then
-          for _, edit in ipairs(args.edits) do
-            if edit.old_string and #edit.old_string > file_len * 0.5 then
-              return false, "old_string was more than half the file"
-            end
-          end
+      if call.name == "edit_file" then
+        local args = call.arguments
+        if type(args) == "string" then
+          local ok, decoded = pcall(vim.json.decode, args)
+          args = ok and decoded or {}
+        end
+        if type(args.old_string) == "string" and #args.old_string > file_len * 0.5 then
+          return false, "old_string was more than half the file"
         end
       end
     end

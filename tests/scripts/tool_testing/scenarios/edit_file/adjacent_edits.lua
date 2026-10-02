@@ -8,9 +8,9 @@ return {
     files.delete(ctx.test_file)
   end,
 
-  description = "Make three adjacent single-line changes in a single tool call",
+  description = "Make three adjacent single-line changes",
   name = "Adjacent edits",
-  tools = { "insert_edit_into_file" },
+  tools = { "edit_file" },
 
   setup = function()
     local input_path = vim.fs.joinpath(FIXTURES, input_file)
@@ -21,14 +21,14 @@ return {
 
   prompt = function(ctx)
     return string.format(
-      [[Use @{insert_edit_into_file} to edit the file at `%s`.
+      [[Use @{edit_file} to edit the file at `%s`.
 
 Current content:
 ```lua
 %s
 ```
 
-Make all three changes in a single tool call with three edits:
+Make these three changes:
 1. Change `host` from `'localhost'` to `'db.production.internal'`
 2. Change `name` from `'myapp_dev'` to `'myapp_prod'`
 3. Change `ssl` from `false` to `true`

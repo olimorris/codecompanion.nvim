@@ -74,7 +74,7 @@ interactions/chat/tools
 │   ├── runner.lua
 ├── builtin/
 │   ├── run_command.lua
-│   ├── insert_edit_into_file.lua
+│   ├── edit_file/
 │   ├── create_file.lua
 │   ├── ...
 ```
@@ -84,7 +84,7 @@ When a tool is detected, the chat buffer sends any output to the `tools/init.lua
 There are two types of tools that CodeCompanion can leverage:
 
 1. **Command-based**: These tools can execute a series of commands in the background using `vim.system`. They're non-blocking, meaning you can carry out other activities in Neovim whilst they run. Useful for heavy/time-consuming tasks.
-2. **Function-based**: These tools, like [insert_edit_into_file](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/interactions/chat/tools/builtin/insert_edit_into_file/init.lua), execute Lua functions directly in Neovim within the main process, one after another. They can also be executed asynchronously.
+2. **Function-based**: These tools, like [edit_file](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/interactions/chat/tools/builtin/edit_file/init.lua), execute Lua functions directly in Neovim within the main process, one after another. They can also be executed asynchronously.
 
 For the purposes of this section of the guide, we'll be building a simple function-based calculator tool that an LLM can use to do basic maths.
 
@@ -298,7 +298,7 @@ schema = {
 
 ### `system_prompt`
 
-In the plugin, LLMs are given knowledge about a tool and how it can be used via the schema. However, for a particularly complicated tool, you can choose to include a system prompt. This is something that CodeCompanion does for the `insert_edit_into_file` tool.
+In the plugin, LLMs are given knowledge about a tool and how it can be used via the schema. However, for a particularly complicated tool, you can choose to include a system prompt. This is something that CodeCompanion does for the `memory` tool.
 
 > [!TIP]
 > From experience, a system prompt should be used sparingly. It's often an indication that your tool is too complicated and should be split out into multiple tools.
@@ -326,7 +326,7 @@ The _handlers_ table contains two functions that are executed before and after a
 
 1. `setup` - Is called **before** anything in the [cmds](/extending/tools#cmds) and [output](/extending/tools#output) table. This is useful if you wish to set the cmds dynamically on the tool itself, like in the [@run_command](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/interactions/chat/tools/builtin/run_command.lua) tool.
 2. `on_exit` - Is called **after** everything in the [cmds](/extending/tools#cmds) and [output](/extending/tools#output) table.
-3. `prompt_condition` - Is called **before** anything in the [cmds](/extending/tools#cmds) and [output](/extending/tools#output) table and is used to determine _if_ the user should be prompted for approval. This is used in the `@insert_edit_into_file` tool to allow users to determine if they'd like to apply an approval to _buffer_ or _file_ edits.
+3. `prompt_condition` - Is called **before** anything in the [cmds](/extending/tools#cmds) and [output](/extending/tools#output) table and is used to determine _if_ the user should be prompted for approval. This is used in the `@edit_file` tool to allow users to determine if they'd like to apply an approval to _buffer_ or _file_ edits.
 
 For the purposes of our calculator, let's just return some notifications so you can see the tool system and tool flow:
 

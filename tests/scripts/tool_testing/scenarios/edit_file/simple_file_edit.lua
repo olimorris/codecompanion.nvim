@@ -1,16 +1,16 @@
 local files = require("codecompanion.utils.files")
 local FIXTURES = vim.fn.fnamemodify(debug.getinfo(1, "S").source:sub(2), ":h")
 
-local input_file = "empty_new_string_deletion.lua.input"
+local input_file = "simple_file_edit.lua.input"
 
 return {
   cleanup = function(ctx)
     files.delete(ctx.test_file)
   end,
 
-  description = "Delete a deprecated function block by setting new_string to empty string",
-  name = "Delete function with empty new_string",
-  tools = { "insert_edit_into_file" },
+  description = "Rename a function, update its string literal, and update the call site",
+  name = "Simple file edit",
+  tools = { "edit_file" },
 
   setup = function()
     local input_path = vim.fs.joinpath(FIXTURES, input_file)
@@ -21,16 +21,17 @@ return {
 
   prompt = function(ctx)
     return string.format(
-      [[Use @{insert_edit_into_file} to edit the file at `%s`.
+      [[Use @{edit_file} to edit the file at `%s`.
 
 Current content:
 ```lua
 %s
 ```
 
-Remove the deprecated `M.normalize` function entirely — including the comment above it and the blank line after `end`. Set new_string to an empty string `""` to delete it.
-
-The result should have `M.format` followed directly by `M.transform` with a single blank line between them.
+Changes needed:
+1. Change the function name from `greet` to `welcome`
+2. Change `"Hello, "` to `"Welcome, "`
+3. Update the call site: `M.greet("World")` → `M.welcome("World")`
 
 Do not ask for permission — call the tool directly.]],
       ctx.test_file,
@@ -47,6 +48,7 @@ Do not ask for permission — call the tool directly.]],
       return false, "execution failed: " .. vim.trim(result.stderr or "")
     end
     local output = vim.trim(result.stderr)
-    return output == "deleted", output ~= "deleted" and "expected 'deleted', got: " .. output or nil
+    return output == "Welcome, World",
+      output ~= "Welcome, World" and "expected 'Welcome, World', got: " .. output or nil
   end,
 }

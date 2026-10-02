@@ -145,14 +145,14 @@ Follow the JSON schema carefully and include ALL required properties.
 Always output valid JSON when using a tool.
 Use tools to take actions rather than asking the user to do it manually.
 If you say you'll take an action, go ahead and do it.
-Never say the name of a tool to a user — e.g. say "I'll edit the file" not "I'll use the insert_edit_into_file tool".
+Never say the name of a tool to a user - e.g. say "I'll edit the file" not "I'll use the edit_file tool".
 Prefer calling multiple tools in parallel when possible.
 Use file paths given by the user or by tool output.
 </toolUseInstructions>
 <outputFormatting>
 Use proper Markdown formatting. Wrap filenames and symbols in backticks.
 Code block examples must use four backticks with the language ID.
-If you are providing code changes, use the insert_edit_into_file tool (if available) instead of printing a code block.
+If you are providing code changes, use the edit_file tool (if available) instead of printing a code block.
 </outputFormatting>
 <additionalContext>
 All non-code text responses must be written in the %s language.
@@ -172,11 +172,11 @@ The user is working on a %s machine. Please respond with system specific command
               "ask_questions",
               "create_file",
               "delete_file",
+              "edit_file",
               "file_search",
               "get_changed_files",
               "get_diagnostics",
               "grep_search",
-              "insert_edit_into_file",
               "read_file",
               "run_command",
             },
@@ -192,10 +192,10 @@ The user is working on a %s machine. Please respond with system specific command
             tools = {
               "create_file",
               "delete_file",
+              "edit_file",
               "file_search",
               "get_changed_files",
               "grep_search",
-              "insert_edit_into_file",
               "read_file",
             },
             opts = {
@@ -225,6 +225,18 @@ The user is working on a %s machine. Please respond with system specific command
             protect = true,
             require_approval_before = true,
             require_cmd_approval = true,
+          },
+        },
+        ["edit_file"] = {
+          path = "interactions.chat.tools.builtin.edit_file",
+          description = "Edit an existing file by replacing exact text",
+          opts = {
+            require_approval_before = { -- Require approval before the tool is executed?
+              buffer = false, -- For editing buffers in Neovim
+              file = false, -- For editing files in the current working directory
+            },
+            require_confirmation_after = true, -- Require confirmation from the user before accepting the edit?
+            file_size_limit_mb = 2, -- Files larger than this are not edited
           },
         },
         ["fetch_webpage"] = {
@@ -263,18 +275,6 @@ The user is working on a %s machine. Please respond with system specific command
             max_results = 100,
             respect_gitignore = true,
             require_approval_before = true,
-          },
-        },
-        ["insert_edit_into_file"] = {
-          path = "interactions.chat.tools.builtin.insert_edit_into_file",
-          description = "Robustly edit existing files with multiple automatic fallback interactions",
-          opts = {
-            require_approval_before = { -- Require approval before the tool is executed?
-              buffer = false, -- For editing buffers in Neovim
-              file = false, -- For editing files in the current working directory
-            },
-            require_confirmation_after = true, -- Require confirmation from the user before accepting the edit?
-            file_size_limit_mb = 2, -- Maximum file size in MB
           },
         },
         ["memory"] = {
@@ -376,7 +376,7 @@ Always output valid JSON when using a tool.
 If a tool exists to do a task, use the tool instead of asking the user to manually take an action.
 If you say that you will take an action, then go ahead and use the tool to do it. No need to ask permission.
 Never use a tool that does not exist. Use tools using the proper procedure, DO NOT write out a json codeblock with the tool inputs.
-Never say the name of a tool to a user. For example, instead of saying that you'll use the insert_edit_into_file tool, say "I'll edit the file".
+Never say the name of a tool to a user. For example, instead of saying that you'll use the edit_file tool, say "I'll edit the file".
 For maximum efficiency, whenever you need to perform multiple independent operations, invoke all relevant tools simultaneously rather than sequentially.
 When invoking a tool that takes a file path, always use the file path you have been given by the user or by the output of a tool.
 </toolUseInstructions>
@@ -389,7 +389,7 @@ Any code block examples must be wrapped in four backticks with the programming l
 ````
 </example>
 The languageId must be the correct identifier for the programming language, e.g. python, javascript, lua, etc.
-If you are providing code changes, use the insert_edit_into_file tool (if available to you) to make the changes directly instead of printing out a code block with the changes.
+If you are providing code changes, use the edit_file tool (if available to you) to make the changes directly instead of printing out a code block with the changes.
 </outputFormatting>]]
             end,
           },

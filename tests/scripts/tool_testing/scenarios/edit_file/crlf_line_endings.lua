@@ -11,7 +11,7 @@ return {
 
   description = "Edit a file with Windows CRLF line endings",
   name = "CRLF line endings",
-  tools = { "insert_edit_into_file" },
+  tools = { "edit_file" },
 
   setup = function()
     local input_path = vim.fs.joinpath(FIXTURES, input_file)
@@ -25,7 +25,7 @@ return {
   prompt = function(ctx)
     local display = files.read(ctx.input_path):gsub("\r\n", "\n")
     return string.format(
-      [[Use @{insert_edit_into_file} to edit the file at `%s`.
+      [[Use @{edit_file} to edit the file at `%s`.
 
 Current content:
 ```lua
@@ -33,8 +33,6 @@ Current content:
 ```
 
 Change `'Hello, '` to `'Hi, '` in the `greet` function.
-
-Note: the file uses Windows-style CRLF line endings. Your old_string should match the content as-is.
 
 Do not ask for permission — call the tool directly.]],
       ctx.test_file,

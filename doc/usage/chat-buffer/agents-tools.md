@@ -51,7 +51,7 @@ groups = {
         ctx.os
       )
     end,
-    tools = { "read_file", "insert_edit_into_file", "run_command" },
+    tools = { "read_file", "edit_file", "run_command" },
     opts = {
       collapse_tools = true,
       ignore_system_prompt = true, -- Remove the chat's default system prompt
@@ -70,11 +70,11 @@ It contains the following tools:
 - [ask_questions](/usage/chat-buffer/agents-tools#ask-questions)
 - [create_file](/usage/chat-buffer/agents-tools#create-file)
 - [delete_file](/usage/chat-buffer/agents-tools#delete-file)
+- [edit_file](/usage/chat-buffer/agents-tools#edit-file)
 - [file_search](/usage/chat-buffer/agents-tools#file-search)
 - [get_changed_files](/usage/chat-buffer/agents-tools#get-changed-files)
 - [get_diagnostics](/usage/chat-buffer/agents-tools#get-diagnostics)
 - [grep_search](/usage/chat-buffer/agents-tools#grep-search)
-- [insert_edit_into_file](/usage/chat-buffer/agents-tools#insert-edit-into-file)
 - [read_file](/usage/chat-buffer/agents-tools#read-file)
 - [run_command](/usage/chat-buffer/agents-tools#run-command)
 
@@ -89,10 +89,10 @@ You can use it with:
 The `@{files}` tool is a collection of tools that allows an LLM to carry out file operations in your current working directory. It contains the following files:
 
 - [create_file](/usage/chat-buffer/agents-tools#create-file)
+- [edit_file](/usage/chat-buffer/agents-tools#edit-file)
 - [file_search](/usage/chat-buffer/agents-tools#file-search)
 - [get_changed_files](/usage/chat-buffer/agents-tools#get-changed-files)
 - [grep_search](/usage/chat-buffer/agents-tools#grep-search)
-- [insert_edit_into_file](/usage/chat-buffer/agents-tools#insert-edit-into-file)
 - [read_file](/usage/chat-buffer/agents-tools#read-file)
 
 You can use it with:
@@ -160,6 +160,33 @@ Can you use @{delete_file} to delete the quotes.lua file?
 - `protect` always ask before deleting a file in Auto mode? (Default: true)
 - `require_approval_before` require approval before deleting a file? (Default: true)
 
+### edit_file
+
+> [!NOTE]
+> By default, you're asked to confirm each edit in a diff before it's written
+
+<p>
+  <video controls muted title="edit_file tool demo" src="https://github.com/user-attachments/assets/990bbc99-7b12-4dca-8770-c24b9f3e7838"></video>
+</p>
+
+This tool edits buffers and files by replacing an exact piece of text with new text:
+
+```md
+Use @{edit_file} to refactor the code in #buffer
+```
+
+```md
+Can you apply the suggested changes to the buffer with @{edit_file}?
+```
+
+The text being replaced must match the file exactly, including indentation. If it can't be found, or it appears more than once, the edit fails and the LLM is told why so it can try again. A file that's open in Neovim is edited in its buffer and saved, and any other file keeps its line endings.
+
+**Options:**
+- `require_approval_before.buffer` (boolean) Require approval before editing a buffer? (Default: false)
+- `require_approval_before.file` (boolean) Require approval before editing a file? (Default: false)
+- `require_confirmation_after` (boolean) Require confirmation of the diff before the edit is written? (Default: true)
+- `file_size_limit_mb` (number) Files larger than this aren't edited (Default: 2)
+
 ### fetch_webpage
 
 This tools enables an LLM to fetch the content from a specific webpage. It will return the text in a text format, depending on which adapter you've configured for the tool.
@@ -220,31 +247,6 @@ Use @{grep_search} to find all occurrences of `buf_add_message`?
 **Options:**
 - `max_files` (number) limits the amount of files that can be sent to the LLM in the response (Default: 100)
 - `respect_gitignore` (boolean) (Default: true)
-
-### insert_edit_into_file
-
-> [!NOTE]
-> By default, when editing files, this tool requires user approval before it can be executed
-
-<p>
-  <video controls muted title="insert_edit_into_file tool demo" src="https://github.com/user-attachments/assets/990bbc99-7b12-4dca-8770-c24b9f3e7838"></video>
-</p>
-
-This tool can edit buffers and files for code changes from an LLM:
-
-```md
-Use @{insert_edit_into_file} to refactor the code in #buffer
-```
-
-```md
-Can you apply the suggested changes to the buffer with @{insert_edit_into_file}?
-```
-
-**Options:**
-- `patching_algorithm` (string|table|function) The algorithm to use to determine how to edit files and buffers
-- `require_approval_before.buffer` (boolean) Require approval before editng a buffer? (Default: false)
-- `require_approval_before.file` (boolean) Require approval before editng a file? (Default: true)
-- `require_confirmation_after` (boolean) require confirmation after the execution and before moving on in the chat buffer? (Default: true)
 
 ### memory
 

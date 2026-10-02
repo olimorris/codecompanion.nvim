@@ -352,7 +352,7 @@ T["Copilot adapter"]["Streaming"]["can send reasoning opaque back in messages"] 
             _index = 0,
             ["function"] = {
               arguments = '{"dryRun":false,"edits":[{"newText":"    \\"The only limit to our realization of tomorrow will be our doubts of today. - Franklin D. Roosevelt\\",\\n    \\"Talk is cheap. Show me the code. - Linus Torvalds\\",\\n  }","oldText":"    \\"The only limit to our realization of tomorrow will be our doubts of today. - Franklin D. Roosevelt\\",\\n  }","replaceAll":false}],"explanation":"Adding a new quote by Linus Torvalds to the end of the list in quotes.lua.","filepath":"quotes.lua","mode":"append"}',
-              name = "insert_edit_into_file",
+              name = "edit_file",
             },
             id = "call_MHxYMWV1QmRVTng0Znd2b0tyM0Y",
             type = "function",
@@ -378,7 +378,7 @@ T["Copilot adapter"]["Streaming"]["can send reasoning opaque back in messages"] 
         {
           ["function"] = {
             arguments = '{"dryRun":false,"edits":[{"newText":"    \\"The only limit to our realization of tomorrow will be our doubts of today. - Franklin D. Roosevelt\\",\\n    \\"Talk is cheap. Show me the code. - Linus Torvalds\\",\\n  }","oldText":"    \\"The only limit to our realization of tomorrow will be our doubts of today. - Franklin D. Roosevelt\\",\\n  }","replaceAll":false}],"explanation":"Adding a new quote by Linus Torvalds to the end of the list in quotes.lua.","filepath":"quotes.lua","mode":"append"}',
-            name = "insert_edit_into_file",
+            name = "edit_file",
           },
           id = "call_MHxYMWV1QmRVTng0Znd2b0tyM0Y",
           type = "function",
@@ -409,7 +409,7 @@ T["Copilot adapter"]["Streaming"]["drops reasoning and the item id recorded by t
         calls = {
           {
             _index = 0,
-            ["function"] = { arguments = "{}", name = "insert_edit_into_file" },
+            ["function"] = { arguments = "{}", name = "edit_file" },
             id = "fc_0cf9af0f913994140068e2713964448193a723d7191832a56f",
             call_id = "call_MHxYMWV1QmRVTng0Znd2b0tyM0Y",
             type = "function",
@@ -431,7 +431,7 @@ T["Copilot adapter"]["Streaming"]["drops reasoning and the item id recorded by t
       role = "llm",
       tool_calls = {
         {
-          ["function"] = { arguments = "{}", name = "insert_edit_into_file" },
+          ["function"] = { arguments = "{}", name = "edit_file" },
           id = "call_MHxYMWV1QmRVTng0Znd2b0tyM0Y",
           type = "function",
         },

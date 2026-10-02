@@ -98,7 +98,7 @@ return {
           path = vim.fn.getcwd() .. "/tests/interactions/chat/tools/builtin/stubs/func.lua",
           description = "Some function tool to test",
         },
-        ["insert_edit_into_file"] = {
+        ["edit_file"] = {
           opts = {
             require_approval_before = {
               buffer = false,

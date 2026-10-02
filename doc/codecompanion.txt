@@ -1,4 +1,4 @@
-*codecompanion.txt*         For NVIM v0.11        Last change: 2026 October 01
+*codecompanion.txt*         For NVIM v0.11        Last change: 2026 October 02
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -1466,8 +1466,8 @@ behave like this:
 
   delete_file             Asks, for each file     -
 
-  create_file,            Runs                    Asks you to confirm the
-  insert_edit_into_file                           change
+  create_file, edit_file  Runs                    Asks you to confirm the
+                                                  change
 
   file_search,            Runs                    -
   get_changed_files,                              
@@ -1494,11 +1494,11 @@ command or file**. Approving `make format` doesn't approve `make test`.
 
 
 
-After `create_file` or `insert_edit_into_file` produces a change, you're asked
-to confirm it. Small diffs are shown in the chat buffer and larger ones open in
-a floating window, which `gv` opens on demand. The same `g1` to `g4` keymaps
-apply, except that Cancel only discards this change. Always accept here means
-later edits from that tool in this chat are written without a diff.
+After `create_file` or `edit_file` produces a change, you're asked to confirm
+it. Small diffs are shown in the chat buffer and larger ones open in a floating
+window, which `gv` opens on demand. The same `g1` to `g4` keymaps apply, except
+that Cancel only discards this change. Always accept here means later edits
+from that tool in this chat are written without a diff.
 
 These keymaps are shared across CodeCompanion and can be changed under
 `interactions.shared.keymaps`. See |codecompanion-keymaps|.
@@ -1558,16 +1558,16 @@ list makes every shell command ask. Alternatively, stay in Ask mode and remove
 the prompts you don't want:
 
 
-`insert_edit_into_file` treats files that are open in Neovim differently from
-those that aren't. To be asked before the LLM edits a file you don't have open,
-but not a buffer you do:
+`edit_file` treats files that are open in Neovim differently from those that
+aren't. To be asked before the LLM edits a file you don't have open, but not a
+buffer you do:
 
 >lua
     require("codecompanion").setup({
       interactions = {
         chat = {
           tools = {
-            ["insert_edit_into_file"] = {
+            ["edit_file"] = {
               opts = {
                 require_approval_before = {
                   buffer = false,
@@ -3045,7 +3045,7 @@ giving access to `language`, `date`, `nvim_version`, `os` and more:
             ctx.os
           )
         end,
-        tools = { "read_file", "insert_edit_into_file", "run_command" },
+        tools = { "read_file", "edit_file", "run_command" },
         opts = {
           collapse_tools = true,
           ignore_system_prompt = true, -- Remove the chat's default system prompt
@@ -3068,11 +3068,11 @@ It contains the following tools:
 - |codecompanion-usage-chat-buffer-agents-tools-ask-questions|
 - |codecompanion-usage-chat-buffer-agents-tools-create-file|
 - |codecompanion-usage-chat-buffer-agents-tools-delete-file|
+- |codecompanion-usage-chat-buffer-agents-tools-edit-file|
 - |codecompanion-usage-chat-buffer-agents-tools-file-search|
 - |codecompanion-usage-chat-buffer-agents-tools-get-changed-files|
 - |codecompanion-usage-chat-buffer-agents-tools-get-diagnostics|
 - |codecompanion-usage-chat-buffer-agents-tools-grep-search|
-- |codecompanion-usage-chat-buffer-agents-tools-insert-edit-into-file|
 - |codecompanion-usage-chat-buffer-agents-tools-read-file|
 - |codecompanion-usage-chat-buffer-agents-tools-run-command|
 
@@ -3090,10 +3090,10 @@ file operations in your current working directory. It contains the following
 files:
 
 - |codecompanion-usage-chat-buffer-agents-tools-create-file|
+- |codecompanion-usage-chat-buffer-agents-tools-edit-file|
 - |codecompanion-usage-chat-buffer-agents-tools-file-search|
 - |codecompanion-usage-chat-buffer-agents-tools-get-changed-files|
 - |codecompanion-usage-chat-buffer-agents-tools-grep-search|
-- |codecompanion-usage-chat-buffer-agents-tools-insert-edit-into-file|
 - |codecompanion-usage-chat-buffer-agents-tools-read-file|
 
 You can use it with:
@@ -3170,6 +3170,35 @@ Delete a file within the current working directory:
 **Options:** - `protect` always ask before deleting a file in Auto mode?
 (Default: true) - `require_approval_before` require approval before deleting a
 file? (Default: true)
+
+
+EDIT_FILE
+
+
+  [!NOTE] By default, you're asked to confirm each edit in a diff before it's
+  written
+This tool edits buffers and files by replacing an exact piece of text with new
+text:
+
+>md
+    Use @{edit_file} to refactor the code in #buffer
+<
+
+>md
+    Can you apply the suggested changes to the buffer with @{edit_file}?
+<
+
+The text being replaced must match the file exactly, including indentation. If
+it can't be found, or it appears more than once, the edit fails and the LLM is
+told why so it can try again. A file that's open in Neovim is edited in its
+buffer and saved, and any other file keeps its line endings.
+
+**Options:** - `require_approval_before.buffer` (boolean) Require approval
+before editing a buffer? (Default: false) - `require_approval_before.file`
+(boolean) Require approval before editing a file? (Default: false) -
+`require_confirmation_after` (boolean) Require confirmation of the diff before
+the edit is written? (Default: true) - `file_size_limit_mb` (number) Files
+larger than this aren't edited (Default: 2)
 
 
 FETCH_WEBPAGE
@@ -3250,30 +3279,6 @@ working directory. For every match, the output (`{filename}:{line number}
 **Options:** - `max_files` (number) limits the amount of files that can be sent
 to the LLM in the response (Default: 100) - `respect_gitignore` (boolean)
 (Default: true)
-
-
-INSERT_EDIT_INTO_FILE
-
-
-  [!NOTE] By default, when editing files, this tool requires user approval before
-  it can be executed
-This tool can edit buffers and files for code changes from an LLM:
-
->md
-    Use @{insert_edit_into_file} to refactor the code in #buffer
-<
-
->md
-    Can you apply the suggested changes to the buffer with @{insert_edit_into_file}?
-<
-
-**Options:** - `patching_algorithm` (string|table|function) The algorithm to
-use to determine how to edit files and buffers -
-`require_approval_before.buffer` (boolean) Require approval before editng a
-buffer? (Default: false) - `require_approval_before.file` (boolean) Require
-approval before editng a file? (Default: true) - `require_confirmation_after`
-(boolean) require confirmation after the execution and before moving on in the
-chat buffer? (Default: true)
 
 
 MEMORY
@@ -6734,9 +6739,9 @@ DIFF                                        *codecompanion-configuration-diff*
 
 
 CodeCompanion has a built-in diff engine that's leveraged throughout the
-plugin. If you utilize the `insert_edit_into_file` tool or use an ACP adapter,
-then the plugin will update files and buffers, displaying the changes in a
-floating window.
+plugin. If you utilize the `edit_file` tool or use an ACP adapter, then the
+plugin will update files and buffers, displaying the changes in a floating
+window.
 
 For small changes, the diff is shown directly in the chat buffer. This can be
 controlled by `threshold_for_chat`, which corresponds to the size of the diff
@@ -6839,7 +6844,7 @@ referenced with `@` (by default), when in the chat buffer:
                 system_prompt = "Describe what the agent should do",
                 tools = {
                   "run_command",
-                  "insert_edit_into_file",
+                  "edit_file",
                   -- Add your own tools or reuse existing ones
                 },
                 opts = {
@@ -8462,7 +8467,7 @@ CodeCompanion also ships with a separate system prompt when
     If a tool exists to do a task, use the tool instead of asking the user to manually take an action.
     If you say that you will take an action, then go ahead and use the tool to do it. No need to ask permission.
     Never use a tool that does not exist. Use tools using the proper procedure, DO NOT write out a json codeblock with the tool inputs.
-    Never say the name of a tool to a user. For example, instead of saying that you'll use the insert_edit_into_file tool, say "I'll edit the file".
+    Never say the name of a tool to a user. For example, instead of saying that you'll use the edit_file tool, say "I'll edit the file".
     If you think running multiple tools can answer the user's question, prefer calling them in parallel whenever possible.
     When invoking a tool that takes a file path, always use the file path you have been given by the user or by the output of a tool.
     </toolUseInstructions>
@@ -8475,7 +8480,7 @@ CodeCompanion also ships with a separate system prompt when
     ````
     </example>
     The languageId must be the correct identifier for the programming language, e.g. python, javascript, lua, etc.
-    If you are providing code changes, use the insert_edit_into_file tool (if available to you) to make the changes directly instead of printing out a code block with the changes.
+    If you are providing code changes, use the edit_file tool (if available to you) to make the changes directly instead of printing out a code block with the changes.
     </outputFormatting>
 <
 
@@ -9567,7 +9572,7 @@ required.
     
     You are required to write code following the instructions provided above and test the correctness by running the designated test suite. Follow these steps exactly:
     
-    1. Update the code in #{buffer} using the @{insert_edit_into_file} tool
+    1. Update the code in #{buffer} using the @{edit_file} tool
     2. Then use the @{run_command} tool to run the test suite with `<test_cmd>` (do this after you have updated the code)
     3. Make sure you trigger both tools in the same response
     
@@ -9619,7 +9624,7 @@ Let's breakdown the prompts in that workflow:
     
     You are required to write code following the instructions provided above and test the correctness by running the designated test suite. Follow these steps exactly:
     
-    1. Update the code in #{buffer}{watch} using the @{insert_edit_into_file} tool
+    1. Update the code in #{buffer}{watch} using the @{edit_file} tool
     2. Then use the @{run_command} tool to run the test suite with `<test_cmd>` (do this after you have updated the code)
     3. Make sure you trigger both tools in the same response
     
@@ -9633,7 +9638,7 @@ Let's breakdown the prompts in that workflow:
 
 The first prompt in a workflow should set the ask of the LLM and provide clear
 instructions. In this case, we're giving the LLM access to the
-|codecompanion-usage-chat-buffer-agents-tools-files| and
+|codecompanion-usage-chat-buffer-agents-tools-edit-file| and
 |codecompanion-usage-chat-buffer-agents-tools-run-command| tools to edit a
 buffer and run tests, respectively.
 
@@ -10018,7 +10023,7 @@ structure of the tools implementation:
     │   ├── runner.lua
     ├── builtin/
     │   ├── run_command.lua
-    │   ├── insert_edit_into_file.lua
+    │   ├── edit_file/
     │   ├── create_file.lua
     │   ├── ...
 <
@@ -10031,7 +10036,7 @@ response from the LLM, identifying the tool and duly executing it.
 There are two types of tools that CodeCompanion can leverage:
 
 1. **Command-based**: These tools can execute a series of commands in the background using `vim.system`. They're non-blocking, meaning you can carry out other activities in Neovim whilst they run. Useful for heavy/time-consuming tasks.
-2. **Function-based**: These tools, like insert_edit_into_file <https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/interactions/chat/tools/builtin/insert_edit_into_file/init.lua>, execute Lua functions directly in Neovim within the main process, one after another. They can also be executed asynchronously.
+2. **Function-based**: These tools, like edit_file <https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/interactions/chat/tools/builtin/edit_file/init.lua>, execute Lua functions directly in Neovim within the main process, one after another. They can also be executed asynchronously.
 
 For the purposes of this section of the guide, we'll be building a simple
 function-based calculator tool that an LLM can use to do basic maths.
@@ -10282,7 +10287,7 @@ SYSTEM_PROMPT
 In the plugin, LLMs are given knowledge about a tool and how it can be used via
 the schema. However, for a particularly complicated tool, you can choose to
 include a system prompt. This is something that CodeCompanion does for the
-`insert_edit_into_file` tool.
+`memory` tool.
 
 
   [!TIP] From experience, a system prompt should be used sparingly. It's often an
@@ -10314,7 +10319,7 @@ a tool completes:
 
 1. `setup` - Is called **before** anything in the |codecompanion-extending-tools-cmds| and |codecompanion-extending-tools-output| table. This is useful if you wish to set the cmds dynamically on the tool itself, like in the @run_command <https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/interactions/chat/tools/builtin/run_command.lua> tool.
 2. `on_exit` - Is called **after** everything in the |codecompanion-extending-tools-cmds| and |codecompanion-extending-tools-output| table.
-3. `prompt_condition` - Is called **before** anything in the |codecompanion-extending-tools-cmds| and |codecompanion-extending-tools-output| table and is used to determine `if` the user should be prompted for approval. This is used in the `@insert_edit_into_file` tool to allow users to determine if they'd like to apply an approval to `buffer` or `file` edits.
+3. `prompt_condition` - Is called **before** anything in the |codecompanion-extending-tools-cmds| and |codecompanion-extending-tools-output| table and is used to determine `if` the user should be prompted for approval. This is used in the `@edit_file` tool to allow users to determine if they'd like to apply an approval to `buffer` or `file` edits.
 
 For the purposes of our calculator, let's just return some notifications so you
 can see the tool system and tool flow:

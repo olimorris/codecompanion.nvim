@@ -10,7 +10,7 @@ return {
 
   description = "Edit one of three identically-named keys, identified by its nesting context",
   name = "JSON editing with repeated keys",
-  tools = { "insert_edit_into_file" },
+  tools = { "edit_file" },
 
   setup = function()
     local input_path = vim.fs.joinpath(FIXTURES, input_file)
@@ -21,7 +21,7 @@ return {
 
   prompt = function(ctx)
     return string.format(
-      [[Use @{insert_edit_into_file} to edit the file at `%s`.
+      [[Use @{edit_file} to edit the file at `%s`.
 
 Current content:
 ```json
