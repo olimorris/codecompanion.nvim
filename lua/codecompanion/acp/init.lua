@@ -955,6 +955,15 @@ function Connection:handle_process_exit(code, signal)
   self._active_prompt = nil
 end
 
+---Release the active prompt, unless a handler already started a follow-up
+---@param prompt CodeCompanion.ACP.PromptBuilder
+---@return nil
+function Connection:clear_active_prompt(prompt)
+  if self._active_prompt == prompt then
+    self._active_prompt = nil
+  end
+end
+
 ---Initiate a prompt
 ---@param messages table
 ---@return CodeCompanion.ACP.PromptBuilder
