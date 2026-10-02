@@ -1,4 +1,4 @@
-local openai = require("codecompanion.adapters.http.openai")
+local openai = require("codecompanion.adapters.http.openai_legacy")
 
 ---@class CodeCompanion.HTTPAdapter.xAI: CodeCompanion.HTTPAdapter
 return {

@@ -24,6 +24,7 @@ M.parsers = {
 M.libraries = {
   { name = "curl" },
   { name = "file", optional = true }, -- used to guess mimetype for multimodal.
+  { name = "markitdown", optional = true }, -- used to fetch webpages
   { name = "rg", optional = true },
   { name = "sqlite3", optional = true }, -- used to read Copilot tokens from the SQLite database
 }

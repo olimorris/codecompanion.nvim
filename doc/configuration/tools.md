@@ -67,8 +67,8 @@ require("codecompanion").setup({
 
 ```lua [Enable Adapter Tools]
 require("codecompanion").setup({
-  openai_responses = function()
-    return require("codecompanion.adapters").extend("openai_responses", {
+  openai = function()
+    return require("codecompanion.adapters").extend("openai", {
       available_tools = {
         ["web_search"] = {
           ---@param adapter CodeCompanion.HTTPAdapter

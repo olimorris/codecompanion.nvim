@@ -66,7 +66,7 @@ The summary is appended to the chat as a new user message and tagged so future c
 
 #### Server-Side Compaction
 
-If you're using the `openai_responses` or `anthropic` adapters, then CodeCompanion will use their native server-side compaction capabilities. Please see the [OpenAI compaction documentation](https://developers.openai.com/api/docs/guides/compaction) and [Anthropic compaction documentation](https://platform.claude.com/docs/en/build-with-claude/compaction) for more information. Editing still runs client-side for these adapters since it produces tokens-over-the-wire savings independent of what the server does.
+If you're using the `openai` or `anthropic` adapters, then CodeCompanion will use their native server-side compaction capabilities. Please see the [OpenAI compaction documentation](https://developers.openai.com/api/docs/guides/compaction) and [Anthropic compaction documentation](https://platform.claude.com/docs/en/build-with-claude/compaction) for more information. Editing still runs client-side for these adapters since it produces tokens-over-the-wire savings independent of what the server does.
 
 #### Manual Triggers
 

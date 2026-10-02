@@ -143,7 +143,7 @@ T["HTTP Adapter"] = new_set()
 
 T["HTTP Adapter"]["can form parameters from a chat buffer's settings"] = function()
   local result = child.lua([[
-    local adapter = require("codecompanion.adapters").extend("openai")
+    local adapter = require("codecompanion.adapters").extend("openai_legacy")
     local result = adapter:map_schema_to_params(_G.chat_buffer_settings)
 
     -- Ignore these for now
@@ -158,7 +158,7 @@ end
 
 T["HTTP Adapter"]["can use schema to created nested parameters"] = function()
   local result = child.lua([[
-    local adapter = require("codecompanion.adapters").extend("openai", {
+    local adapter = require("codecompanion.adapters").extend("openai_legacy", {
       schema = {
         ["reasoning.effort"] = {
           order = 2,
@@ -328,7 +328,7 @@ T["HTTP Adapter"]["can update a model on the adapter"] = function()
   h.eq({ name = "gpt-4-0125-preview", vendor = "TestAdapter" }, result)
 
   result = child.lua([[
-    local adapter = require("codecompanion.adapters").extend("openai", {
+    local adapter = require("codecompanion.adapters").extend("openai_legacy", {
       schema = {
         model = {
           default = "o4-mini-2025-04-16",

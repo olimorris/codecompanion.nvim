@@ -196,7 +196,7 @@ Use @{fetch_webpage} to tell me what the latest version on neovim.io is
 ```
 
 **Options:**
-- `adapter` The adapter used to fetch, process and format the webpage's content (Default: `jina`). The [MarkItDown](https://github.com/microsoft/markitdown) adapter is also available as an alternative, configurable via [/fetch](/usage/chat-buffer/slash-commands#fetch).
+- `adapter` The adapter used to fetch, process and format the webpage's content (Default: `markitdown`). The [Jina](https://jina.ai) adapter is also available as an alternative, configurable via [/fetch](/usage/chat-buffer/slash-commands#fetch).
 
 ### file_search
 
@@ -373,7 +373,7 @@ In the `anthropic` adapter, the following tools are available:
 
 ### OpenAI
 
-In the `openai_responses` adapter, the following tools are available:
+In the `openai` adapter, the following tools are available:
 
 - `web_search` - Allow models to search the web for the latest information before generating a response.
 

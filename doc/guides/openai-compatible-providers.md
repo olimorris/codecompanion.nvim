@@ -284,14 +284,14 @@ With `tools = false`, tool definitions are left out of the request, so the LLM n
 
 ### The Responses API
 
-If your provider or gateway serves OpenAI's [Responses API](https://platform.openai.com/docs/api-reference/responses) at `/v1/responses`, extend `openai_responses` instead. CodeCompanion uses it to carry a model's reasoning between turns and for server-side compaction. It has no `env.url`, so set the full `url`:
+If your provider or gateway serves OpenAI's [Responses API](https://platform.openai.com/docs/api-reference/responses) at `/v1/responses`, extend `openai` instead. CodeCompanion uses it to carry a model's reasoning between turns and for server-side compaction. It has no `env.url`, so set the full `url`:
 
 ```lua
 require("codecompanion").setup({
   adapters = {
     http = {
       acme_responses = function()
-        return require("codecompanion.adapters").extend("openai_responses", {
+        return require("codecompanion.adapters").extend("openai", {
           formatted_name = "Acme Gateway (Responses)",
           url = "https://llm-gateway.acme.internal/v1/responses",
           env = {

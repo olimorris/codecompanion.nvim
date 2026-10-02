@@ -17,15 +17,14 @@ local defaults = {
       copilot = "copilot",
       deepseek = "deepseek",
       gemini = "gemini",
-      gemini_interactions = "gemini_interactions",
-      githubmodels = "githubmodels",
+      gemini_legacy = "gemini_legacy",
       huggingface = "huggingface",
       kimi = "kimi",
       novita = "novita",
       mistral = "mistral",
       ollama = "ollama",
       openai = "openai",
-      openai_responses = "openai_responses",
+      openai_legacy = "openai_legacy",
       openrouter = "openrouter",
       xai = "xai",
       -- web_search adapters --------------------------------------------------
@@ -243,7 +242,7 @@ The user is working on a %s machine. Please respond with system specific command
           path = "interactions.chat.tools.builtin.fetch_webpage",
           description = "Fetches content from a webpage",
           opts = {
-            adapter = "jina", -- jina, markitdown
+            adapter = "markitdown", -- jina, markitdown
           },
         },
         ["file_search"] = {
@@ -315,7 +314,7 @@ The user is working on a %s machine. Please respond with system specific command
           path = "interactions.chat.tools.builtin.web_search",
           description = "Search the web for information",
           opts = {
-            adapter = "tavily", -- tavily, duckduckgo, jina, serply
+            adapter = "duckduckgo", -- tavily, duckduckgo, jina, serply
             opts = {
               -- Tavily options
               search_depth = "advanced",
@@ -455,7 +454,7 @@ If you are providing code changes, use the edit_file tool (if available to you) 
           path = "interactions.chat.slash_commands.builtin.fetch",
           description = "Insert URL contents",
           opts = {
-            adapter = "jina", -- jina, markitdown
+            adapter = "markitdown", -- jina, markitdown
             cache_path = vim.fn.stdpath("data") .. "/codecompanion/urls",
             provider = providers.pickers, -- telescope|fzf_lua|mini_pick|snacks|default
           },

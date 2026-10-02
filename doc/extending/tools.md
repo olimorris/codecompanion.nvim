@@ -727,7 +727,7 @@ Thankfully, adding support for adapter tools is trivial. The [#2307](https://git
 1. Add the tool to the structure of the adapter:
 
 ```lua
--- openai_responses.lua
+-- openai.lua
 -- ... existing code ...
 available_tools = {
   ["web_search"] = {

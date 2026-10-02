@@ -1,407 +1,634 @@
 local adapter_utils = require("codecompanion.adapters.utils")
 local log = require("codecompanion.utils.log")
+local openai = require("codecompanion.adapters.http.openai_legacy")
 local tags = require("codecompanion.interactions.shared.tags")
+local tool_transformer = require("codecompanion.adapters.utils.tool_transformers")
 
-local CONSTANTS = {
-  STANDARD_MESSAGE_FIELDS = {
-    "annotations",
-    "audio",
-    "content",
-    "function_call",
-    "refusal",
-    "role",
-    "tool_calls",
-  },
-}
+---@type string|nil
+local response_id
 
----Find the non-standard fields in the `message` or `delta` that are not in the standard OpenAI chat-completion specs.
----@param delta table?
----@return table|nil
-local function find_extra_fields(delta)
-  if delta == nil then
-    return nil
-  end
-  local extra = {}
-  vim.iter(delta):each(function(k, v)
-    if not vim.list_contains(CONSTANTS.STANDARD_MESSAGE_FIELDS, k) then
-      extra[k] = v
-    end
-  end)
-  if not vim.tbl_isempty(extra) then
-    return extra
-  end
-end
-
----@class CodeCompanion.HTTPAdapter.OpenAI: CodeCompanion.HTTPAdapter
+---@class CodeCompanion.HTTPAdapter.OpenAIResponses: CodeCompanion.HTTPAdapter
 return {
   name = "openai",
+  vendor = "openai",
   formatted_name = "OpenAI",
   roles = {
     llm = "assistant",
     user = "user",
     tool = "tool",
   },
+  features = {
+    text = true,
+    tokens = true,
+  },
   opts = {
+    compaction = true,
     documents = true,
     stream = true,
     tools = true,
     vision = true,
   },
-  features = {
-    text = true,
-    tokens = true,
-  },
-  url = "https://api.openai.com/v1/chat/completions",
+  url = "https://api.openai.com/v1/responses",
   env = {
     api_key = "OPENAI_API_KEY",
+  },
+  parameters = {
+    store = false,
+  },
+  available_tools = {
+    ["web_search"] = {
+      description = "Allow models to search the web for the latest information before generating a response.",
+      enabled = true,
+      ---@param self CodeCompanion.HTTPAdapter.OpenAIResponses
+      ---@param meta { tools: table }
+      callback = function(self, meta)
+        table.insert(meta.tools, {
+          type = "web_search",
+        })
+      end,
+    },
   },
   headers = {
     ["Content-Type"] = "application/json",
     Authorization = "Bearer ${api_key}",
   },
   handlers = {
-    ---@param self CodeCompanion.HTTPAdapter
-    ---@return boolean
-    setup = function(self)
-      local model = self.schema.model.default
-      if type(model) == "function" then
-        model = model(self)
-      end
-      local model_opts = self.schema.model.choices
-      if type(model_opts) == "function" then
-        model_opts = model_opts(self)
-      end
+    lifecycle = {
+      ---@param self CodeCompanion.HTTPAdapter
+      ---@return boolean
+      setup = function(self)
+        local model_opts = adapter_utils.model_choice(self, { async = false })
 
-      self.opts.vision = true
+        self.opts.vision = true
 
-      if model_opts and model_opts[model] and model_opts[model].opts then
-        self.opts = vim.tbl_deep_extend("force", self.opts, model_opts[model].opts)
+        if model_opts and model_opts.opts then
+          self.opts = vim.tbl_deep_extend("force", self.opts, model_opts.opts)
 
-        if not model_opts[model].opts.has_vision then
-          self.opts.vision = false
+          if not model_opts.opts.has_vision then
+            self.opts.vision = false
+          end
+          if not model_opts.opts.can_use_tools then
+            self.opts.tools = false
+          end
+          if self.opts.compaction == false then
+            self.opts.can_manage_context = false
+          end
         end
-      end
 
-      if self.opts and self.opts.stream then
-        self.parameters.stream = true
-        self.parameters.stream_options = { include_usage = true }
-      end
+        if self.opts and self.opts.stream then
+          self.parameters.stream = true
+        end
 
-      return true
-    end,
+        return true
+      end,
 
-    ---Set the parameters
-    ---@param self CodeCompanion.HTTPAdapter
-    ---@param params table
-    ---@param messages table
-    ---@return table
-    form_parameters = function(self, params, messages)
-      return params
-    end,
+      ---Function to run when the request has completed. Useful to catch errors
+      ---@param self CodeCompanion.HTTPAdapter
+      ---@param data? table
+      ---@return nil
+      on_exit = function(self, data)
+        response_id = nil
+        return openai.handlers.on_exit(self, data)
+      end,
+    },
 
-    ---Set the format of the role and content for the messages from the chat buffer
-    ---@param self CodeCompanion.HTTPAdapter
-    ---@param messages table Format is: { { role = "user", content = "Your prompt here" } }
-    ---@return table
-    form_messages = function(self, messages)
-      local model = self.schema.model.default
-      if type(model) == "function" then
-        model = model(self)
-      end
+    request = {
+      ---Set the parameters
+      ---@param self CodeCompanion.HTTPAdapter
+      ---@param params table
+      ---@param messages table
+      ---@return table
+      build_parameters = function(self, params, messages)
+        local model_opts = adapter_utils.model_choice(self)
+        if model_opts and model_opts.opts and model_opts.opts.can_reason then
+          params.include = { "reasoning.encrypted_content" }
+        end
 
-      messages = vim
-        .iter(messages)
-        :map(function(m)
-          if vim.startswith(model, "o1") and m.role == "system" then
-            m.role = self.roles.user
-          end
+        return params
+      end,
 
-          -- Ensure tool_calls are clean
-          local tool_calls = nil
-          if m.tools and m.tools.calls then
-            tool_calls = vim
-              .iter(m.tools.calls)
-              :map(function(tool_call)
-                return {
-                  id = adapter_utils.pairing_id(tool_call),
-                  ["function"] = tool_call["function"],
-                  type = tool_call.type,
-                  -- Include a _meta field to hold everything else
-                }
-              end)
-              :totable()
-          end
+      ---Set the format of the role and content for the messages from the chat buffer
+      ---@param self CodeCompanion.HTTPAdapter
+      ---@param messages table Format is: { { role = "user", content = "Your prompt here" } }
+      ---@return table
+      build_messages = function(self, messages)
+        --Ref: https://platform.openai.com/docs/guides/migrate-to-responses?lang=bash
 
-          -- Process any images
-          if m._meta and m._meta.tag == tags.IMAGE and m.context and m.context.mimetype then
-            if self.opts and self.opts.vision then
-              m.content = {
-                {
-                  type = "image_url",
-                  image_url = {
-                    url = string.format("data:%s;base64,%s", m.context.mimetype, m.content),
-                  },
-                },
-              }
-            else
-              -- Remove the message if vision is not supported
-              return nil
+        -- Separate out system messages so they can be sent as instructions
+        local instructions = vim
+          .iter(messages)
+          :filter(function(m)
+            return m.role == "system"
+          end)
+          :map(function(m)
+            return m.content
+          end)
+          :totable()
+        local has_instructions = #instructions > 0
+        instructions = table.concat(instructions, "\n")
+
+        -- The Responses API is similar to Anthropic in that it has different
+        -- message types as their own distinct objects in the messages array
+
+        local input = {}
+        local i = 1
+        while i <= #messages do
+          local m = messages[i]
+
+          if m.role ~= "system" then
+            -- Add any compaction item stored from a previous response
+            if m._meta and m._meta.compaction then
+              table.insert(input, m._meta.compaction)
             end
-          end
 
-          -- Process any documents
-          -- NOTE: Only support PDFs for now
-          if
-            m._meta
-            and m._meta.tag == tags.DOCUMENT
-            and m._meta.filetype == "pdf"
-            and m.context
-            and m.context.mimetype
-          then
-            if self.opts and self.opts.documents then
-              m.content = {
-                {
-                  type = "file",
-                  file = {
+            -- Reasoning comes first. Reasoning carried over from another
+            -- endpoint has no encrypted content to resolve it, and is dropped
+            if m.reasoning and m.reasoning.encrypted_content then
+              local reasoning_item = {
+                type = "reasoning",
+              }
+
+              -- Include summary if we have content
+              if m.reasoning.content then
+                reasoning_item.summary = {
+                  {
+                    type = "summary_text",
+                    text = m.reasoning.content,
+                  },
+                }
+              end
+
+              reasoning_item.encrypted_content = m.reasoning.encrypted_content
+
+              table.insert(input, reasoning_item)
+            end
+
+            -- Check if this is an image message followed by a text message from the same user
+            if m._meta and m._meta.tag == tags.IMAGE and (m.context and m.context.mimetype) then
+              if self.opts and self.opts.vision then
+                local next_msg = messages[i + 1]
+                local combined_content = {
+                  {
+                    type = "input_image",
+                    image_url = string.format("data:%s;base64,%s", m.context.mimetype, m.content),
+                  },
+                }
+
+                -- If next message is also from user with text content, combine them
+                if
+                  next_msg
+                  and next_msg.role == m.role
+                  and type(next_msg.content) == "string"
+                  and not (next_msg._meta and next_msg._meta.tag == tags.IMAGE)
+                then
+                  table.insert(combined_content, {
+                    type = "input_text",
+                    text = next_msg.content,
+                  })
+                  i = i + 1 -- Skip the next message since we've combined it
+                end
+
+                table.insert(input, {
+                  role = m.role,
+                  content = combined_content,
+                })
+              end
+            elseif
+              -- NOTE: Only support PDFs for now
+              m._meta
+              and m._meta.tag == tags.DOCUMENT
+              and m._meta.filetype == "pdf"
+              and (m.context and m.context.mimetype)
+            then
+              -- Check if this is a document message followed by a text message from the same user
+              if self.opts and self.opts.documents then
+                local next_msg = messages[i + 1]
+                local combined_content = {
+                  {
+                    type = "input_file",
                     filename = vim.fn.fnamemodify(m.context.path, ":t"),
                     file_data = string.format("data:%s;base64,%s", m.context.mimetype, m.content),
                   },
-                },
-              }
+                }
+
+                -- If next message is also from user with text content, combine them
+                if
+                  next_msg
+                  and next_msg.role == m.role
+                  and type(next_msg.content) == "string"
+                  and not (next_msg._meta and next_msg._meta.tag == tags.DOCUMENT)
+                then
+                  table.insert(combined_content, {
+                    type = "input_text",
+                    text = next_msg.content,
+                  })
+                  i = i + 1 -- Skip the next message since we've combined it
+                end
+
+                table.insert(input, {
+                  role = m.role,
+                  content = combined_content,
+                })
+              else
+                return log:warn(
+                  "The `%s` model does not support documents so has been removed from the request",
+                  self.formatted_name
+                )
+              end
+            elseif m.role == "tool" then
+              table.insert(input, {
+                type = "function_call_output",
+                call_id = m.tools and m.tools.call_id or nil,
+                output = m.content,
+              })
+            elseif m.tools and m.tools.calls then
+              local tool_calls = vim
+                .iter(m.tools.calls)
+                :map(function(tool_call)
+                  return {
+                    type = "function_call",
+                    -- Only this endpoint mints an item id, so one from elsewhere would be rejected
+                    id = tool_call.call_id and tool_call.id or nil,
+                    call_id = adapter_utils.pairing_id(tool_call),
+                    name = tool_call["function"].name,
+                    arguments = tool_call["function"].arguments,
+                  }
+                end)
+                :totable()
+
+              for _, tool_call in ipairs(tool_calls) do
+                table.insert(input, tool_call)
+              end
             else
-              return log:warn(
-                "The `%s` model does not support documents so has been removed from the request",
-                self.formatted_name
+              -- Regular text message
+              table.insert(input, {
+                role = m.role,
+                content = m.content,
+              })
+            end
+          end
+
+          i = i + 1
+        end
+
+        local context_management = nil
+        if self.opts.can_manage_context then
+          local helpers = require("codecompanion.interactions.chat.helpers.context")
+
+          context_management = {
+            {
+              type = "compaction",
+              compact_threshold = math.max(50000, helpers.trigger_context_management(self)),
+            },
+          }
+        end
+
+        return {
+          context_management = context_management,
+          instructions = has_instructions and instructions or nil,
+          input = input,
+        }
+      end,
+
+      ---Provides the schemas of the tools that are available to the LLM to call
+      ---@param self CodeCompanion.HTTPAdapter
+      ---@param tools table<string, table>
+      ---@return table|nil
+      build_tools = function(self, tools)
+        if not self.opts.tools or not tools then
+          return
+        end
+        if vim.tbl_count(tools) == 0 then
+          return
+        end
+
+        local transformed = {}
+        for _, tool in pairs(tools) do
+          for _, schema in pairs(tool) do
+            if schema._meta and schema._meta.adapter_tool then
+              if self.available_tools[schema.name] then
+                self.available_tools[schema.name].callback(self, { tools = transformed })
+              end
+            else
+              table.insert(
+                transformed,
+                tool_transformer.transform_schema_if_needed(schema, {
+                  strict_mode = true,
+                })
               )
             end
           end
+        end
 
-          local result = {
-            role = m.role,
-            content = m.content,
-            tool_calls = tool_calls,
-            tool_call_id = m.tools and m.tools.call_id or nil,
-          }
+        return { tools = transformed }
+      end,
 
-          -- Adapter's like Copilot have reasoning fields that must be preserved
-          if m.reasoning then
-            result.reasoning = m.reasoning
+      ---Form the structured output schema for the request body
+      ---@param self CodeCompanion.HTTPAdapter
+      ---@param schema CodeCompanion.StructuredOutput.Schema
+      ---@return table|nil
+      build_structured_output = function(self, schema)
+        if not schema or not self.opts.can_form_structured_outputs then
+          return nil
+        end
+        return require("codecompanion.adapters.utils.structured_outputs").to_openai_responses(schema)
+      end,
+
+      ---Form the reasoning output that is stored in the chat buffer
+      ---@param self CodeCompanion.HTTPAdapter
+      ---@param data table The reasoning output from the LLM
+      ---@return nil|{ content: string, _data: table }
+      build_reasoning = function(self, data)
+        local reasoning = {}
+
+        -- Join the content deltas into a single string
+        reasoning.content = vim
+          .iter(data)
+          :map(function(item)
+            return item.content
+          end)
+          :filter(function(content)
+            return content ~= nil
+          end)
+          :join("")
+
+        -- ID and encrypted content appear once, at the end. As we've turned state
+        -- off, we need to store the encrypted reasoning tokens
+        vim.iter(data):each(function(item)
+          if item.id then
+            reasoning.id = item.id
           end
-
-          return result
+          if item.encrypted_content then
+            reasoning.encrypted_content = item.encrypted_content
+          end
         end)
-        :totable()
 
-      return { messages = messages }
-    end,
-
-    ---Provides the schemas of the tools that are available to the LLM to call
-    ---@param self CodeCompanion.HTTPAdapter
-    ---@param tools table<string, table>
-    ---@return table|nil
-    form_tools = function(self, tools)
-      if not self.opts.tools or not tools then
-        return nil
-      end
-      if vim.tbl_count(tools) == 0 then
-        return nil
-      end
-
-      local transformed = {}
-      for _, tool in pairs(tools) do
-        for _, schema in pairs(tool) do
-          table.insert(transformed, schema)
+        if vim.tbl_count(reasoning) == 0 then
+          return nil
         end
-      end
 
-      return { tools = transformed }
-    end,
+        return reasoning
+      end,
+    },
 
-    ---Form the structured output schema for the request body
-    ---@param self CodeCompanion.HTTPAdapter
-    ---@param schema CodeCompanion.StructuredOutput.Schema
-    ---@return table|nil
-    form_structured_output = function(self, schema)
-      if not schema or not self.opts.can_form_structured_outputs then
-        return nil
-      end
-      return require("codecompanion.adapters.utils.structured_outputs").to_openai(schema)
-    end,
+    response = {
+      ---Output the data from the API ready for insertion into the chat buffer
+      ---@param self CodeCompanion.HTTPAdapter
+      ---@param data table The streamed JSON data from the API, also formatted by the format_data handler
+      ---@param tools? table The table to write any tool output to
+      ---@return table|nil [status: string, output: table]
+      parse_chat = function(self, data, tools)
+        if not data or data == "" then
+          return nil
+        end
 
-    ---Returns the number of tokens generated from the LLM
-    ---@param self CodeCompanion.HTTPAdapter
-    ---@param data table The data from the LLM
-    ---@return number|nil
-    tokens = function(self, data)
-      if data and data ~= "" then
-        local data_mod = adapter_utils.clean_streamed_data(data)
+        -- Handle both streamed data and structured response
+        local data_mod = type(data) == "table" and data.body or adapter_utils.clean_streamed_data(data)
         local ok, json = pcall(vim.json.decode, data_mod, { luanil = { object = true } })
-
-        if ok then
-          if json.usage then
-            local tokens = json.usage.total_tokens
-            log:trace("Tokens: %s", tokens)
-            return tokens
-          end
-        end
-      end
-    end,
-
-    ---Output the data from the API ready for insertion into the chat buffer
-    ---@param self CodeCompanion.HTTPAdapter
-    ---@param data table The streamed JSON data from the API, also formatted by the format_data handler
-    ---@param tools? table The table to write any tool output to
-    ---@return table|nil [status: string, output: table]
-    chat_output = function(self, data, tools)
-      if not data or data == "" then
-        return nil
-      end
-
-      -- Handle both streamed data and structured response
-      local data_mod = type(data) == "table" and data.body or adapter_utils.clean_streamed_data(data)
-      local ok, json = pcall(vim.json.decode, data_mod, { luanil = { object = true } })
-
-      if not ok or not json.choices or #json.choices == 0 then
-        return nil
-      end
-
-      -- Define standard tool_call fields
-      local STANDARD_TOOL_CALL_FIELDS = {
-        "id",
-        "type",
-        "function",
-        "index",
-      }
-
-      ---Helper to create any tool data
-      ---@param tool table
-      ---@param index number
-      ---@param id string
-      ---@return table
-      local function create_tool_data(tool, index, id)
-        local tool_data = {
-          _index = index,
-          id = id,
-          type = tool.type,
-          ["function"] = {
-            name = tool["function"]["name"],
-            arguments = tool["function"]["arguments"] or "",
-          },
-        }
-
-        -- Preserve any non-standard fields as-is
-        for key, value in pairs(tool) do
-          if not vim.tbl_contains(STANDARD_TOOL_CALL_FIELDS, key) then
-            tool_data[key] = value
-          end
+        if not ok then
+          return nil
         end
 
-        return tool_data
-      end
-
-      -- Process tool calls from all choices
-      if self.opts.tools and tools then
-        for _, choice in ipairs(json.choices) do
-          local delta = self.opts.stream and choice.delta or choice.message
-
-          if delta and delta.tool_calls and #delta.tool_calls > 0 then
-            for i, tool in ipairs(delta.tool_calls) do
-              local tool_index = tool.index and tonumber(tool.index) or i
-
-              -- Some endpoints like Gemini do not set this (why?!)
-              local id = tool.id
-              if not id or id == "" then
-                id = string.format("call_%s_%s", json.created, i)
-              end
-
-              if self.opts.stream then
-                local found = false
-                for _, existing_tool in ipairs(tools) do
-                  if existing_tool._index == tool_index then
-                    -- Append to arguments if this is a continuation of a stream
-                    if tool["function"] and tool["function"]["arguments"] then
-                      existing_tool["function"]["arguments"] = (existing_tool["function"]["arguments"] or "")
-                        .. tool["function"]["arguments"]
-                    end
-                    found = true
-                    break
+        -- Handle non-streamed response
+        if not self.opts.stream then
+          -- Reasoning
+          local reasoning = {}
+          if json.output then
+            for _, item in ipairs(json.output) do
+              if item.type == "reasoning" then
+                reasoning.id = item.id
+                reasoning.encrypted_content = item.encrypted_content
+                for _, block in ipairs(item.summary) do
+                  if block.type == "summary_text" then
+                    reasoning.content = reasoning.content and (reasoning.content .. "\n\n" .. block.text) or block.text
                   end
                 end
-
-                if not found then
-                  table.insert(tools, create_tool_data(tool, tool_index, id))
-                end
-              else
-                table.insert(tools, create_tool_data(tool, i, id))
               end
             end
           end
+
+          -- Tools
+          if json.output and tools then
+            local index = 1
+            vim
+              .iter(json.output)
+              :filter(function(item)
+                return item.type == "function_call"
+              end)
+              :each(function(tool)
+                table.insert(tools, {
+                  _index = index,
+                  id = tool.id,
+                  call_id = tool.call_id,
+                  type = "function",
+                  ["function"] = {
+                    name = tool.name,
+                    arguments = tool.arguments or "",
+                  },
+                })
+                index = index + 1
+              end)
+          end
+
+          -- Compaction: only keep the latest item
+          local compaction = nil
+          if json.output then
+            for _, item in ipairs(json.output) do
+              if item.type == "compaction" then
+                compaction = item
+              end
+            end
+          end
+
+          local content = nil
+          if json.output then
+            for _, item in ipairs(json.output) do
+              if item.type == "message" and item.content then
+                for _, block in ipairs(item.content) do
+                  if block.type == "output_text" then
+                    content = (content or "") .. block.text
+                  end
+                end
+              end
+            end
+          end
+
+          return {
+            status = "success",
+            output = {
+              content = content,
+              meta = {
+                compaction = compaction,
+                response_id = response_id,
+              },
+              reasoning = reasoning,
+              role = self.roles.llm,
+            },
+          }
         end
-      end
 
-      -- Process message content from the first choice
-      local choice = json.choices[1]
-      local delta = self.opts.stream and choice.delta or choice.message
-
-      if not delta then
-        return nil
-      end
-
-      return {
-        status = "success",
-        output = {
-          role = delta.role,
-          content = delta.content,
-        },
-        extra = find_extra_fields(delta),
-      }
-    end,
-
-    ---Output the data from the API ready for inlining into the current buffer
-    ---@param self CodeCompanion.HTTPAdapter
-    ---@param data string|table The streamed JSON data from the API, also formatted by the format_data handler
-    ---@param context? table Useful context about the buffer to inline to
-    ---@return {status: string, output: table}|nil
-    inline_output = function(self, data, context)
-      if self.opts.stream then
-        return log:error("Inline output is not supported for non-streaming models")
-      end
-
-      if data and data ~= "" then
-        local ok, json = pcall(vim.json.decode, data.body, { luanil = { object = true } })
-
-        if not ok then
-          log:error("Error decoding JSON: %s", data.body)
-          return { status = "error", output = json }
+        if json.type == "response.created" then
+          response_id = json.response.id
         end
 
-        local choice = json.choices[1]
-        if choice.message.content then
-          return { status = "success", output = choice.message.content }
+        local output = {}
+        if json.type == "response.reasoning_summary_text.delta" then
+          output = {
+            role = self.roles.llm,
+            reasoning = { content = json.delta or "" },
+            meta = { response_id = response_id },
+          }
+        elseif json.type == "response.output_text.delta" then
+          output = {
+            role = self.roles.llm,
+            content = json.delta or "",
+            meta = { response_id = response_id },
+          }
+        elseif json.type == "response.output_item.added" and json.item and json.item.type == "compaction" then
+          output = {
+            meta = {
+              compaction = json.item,
+              response_id = response_id,
+            },
+            role = self.roles.llm,
+          }
+        elseif json.type == "response.completed" then
+          if json.response and json.response.output then
+            local reasoning = {}
+            vim
+              .iter(json.response.output)
+              :filter(function(reasoning_output)
+                return reasoning_output.type == "reasoning"
+              end)
+              :each(function(reasoning_output)
+                reasoning.id = reasoning_output.id
+                reasoning.encrypted_content = reasoning_output.encrypted_content
+              end)
+
+            vim
+              .iter(json.response.output)
+              :filter(function(item)
+                return item.type == "function_call" and item.status == "completed"
+              end)
+              :each(function(tool)
+                if tools then
+                  table.insert(tools, {
+                    id = tool.id,
+                    call_id = tool.call_id,
+                    type = "function",
+                    ["function"] = {
+                      name = tool.name,
+                      arguments = tool.arguments or "",
+                    },
+                  })
+                end
+              end)
+
+            -- Compaction: only keep the latest item
+            local compaction = nil
+            for _, item in ipairs(json.response.output) do
+              if item.type == "compaction" then
+                compaction = item
+              end
+            end
+
+            output = {
+              meta = {
+                compaction = compaction,
+                response_id = response_id,
+              },
+              reasoning = reasoning,
+              role = self.roles.llm,
+            }
+          end
         end
-      end
-    end,
+
+        if vim.tbl_count(output) == 0 then
+          return nil
+        end
+
+        return {
+          status = "success",
+          output = output,
+        }
+      end,
+
+      ---Output the data from the API ready for inlining into the current buffer
+      ---@param self CodeCompanion.HTTPAdapter
+      ---@param data string|table The streamed JSON data from the API, also formatted by the format_data handler
+      ---@param context? table Useful context about the buffer to inline to
+      ---@return {status: string, output: table}|nil
+      parse_inline = function(self, data, context)
+        if self.opts.stream then
+          return log:error("Inline output is not supported for non-streaming models")
+        end
+
+        if data and data ~= "" then
+          local ok, json = pcall(vim.json.decode, data.body, { luanil = { object = true } })
+
+          if not ok or not json.output then
+            log:error("Error decoding JSON: %s", data.body)
+            return { status = "error", output = json }
+          end
+
+          local output
+          vim.iter(json.output):each(function(item)
+            if item.type == "message" then
+              if item.content then
+                for _, block in ipairs(item.content) do
+                  if block.type == "output_text" then
+                    output = block.text
+                    break
+                  end
+                end
+              end
+            end
+          end)
+          return { status = "success", output = output }
+        end
+
+        return { status = "error", output = "No output from the model" }
+      end,
+      ---
+      ---Returns the number of tokens generated from the LLM
+      ---@param self CodeCompanion.HTTPAdapter
+      ---@param data table The data from the LLM
+      ---@return number|nil
+      parse_tokens = function(self, data)
+        if data and data ~= "" then
+          local data_mod = adapter_utils.clean_streamed_data(data)
+          local ok, json = pcall(vim.json.decode, data_mod, { luanil = { object = true } })
+
+          if ok then
+            if json.type == "response.completed" and json.response.usage then
+              return json.response.usage.total_tokens
+            end
+          end
+        end
+      end,
+    },
+
     tools = {
       ---Format the LLM's tool calls for inclusion back in the request
       ---@param self CodeCompanion.HTTPAdapter
       ---@param tools table The raw tools collected by chat_output
       ---@return table
-      format_tool_calls = function(self, tools)
-        -- Source: https://platform.openai.com/docs/guides/function-calling?api-mode=chat#handling-function-calls
+      format_calls = function(self, tools)
         return tools
       end,
 
       ---Output the LLM's tool call so we can include it in the messages
       ---@param self CodeCompanion.HTTPAdapter
-      ---@param tool_call {id: string, function: table, name: string}
+      ---@param tool_call {id: string, call_id: string, function: table, name: string}
       ---@param output string
       ---@return table
-      output_response = function(self, tool_call, output)
+      format_response = function(self, tool_call, output)
         -- Source: https://platform.openai.com/docs/guides/function-calling?api-mode=chat#handling-function-calls
         return {
           role = self.roles.tool or "tool",
           tools = {
             call_id = adapter_utils.pairing_id(tool_call),
+            id = tool_call.id,
             name = tool_call["function"].name,
           },
           content = output,
@@ -409,16 +636,6 @@ return {
         }
       end,
     },
-
-    ---Function to run when the request has completed. Useful to catch errors
-    ---@param self CodeCompanion.HTTPAdapter
-    ---@param data? table
-    ---@return nil
-    on_exit = function(self, data)
-      if data and data.status >= 400 then
-        log:error("Error: %s", data.body)
-      end
-    end,
   },
   schema = {
     model = {
@@ -427,17 +644,18 @@ return {
       type = "enum",
       desc = "ID of the model to use. See the model endpoint compatibility table for details on which models work with the Chat API.",
       ---@type string|fun(): string
-      default = "gpt-4.1",
+      default = "gpt-5.6-luna",
       choices = {
-        -- Frontier models
+        -- Frontier Models
         ["gpt-5.6-sol"] = {
           formatted_name = "GPT 5.6 Sol",
           meta = { context_window = 1050000 },
           opts = {
             can_form_structured_outputs = true,
+            can_manage_context = true,
             can_use_tools = true,
-            can_reason = true,
             has_vision = true,
+            can_reason = true,
           },
         },
         ["gpt-5.6-terra"] = {
@@ -445,6 +663,7 @@ return {
           meta = { context_window = 1050000 },
           opts = {
             can_form_structured_outputs = true,
+            can_manage_context = true,
             can_use_tools = true,
             has_vision = true,
             can_reason = true,
@@ -455,6 +674,7 @@ return {
           meta = { context_window = 1050000 },
           opts = {
             can_form_structured_outputs = true,
+            can_manage_context = true,
             can_use_tools = true,
             has_vision = true,
             can_reason = true,
@@ -462,85 +682,133 @@ return {
         },
 
         -- Older models
-        ["gpt-5.5"] = {
-          formatted_name = "GPT 5.5",
+        ["gpt-5.5-pro"] = {
+          formatted_name = "GPT 5.5 Pro",
           meta = { context_window = 1050000 },
           opts = {
             can_form_structured_outputs = true,
+            can_manage_context = true,
             can_use_tools = true,
             has_vision = true,
             can_reason = true,
           },
         },
+        ["gpt-5.5"] = {
+          formatted_name = "GPT 5.5",
+          meta = { context_window = 1050000 },
+          opts = {
+            can_form_structured_outputs = true,
+            can_manage_context = true,
+            can_use_tools = true,
+            has_vision = true,
+            can_reason = true,
+          },
+        },
+
+        ["gpt-5.4-pro"] = {
+          formatted_name = "GPT 5.4 Pro",
+          meta = { context_window = 1050000 },
+          opts = {
+            can_form_structured_outputs = true,
+            can_manage_context = true,
+            can_use_tools = true,
+            has_vision = true,
+            can_reason = true,
+          },
+        },
+
         ["gpt-5.4"] = {
           formatted_name = "GPT 5.4",
           meta = { context_window = 1050000 },
-          opts = { has_vision = true, can_reason = true, can_form_structured_outputs = true },
+          opts = {
+            can_form_structured_outputs = true,
+            can_manage_context = true,
+            can_use_tools = true,
+            has_vision = true,
+            can_reason = true,
+          },
         },
         ["gpt-5.4-mini"] = {
           formatted_name = "GPT 5.4 Mini",
           meta = { context_window = 400000 },
-          opts = { has_vision = true, can_reason = true, can_form_structured_outputs = true },
+          opts = {
+            can_form_structured_outputs = true,
+            can_manage_context = true,
+            can_use_tools = true,
+            has_vision = true,
+            can_reason = true,
+          },
         },
         ["gpt-5.4-nano"] = {
           formatted_name = "GPT 5.4 Nano",
           meta = { context_window = 400000 },
-          opts = { has_vision = true, can_reason = true, can_form_structured_outputs = true },
+          opts = {
+            can_form_structured_outputs = true,
+            can_manage_context = true,
+            can_use_tools = true,
+            has_vision = true,
+            can_reason = true,
+          },
         },
         ["gpt-5"] = {
-          formatted_name = "GPT 5",
+          formatted_name = "GPT-5",
           meta = { context_window = 400000 },
-          opts = { has_vision = true, can_reason = true, can_form_structured_outputs = true },
-        },
-        ["gpt-5-mini"] = {
-          formatted_name = "GPT 5 Mini",
-          meta = { context_window = 400000 },
-          opts = { has_vision = true, can_reason = true, can_form_structured_outputs = true },
-        },
-        ["gpt-5-nano"] = {
-          formatted_name = "GPT 5 Nano",
-          meta = { context_window = 400000 },
-          opts = { has_vision = true, can_reason = true, can_form_structured_outputs = true },
+          opts = {
+            can_form_structured_outputs = true,
+            can_manage_context = true,
+            can_use_tools = true,
+            has_vision = true,
+            can_reason = true,
+          },
         },
         ["gpt-4.1"] = {
-          formatted_name = "GPT 4.1",
+          formatted_name = "GPT-4.1",
           meta = { context_window = 1047576 },
-          opts = { has_vision = true, can_form_structured_outputs = true },
+          opts = {
+            can_form_structured_outputs = true,
+            can_manage_context = true,
+            can_use_tools = true,
+            has_vision = true,
+            can_reason = true,
+          },
         },
-        --
-        ["o4-mini-2025-04-16"] = {
-          formatted_name = "o4 Mini",
-          opts = { has_vision = true, can_reason = true, can_form_structured_outputs = true },
+
+        -- Codex models
+        ["gpt-5.3-codex"] = {
+          formatted_name = "GPT-5.3 Codex",
+
+          meta = { context_window = 400000 },
+          opts = { can_manage_context = true, can_use_tools = true, has_vision = true, can_reason = true },
         },
-        ["o3-mini-2025-01-31"] = {
-          formatted_name = "o3 Mini",
-          opts = { can_reason = true, can_form_structured_outputs = true },
+        ["gpt-5.2-codex"] = {
+          formatted_name = "GPT-5.2 Codex",
+          meta = { context_window = 400000 },
+
+          opts = { can_manage_context = true, can_use_tools = true, has_vision = true, can_reason = true },
         },
-        ["o3-2025-04-16"] = {
-          formatted_name = "o3",
-          opts = { has_vision = true, can_reason = true, can_form_structured_outputs = true },
+        ["gpt-5.1-codex-max"] = {
+          formatted_name = "GPT-5.1 Codex Max",
+          meta = { context_window = 400000 },
+          opts = { can_manage_context = true, can_use_tools = true, has_vision = true, can_reason = true },
         },
-        ["o1-2024-12-17"] = {
-          formatted_name = "o1",
-          opts = { has_vision = true, can_reason = true, can_form_structured_outputs = true },
+        ["gpt-5.1-codex"] = {
+          formatted_name = "GPT-5.1 Codex",
+          meta = { context_window = 400000 },
+          opts = { can_manage_context = true, can_use_tools = true, has_vision = true, can_reason = true },
         },
-        ["gpt-4o"] = {
-          formatted_name = "GPT-4o",
-          opts = { has_vision = true, can_form_structured_outputs = true },
+        ["gpt-5-codex"] = {
+          formatted_name = "GPT-5 Codex",
+          meta = { context_window = 400000 },
+          opts = { can_manage_context = true, can_use_tools = true, has_vision = true, can_reason = true },
         },
-        ["gpt-4o-mini"] = {
-          formatted_name = "GPT-4o Mini",
-          opts = { has_vision = true, can_form_structured_outputs = true },
+        -- ChatGPT models
+        ["gpt-5-chat-latest"] = {
+          formatted_name = "GPT-5 Chat",
+          opts = { can_use_tools = true, has_vision = true },
         },
-        ["gpt-4-turbo-preview"] = {
-          formatted_name = "GPT-4 Turbo Preview",
-          opts = { has_vision = true },
-        },
-        "gpt-4",
-        "gpt-3.5-turbo",
       },
     },
-    reasoning_effort = {
+    ["reasoning.effort"] = {
       order = 2,
       mapping = "parameters",
       type = "string",
@@ -563,14 +831,43 @@ return {
       default = "medium",
       desc = "Constrains effort on reasoning for reasoning models. Reducing reasoning effort can result in faster responses and fewer tokens used on reasoning in a response.",
       choices = {
+        "xhigh",
         "high",
         "medium",
         "low",
-        "minimal",
+        "none",
+      },
+    },
+    ["reasoning.summary"] = {
+      order = 3,
+      mapping = "parameters",
+      type = "string",
+      optional = true,
+      ---@type fun(self: CodeCompanion.HTTPAdapter): boolean
+      enabled = function(self)
+        local model = self.schema.model.default
+        if type(model) == "function" then
+          model = model()
+        end
+        local choices = self.schema.model.choices
+        if type(choices) == "function" then
+          choices = choices(self)
+        end
+        if choices and choices[model] and choices[model].opts and choices[model].opts.can_reason then
+          return true
+        end
+        return false
+      end,
+      default = "auto",
+      desc = "A summary of the reasoning performed by the model. This can be useful for debugging and understanding the model's reasoning process.",
+      choices = {
+        "auto",
+        "concise",
+        "detailed",
       },
     },
     temperature = {
-      order = 3,
+      order = 4,
       mapping = "parameters",
       type = "number",
       optional = true,
@@ -580,33 +877,31 @@ return {
         return n >= 0 and n <= 2, "Must be between 0 and 2"
       end,
     },
+    top_logprobs = {
+      order = 5,
+      mapping = "parameters",
+      type = "number",
+      optional = true,
+      default = nil,
+      desc = "An integer between 0 and 20 specifying the number of most likely tokens to return at each token position, each with an associated log probability.",
+      validate = function(n)
+        return n >= 0 and n <= 20, "Must be between 0 and 20"
+      end,
+    },
     top_p = {
-      order = 4,
+      order = 6,
       mapping = "parameters",
       type = "number",
       optional = true,
       default = 1,
       desc = "An alternative to sampling with temperature, called nucleus sampling, where the model considers the results of the tokens with top_p probability mass. So 0.1 means only the tokens comprising the top 10% probability mass are considered. We generally recommend altering this or temperature but not both.",
+      enabled = false,
       validate = function(n)
         return n >= 0 and n <= 1, "Must be between 0 and 1"
       end,
     },
-    stop = {
-      order = 5,
-      mapping = "parameters",
-      type = "list",
-      optional = true,
-      default = nil,
-      subtype = {
-        type = "string",
-      },
-      desc = "Up to 4 sequences where the API will stop generating further tokens.",
-      validate = function(l)
-        return #l >= 1 and #l <= 4, "Must have between 1 and 4 elements"
-      end,
-    },
-    max_tokens = {
-      order = 6,
+    max_output_tokens = {
+      order = 7,
       mapping = "parameters",
       type = "integer",
       optional = true,
@@ -616,55 +911,18 @@ return {
         return n > 0, "Must be greater than 0"
       end,
     },
-    presence_penalty = {
-      order = 7,
-      mapping = "parameters",
-      type = "number",
-      optional = true,
-      default = 0,
-      desc = "Number between -2.0 and 2.0. Positive values penalize new tokens based on whether they appear in the text so far, increasing the model's likelihood to talk about new topics.",
-      validate = function(n)
-        return n >= -2 and n <= 2, "Must be between -2 and 2"
-      end,
-    },
-    frequency_penalty = {
+    verbosity = {
       order = 8,
-      mapping = "parameters",
-      type = "number",
-      optional = true,
-      default = 0,
-      desc = "Number between -2.0 and 2.0. Positive values penalize new tokens based on their existing frequency in the text so far, decreasing the model's likelihood to repeat the same line verbatim.",
-      validate = function(n)
-        return n >= -2 and n <= 2, "Must be between -2 and 2"
-      end,
-    },
-    logit_bias = {
-      order = 9,
-      mapping = "parameters",
-      type = "map",
-      optional = true,
-      default = nil,
-      desc = "Modify the likelihood of specified tokens appearing in the completion. Maps tokens (specified by their token ID) to an associated bias value from -100 to 100. Use https://platform.openai.com/tokenizer to find token IDs.",
-      subtype_key = {
-        type = "integer",
-      },
-      subtype = {
-        type = "integer",
-        validate = function(n)
-          return n >= -100 and n <= 100, "Must be between -100 and 100"
-        end,
-      },
-    },
-    user = {
-      order = 10,
-      mapping = "parameters",
+      mapping = "parameters.text",
       type = "string",
       optional = true,
-      default = nil,
-      desc = "A unique identifier representing your end-user, which can help OpenAI to monitor and detect abuse. Learn more.",
-      validate = function(u)
-        return u:len() < 100, "Cannot be longer than 100 characters"
-      end,
+      default = "medium",
+      desc = "Determines how many output tokens are generated. Use high when you wish to have thorough explanations and low for concise answers or simple code generation.",
+      choices = {
+        "low",
+        "medium",
+        "high",
+      },
     },
   },
 }

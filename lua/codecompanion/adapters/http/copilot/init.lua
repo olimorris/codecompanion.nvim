@@ -38,7 +38,7 @@ local function handlers(adapter)
   if model_opts.endpoint == "responses" then
     adapter.url = "https://api.githubcopilot.com/responses"
 
-    local responses = require("codecompanion.adapters.http.openai_responses")
+    local responses = require("codecompanion.adapters.http.openai")
 
     -- Backwards compatibility for handlers
     responses.handlers.setup = function(self)
@@ -79,7 +79,7 @@ local function handlers(adapter)
   end
 
   adapter.url = "https://api.githubcopilot.com/chat/completions"
-  return require("codecompanion.adapters.http.openai").handlers
+  return require("codecompanion.adapters.http.openai_legacy").handlers
 end
 
 ---@class CodeCompanion.HTTPAdapter.Copilot: CodeCompanion.HTTPAdapter
