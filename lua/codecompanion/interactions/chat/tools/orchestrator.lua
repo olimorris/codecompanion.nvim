@@ -446,6 +446,8 @@ function Orchestrator:_prompt_for_approval(args)
         keymap = keys.cancel,
         label = labels.cancel,
         callback = function()
+          -- Stop queued workflow prompts from auto-submitting once the chat is handed back
+          self.tools.chat:dispatch("on_cancelled")
           self:cancel()
         end,
       },

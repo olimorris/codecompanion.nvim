@@ -35,6 +35,8 @@ Core: `lua/codecompanion/`
 
 - **Interactions** (`interactions/`): `chat/`, `inline/`, `cmd.lua`, `init.lua` (workflows)
 - **Adapters** (`adapters/`): `http/` (Anthropic, OpenAI, Copilot, Ollama, Gemini, etc.), `acp/` (Claude Code, Codex, etc.)
+- **Harness:** for HTTP adapters, CodeCompanion is the harness - system prompt, tools, approvals, context management and the agent loop. ACP adapters bring their own harness, which is why the built-in tools are HTTP-only
+- **Agent loop** (`interactions/chat/agent_loop.lua`): response → run tools (`tools/orchestrator.lua`) → send output back, repeating until the LLM responds without a tool call. Stop and Cancel end the loop; Reject sends the rejection to the LLM and the loop carries on
 - **Tools** (`interactions/chat/tools/builtin/`): `ask_questions`, `run_command`, `read_file`, `create_file`, `delete_file`, `edit_file/`, `grep_search`, `file_search`, `web_search`, `fetch_webpage`, `memory`, `get_changed_files`, `get_diagnostics`, `cmd_tool` (factory for custom command tools)
 - **Slash Commands** (`interactions/chat/slash_commands/builtin/`): `/buffer`, `/command`, `/compact`, `/fetch`, `/file`, `/help`, `/image`, `/mcp`, `/mode`, `/now`, `/rules`, `/symbols`
 - **Editor Context** (`interactions/chat/editor_context/`): `buffer`, `buffers`, `diagnostics`, `diff`, `messages`, `quickfix`, `selection`, `terminal`, `viewport`

@@ -80,6 +80,10 @@ local function setup_with_tools_and_approval_stub(n_tools, choice_label)
       return submit(self, opts)
     end
 
+    if _G.queue_workflow_prompt then
+      chat.subscribers:subscribe({ data = { opts = { auto_submit = true } }, callback = function() end })
+    end
+
     -- Stub approval_prompt to auto-select a choice by label
     local ap = require("codecompanion.interactions.chat.helpers.approval_prompt")
     ap.request = function(_, opts)
@@ -151,6 +155,14 @@ T["cancelling a tool ENDS the agent loop"] = function()
   setup_with_tools_and_approval_stub(2, "Cancel")
 
   h.eq(child.lua_get("_G.executed or {}"), {})
+  h.eq(child.lua_get("_G.submitted"), 0)
+end
+
+T["cancelling a tool DOES NOT submit a queued workflow prompt"] = function()
+  child.lua([[_G.queue_workflow_prompt = true]])
+  setup_with_tools_and_approval_stub(1, "Cancel")
+  child.lua([[vim.wait(700)]])
+
   h.eq(child.lua_get("_G.submitted"), 0)
 end
 

@@ -1,6 +1,6 @@
 local M = {}
 
----Decide what happens once the LLM's response is in the chat buffer
+---The steps taken after an LLM's response is in the chat buffer
 ---@param chat CodeCompanion.Chat
 ---@param opts? { tool_calls?: table, error?: string }
 ---@return nil
@@ -13,12 +13,10 @@ function M.after_response(chat, opts)
 
   chat:checkpoint()
 
-  -- A message queued during the request is submitted now so the LLM sees it
   if chat._btw then
     return chat:submit({ auto_submit = true })
   end
 
-  -- A compaction request ends the turn itself once its summary lands
   if require("codecompanion.interactions.chat.context_management").apply(chat) then
     return
   end
