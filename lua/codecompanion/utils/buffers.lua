@@ -59,6 +59,18 @@ end
 ---@param bufnr number
 ---@return table
 function M.get_info(bufnr)
+  if not api.nvim_buf_is_valid(bufnr) then
+    return {
+      bufnr = bufnr,
+      filetype = "",
+      name = "[invalid buffer]",
+      number = bufnr,
+      path = "[invalid buffer]",
+      relative_path = "[invalid buffer]",
+      short_path = "[invalid buffer]",
+    }
+  end
+
   local bufname = api.nvim_buf_get_name(bufnr)
 
   return {
