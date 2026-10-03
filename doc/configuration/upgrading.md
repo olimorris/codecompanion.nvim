@@ -123,6 +123,27 @@ require("codecompanion").setup({
 })
 ```
 
+### Slash Commands
+
+- The `/image` slash command has been removed. Select an image with [/file](/usage/chat-buffer/slash-commands#file) instead, or use the new [/file-from-url](/usage/chat-buffer/slash-commands#file-from-url) slash command for an image at a URL. If you set `opts.dirs` for `/image`, move it to `/file`. `opts.filetypes` and `opts.provider` have no equivalent and can be deleted:
+
+```lua
+require("codecompanion").setup({
+  interactions = {
+    chat = {
+      slash_commands = {
+        ["image"] = { -- [!code --]
+        ["file"] = { -- [!code ++]
+          opts = {
+            dirs = { "~/Pictures" },
+          },
+        },
+      },
+    },
+  },
+})
+```
+
 ### Tools
 
 - The `insert_edit_into_file` tool has been replaced by [edit_file](/usage/chat-buffer/agents-tools#edit-file) ([#3427](https://github.com/olimorris/codecompanion.nvim/pull/3427)). It takes the same options, so rename any references in your config, custom groups and prompts:

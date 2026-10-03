@@ -327,7 +327,7 @@ require("codecompanion").setup({
   interactions = {
     chat = {
       slash_commands = {
-        ["image"] = {
+        ["file-from-url"] = {
           ---@param opts { adapter: CodeCompanion.HTTPAdapter }
           ---@return boolean
           enabled = function(opts)

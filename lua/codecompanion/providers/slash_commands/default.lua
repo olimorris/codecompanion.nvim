@@ -79,39 +79,6 @@ function Default:urls(urls)
   return self
 end
 
----Find images in a set of paths
----@param paths table
----@param filetypes table
-function Default:images(paths, filetypes)
-  local patterns
-  if filetypes and next(filetypes) then
-    patterns = vim
-      .iter(filetypes)
-      :map(function(filetype)
-        return "*." .. filetype
-      end)
-      :totable()
-  end
-
-  local files = {}
-  for _, path in ipairs(paths) do
-    vim.list_extend(files, files_utils.scan_directory(path, { max_depth = 5, patterns = patterns }))
-  end
-
-  self.to_display = vim
-    .iter(files)
-    :map(function(file)
-      return { relative_path = vim.fn.fnamemodify(file, ":."), path = file }
-    end)
-    :totable()
-
-  self.to_format = function(item)
-    return item.relative_path
-  end
-
-  return self
-end
-
 ---The function to display the provider
 ---@return function
 function Default:display()

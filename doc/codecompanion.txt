@@ -866,8 +866,9 @@ commands work as they do with any other adapter:
 
 **A buffer or file is shared as its path, and the agent reads it from disk, so
 save your changes first.** Everything else, such as `#{selection}`,
-`#{diagnostics}` and `#{terminal}`, is sent as text. `/image` works with agents
-that accept images, which includes Claude Code.
+`#{diagnostics}` and `#{terminal}`, is sent as text. An image added with
+`/file` is sent as an image to agents that accept them, which includes Claude
+Code.
 
 
 PASSING MCP SERVERS TO THE AGENT ~
@@ -2871,10 +2872,12 @@ IMAGES / VISION ~
 
 Many LLMs have the ability to receive images as input (sometimes referred to as
 vision). CodeCompanion supports the adding of images into the chat buffer via
-the |codecompanion-usage-chat-buffer-slash-commands-image| slash command and
-through the system clipboard with |codecompanion-installation-img-clip-nvim|.
-CodeCompanion can work with images in your file system and also with remote
-URLs, encoding both into a base64 representation.
+the |codecompanion-usage-chat-buffer-slash-commands-file| and
+|codecompanion-usage-chat-buffer-slash-commands-file-from-url| slash commands
+and through the system clipboard with
+|codecompanion-installation-img-clip-nvim|. CodeCompanion can work with images
+in your file system and also with remote URLs, encoding both into a base64
+representation.
 
 If your adapter and model doesn't support images, then CodeCompanion will
 endeavour to ensure that the image is not included in the messages payload
@@ -4182,8 +4185,9 @@ Paths may be relative or use `~`.
 
 **Images**
 
-Selecting an image sends it to the LLM as an image rather than as file content,
-in the same way as the |codecompanion--image| slash command.
+Selecting a gif, jpeg, png or webp image sends it to the LLM as an image rather
+than as file content. The adapter must support vision, otherwise the image
+isn't added.
 
 **PDFs**
 
@@ -4207,6 +4211,15 @@ instead of file contents.
 - Select multiple files: `⇥ tab`
 
 Please note that these mappings may be different depending on your provider.
+
+
+/FILE-FROM-URL ~
+
+The `file-from-url` slash command downloads a file and adds it to the chat
+buffer, in the same way as |codecompanion--file|. Images and PDFs are sent as
+attachments and anything else as file content, with the URL shown in place of
+the file path. A webpage is handed to the |codecompanion--fetch| slash command
+instead.
 
 
 /FORK ~
@@ -4244,15 +4257,6 @@ The `help` slash command allows you to add content from a vim help file
 only available for `Telescope`, `mini.pick`, `fzf_lua` and `snacks.nvim`
 providers. By default, the slash command will prompt you to trim a help file
 that is over 1,000 lines in length.
-
-
-/IMAGE ~
-
-The `image` slash command allows you to add images into a chat buffer via
-remote URLs and through your file system. In the config for the slash command,
-you can specify a group of directories (with `opts.dirs`) that the image picker
-will always search in, alongside the current working directory. Currently the
-image picker is only available with `snacks.nvim` and the `vim.ui.select`.
 
 
 /RULES ~
@@ -11755,6 +11759,28 @@ the flat format, such as `form_messages` and `chat_output`, are unaffected.
               },
             })
           end,
+        },
+      },
+    })
+<
+
+
+SLASH COMMANDS
+
+- The `/image` slash command has been removed. Select an image with |codecompanion-usage-chat-buffer-slash-commands-file| instead, or use the new |codecompanion-usage-chat-buffer-slash-commands-file-from-url| slash command for an image at a URL. If you set `opts.dirs` for `/image`, move it to `/file`. `opts.filetypes` and `opts.provider` have no equivalent and can be deleted:
+
+>lua
+    require("codecompanion").setup({
+      interactions = {
+        chat = {
+          slash_commands = {
+            ["image"] = { -- [!code --]
+            ["file"] = { -- [!code ++]
+              opts = {
+                dirs = { "~/Pictures" },
+              },
+            },
+          },
         },
       },
     })
