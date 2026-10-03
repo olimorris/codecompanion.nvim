@@ -480,16 +480,17 @@ require("codecompanion").setup({
             },
           },
           handlers = {
-            setup = function(self)
-              return true
-            end,
-            auth = function(self)
-              return true
-            end,
-            form_messages = function(self, messages, capabilities)
-              return helpers.form_messages(self, messages, capabilities)
-            end,
-            on_exit = function(self, code) end,
+            lifecycle = {
+              setup = function(self)
+                return true
+              end,
+              auth = function(self)
+                return true
+              end,
+            },
+            request = {
+              build_messages = helpers.build_messages,
+            },
           },
         }
       end,

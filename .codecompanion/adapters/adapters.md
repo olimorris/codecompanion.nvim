@@ -17,9 +17,9 @@ handlers = {
 
     ---Called after request completes
     ---@param self CodeCompanion.HTTPAdapter
-    ---@param data table
+    ---@param args { data?: table }
     ---@return nil
-    on_exit = function(self, data) end,
+    on_exit = function(self, args) end,
 
     ---Called during adapter cleanup
     ---@param self CodeCompanion.HTTPAdapter
@@ -31,76 +31,86 @@ handlers = {
   request = {
     ---Build request parameters
     ---@param self CodeCompanion.HTTPAdapter
-    ---@param params table
-    ---@param messages table
+    ---@param args { params: table, messages: table }
     ---@return table
-    build_parameters = function(self, params, messages) end,
+    build_parameters = function(self, args) end,
 
     ---Build message format for LLM
     ---@param self CodeCompanion.HTTPAdapter
-    ---@param messages table
+    ---@param args { messages: table }
     ---@return table
-    build_messages = function(self, messages) end,
+    build_messages = function(self, args) end,
 
     ---Build tools schema
     ---@param self CodeCompanion.HTTPAdapter
-    ---@param tools table
+    ---@param args { tools?: table }
     ---@return table|nil
-    build_tools = function(self, tools) end,
+    build_tools = function(self, args) end,
+
+    ---Build structured output schema
+    ---@param self CodeCompanion.HTTPAdapter
+    ---@param args { schema?: CodeCompanion.StructuredOutput.Schema }
+    ---@return table|nil
+    build_structured_output = function(self, args) end,
 
     ---Build reasoning parameters (for models that support it)
     ---@param self CodeCompanion.HTTPAdapter
-    ---@param messages table
+    ---@param args { data: table }
     ---@return nil|{ content: string, _data: table }
-    build_reasoning = function(self, messages) end,
+    build_reasoning = function(self, args) end,
 
     ---Set additional body parameters
     ---@param self CodeCompanion.HTTPAdapter
-    ---@param data table
+    ---@param args { payload: CodeCompanion.HTTPPayload }
     ---@return table|nil
-    build_body = function(self, data) end,
+    build_body = function(self, args) end,
   },
 
   -- Response parsers (pure transforms)
   response = {
     ---Parse chat response
     ---@param self CodeCompanion.HTTPAdapter
-    ---@param data string|table
-    ---@param tools? table
+    ---@param args { data: string|table, tools?: table }
     ---@return { status: string, output: table }|nil
-    parse_chat = function(self, data, tools) end,
+    parse_chat = function(self, args) end,
 
     ---Parse inline response
     ---@param self CodeCompanion.HTTPAdapter
-    ---@param data string|table
-    ---@param context? table
+    ---@param args { data: string|table, context?: table }
     ---@return { status: string, output: string }|nil
-    parse_inline = function(self, data, context) end,
+    parse_inline = function(self, args) end,
 
     ---Extract token count
     ---@param self CodeCompanion.HTTPAdapter
-    ---@param data table
+    ---@param args { data: table }
     ---@return number|nil
-    parse_tokens = function(self, data) end,
+    parse_tokens = function(self, args) end,
+
+    ---Process non-standard fields returned by parse_chat
+    ---@param self CodeCompanion.HTTPAdapter
+    ---@param args { data: table }
+    ---@return table
+    parse_meta = function(self, args) end,
   },
 
   -- Tool handlers (grouped functionality)
   tools = {
     ---Format tool calls for inclusion in request
     ---@param self CodeCompanion.HTTPAdapter
-    ---@param tools table
+    ---@param args { tools: table }
     ---@return table
-    format_calls = function(self, tools) end,
+    format_calls = function(self, args) end,
 
     ---Format tool response for LLM
     ---@param self CodeCompanion.HTTPAdapter
-    ---@param tool_call table
-    ---@param output string
+    ---@param args { tool_call: table, output: string }
     ---@return table
-    format_response = function(self, tool_call, output) end,
+    format_response = function(self, args) end,
   },
 }
 ```
+
+Every handler takes `self` and a single `args` table, so a new field can be added without breaking existing handlers, and a wrapper can pass `args` straight through. `setup` and `teardown` only take `self`.
 
 This structure provides clear separation of concerns:
 - **lifecycle**: Side effects and initialization (setup, teardown, cleanup)
@@ -135,8 +145,8 @@ Throughout CodeCompanion, handlers are called using the `adapters.call_handler()
 local adapters = require("codecompanion.adapters")
 
 -- Call a handler
-local result = adapters.call_handler(adapter, "parse_chat", data, tools)
-local tokens = adapters.call_handler(adapter, "parse_tokens", data)
+local result = adapters.call_handler(adapter, "parse_chat", { data = data, tools = tools })
+local tokens = adapters.call_handler(adapter, "parse_tokens", { data = data })
 
 -- Handler automatically receives adapter as first argument
 local setup_ok = adapters.call_handler(adapter, "setup")
@@ -160,7 +170,9 @@ handlers = {
 }
 ```
 
-When calling handlers with the new names (e.g., `build_messages`), they automatically map to old names (e.g., `form_messages`) if the adapter uses the old format. The format is detected by checking for the presence of `lifecycle`, `request`, or `response` categories.
+When calling handlers with the new names (e.g., `build_messages`), they automatically map to old names (e.g., `form_messages`) if the adapter uses the old format, and the `args` table is unpacked into positional arguments in the order the old handler expects. The format is detected by checking for the presence of `lifecycle`, `request`, or `response` categories.
+
+ACP adapters use the same nested format (`lifecycle.setup`, `lifecycle.auth`, `lifecycle.on_exit` and `request.build_messages`). Unlike HTTP, a flat ACP handler such as `form_messages` is checked first, so a user's flat override still wins when they extend a built-in adapter.
 
 **Note**: The `tools` namespace has always existed in both old and new formats, so it cannot be used alone to detect the new format.
 
@@ -186,7 +198,7 @@ This is the logic for the HTTP adapters. Various logic sits within this file whi
 
 ### Example Adapter: OpenAI Responses
 
-@./lua/codecompanion/adapters/http/openai_responses.lua
+@./lua/codecompanion/adapters/http/openai.lua
 
 Sharing an example HTTP adapter for OpenAI Responses. This adapter uses the new handler structure
 
@@ -210,4 +222,4 @@ The http.lua module implements a provider-agnostic HTTP client for CodeCompanion
 ## Tests
 
 @./tests/adapters/test_adapters.lua
-@./tests/adapters/http/test_openai_responses.lua
+@./tests/adapters/http/test_openai.lua

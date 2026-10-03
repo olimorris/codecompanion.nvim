@@ -521,6 +521,35 @@ T["ACP Adapter"]["extend deep-merges defaults and env onto the adapter"] = funct
   h.eq(10000, result.timeout)
 end
 
+T["ACP Adapter"]["call_handler passes an args table to nested handlers"] = function()
+  local result = child.lua([[
+    local adapters = require("codecompanion.adapters")
+    local adapter = adapters.extend("claude_code")
+    return adapters.call_handler(adapter, "build_messages", {
+      messages = { { role = "user", content = "Hello", _meta = {} } },
+      capabilities = { promptCapabilities = {} },
+    })
+  ]])
+
+  h.eq({ { type = "text", text = "Hello" } }, result)
+end
+
+T["ACP Adapter"]["call_handler prefers a flat handler from the user's config over a nested one"] = function()
+  local result = child.lua([[
+    local adapters = require("codecompanion.adapters")
+    local adapter = adapters.extend("claude_code", {
+      handlers = {
+        form_messages = function(self, messages, capabilities)
+          return { flat = true, messages = messages, capabilities = capabilities }
+        end,
+      },
+    })
+    return adapters.call_handler(adapter, "build_messages", { messages = { "hello" }, capabilities = { image = true } })
+  ]])
+
+  h.eq({ flat = true, messages = { "hello" }, capabilities = { image = true } }, result)
+end
+
 T["ACP Adapter"]["can extend an adapter"] = function()
   local result = child.lua([[
     local adapter = require("codecompanion.adapters").extend(_G.test_acp_adapter)
@@ -886,18 +915,18 @@ T["Adapter"]["call_handler"]["works with nested handlers"] = function()
       type = "http",
       handlers = {
         request = {
-          build_messages = function(self, messages)
-            return { processed = true, messages = messages }
+          build_messages = function(self, args)
+            return { processed = true, messages = args.messages }
           end,
-          build_parameters = function(self, params, messages)
-            return { processed_params = params }
+          build_parameters = function(self, args)
+            return { processed_params = args.params }
           end
         },
         response = {
-          parse_chat = function(self, data, tools)
-            return { status = "success", output = { content = data } }
+          parse_chat = function(self, args)
+            return { status = "success", output = { content = args.data } }
           end,
-          parse_tokens = function(self, data)
+          parse_tokens = function(self, args)
             return 42
           end
         }
@@ -905,10 +934,10 @@ T["Adapter"]["call_handler"]["works with nested handlers"] = function()
     }
 
     return {
-      messages = adapters.call_handler(adapter, "build_messages", { "hello" }),
-      parameters = adapters.call_handler(adapter, "build_parameters", { temp = 1 }, {}),
-      chat = adapters.call_handler(adapter, "parse_chat", "test data", {}),
-      tokens = adapters.call_handler(adapter, "parse_tokens", {})
+      messages = adapters.call_handler(adapter, "build_messages", { messages = { "hello" } }),
+      parameters = adapters.call_handler(adapter, "build_parameters", { params = { temp = 1 }, messages = {} }),
+      chat = adapters.call_handler(adapter, "parse_chat", { data = "test data", tools = {} }),
+      tokens = adapters.call_handler(adapter, "parse_tokens", { data = {} })
     }
   ]])
 
@@ -944,10 +973,10 @@ T["Adapter"]["call_handler"]["works with old flat handler structure"] = function
 
     -- Call using new names, should map to old names via compatibility layer
     return {
-      messages = adapters.call_handler(adapter, "build_messages", { "world" }),
-      parameters = adapters.call_handler(adapter, "build_parameters", { temp = 2 }, {}),
-      chat = adapters.call_handler(adapter, "parse_chat", "old data", {}),
-      tokens = adapters.call_handler(adapter, "parse_tokens", {})
+      messages = adapters.call_handler(adapter, "build_messages", { messages = { "world" } }),
+      parameters = adapters.call_handler(adapter, "build_parameters", { params = { temp = 2 }, messages = {} }),
+      chat = adapters.call_handler(adapter, "parse_chat", { data = "old data", tools = {} }),
+      tokens = adapters.call_handler(adapter, "parse_tokens", { data = {} })
     }
   ]])
 
@@ -968,8 +997,8 @@ T["Adapter"]["call_handler"]["returns nil for missing handlers"] = function()
     }
 
     return {
-      missing = adapters.call_handler(adapter, "non_existent_handler", "data"),
-      also_missing = adapters.call_handler(adapter, "another_missing", "more data")
+      missing = adapters.call_handler(adapter, "non_existent_handler", { data = "data" }),
+      also_missing = adapters.call_handler(adapter, "another_missing", { data = "more data" })
     }
   ]])
 
@@ -1018,8 +1047,8 @@ T["Adapter"]["call_handler"]["works with lifecycle handlers"] = function()
           setup = function(self)
             return true
           end,
-          on_exit = function(self, data)
-            return "cleaned_up_" .. data.status
+          on_exit = function(self, args)
+            return "cleaned_up_" .. args.data.status
           end,
           teardown = function(self)
             return "torn_down"
@@ -1030,7 +1059,7 @@ T["Adapter"]["call_handler"]["works with lifecycle handlers"] = function()
 
     return {
       setup = adapters.call_handler(adapter, "setup"),
-      on_exit = adapters.call_handler(adapter, "on_exit", { status = 200 }),
+      on_exit = adapters.call_handler(adapter, "on_exit", { data = { status = 200 } }),
       teardown = adapters.call_handler(adapter, "teardown")
     }
   ]])
@@ -1052,14 +1081,14 @@ T["Adapter"]["call_handler"]["works with tool handlers"] = function()
         -- Add a lifecycle handler to make it clear this is new format
         lifecycle = {},
         tools = {
-          format_calls = function(self, tools)
-            return { formatted = true, tools = tools }
+          format_calls = function(self, args)
+            return { formatted = true, tools = args.tools }
           end,
-          format_response = function(self, tool_call, output)
+          format_response = function(self, args)
             return {
               role = self.roles.tool,
-              content = output,
-              tool_call_id = tool_call.id
+              content = args.output,
+              tool_call_id = args.tool_call.id
             }
           end
         }
@@ -1067,8 +1096,8 @@ T["Adapter"]["call_handler"]["works with tool handlers"] = function()
     }
 
     return {
-      format = adapters.call_handler(adapter, "format_calls", { { name = "test_tool" } }),
-      response = adapters.call_handler(adapter, "format_response", { id = "call_123" }, "tool output")
+      format = adapters.call_handler(adapter, "format_calls", { tools = { { name = "test_tool" } } }),
+      response = adapters.call_handler(adapter, "format_response", { tool_call = { id = "call_123" }, output = "tool output" })
     }
   ]])
 
@@ -1119,8 +1148,8 @@ T["Adapter"]["call_handler"]["works with tools in old flat format"] = function()
     }
 
     return {
-      format = adapters.call_handler(adapter, "format_calls", { { name = "old_tool" } }),
-      response = adapters.call_handler(adapter, "format_response", { id = "123" }, "data")
+      format = adapters.call_handler(adapter, "format_calls", { tools = { { name = "old_tool" } } }),
+      response = adapters.call_handler(adapter, "format_response", { tool_call = { id = "123" }, output = "data" })
     }
   ]])
 
@@ -1144,11 +1173,11 @@ T["Adapter"]["call_handler"]["handles multiple arguments correctly"] = function(
       type = "http",
       handlers = {
         request = {
-          build_parameters = function(self, params, messages)
+          build_parameters = function(self, args)
             return {
               adapter_name = self.name,
-              params_count = #params,
-              messages_count = #messages
+              params_count = #args.params,
+              messages_count = #args.messages
             }
           end
         }
@@ -1158,8 +1187,7 @@ T["Adapter"]["call_handler"]["handles multiple arguments correctly"] = function(
     return adapters.call_handler(
       adapter,
       "build_parameters",
-      { "p1", "p2", "p3" },
-      { "m1", "m2" }
+      { params = { "p1", "p2", "p3" }, messages = { "m1", "m2" } }
     )
   ]])
 

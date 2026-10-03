@@ -4,14 +4,13 @@ local tags = require("codecompanion.interactions.shared.tags")
 local M = {}
 
 ---@param self CodeCompanion.ACPAdapter
----@param messages table
----@param capabilities ACP.agentCapabilities
+---@param args { messages: table, capabilities: ACP.agentCapabilities }
 ---@return table
-M.form_messages = function(self, messages, capabilities)
-  local has = capabilities and capabilities.promptCapabilities
+M.build_messages = function(self, args)
+  local has = args.capabilities and args.capabilities.promptCapabilities
 
   return vim
-    .iter(messages)
+    .iter(args.messages)
     :filter(function(msg)
       -- Ensure we're only sending messages that the agent hasn't seen before
       return msg.role == self.roles.user and msg._meta and not msg._meta.sent
@@ -45,6 +44,15 @@ M.form_messages = function(self, messages, capabilities)
       end
     end)
     :totable()
+end
+
+---@deprecated Use `build_messages`, which takes an args table
+---@param self CodeCompanion.ACPAdapter
+---@param messages table
+---@param capabilities ACP.agentCapabilities
+---@return table
+M.form_messages = function(self, messages, capabilities)
+  return M.build_messages(self, { messages = messages, capabilities = capabilities })
 end
 
 return M

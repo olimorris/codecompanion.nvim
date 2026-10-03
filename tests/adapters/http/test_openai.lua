@@ -36,7 +36,7 @@ T["Responses"]["can form reasoning output"] = function()
     encrypted_content = "somefakebase64encoding",
   }
 
-  h.eq(expected, adapter.handlers.request.build_reasoning(adapter, input))
+  h.eq(expected, adapter.handlers.request.build_reasoning(adapter, { data = input }))
 end
 
 T["Responses"]["can output tool calls"] = function()
@@ -62,7 +62,7 @@ T["Responses"]["can output tool calls"] = function()
       id = "fc_0cf9af0f913994140068e27139a1948193bbf214a9664ec92c",
       name = "weather",
     },
-  }, adapter.handlers.tools.format_response(adapter, tool_call, output))
+  }, adapter.handlers.tools.format_response(adapter, { tool_call = tool_call, output = output }))
 end
 
 T["Responses"]["build_messages"] = new_set()
@@ -91,7 +91,7 @@ T["Responses"]["build_messages"]["messages only"] = function()
         content = messages[3].content,
       },
     },
-  }, adapter.handlers.request.build_messages(adapter, messages))
+  }, adapter.handlers.request.build_messages(adapter, { messages = messages }))
 end
 
 T["Responses"]["build_messages"]["images"] = function()
@@ -152,7 +152,7 @@ T["Responses"]["build_messages"]["images"] = function()
     },
   }
 
-  h.eq(expected, adapter.handlers.request.build_messages(adapter, messages))
+  h.eq(expected, adapter.handlers.request.build_messages(adapter, { messages = messages }))
 end
 
 T["Responses"]["build_messages"]["multiple consecutive images are not merged as text"] = function()
@@ -220,7 +220,7 @@ T["Responses"]["build_messages"]["multiple consecutive images are not merged as 
     },
   }
 
-  h.eq(expected, adapter.handlers.request.build_messages(adapter, messages))
+  h.eq(expected, adapter.handlers.request.build_messages(adapter, { messages = messages }))
 end
 
 T["Responses"]["build_messages"]["documents"] = function()
@@ -266,7 +266,7 @@ T["Responses"]["build_messages"]["documents"] = function()
     },
   }
 
-  h.eq(expected, adapter.handlers.request.build_messages(adapter, messages))
+  h.eq(expected, adapter.handlers.request.build_messages(adapter, { messages = messages }))
 end
 
 T["Responses"]["build_messages"]["only PDFs are converted into document blocks"] = function()
@@ -289,7 +289,7 @@ T["Responses"]["build_messages"]["only PDFs are converted into document blocks"]
     },
   }
 
-  local result = adapter.handlers.request.build_messages(adapter, messages)
+  local result = adapter.handlers.request.build_messages(adapter, { messages = messages })
 
   h.eq("somefakebase64encoding", result.input[1].content)
 end
@@ -340,7 +340,7 @@ T["Responses"]["build_messages"]["format tool calls"] = function()
     },
   }
 
-  h.eq({ input = expected }, adapter.handlers.request.build_messages(adapter, messages))
+  h.eq({ input = expected }, adapter.handlers.request.build_messages(adapter, { messages = messages }))
 end
 
 T["Responses"]["build_messages"]["pairs a tool call recorded by another endpoint on its own id"] = function()
@@ -372,7 +372,7 @@ T["Responses"]["build_messages"]["pairs a tool call recorded by another endpoint
     },
   }
 
-  h.eq({ input = expected }, adapter.handlers.request.build_messages(adapter, messages))
+  h.eq({ input = expected }, adapter.handlers.request.build_messages(adapter, { messages = messages }))
 end
 
 T["Responses"]["build_messages"]["drops reasoning recorded by another endpoint"] = function()
@@ -386,7 +386,7 @@ T["Responses"]["build_messages"]["drops reasoning recorded by another endpoint"]
 
   h.eq({
     input = { { role = "assistant", content = "Sorted" } },
-  }, adapter.handlers.request.build_messages(adapter, messages))
+  }, adapter.handlers.request.build_messages(adapter, { messages = messages }))
 end
 
 T["Responses"]["build_messages"]["format tool output"] = function()
@@ -422,7 +422,7 @@ T["Responses"]["build_messages"]["format tool output"] = function()
     },
   }
 
-  h.eq({ input = expected }, adapter.handlers.request.build_messages(adapter, messages))
+  h.eq({ input = expected }, adapter.handlers.request.build_messages(adapter, { messages = messages }))
 end
 
 T["Responses"]["build_messages"]["can handle reasoning"] = function()
@@ -516,7 +516,7 @@ T["Responses"]["build_messages"]["can handle reasoning"] = function()
     },
   }
 
-  local result = adapter.handlers.request.build_messages(adapter, messages)
+  local result = adapter.handlers.request.build_messages(adapter, { messages = messages })
 
   h.eq({
     summary = { {
@@ -559,7 +559,7 @@ T["Responses"]["build_tools"]["format available tools to call"] = function()
 
   -- We need to adjust the tools format slightly with Responses
   -- https://platform.openai.com/docs/api-reference/responses
-  h.eq({ tools = { expected } }, adapter.handlers.request.build_tools(adapter, tools))
+  h.eq({ tools = { expected } }, adapter.handlers.request.build_tools(adapter, { tools = tools }))
 end
 
 T["Responses"]["build_tools"]["can format for an adapter's remote tools"] = function()
@@ -575,7 +575,7 @@ T["Responses"]["build_tools"]["can format for an adapter's remote tools"] = func
     },
   }
 
-  h.eq({ tools = { { type = "web_search" } } }, adapter.handlers.request.build_tools(adapter, tools))
+  h.eq({ tools = { { type = "web_search" } } }, adapter.handlers.request.build_tools(adapter, { tools = tools }))
 end
 
 T["Responses"]["No Streaming"] = new_set({
@@ -597,7 +597,7 @@ T["Responses"]["No Streaming"]["chat_output"] = function()
   -- Match the format of the actual request
   local json = { body = data }
 
-  h.eq("Dynamic, expressive", adapter.handlers.response.parse_chat(adapter, json).output.content)
+  h.eq("Dynamic, expressive", adapter.handlers.response.parse_chat(adapter, { data = json }).output.content)
 end
 
 T["Responses"]["No Streaming"]["can process tools"] = function()
@@ -608,7 +608,7 @@ T["Responses"]["No Streaming"]["can process tools"] = function()
 
   -- Match the format of the actual request
   local json = { body = data }
-  adapter.handlers.response.parse_chat(adapter, json, tools)
+  adapter.handlers.response.parse_chat(adapter, { data = json, tools = tools })
 
   local tool_output = {
     {
@@ -644,7 +644,7 @@ T["Responses"]["No Streaming"]["can output for the inline assistant"] = function
 
   h.eq(
     '{"code": "print(\'Hello World\')","language": "lua","placement": "add"}',
-    adapter.handlers.response.parse_inline(adapter, json).output
+    adapter.handlers.response.parse_inline(adapter, { data = json }).output
   )
 end
 
@@ -657,14 +657,14 @@ T["Responses"]["No Streaming"]["can process reasoning output"] = function()
 
   h.expect_contains(
     "**Choosing descriptive terms**",
-    adapter.handlers.response.parse_chat(adapter, json).output.reasoning.content
+    adapter.handlers.response.parse_chat(adapter, { data = json }).output.reasoning.content
   )
 
   h.eq(
     "rs_0a10a8c968d594670168e91d0204ac8195b26b3e4de997f65c",
-    adapter.handlers.response.parse_chat(adapter, json).output.reasoning.id
+    adapter.handlers.response.parse_chat(adapter, { data = json }).output.reasoning.id
   )
-  h.eq("gAAAAABo6", adapter.handlers.response.parse_chat(adapter, json).output.reasoning.encrypted_content)
+  h.eq("gAAAAABo6", adapter.handlers.response.parse_chat(adapter, { data = json }).output.reasoning.encrypted_content)
 end
 
 T["Responses"]["Streaming"] = new_set()
@@ -673,7 +673,7 @@ T["Responses"]["Streaming"]["can output streamed data into the chat buffer"] = f
   local output = ""
   local lines = vim.fn.readfile("tests/adapters/http/stubs/openai_responses_streaming.txt")
   for _, line in ipairs(lines) do
-    local chat_output = adapter.handlers.response.parse_chat(adapter, line)
+    local chat_output = adapter.handlers.response.parse_chat(adapter, { data = line })
     if chat_output and chat_output.output.content then
       output = output .. chat_output.output.content
     end
@@ -686,7 +686,7 @@ T["Responses"]["Streaming"]["can process reasoning output"] = function()
   local output = ""
   local lines = vim.fn.readfile("tests/adapters/http/stubs/openai_responses_reasoning_streaming.txt")
   for _, line in ipairs(lines) do
-    local chat_output = adapter.handlers.response.parse_chat(adapter, line)
+    local chat_output = adapter.handlers.response.parse_chat(adapter, { data = line })
     if chat_output and chat_output.output and chat_output.output.reasoning and chat_output.output.reasoning.content then
       output = output .. chat_output.output.reasoning.content
     end
@@ -700,7 +700,7 @@ T["Responses"]["Streaming"]["can process tools"] = function()
   local tools = {}
   local lines = vim.fn.readfile("tests/adapters/http/stubs/openai_responses_tools_streaming.txt")
   for _, line in ipairs(lines) do
-    adapter.handlers.response.parse_chat(adapter, line, tools)
+    adapter.handlers.response.parse_chat(adapter, { data = line, tools = tools })
   end
 
   local expected = {
@@ -737,7 +737,7 @@ T["Responses"]["Compaction"]["build_messages includes context_management when en
     { role = "user", content = "Hello" },
   }
 
-  local result = adapter.handlers.request.build_messages(adapter, messages)
+  local result = adapter.handlers.request.build_messages(adapter, { messages = messages })
 
   h.not_eq(nil, result.context_management)
   h.eq("compaction", result.context_management[1].type)
@@ -753,7 +753,7 @@ T["Responses"]["Compaction"]["build_messages omits context_management when disab
     { role = "user", content = "Hello" },
   }
 
-  local result = adapter.handlers.request.build_messages(adapter, messages)
+  local result = adapter.handlers.request.build_messages(adapter, { messages = messages })
 
   h.eq(nil, result.context_management)
 
@@ -785,7 +785,7 @@ T["Responses"]["Compaction"]["build_messages replays compaction items from _meta
     },
   }
 
-  local result = adapter.handlers.request.build_messages(adapter, messages)
+  local result = adapter.handlers.request.build_messages(adapter, { messages = messages })
 
   -- The compaction item should appear before the assistant message
   h.eq(compaction_item, result.input[2])
@@ -810,7 +810,7 @@ T["Responses"]["Compaction"]["No Streaming"]["extracts compaction items from res
   data = table.concat(data, "\n")
 
   local json = { body = data }
-  local result = adapter.handlers.response.parse_chat(adapter, json)
+  local result = adapter.handlers.response.parse_chat(adapter, { data = json })
 
   h.eq("Here is the compacted response", result.output.content)
   h.not_eq(nil, result.output.meta.compaction)
@@ -826,7 +826,7 @@ T["Responses"]["Compaction"]["Streaming"]["extracts compaction items from respon
   local output = ""
   local lines = vim.fn.readfile("tests/adapters/http/stubs/openai_responses_compaction_streaming.txt")
   for _, line in ipairs(lines) do
-    local chat_output = adapter.handlers.response.parse_chat(adapter, line)
+    local chat_output = adapter.handlers.response.parse_chat(adapter, { data = line })
     if chat_output and chat_output.output then
       if chat_output.output.content then
         output = output .. chat_output.output.content
@@ -847,7 +847,7 @@ T["Responses"]["Compaction"]["Streaming"]["captures compaction from output_item.
   local compaction_items = nil
   local lines = vim.fn.readfile("tests/adapters/http/stubs/openai_responses_compaction_cancelled_streaming.txt")
   for _, line in ipairs(lines) do
-    local chat_output = adapter.handlers.response.parse_chat(adapter, line)
+    local chat_output = adapter.handlers.response.parse_chat(adapter, { data = line })
     if chat_output and chat_output.output then
       if chat_output.output.meta and chat_output.output.meta.compaction then
         compaction_items = chat_output.output.meta.compaction
@@ -876,7 +876,10 @@ T["Responses"]["resolves model capabilities on the first request"] = function()
   adapters.call_handler(adapter, "setup")
 
   h.eq(true, adapter.opts.can_form_structured_outputs)
-  h.not_eq(nil, adapters.call_handler(adapter, "build_structured_output", { name = "verdict", schema = {} }))
+  h.not_eq(
+    nil,
+    adapters.call_handler(adapter, "build_structured_output", { schema = { name = "verdict", schema = {} } })
+  )
 end
 
 return T

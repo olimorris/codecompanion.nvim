@@ -83,22 +83,22 @@ local T = MiniTest.new_set({
           schema = { model = { default = "dummy" } },
           handlers = {
             response = {
-              parse_chat = function(self, data, tools)
-                for _, tool in ipairs(data.tools or {}) do
-                  table.insert(tools, tool)
+              parse_chat = function(self, args)
+                for _, tool in ipairs(args.data.tools or {}) do
+                  table.insert(args.tools, tool)
                 end
                 return {
                   status = "success",
-                  output = { role = "assistant", content = data.content }
+                  output = { role = "assistant", content = args.data.content }
                 }
               end
             },
             tools = {
-              format_calls = function(self, llm_tool_calls)
-                return llm_tool_calls
+              format_calls = function(self, args)
+                return args.tools
               end,
-              format_response = function(self, llm_tool_call, mcp_output)
-                return { role = "tool", content = mcp_output }
+              format_response = function(self, args)
+                return { role = "tool", content = args.output }
               end,
             }
           },

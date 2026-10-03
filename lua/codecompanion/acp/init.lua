@@ -20,6 +20,7 @@
 
 local METHODS = require("codecompanion.acp.methods")
 local PromptBuilder = require("codecompanion.acp.prompt_builder")
+local acp_adapter = require("codecompanion.adapters.acp")
 local adapter_utils = require("codecompanion.adapters.utils")
 local async = require("codecompanion.utils.async")
 local config = require("codecompanion.config")
@@ -250,13 +251,8 @@ end
 ---@return boolean success
 function Connection:_authenticate()
   -- Allow adapters to handle authentication themselves
-  if
-    not self._authenticated
-    and self.adapter_modified
-    and self.adapter_modified.handlers
-    and self.adapter_modified.handlers.auth
-  then
-    local ok, result = pcall(self.adapter_modified.handlers.auth, self.adapter_modified)
+  if not self._authenticated and self.adapter_modified and acp_adapter.get_handler(self.adapter_modified, "auth") then
+    local ok, result = pcall(acp_adapter.call_handler, self.adapter_modified, "auth")
     if not ok then
       log:error("[acp::_authenticate] Adapter auth hook failed: %s", result)
       return false
@@ -486,8 +482,8 @@ function Connection:start_agent_process()
   local adapter = self:prepare_adapter()
   self.adapter_modified = adapter
 
-  if adapter.handlers and adapter.handlers.setup then
-    if not adapter.handlers.setup(adapter) then
+  if acp_adapter.get_handler(adapter, "setup") then
+    if not acp_adapter.call_handler(adapter, "setup") then
       log:error("[acp::start_agent_process] Adapter setup failed")
       return false
     end
@@ -929,8 +925,8 @@ end
 function Connection:handle_process_exit(code, signal)
   log:debug("[acp] Process exited (code=%s, signal=%s)", code, signal)
 
-  if self.adapter_modified and self.adapter_modified.handlers and self.adapter_modified.handlers.on_exit then
-    self.adapter_modified.handlers.on_exit(self.adapter_modified, code)
+  if self.adapter_modified then
+    acp_adapter.call_handler(self.adapter_modified, "on_exit", { code = code })
   end
 
   -- Fire any pending async callbacks so coroutines don't hang

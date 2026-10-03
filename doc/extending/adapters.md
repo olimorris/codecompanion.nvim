@@ -38,43 +38,43 @@ Everything up to the handlers should be self-explanatory. We're simply providing
 
 ## Handler Structure
 
-As of v17.27.0, handlers are organized into a nested structure that provides clear separation of concerns:
+As of v17.27.0, handlers are organized into a nested structure that provides clear separation of concerns. As of v20.0.0, every handler takes `self` and a single `args` table, so new fields can be added without breaking your adapter:
 
 ```lua
 handlers = {
   -- Lifecycle hooks (side effects and initialization)
   lifecycle = {
-    setup = function(self) end,      -- Called before request is sent
-    on_exit = function(self, data) end,  -- Called after request completes
-    teardown = function(self) end,   -- Called last, after on_exit
+    setup = function(self) end,          -- Called before request is sent
+    on_exit = function(self, args) end,  -- args.data. Called after request completes
+    teardown = function(self) end,       -- Called last, after on_exit
   },
 
   -- Request builders (pure transformations)
   request = {
-    build_parameters = function(self, params, messages) end,  -- Build request parameters
-    build_messages = function(self, messages) end,            -- Format messages for LLM
-    build_tools = function(self, tools) end,                  -- Transform tool schemas
-    build_reasoning = function(self, messages) end,           -- Build reasoning parameters
-    build_body = function(self, data) end,                    -- Set additional body parameters
+    build_parameters = function(self, args) end,  -- args.params, args.messages
+    build_messages = function(self, args) end,    -- args.messages
+    build_tools = function(self, args) end,       -- args.tools
+    build_reasoning = function(self, args) end,   -- args.data
+    build_body = function(self, args) end,        -- args.payload
   },
 
   -- Response parsers (pure transformations)
   response = {
-    parse_chat = function(self, data, tools) end,       -- Parse chat response
-    parse_inline = function(self, data, context) end,   -- Parse inline response
-    parse_tokens = function(self, data) end,            -- Extract token count
+    parse_chat = function(self, args) end,    -- args.data, args.tools
+    parse_inline = function(self, args) end,  -- args.data, args.context
+    parse_tokens = function(self, args) end,  -- args.data
   },
 
   -- Tool handlers (grouped functionality)
   tools = {
-    format_calls = function(self, tools) end,                          -- Format tool calls for request
-    format_response = function(self, tool_call, output) end,           -- Format tool response for LLM
+    format_calls = function(self, args) end,     -- args.tools
+    format_response = function(self, args) end,  -- args.tool_call, args.output
   },
 }
 ```
 
 > [!NOTE]
-> **Backwards Compatibility**: The old flat handler structure is still supported. Adapters using the old format (e.g., `form_parameters`, `form_messages`, `chat_output`) will continue to work. The plugin automatically detects and maps old handler names to the new structure.
+> **Backwards Compatibility**: The old flat handler structure is still supported. Adapters using the old format (e.g., `form_parameters`, `form_messages`, `chat_output`) will continue to work, and their handlers still take positional arguments. The plugin automatically detects and maps old handler names to the new structure.
 
 ## Environment Variables
 
@@ -230,13 +230,13 @@ results in the following output:
 
 ### `request.build_messages`
 
-The chat buffer's output is passed to this handler in the form of the `messages` parameter. So we can just output this as part of a messages table:
+The chat buffer's output is passed to this handler as `args.messages`. So we can just output this as part of a messages table:
 
 ```lua
 handlers = {
   request = {
-    build_messages = function(self, messages)
-      return { messages = messages }
+    build_messages = function(self, args)
+      return { messages = args.messages }
     end,
   },
 }
@@ -275,23 +275,23 @@ local utils = require("codecompanion.adapters.utils")
 
 handlers = {
   response = {
-    parse_chat = function(self, data)
-      data = utils.clean_streamed_data(data)
+    parse_chat = function(self, args)
+      local data = utils.clean_streamed_data(args.data)
     end,
   },
 }
 ```
 
 > [!IMPORTANT]
-> The data passed to the `parse_chat` handler is the response from OpenAI
+> The `args.data` passed to the `parse_chat` handler is the response from OpenAI
 
 We can then decode the JSON using native vim functions:
 
 ```lua
 handlers = {
   response = {
-    parse_chat = function(self, data)
-      data = utils.clean_streamed_data(data)
+    parse_chat = function(self, args)
+      local data = utils.clean_streamed_data(args.data)
       local ok, json = pcall(vim.json.decode, data, { luanil = { object = true } })
     end,
   },
@@ -305,7 +305,7 @@ Examining the output of the API, we see that the streamed data is stored in a `c
 ```lua
 handlers = {
   response = {
-    parse_chat = function(self, data)
+    parse_chat = function(self, args)
       ---
       local delta = json.choices[1].delta
     end,
@@ -318,7 +318,7 @@ and we can then access the new streamed data that we want to write into the chat
 ```lua
 handlers = {
   response = {
-    parse_chat = function(self, data)
+    parse_chat = function(self, args)
       local output = {}
       ---
       local delta = json.choices[1].delta
@@ -337,7 +337,7 @@ And then we can return the output in the following format:
 ```lua
 handlers = {
   response = {
-    parse_chat = function(self, data)
+    parse_chat = function(self, args)
       --
       return {
         status = "success",
@@ -353,11 +353,11 @@ Now if we put it all together, and put some checks in place to make sure that we
 ```lua
 handlers = {
   response = {
-    parse_chat = function(self, data)
+    parse_chat = function(self, args)
       local output = {}
 
-      if data and data ~= "" then
-        data = utils.clean_streamed_data(data)
+      if args.data and args.data ~= "" then
+        local data = utils.clean_streamed_data(args.data)
         local ok, json = pcall(vim.json.decode, data, { luanil = { object = true } })
 
         local delta = json.choices[1].delta
@@ -389,10 +389,11 @@ We can therefore use the following `parse_meta` handler to extract the reasoning
 handlers = {
   response = {
     ---@param self CodeCompanion.HTTPAdapter
-    --- `data` is the output of the `parse_chat` handler
-    ---@param data {status: string, output: {role: string?, content: string?}, extra: table}
+    --- `args.data` is the output of the `parse_chat` handler
+    ---@param args { data: {status: string, output: {role: string?, content: string?}, extra: table} }
     ---@return {status: string, output: {role: string?, content: string?, reasoning:{content: string?}?}}
-    parse_meta = function(self, data)
+    parse_meta = function(self, args)
+      local data = args.data
       local extra = data.extra
       if extra.reasoning_content then
         -- codecompanion expect the reasoning tokens in this format
@@ -412,7 +413,7 @@ Notes:
 
 1. You don't always have to set `data.output.content` to `nil`. This is mostly intended for `streaming`, and you may encounter issues in non-stream mode if you do that.
 2. It's expected that the processed `data` table is returned at the end.
-3. For adapters that are using the legacy flat handler formats, this handler should be named `handlers.parse_message_meta`. The function signature stays the same.
+3. For adapters that are using the legacy flat handler formats, this handler should be named `handlers.parse_message_meta` and takes `data` as a positional argument.
 
 ### `request.build_parameters`
 
@@ -421,8 +422,8 @@ For the purposes of the OpenAI adapter, no additional parameters need to be crea
 ```lua
 handlers = {
   request = {
-    build_parameters = function(self, params, messages)
-      return params
+    build_parameters = function(self, args)
+      return args.params
     end,
   },
 }
@@ -437,12 +438,11 @@ In the case of OpenAI, once we've checked the data we have back from the LLM and
 ```lua
 ---Output the data from the API ready for inlining into the current buffer
 ---@param self CodeCompanion.HTTPAdapter
----@param data table The streamed JSON data from the API
----@param context table Useful context about the buffer to inline to
+---@param args { data: table, context: table }
 ---@return string|table|nil
 handlers = {
   response = {
-    parse_inline = function(self, data, context)
+    parse_inline = function(self, args)
       -- Data cleansed, parsed and validated
       -- ..
       local content = json.choices[1].delta.content
@@ -454,7 +454,7 @@ handlers = {
 }
 ```
 
-The `parse_inline` handler also receives context from the buffer that initiated the request.
+The `parse_inline` handler also receives `args.context` from the buffer that initiated the request.
 
 ### `lifecycle.on_exit`
 
@@ -487,13 +487,13 @@ and that's much easier to work with:
 ```lua
 ---Function to run when the request has completed. Useful to catch errors
 ---@param self CodeCompanion.HTTPAdapter
----@param data table
+---@param args { data: table }
 ---@return nil
 handlers = {
   lifecycle = {
-    on_exit = function(self, data)
-      if data.status >= 400 then
-        log:error("Error: %s", data.body)
+    on_exit = function(self, args)
+      if args.data.status >= 400 then
+        log:error("Error: %s", args.data.body)
       end
     end,
   },
@@ -625,15 +625,15 @@ In order to enable your adapter to make use of [Function Calling](https://platfo
 - `tools.format_calls` - which [formats](https://platform.openai.com/docs/guides/function-calling?api-mode=chat#handling-function-calls) the adapters tool calls and puts them into the http request
 - `tools.format_response` - which formats and outputs the adapter's tool call so it can be included in the chat buffer's messages stack
 
-You will also need to ensure that `opts.tools = true` and the `parse_chat` handler has tools included as an optional final parameter like `parse_chat = function(self, data, tools)`. From experience, whilst many LLMs claim to support the OpenAI API standard for function calling, they can require some additional configuration to work as expected.
+You will also need to ensure that `opts.tools = true` and the `parse_chat` handler writes any tool calls into `args.tools`. From experience, whilst many LLMs claim to support the OpenAI API standard for function calling, they can require some additional configuration to work as expected.
 
 Example:
 
 ```lua
 handlers = {
   request = {
-    build_tools = function(self, tools)
-      if not self.opts.tools or not tools then
+    build_tools = function(self, args)
+      if not self.opts.tools or not args.tools then
         return
       end
       -- Transform tools into LLM's expected format
@@ -642,19 +642,19 @@ handlers = {
   },
 
   tools = {
-    format_calls = function(self, tools)
-      -- Format tool calls for the request
+    format_calls = function(self, args)
+      -- Format args.tools for the request
       return formatted_calls
     end,
 
-    format_response = function(self, tool_call, output)
+    format_response = function(self, args)
       -- Format tool response for LLM
       return {
         role = self.roles.tool or "tool",
         tools = {
-          call_id = tool_call.id,
+          call_id = args.tool_call.id,
         },
-        content = output,
+        content = args.output,
         opts = { visible = false },
       }
     end,
@@ -688,20 +688,20 @@ handlers = {
 handlers = {
   lifecycle = {
     setup = function(self) end,
-    on_exit = function(self, data) end,
+    on_exit = function(self, args) end,
     teardown = function(self) end,
   },
   request = {
-    build_parameters = function(self, params, messages) end,
-    build_messages = function(self, messages) end,
+    build_parameters = function(self, args) end,
+    build_messages = function(self, args) end,
   },
   response = {
-    parse_chat = function(self, data, tools) end,
-    parse_inline = function(self, data, context) end,
+    parse_chat = function(self, args) end,
+    parse_inline = function(self, args) end,
   },
   tools = {
-    format_calls = function(self, tools) end,
-    format_response = function(self, tool_call, output) end,
+    format_calls = function(self, args) end,
+    format_response = function(self, args) end,
   },
 }
 ```
