@@ -183,10 +183,6 @@ end
 ---@param SlashCommands CodeCompanion.SlashCommands
 ---@return nil
 function SlashCommand:chat_render(SlashCommands)
-  if not config.can_send_code() and (self.config.opts and self.config.opts.contains_code) then
-    log:warn("Sending of code has been disabled")
-    return
-  end
   return SlashCommands:set_provider(self, providers)
 end
 
@@ -318,6 +314,11 @@ end
 ---@param opts { message?: string, silent?: boolean, sync_all?: boolean }
 ---@return boolean attached
 function SlashCommand:output_text(selected, opts)
+  if not config.can_send_code() and (self.config.opts and self.config.opts.contains_code) then
+    log:warn("Sending of code has been disabled")
+    return false
+  end
+
   local file = helpers.format_file_for_llm(selected.path, { message = opts.message, name = selected.name })
 
   self.Chat:add_message({
@@ -357,10 +358,6 @@ local ATTACHMENTS = {
 ---@param opts? { message?: string, description?: string, silent?: boolean, sync_all?: boolean }
 ---@return boolean attached
 function SlashCommand:output(selected, opts)
-  if not config.can_send_code() and (self.config.opts and self.config.opts.contains_code) then
-    log:warn("Sending of code has been disabled")
-    return false
-  end
   opts = opts or {}
 
   local mimetype = selected.mimetype or files_utils.get_mimetype(selected.path)

@@ -486,7 +486,7 @@ If you are providing code changes, use the edit_file tool (if available to you) 
           path = "interactions.chat.slash_commands.builtin.file_from_url",
           description = "Insert a file from a URL",
           opts = {
-            contains_code = false,
+            contains_code = true,
           },
         },
         ["help"] = {

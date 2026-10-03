@@ -95,6 +95,36 @@ T["File"]["DOES NOT add an image in a format that LLMs reject"] = function()
   h.eq(0, count)
 end
 
+T["File"]["adds an image when sending code is disabled"] = function()
+  local tag = child.lua([[
+    _G.chat = h.setup_chat_buffer()
+    _G.chat.adapter.opts = vim.tbl_extend("force", _G.chat.adapter.opts or {}, { vision = true })
+    require("codecompanion.config").opts.send_code = false
+
+    local slash = require("codecompanion.interactions.shared.slash_commands.file")
+      .new({ Chat = _G.chat, config = { opts = { contains_code = true } } })
+    slash:output({ path = vim.fs.joinpath(vim.fn.getcwd(), "tests", "stubs", "logo.png") })
+
+    return _G.chat.messages[#_G.chat.messages]._meta.tag
+  ]])
+  h.eq("image", tag)
+end
+
+T["File"]["DOES NOT add a text file when sending code is disabled"] = function()
+  local count = child.lua([[
+    _G.chat = h.setup_chat_buffer()
+    require("codecompanion.config").opts.send_code = false
+    local before = #_G.chat.messages
+
+    local slash = require("codecompanion.interactions.shared.slash_commands.file")
+      .new({ Chat = _G.chat, config = { opts = { contains_code = true } } })
+    slash:output({ path = vim.fs.joinpath(vim.fn.getcwd(), "tests", "stubs", "stub.lua") })
+
+    return #_G.chat.messages - before
+  ]])
+  h.eq(0, count)
+end
+
 T["File"]["DOES NOT add an image when the adapter has no vision support"] = function()
   local count = child.lua([[
     _G.chat = h.setup_chat_buffer()

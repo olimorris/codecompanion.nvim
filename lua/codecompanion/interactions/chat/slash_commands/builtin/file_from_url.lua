@@ -50,7 +50,7 @@ function SlashCommand:output(url)
 
       return require("codecompanion.interactions.shared.slash_commands.file")
         .new({ Chat = self.Chat, config = self.config })
-        :output({ path = file.path, name = url, mimetype = file.mimetype })
+        :output({ path = file.path, name = (url:gsub("[?#].*$", "")), mimetype = file.mimetype })
     end,
   })
 end

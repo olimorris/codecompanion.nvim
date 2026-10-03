@@ -18,7 +18,7 @@ local T = new_set({
 })
 
 ---Serve a stub file from `Curl.get` instead of the network, then run the slash command
----@param opts { url: string, file?: string, content_type?: string, status?: number }
+---@param opts { url: string, file?: string, content_types?: string[], status?: number }
 ---@return table|nil The last message in the chat
 local function download(opts)
   return child.lua(
@@ -28,7 +28,10 @@ local function download(opts)
       if opts.file then
         vim.uv.fs_copyfile(opts.file, request.output)
       end
-      request.callback({ status = opts.status or 200, headers = { "Content-Type: " .. (opts.content_type or "") } })
+      local headers = vim.tbl_map(function(content_type)
+        return "Content-Type: " .. content_type
+      end, opts.content_types or {})
+      request.callback({ status = opts.status or 200, headers = headers })
     end
 
     local before = #_G.chat.messages
@@ -52,7 +55,7 @@ T["File from URL"]["adds an image as an image message, labelled with its URL"] =
   local message = download({
     url = "https://example.com/logo.png",
     file = "tests/stubs/logo.png",
-    content_type = "image/png",
+    content_types = { "image/png" },
   })
 
   h.eq("image", message._meta.tag)
@@ -64,12 +67,33 @@ T["File from URL"]["adds a text file as file content, labelled with its URL"] = 
   local message = download({
     url = "https://example.com/stub.lua",
     file = "tests/stubs/stub.lua",
-    content_type = "text/plain; charset=utf-8",
+    content_types = { "text/plain; charset=utf-8" },
   })
 
   h.eq("file", message._meta.tag)
   h.eq("<file>https://example.com/stub.lua</file>", message.context.id)
   h.expect_contains('<attachment filepath="https://example.com/stub.lua">', message.content)
+  h.expect_contains("```lua", message.content)
+end
+
+T["File from URL"]["uses the content type of the final response after a redirect"] = function()
+  local message = download({
+    url = "https://example.com/logo",
+    file = "tests/stubs/logo.png",
+    content_types = { "text/html", "image/png" },
+  })
+
+  h.eq("image", message._meta.tag)
+end
+
+T["File from URL"]["formats a file whose URL has a query string"] = function()
+  local message = download({
+    url = "https://example.com/stub.lua?token=secret",
+    file = "tests/stubs/stub.lua",
+    content_types = { "text/plain" },
+  })
+
+  h.eq("<file>https://example.com/stub.lua</file>", message.context.id)
   h.expect_contains("```lua", message.content)
 end
 

@@ -275,12 +275,15 @@ end
 ---@param headers? string[]
 ---@return string|nil
 local function get_content_type(headers)
+  local content_type
+  -- Curl follows redirects and keeps every response's headers, so the final response's type comes last
   for _, header in ipairs(headers or {}) do
     local key, value = header:match("^([^:]+):%s*(.+)$")
     if key and key:lower() == "content-type" then
-      return vim.trim(value:match("^([^;]+)"))
+      content_type = vim.trim(value:match("^([^;]+)"))
     end
   end
+  return content_type
 end
 
 ---Download a URL to a temporary file, which Neovim deletes when it exits
