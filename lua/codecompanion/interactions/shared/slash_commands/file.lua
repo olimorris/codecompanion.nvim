@@ -208,6 +208,7 @@ end
 
 ---@class CodeCompanion.SlashCommand.File.Selected
 ---@field path string
+---@field id? string
 ---@field name? string
 ---@field mimetype? string
 ---@field description? string
@@ -217,6 +218,13 @@ end
 ---@return string
 local function get_name(selected)
   return selected.name or vim.fn.fnamemodify(selected.path, ":.")
+end
+
+---Identify a file in the chat's context, which is never sent to the LLM
+---@param selected CodeCompanion.SlashCommand.File.Selected
+---@return string
+local function get_id(selected)
+  return selected.id or get_name(selected)
 end
 
 ---@param slash_command CodeCompanion.SlashCommand.File
@@ -251,7 +259,7 @@ function SlashCommand:output_image(selected, opts)
     return false
   end
 
-  local image = image_utils.encode_image({ path = selected.path, id = get_name(selected), mimetype = opts.mimetype })
+  local image = image_utils.encode_image({ path = selected.path, id = get_id(selected), mimetype = opts.mimetype })
   if type(image) == "string" then
     log:error("Could not encode image: %s", image)
     return false
@@ -295,7 +303,7 @@ function SlashCommand:output_pdf(selected, opts)
     return false
   end
 
-  local id = "<file>" .. get_name(selected) .. "</file>"
+  local id = "<file>" .. get_id(selected) .. "</file>"
 
   self.Chat:add_message({
     role = config.constants.USER_ROLE,
@@ -333,13 +341,14 @@ function SlashCommand:output_text(selected, opts)
   end
 
   local file = helpers.format_file_for_llm(selected.path, { message = opts.message, name = selected.name })
+  local id = "<file>" .. get_id(selected) .. "</file>"
 
   self.Chat:add_message({
     role = config.constants.USER_ROLE,
     content = file.content or "",
   }, {
     visible = false,
-    context = { id = file.id, path = selected.path },
+    context = { id = id, path = selected.path },
     _meta = { tag = tags.FILE },
   })
 
@@ -348,7 +357,7 @@ function SlashCommand:output_text(selected, opts)
   end
 
   self.Chat.context:add({
-    id = file.id or "",
+    id = id,
     path = selected.path,
     source = "codecompanion.interactions.shared.slash_commands.file",
   })

@@ -86,7 +86,7 @@ T["File from URL"]["uses the content type of the final response after a redirect
   h.eq("image", message._meta.tag)
 end
 
-T["File from URL"]["formats a file whose URL has a query string"] = function()
+T["File from URL"]["DOES NOT send a URL's query string to the LLM"] = function()
   local message = download({
     url = "https://example.com/stub.lua?token=secret",
     file = "tests/stubs/stub.lua",
@@ -94,6 +94,8 @@ T["File from URL"]["formats a file whose URL has a query string"] = function()
   })
 
   h.eq("<file>https://example.com/stub.lua?token=secret</file>", message.context.id)
+  h.expect_contains('<attachment filepath="https://example.com/stub.lua">', message.content)
+  h.eq(nil, message.content:find("secret"))
   h.expect_contains("```lua", message.content)
 end
 
