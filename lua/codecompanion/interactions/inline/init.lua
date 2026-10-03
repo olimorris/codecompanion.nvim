@@ -534,7 +534,7 @@ function Inline:done(args)
     if response.content == "" then
       return log:error("[%s] Returned no edits and no reply", self.adapter.formatted_name)
     end
-    return ui.show_reply(self, response.content)
+    return ui.show_reply(response.content, { adapter = self.adapter })
   end
 
   response.tool_calls = adapters.call_handler(self.adapter, "format_calls", { tools = response.tool_calls })
@@ -570,7 +570,7 @@ function Inline:add_tool_results(messages, args)
   table.insert(messages, {
     role = llm_role,
     content = args.response.content,
-    reasoning = inline_utils.join_reasoning(self.adapter, args.response.reasoning),
+    reasoning = inline_utils.join_reasoning(args.response.reasoning, { adapter = self.adapter }),
     tools = { calls = args.response.tool_calls },
     opts = { visible = false },
   })

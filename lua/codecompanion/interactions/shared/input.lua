@@ -97,17 +97,16 @@ local function _get_content()
 end
 
 ---Bind each input keymap that has a callback
----@param bufnr number
 ---@param callbacks table<string, function>
 ---@return { mode: string, lhs: string }[]
-local function _set_keymaps(bufnr, callbacks)
+local function _set_keymaps(callbacks)
   local bound = {}
   for action, keymap in pairs(config.display.input.keymaps) do
     local callback = keymap and callbacks[action]
     if callback then
       for mode, keys in pairs(keymap.modes) do
         for _, key in ipairs(type(keys) == "string" and { keys } or keys) do
-          vim.keymap.set(mode, key, callback, { buffer = bufnr, desc = "[Input] " .. keymap.description })
+          vim.keymap.set(mode, key, callback, { buffer = _input.bufnr, desc = "[Input] " .. keymap.description })
           table.insert(bound, { mode = mode, lhs = key })
         end
       end
@@ -149,11 +148,8 @@ end
 ---@param callbacks table<string, function>
 ---@return nil
 local function _bind_keymaps(callbacks)
-  _set_keymaps(
-    _input.bufnr,
-    { send = _buf_send, close = M.hide, history_up = _history_up, history_down = _history_down }
-  )
-  _input.caller_keymaps = _set_keymaps(_input.bufnr, callbacks)
+  _set_keymaps({ send = _buf_send, close = M.hide, history_up = _history_up, history_down = _history_down })
+  _input.caller_keymaps = _set_keymaps(callbacks)
 end
 
 ---Open an input buffer

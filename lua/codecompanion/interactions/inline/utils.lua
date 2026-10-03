@@ -89,10 +89,10 @@ function M.get_max_tokens(adapter)
 end
 
 ---Join the reasoning from a response so it can be sent back alongside its tool calls
----@param adapter CodeCompanion.HTTPAdapter
 ---@param reasoning table
+---@param opts { adapter: CodeCompanion.HTTPAdapter }
 ---@return string|table|nil
-function M.join_reasoning(adapter, reasoning)
+function M.join_reasoning(reasoning, opts)
   if vim.tbl_isempty(reasoning) then
     return nil
   end
@@ -100,7 +100,7 @@ function M.join_reasoning(adapter, reasoning)
   if vim.iter(reasoning):any(function(item)
     return type(item) ~= "string"
   end) then
-    return adapters.call_handler(adapter, "build_reasoning", { data = reasoning })
+    return adapters.call_handler(opts.adapter, "build_reasoning", { data = reasoning })
   end
 
   return table.concat(reasoning, "")

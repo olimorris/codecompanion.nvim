@@ -103,16 +103,16 @@ function M.get_picked_adapter(bufnr)
 end
 
 ---Show the LLM's reply in a float that closes when the cursor moves
----@param inline CodeCompanion.Inline
 ---@param reply string
+---@param opts { adapter: CodeCompanion.HTTPAdapter }
 ---@return nil
-function M.show_reply(inline, reply)
+function M.show_reply(reply, opts)
   vim.lsp.util.open_floating_preview(vim.split(reply, "\n", { plain = true }), "markdown", {
     border = config.display.input.window.border,
     focus_id = "codecompanion_inline_reply",
     max_height = math.floor(vim.o.lines * 0.4),
     max_width = math.floor(vim.o.columns * 0.6),
-    title = fmt(" %s ", get_adapter_label(inline.adapter)),
+    title = fmt(" %s ", get_adapter_label(opts.adapter)),
   })
 end
 

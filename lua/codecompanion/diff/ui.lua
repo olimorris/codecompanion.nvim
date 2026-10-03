@@ -377,6 +377,16 @@ function DiffUI:clear()
   end
 end
 
+---Start a new undo block and remember where it begins, so the diff can later be undone in one step
+---@return nil
+function DiffUI:start_undo_block()
+  self.undo_seq = api.nvim_buf_call(self.bufnr, function()
+    -- Breaks the undo block, or a change made just before the diff would be undone along with it
+    vim.go.undolevels = vim.go.undolevels
+    return vim.fn.undotree().seq_cur
+  end)
+end
+
 ---Replace the undo history of drawing and redrawing the diff with a single change to the final lines
 ---@return nil
 function DiffUI:collapse_undo()
@@ -654,6 +664,31 @@ local function setup_close_handler(diff_ui, group, skip_default_keymaps)
   end
 end
 
+---@param diff CC.Diff
+---@param opts CodeCompanion.DiffUIOptions|{ bufnr: number, winnr?: number }
+---@return CodeCompanion.DiffUI
+local function create_diff_ui(diff, opts)
+  local diff_id = opts.diff_id or math.random(10000000)
+
+  return setmetatable({
+    banner = opts.banner,
+    bufnr = opts.bufnr,
+    chat_bufnr = opts.chat_bufnr,
+    current_hunk = 1,
+    decisions = {},
+    diff = diff,
+    diff_id = diff_id,
+    hunk_actions = opts.hunk_actions,
+    hunks = #diff.hunks,
+    inline = opts.inline,
+    keymaps = opts.keymaps or {},
+    ns = api.nvim_create_namespace("codecompanion_diff_extmarks_" .. tostring(diff_id)),
+    resolved = false,
+    tool_name = opts.tool_name,
+    winnr = opts.winnr,
+  }, DiffUI)
+end
+
 ---@class CodeCompanion.DiffUIOptions
 ---@field chat_bufnr? number
 ---@field banner? string
@@ -679,48 +714,25 @@ function M.show(diff, opts)
   local is_float = opts.float ~= false and not is_inline
   local cfg = vim.tbl_deep_extend("force", config.display.chat.floating_window or {}, config.display.diff.window or {})
 
-  -- Create window or inline display
-  local bufnr, winnr = create_diff_display(diff, {
-    float = is_float,
-    title = opts.title,
-    cfg = cfg,
-  })
+  local bufnr, winnr = create_diff_display(diff, { float = is_float, title = opts.title, cfg = cfg })
 
-  local diff_id = opts.diff_id or math.random(10000000)
-
-  -- Create diff UI object
-  ---@type CodeCompanion.DiffUI
-  local diff_ui = setmetatable({
-    banner = opts.banner,
-    bufnr = bufnr,
-    chat_bufnr = opts.chat_bufnr,
-    current_hunk = 1,
-    decisions = {},
-    diff = diff,
-    diff_id = diff_id,
-    hunk_actions = opts.hunk_actions,
-    hunks = #diff.hunks,
-    inline = opts.inline or not is_float,
-    keymaps = opts.keymaps or {},
-    ns = api.nvim_create_namespace("codecompanion_diff_extmarks_" .. tostring(diff_id)),
-    resolved = false,
-    tool_name = opts.tool_name,
-    winnr = winnr,
-  }, DiffUI)
+  local diff_ui = create_diff_ui(
+    diff,
+    vim.tbl_extend("force", opts, {
+      bufnr = bufnr,
+      inline = opts.inline or not is_float,
+      winnr = winnr,
+    })
+  )
 
   if is_inline then
-    diff_ui.undo_seq = api.nvim_buf_call(bufnr, function()
-      -- Breaks the undo block, or a change made just before the diff would be undone along with it
-      vim.go.undolevels = vim.go.undolevels
-      return vim.fn.undotree().seq_cur
-    end)
+    diff_ui:start_undo_block()
     diff_ui:apply_inline(diff, bufnr)
   else
     diff_ui:apply_extmarks(diff, bufnr)
   end
   diff_ui:setup_keymaps({ skip_default_keymaps = opts.skip_default_keymaps or false })
 
-  -- Scroll to first hunk
   if #diff.hunks > 0 then
     vim.schedule(function()
       ui_utils.scroll_to_line(bufnr, diff.hunks[1].pos[1] + 1)
