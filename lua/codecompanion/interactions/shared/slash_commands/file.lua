@@ -219,6 +219,16 @@ local function get_name(selected)
   return selected.name or vim.fn.fnamemodify(selected.path, ":.")
 end
 
+---@param slash_command CodeCompanion.SlashCommand.File
+---@return boolean
+local function is_code_blocked(slash_command)
+  if not config.can_send_code() and (slash_command.config.opts and slash_command.config.opts.contains_code) then
+    log:warn("Sending of code has been disabled")
+    return true
+  end
+  return false
+end
+
 ---Base64 encode an image and add it to the chat buffer for adapters that support vision
 ---@param selected CodeCompanion.SlashCommand.File.Selected
 ---@param opts { mimetype: string, silent?: boolean }
@@ -263,6 +273,10 @@ end
 ---@param opts { mimetype: string, silent?: boolean, sync_all?: boolean }
 ---@return boolean attached
 function SlashCommand:output_pdf(selected, opts)
+  if is_code_blocked(self) then
+    return false
+  end
+
   local filename = vim.fn.fnamemodify(get_name(selected), ":t")
 
   local adapter = self.Chat.adapter
@@ -314,8 +328,7 @@ end
 ---@param opts { message?: string, silent?: boolean, sync_all?: boolean }
 ---@return boolean attached
 function SlashCommand:output_text(selected, opts)
-  if not config.can_send_code() and (self.config.opts and self.config.opts.contains_code) then
-    log:warn("Sending of code has been disabled")
+  if is_code_blocked(self) then
     return false
   end
 

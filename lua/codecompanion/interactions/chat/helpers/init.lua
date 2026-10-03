@@ -282,9 +282,9 @@ function M.format_file_for_llm(path, opts)
   local name = opts.name or path
 
   local raw_content = files.read(path)
-  local filetype = vim.filetype.match({ filename = name })
+  local filetype = vim.filetype.match({ filename = path })
 
-  local file_contents, formatted = formatters.apply({ path = name, raw = raw_content })
+  local file_contents, formatted = formatters.apply({ path = path, raw = raw_content })
   if not formatted then
     file_contents = markdown.form_codeblock(raw_content, { ft = filetype })
   end

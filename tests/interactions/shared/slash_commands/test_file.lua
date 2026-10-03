@@ -125,6 +125,25 @@ T["File"]["DOES NOT add a text file when sending code is disabled"] = function()
   h.eq(0, count)
 end
 
+T["File"]["DOES NOT add a PDF when sending code is disabled"] = function()
+  local count = child.lua([[
+    _G.chat = h.setup_chat_buffer()
+    _G.chat.adapter.opts = vim.tbl_extend("force", _G.chat.adapter.opts or {}, { documents = true })
+    require("codecompanion.config").opts.send_code = false
+    local before = #_G.chat.messages
+
+    local pdf = vim.fn.tempname() .. ".pdf"
+    vim.fn.writefile({ "%PDF-1.4" }, pdf)
+
+    local slash = require("codecompanion.interactions.shared.slash_commands.file")
+      .new({ Chat = _G.chat, config = { opts = { contains_code = true } } })
+    slash:output({ path = pdf, mimetype = "application/pdf" })
+
+    return #_G.chat.messages - before
+  ]])
+  h.eq(0, count)
+end
+
 T["File"]["DOES NOT add an image when the adapter has no vision support"] = function()
   local count = child.lua([[
     _G.chat = h.setup_chat_buffer()

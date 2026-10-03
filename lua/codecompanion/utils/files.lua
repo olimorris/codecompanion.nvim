@@ -292,7 +292,9 @@ end
 ---@return nil
 function M.download(url, opts)
   local http_opts = require("codecompanion.config").adapters.http.opts
-  local path = fn.tempname()
+  -- Keeping the extension lets the file's type be detected from its path, as with any local file
+  local extension = url:gsub("[?#].*$", ""):match("/[^/]+%.(%w+)$")
+  local path = fn.tempname() .. (extension and ("." .. extension) or "")
 
   require("plenary.curl").get(url, {
     insecure = http_opts.allow_insecure,

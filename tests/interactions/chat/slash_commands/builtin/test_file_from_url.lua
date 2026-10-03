@@ -93,7 +93,7 @@ T["File from URL"]["formats a file whose URL has a query string"] = function()
     content_types = { "text/plain" },
   })
 
-  h.eq("<file>https://example.com/stub.lua</file>", message.context.id)
+  h.eq("<file>https://example.com/stub.lua?token=secret</file>", message.context.id)
   h.expect_contains("```lua", message.content)
 end
 
