@@ -1,11 +1,9 @@
 local config = require("codecompanion.config")
 local files_utils = require("codecompanion.utils.files")
 local log = require("codecompanion.utils.log")
-local ui_utils = require("codecompanion.utils.ui")
+local utils = require("codecompanion.utils")
 
-local CONSTANTS = {
-  NAMESPACE = "codecompanion_file_from_url",
-}
+local fmt = string.format
 
 ---@class CodeCompanion.SlashCommand.FileFromUrl: CodeCompanion.SlashCommand
 local SlashCommand = {}
@@ -36,15 +34,10 @@ end
 ---@param url string
 ---@return nil
 function SlashCommand:output(url)
-  local bufnr = self.Chat.bufnr
-  ui_utils.show_buffer_notification(
-    bufnr,
-    { namespace = CONSTANTS.NAMESPACE, text = "Downloading the file...", main_hl = "Comment" }
-  )
+  utils.notify(fmt("Downloading `%s`", url))
 
   files_utils.download(url, {
     callback = function(err, file)
-      ui_utils.clear_notification(bufnr, { namespace = CONSTANTS.NAMESPACE })
       if err then
         return log:error(err)
       end
