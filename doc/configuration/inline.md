@@ -5,13 +5,13 @@ description: "Configure CodeCompanion's inline interaction for writing and refac
 # Configuring the Inline Interaction
 
 > [!IMPORTANT]
-> Only **http** adapters are supported for the inline interaction.
+> Only **http** adapters whose model supports tool calling can be used for the inline interaction
 
 <p align="center">
   <img src="https://github.com/user-attachments/assets/21568a7f-aea8-4928-b3d4-f39c6566a23c" alt="Inline Interaction">
 </p>
 
-CodeCompanion provides an _inline_ interaction for quick, direct editing of your code. Unlike the chat buffer, the inline interaction integrates responses directly into the current buffer—allowing the LLM to add or replace code as needed.
+CodeCompanion provides an _inline_ interaction for quick, direct editing of your code. Unlike the chat buffer, the LLM edits the current buffer directly, using the same `edit_file` tool as the chat buffer.
 
 ## Changing Adapter
 
@@ -34,29 +34,39 @@ See the section on [HTTP Adapters](/configuration/adapters-http) for more inform
 
 ## Keymaps
 
-The inline interaction supports keymaps for accepting or rejecting changes:
+The keymaps for reviewing an inline diff are shared with the chat buffer's diff. `accept_hunk` and `reject_hunk` only apply to the inline interaction:
 
 ```lua
 require("codecompanion").setup({
   interactions = {
-    inline = {
+    shared = {
       keymaps = {
         accept_change = {
-          modes = { n = "ga" },
-          description = "Accept the suggested change",
+          modes = { n = "g2" },
         },
         reject_change = {
+          modes = { n = "g3" },
+        },
+        accept_hunk = {
+          modes = { n = "ga" },
+        },
+        reject_hunk = {
           modes = { n = "gr" },
-          opts = { nowait = true },
-          description = "Reject the suggested change",
+        },
+        next_hunk = {
+          modes = { n = "}" },
+        },
+        previous_hunk = {
+          modes = { n = "{" },
+        },
+        show_keymaps = {
+          modes = { n = "?" },
         },
       },
     },
   },
 })
 ```
-
-In this example, `ga` accepts inline changes, while `gr` rejects them.
 
 You can also cancel an inline request with:
 
@@ -100,19 +110,23 @@ require("codecompanion").setup({
 })
 ```
 
-## Layout
+## Context Limit
 
-If the inline prompt creates a new buffer, you can also customize if this should be output in a vertical/horizontal split or a new buffer:
+The inline interaction shares the whole buffer with the LLM, unless it's over a token limit. Then it shares the lines around your cursor, or your selection, up to the limit. By default, the limit is 16,000 tokens, or the model's input limit minus 3,000 if that's smaller. To set your own:
 
 ```lua
 require("codecompanion").setup({
-  display = {
+  interactions = {
     inline = {
-      layout = "vertical", -- vertical|horizontal|tab|buffer
+      opts = {
+        max_context_tokens = 8000,
+      },
     },
-  }
+  },
 })
 ```
+
+A value you set is used as-is, even if it's larger than the model's input limit.
 
 ## Diff
 

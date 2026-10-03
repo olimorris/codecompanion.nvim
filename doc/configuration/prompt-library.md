@@ -157,47 +157,43 @@ Both markdown and Lua prompts support a wide range of options to customise behav
 
 ```markdown [Markdown]
 ---
-name: Generate Tests
+name: Add Docstrings
 interaction: inline
-description: Generate unit tests
+description: Add docstrings to the selected code
 opts:
-  alias: tests
+  alias: docstrings
   auto_submit: true
   modes:
     - v
-  placement: new
-  stop_context_insertion: true
 ---
 
 ## system
 
-Generate comprehensive unit tests for the provided code.
+Write docstrings in the style the rest of the file uses.
 
 ## user
 
-The code to generate tests for is #{buffer}
+Add a docstring to every function in the selection
 
 ```
 
 ```lua [Lua]
-["Generate Tests"] = {
+["Add Docstrings"] = {
   interaction = "inline",
-  description = "Generate unit tests",
+  description = "Add docstrings to the selected code",
   opts = {
-    alias = "tests",
+    alias = "docstrings",
     auto_submit = true,
     modes = { "v" },
-    placement = "new",
-    stop_context_insertion = true,
   },
   prompts = {
     {
       role = "system",
-      content = "Generate comprehensive unit tests for the provided code.",
+      content = "Write docstrings in the style the rest of the file uses.",
     },
     {
       role = "user",
-      content = "The code to generate tests for is #{buffer}",
+      content = "Add a docstring to every function in the selection",
     },
   },
 },
@@ -281,9 +277,8 @@ To see what your agent supports, open a chat with that adapter open the debug wi
 - `is_slash_cmd` _(boolean)_ - Make the prompt available as a slash command in chat
 - `is_workflow` _(boolean)_ - Treat successive prompts as a workflow
 - `modes` _(array)_ - Only show in specific modes (`{ "v" }` for visual mode)
-- `placement` _(string)_ - For inline interaction: `new`, `replace`, `add`, `before`, `chat`
-- `pre_hook` _(function)_ - Function to run before the prompt is executed (Lua only)
-- `stop_context_insertion` _(boolean)_  - Prevent automatic context insertion
+- `pre_hook` _(function)_ - Function to run before the chat buffer opens (Lua only)
+- `stop_context_insertion` _(boolean)_  - Prevent the chat buffer from adding a visual selection as context
 - `user_prompt` _(string)_ - Get user input before actioning the response
 
 ### With Placeholders
@@ -647,37 +642,27 @@ Pickers allow you to create dynamic prompt menus based on runtime data.
 
 #### Pre-hooks
 
-Pre-hooks allow you to run custom logic before a prompt is executed. This is particularly useful for creating new buffers or setting up the environment:
+Pre-hooks run custom logic before the chat buffer opens. They're only supported by the chat interaction:
 
 **Lua only:**
 
 ```lua
-["Boilerplate HTML"] = {
-  interaction = "inline",
-  description = "Generate some boilerplate HTML",
+["Review My Changes"] = {
+  interaction = "chat",
+  description = "Save every buffer, then review the changes",
   opts = {
-    ---@return number
     pre_hook = function()
-      local bufnr = vim.api.nvim_create_buf(true, false)
-      vim.api.nvim_set_current_buf(bufnr)
-      vim.api.nvim_set_option_value("filetype", "html", { buf = bufnr })
-      return bufnr
+      vim.cmd("silent! wall")
     end,
   },
   prompts = {
     {
-      role = "system",
-      content = "You are an expert HTML programmer",
-    },
-    {
       role = "user",
-      content = "Please generate some HTML boilerplate for me. Return the code only and no markdown codeblocks",
+      content = "Review the changes in #{diff}",
     },
   },
 }
 ```
-
-For the inline interaction, the plugin will detect a number being returned from the `pre_hook` and assume that is the buffer number you wish any code to be streamed into.
 
 #### Rules
 

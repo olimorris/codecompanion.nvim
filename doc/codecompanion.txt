@@ -365,8 +365,8 @@ You don't need a chat buffer for smaller changes. Select some code and run:
     :'<,'>CodeCompanion Use early returns
 <
 
-The LLM rewrites the selection in place and shows you a diff. Keep it with `g2`
-or undo it with `g3`. See |codecompanion-usage-inline| for more.
+The LLM edits the selection in place and shows you a diff. Keep it with `g2` or
+undo it with `g3`. See |codecompanion-usage-inline| for more.
 
 The |codecompanion-usage-prompt-library| has prompts for common tasks, called
 by their alias:
@@ -382,9 +382,6 @@ by their alias:
 
   :'<,'>CodeCompanion /lsp            Explain the LSP diagnostics for the
                                       selected code, in a chat buffer
-
-  :'<,'>CodeCompanion /tests          Write unit tests for the selected
-                                      code, in a new buffer
 
   :CodeCompanion /commit              Write a commit message for your
                                       staged changes, in a chat buffer
@@ -2657,7 +2654,6 @@ The plugin also defines a number of prompts in the form of the prompt library:
 - `Explain code` - Explain how code in a buffer works
 - `Explain LSP diagnostics` - Explain the LSP diagnostics for the selected code
 - `Fix code` - Fix the selected code
-- `Unit tests` - Generate unit tests for selected code
 
 
   [!INFO] These can also be called via the cmd line with their `alias`, for
@@ -4969,14 +4965,14 @@ LIMITATIONS ~
 INLINE INTERACTION                    *codecompanion-usage-inline-interaction*
 
 As per the |codecompanion-getting-started-editing-inline| guide, the inline
-interaction enables you to code directly into a Neovim buffer. Simply run
-`:CodeCompanion <your prompt>`, or make a visual selection to send that as
-context to the LLM alongside your prompt.
+interaction lets the LLM edit the current buffer directly. Run `:CodeCompanion
+<your prompt>` to let it edit the whole buffer, or make a visual selection
+first to limit its edits to those lines. Running `:CodeCompanion` on its own
+opens an input box to write your prompt in.
 
-For convenience, you can call prompts from the
-|codecompanion-configuration-prompt-library| via the interaction. For example,
-`:'<,'>CodeCompanion /tests` would ask the LLM to create some unit tests from
-the selected text.
+You can also call inline prompts from the
+|codecompanion-configuration-prompt-library| by their alias, such as
+`:'<,'>CodeCompanion /docstrings`.
 
 
 ADAPTERS ~
@@ -4984,46 +4980,53 @@ ADAPTERS ~
 You can specify a different adapter to that in the configuration
 (`interactions.inline.adapter`) when sending an inline prompt. Simply include
 the adapter via `adapter=*`. For example `:<','>CodeCompanion adapter=deepseek
-can you refactor this?`. This approach can also be combined with variables.
+can you refactor this?`. This approach can also be combined with editor
+context.
 
 
-CLASSIFICATION ~
+HOW EDITS WORK ~
 
-One of the challenges with inline editing is determining how the LLM's response
-should be handled in the buffer. If you've prompted the LLM to `“create a
-table of 5 common text editors”` then you may wish for the response to be
-placed at the cursor's position in the current buffer. However, if you asked
-the LLM to `“refactor this function”` then you'd expect the response to
-`replace` a visual selection. The plugin uses the inline LLM you've specified
-in your config to determine if the response should:
+The current buffer is shared with the LLM, which edits it by calling the
+`edit_file` tool, once per change. What it can edit depends on your selection:
 
-- `replace` - replace a visual selection you've made
-- `add` - be added in the current buffer at the cursor position
-- `before` - to be added in the current buffer before the cursor position
-- `new` - be placed in a new buffer
-- `chat` - be placed in a chat buffer
+- **No selection** - The LLM can edit anything it's been shared
+- **Visual selection** - The LLM can only edit the selected lines. The rest of the buffer is still shared, so it can see imports and surrounding code
+
+If a buffer is over the |codecompanion-configuration-inline-context-limit|,
+only the lines around your cursor, or your selection, are shared. Without a
+selection, those are also the only lines the LLM can edit.
+
+If an edit fails, for example because the text it targets isn't in the buffer,
+the error is sent back to the LLM once so it can try again. If it fails a
+second time, nothing is changed and the error is logged.
+
+If you ask a question rather than for a change, such as `“what does this
+function do?”`, the LLM replies without editing and the reply opens in a chat
+buffer.
 
 
 DIFF MODE ~
 
-By default, an inline interaction prompt will trigger the diff feature, showing
-differences between the original buffer and the changes made by the LLM. This
-can be turned off in your config via the `display.diff.provider` table. You can
-also choose to accept or reject the LLM's suggestions with the following
-keymaps:
+By default, the LLM's edits are shown as a diff in the buffer, which you can
+review a hunk at a time. Press `?` in the diff to see these keymaps:
 
-- `gda` - Accept an inline edit
-- `gdr` - Reject an inline edit
-
-These keymaps can also be changed in your config via the
-`interactions.inline.keymaps` table.
+  Keymap   Action
+  -------- ----------------------------------------------------------------------
+  } / {    Move to the next or previous hunk
+  ga       Accept the hunk under the cursor
+  gr       Reject the hunk under the cursor
+  g2       Accept the hunks that are left
+  g3       Reject the hunks that are left
+  g1       Accept the hunks that are left, and every future edit to this buffer
+Once every hunk has been accepted or rejected, the diff closes. Edits within
+four lines of each other are shown as one hunk. The diff can be turned off with
+`display.diff.enabled`, the banner above the current hunk hidden with
+`display.diff.show_banner`, and the keymaps changed in
+`interactions.shared.keymaps`.
 
 
 EDITOR CONTEXT ~
 
-
-  [!TIP] To ensure the LLM has enough context to complete a complex ask, it's
-  recommended to use the `buffer` editor context
 The inline interaction allows you to send context alongside your prompt via the
 notion of editor context. That is, context that relates to your current Neovim
 session:
@@ -5032,13 +5035,17 @@ session:
 - `chat` - shares the LLM's messages from the last chat buffer
 - `clipboard` - shares the data on your clipboard with the LLM
 
-Simply include them in your prompt. For example `:CodeCompanion #{buffer} add a
-new method to this file`. Multiple context items can be sent as part of the
-same prompt. You can even add your own custom variables as per the
+Include them in your prompt, for example `:CodeCompanion #{clipboard} use this
+function in the buffer`. Multiple context items can be sent as part of the same
+prompt, and you can add your own as per the
 |codecompanion-configuration-inline-editor-context|.
 
-You can also have multiple editor context as part of a prompt, for example:
-`:CodeCompanion #{buffer} #{clipboard} analyze this code`.
+
+LIMITATIONS ~
+
+- The adapter's model must support tool calling. Adapters that don't, such as `xai`, are refused
+- A selection is limited by whole lines, so selecting part of a line lets the LLM edit all of it
+- If the buffer changes while the LLM is responding, its edits are discarded
 
 
 PROMPT LIBRARY                            *codecompanion-usage-prompt-library*
@@ -7622,11 +7629,11 @@ about available extensions and how to create your own.
 INLINE INTERACTION            *codecompanion-configuration-inline-interaction*
 
 
-  [!IMPORTANT] Only **http** adapters are supported for the inline interaction.
+  [!IMPORTANT] Only **http** adapters whose model supports tool calling can be
+  used for the inline interaction
 CodeCompanion provides an `inline` interaction for quick, direct editing of
-your code. Unlike the chat buffer, the inline interaction integrates responses
-directly into the current buffer—allowing the LLM to add or replace code as
-needed.
+your code. Unlike the chat buffer, the LLM edits the current buffer directly,
+using the same `edit_file` tool as the chat buffer.
 
 
 CHANGING ADAPTER ~
@@ -7653,29 +7660,40 @@ information.
 
 KEYMAPS ~
 
-The inline interaction supports keymaps for accepting or rejecting changes:
+The keymaps for reviewing an inline diff are shared with the chat buffer's
+diff. `accept_hunk` and `reject_hunk` only apply to the inline interaction:
 
 >lua
     require("codecompanion").setup({
       interactions = {
-        inline = {
+        shared = {
           keymaps = {
             accept_change = {
-              modes = { n = "ga" },
-              description = "Accept the suggested change",
+              modes = { n = "g2" },
             },
             reject_change = {
+              modes = { n = "g3" },
+            },
+            accept_hunk = {
+              modes = { n = "ga" },
+            },
+            reject_hunk = {
               modes = { n = "gr" },
-              opts = { nowait = true },
-              description = "Reject the suggested change",
+            },
+            next_hunk = {
+              modes = { n = "}" },
+            },
+            previous_hunk = {
+              modes = { n = "{" },
+            },
+            show_keymaps = {
+              modes = { n = "?" },
             },
           },
         },
       },
     })
 <
-
-In this example, `ga` accepts inline changes, while `gr` rejects them.
 
 You can also cancel an inline request with:
 
@@ -7723,20 +7741,27 @@ items that can be used alongside your prompt using the `#{}` syntax (e.g.,
 <
 
 
-LAYOUT ~
+CONTEXT LIMIT ~
 
-If the inline prompt creates a new buffer, you can also customize if this
-should be output in a vertical/horizontal split or a new buffer:
+The inline interaction shares the whole buffer with the LLM, unless it's over a
+token limit. Then it shares the lines around your cursor, or your selection, up
+to the limit. By default, the limit is 16,000 tokens, or the model's input
+limit minus 3,000 if that's smaller. To set your own:
 
 >lua
     require("codecompanion").setup({
-      display = {
+      interactions = {
         inline = {
-          layout = "vertical", -- vertical|horizontal|tab|buffer
+          opts = {
+            max_context_tokens = 8000,
+          },
         },
-      }
+      },
     })
 <
+
+A value you set is used as-is, even if it's larger than the model's input
+limit.
 
 
 DIFF ~
@@ -7965,40 +7990,28 @@ Pickers allow you to create dynamic prompt menus based on runtime data.
 
 PRE-HOOKS
 
-Pre-hooks allow you to run custom logic before a prompt is executed. This is
-particularly useful for creating new buffers or setting up the environment:
+Pre-hooks run custom logic before the chat buffer opens. They're only supported
+by the chat interaction:
 
 **Lua only:**
 
 >lua
-    ["Boilerplate HTML"] = {
-      interaction = "inline",
-      description = "Generate some boilerplate HTML",
+    ["Review My Changes"] = {
+      interaction = "chat",
+      description = "Save every buffer, then review the changes",
       opts = {
-        ---@return number
         pre_hook = function()
-          local bufnr = vim.api.nvim_create_buf(true, false)
-          vim.api.nvim_set_current_buf(bufnr)
-          vim.api.nvim_set_option_value("filetype", "html", { buf = bufnr })
-          return bufnr
+          vim.cmd("silent! wall")
         end,
       },
       prompts = {
         {
-          role = "system",
-          content = "You are an expert HTML programmer",
-        },
-        {
           role = "user",
-          content = "Please generate some HTML boilerplate for me. Return the code only and no markdown codeblocks",
+          content = "Review the changes in #{diff}",
         },
       },
     }
 <
-
-For the inline interaction, the plugin will detect a number being returned from
-the `pre_hook` and assume that is the buffer number you wish any code to be
-streamed into.
 
 
 RULES
@@ -8741,7 +8754,6 @@ single `args` table, so new fields can be added without breaking your adapter:
       -- Response parsers (pure transformations)
       response = {
         parse_chat = function(self, args) end,    -- args.data, args.tools
-        parse_inline = function(self, args) end,  -- args.data, args.context
         parse_tokens = function(self, args) end,  -- args.data
       },
     
@@ -8877,7 +8889,6 @@ RESPONSE HANDLERS
 These handlers parse LLM responses:
 
 - `response.parse_chat` - Format chat output for the chat buffer
-- `response.parse_inline` - Format output for inline insertion
 - `response.parse_tokens` - Extract token count from the response
 - `response.parse_meta` - Process non-standard fields in the response (currently only supported by OpenAI-based adapters)
 
@@ -9099,6 +9110,10 @@ we have data in our response:
 <
 
 
+  [!IMPORTANT] The inline interaction also calls `parse_chat`, but with
+  `self.opts.stream` set to `false`. `args.data` is then the full response, with
+  the JSON in `args.data.body`, and any tool calls must be added to `args.tools`
+
 RESPONSE.PARSE_META
 
 Some OpenAI-compatible API providers like deepseek, Gemini and OpenRouter
@@ -9163,38 +9178,6 @@ created. So we just pass this through:
 <
 
 
-RESPONSE.PARSE_INLINE
-
-From a design perspective, the inline interaction is very similar to the chat
-interaction. With the `parse_inline` handler we simply return the content we
-wish to be streamed into the buffer.
-
-In the case of OpenAI, once we've checked the data we have back from the LLM
-and parsed it as JSON, we simply need to:
-
->lua
-    ---Output the data from the API ready for inlining into the current buffer
-    ---@param self CodeCompanion.HTTPAdapter
-    ---@param args { data: table, context: table }
-    ---@return string|table|nil
-    handlers = {
-      response = {
-        parse_inline = function(self, args)
-          -- Data cleansed, parsed and validated
-          -- ..
-          local content = json.choices[1].delta.content
-          if content then
-            return content
-          end
-        end,
-      },
-    }
-<
-
-The `parse_inline` handler also receives `args.context` from the buffer that
-initiated the request.
-
-
 LIFECYCLE.ON_EXIT
 
 Handling errors from a streaming endpoint can be challenging. It's recommended
@@ -9245,8 +9228,8 @@ and that's much easier to work with:
 
 The `log:error` call ensures that any errors are logged to the logfile as well
 as displayed to the user in Neovim. It's also important to reference that the
-`parse_chat` and `parse_inline` handlers need to be able to ignore any errors
-from the API and let `on_exit` handle them.
+`parse_chat` handler needs to be able to ignore any errors from the API and let
+`on_exit` handle them.
 
 
 LIFECYCLE.SETUP AND LIFECYCLE.TEARDOWN
@@ -9459,7 +9442,6 @@ structure for better organization:
       form_parameters = function(self, params, messages) end,
       form_messages = function(self, messages) end,
       chat_output = function(self, data, tools) end,
-      inline_output = function(self, data, context) end,
       on_exit = function(self, data) end,
       teardown = function(self) end,
       tools = {
@@ -9484,7 +9466,6 @@ structure for better organization:
       },
       response = {
         parse_chat = function(self, args) end,
-        parse_inline = function(self, args) end,
       },
       tools = {
         format_calls = function(self, args) end,
@@ -11177,8 +11158,8 @@ The events that are fired from within the plugin are:
 - `CodeCompanionCLIApprovalFinished` - Fired when a CLI agent resumes after waiting. Requires |codecompanion-configuration-cli-hooks|
 - `CodeCompanionContextChanged` - Fired when the context that a chat buffer follows, changes
 - `CodeCompanionFileEdited` - Fired after the LLM has edited or created a file; the data payload includes the `path` and what made the change (`tool`)
-- `CodeCompanionInlineStarted` - Fired at the start of the Inline interaction
-- `CodeCompanionInlineFinished` - Fired at the end of the Inline interaction
+- `CodeCompanionInlineStarted` - Fired when an inline prompt is sent to the LLM, with the `bufnr` being edited in the data payload
+- `CodeCompanionInlineFinished` - Fired once the LLM has finished with an inline prompt, whether it succeeded, failed or was stopped, with the `bufnr` in the data payload
 - `CodeCompanionMCPServerStart` - Fired when an MCP server is started
 - `CodeCompanionMCPServerReady` - Fired when an MCP server is ready for requests
 - `CodeCompanionMCPServerClosed` - Fired when an MCP server is closed
@@ -11252,7 +11233,7 @@ Events can be hooked into as follows:
       callback = function(request)
         if request.match == "CodeCompanionInlineFinished" then
           -- Format the buffer after the inline request has completed
-          require("conform").format({ bufnr = request.buf })
+          require("conform").format({ bufnr = request.data.bufnr })
         end
       end,
     })
@@ -11733,7 +11714,6 @@ The fields in `args` match the old positional arguments:
   request.build_reasoning           data
   request.build_body                payload
   response.parse_chat               data, tools
-  response.parse_inline             data, context
   response.parse_tokens             data
   response.parse_meta               data
   tools.format_calls                tools
@@ -11872,6 +11852,25 @@ For example, in a tool's output handler:
     chat:add_tool_output(self, "The result is 42") -- [!code --]
     chat:add_tool_output({ tool = self, for_llm = "The result is 42" }) -- [!code ++]
 <
+
+
+INLINE
+
+The inline interaction now edits the buffer with the
+|codecompanion-usage-chat-buffer-agents-tools-edit-file| tool, rather than
+asking the LLM where to place a block of code. See
+|codecompanion-usage-inline-how-edits-work|.
+
+- The adapter's model must support tool calling. Inline prompts sent with an adapter that doesn't, such as `xai`, are refused with an error
+- The current buffer is always shared with the LLM, up to a |codecompanion-configuration-inline-context-limit|. You no longer need `#{buffer}` in your inline prompts
+- With a visual selection, the LLM can only edit the selected lines
+- The `placement` prompt library option has been removed, along with the option to write code into a new buffer. Inline prompts that set `placement` can delete it
+- `pre_hook` no longer runs for inline prompts
+- `display.inline.layout` has been removed
+- `:CodeCompanion` with no prompt, and prompts with `user_prompt`, now open CodeCompanion's input box rather than `vim.ui.input`
+- The inline diff can be reviewed a hunk at a time with the new `accept_hunk` (`ga`) and `reject_hunk` (`gr`) keymaps in `interactions.shared.keymaps`. `reject_change` now rejects only the hunks that are left
+- The `Unit tests` prompt (`/tests`) has been removed from the prompt library
+- The `response.parse_inline` and `inline_output` adapter handlers have been removed. If your adapter defines either, delete it. Inline now uses `response.parse_chat` (or `chat_output`) and the tool handlers, the same as the chat buffer
 
 - The Super Diff has now been removed from CodeCompanion (#2600 <https://github.com/olimorris/codecompanion.nvim/pull/2600>)
 - CodeCompanion now only supports a built-in diff which is enabled by default (#2600 <https://github.com/olimorris/codecompanion.nvim/pull/2600>), dropping support for Mini.Diff

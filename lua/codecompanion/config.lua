@@ -861,6 +861,9 @@ The user is working on a %s machine. Please respond with system specific command
     -- INLINE INTERACTION -----------------------------------------------------
     inline = {
       adapter = "copilot",
+      opts = {
+        max_context_tokens = nil, -- Defaults to 16000, or the model's input limit minus 3000 if that's smaller
+      },
       keymaps = {
         stop = {
           callback = "keymaps.stop",
@@ -1109,14 +1112,14 @@ The user is working on a %s machine. Please respond with system specific command
         },
         accept_change = {
           callback = "keymaps.accept_change",
-          description = "Accept change",
+          description = "Accept all changes",
           index = 2,
           modes = { n = "g2" },
           opts = { nowait = true, noremap = true },
         },
         reject_change = {
           callback = "keymaps.reject_change",
-          description = "Reject change",
+          description = "Reject all changes",
           index = 3,
           modes = { n = "g3" },
           opts = { nowait = true, noremap = true },
@@ -1124,6 +1127,18 @@ The user is working on a %s machine. Please respond with system specific command
         cancel = {
           description = "Cancel all pending tool calls",
           modes = { n = "g4" },
+          opts = { nowait = true },
+        },
+        accept_hunk = {
+          callback = "keymaps.accept_hunk",
+          description = "Accept the hunk under the cursor (inline only)",
+          modes = { n = "ga" },
+          opts = { nowait = true },
+        },
+        reject_hunk = {
+          callback = "keymaps.reject_hunk",
+          description = "Reject the hunk under the cursor (inline only)",
+          modes = { n = "gr" },
           opts = { nowait = true },
         },
         next_hunk = {
@@ -1135,6 +1150,12 @@ The user is working on a %s machine. Please respond with system specific command
           callback = "keymaps.previous_hunk",
           description = "Go to previous hunk",
           modes = { n = "{" },
+        },
+        show_keymaps = {
+          callback = "keymaps.show_keymaps",
+          description = "Show these keymaps",
+          modes = { n = "?" },
+          visible = false, -- The banner already says it
         },
       },
     },
@@ -1397,6 +1418,7 @@ The user is working on a %s machine. Please respond with system specific command
 
     diff = {
       enabled = true,
+      show_banner = true, -- Show the hunk count and keymaps above the current hunk, or in a float's winbar
       threshold_for_chat = 6, -- At or below this, always display the diff in the chat buffer
 
       -- Options for any diff windows (extends from floating_window)
@@ -1411,11 +1433,6 @@ The user is working on a %s machine. Please respond with system specific command
 
     icons = {
       warning = " ",
-    },
-
-    inline = {
-      -- If the inline prompt creates a new buffer, how should we display this?
-      layout = "vertical", -- vertical|horizontal|buffer
     },
 
     -- Display options for the input buffer

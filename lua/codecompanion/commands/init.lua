@@ -62,18 +62,7 @@ return {
         return codecompanion.prompt(prompt, opts)
       end
 
-      -- If the user calls the command with no prompt, then ask for their input
-      if #vim.trim(opts.args or "") == 0 then
-        vim.ui.input({ prompt = config.display.action_palette.prompt }, function(input)
-          if #vim.trim(input or "") == 0 then
-            return
-          end
-          opts.args = input
-          return codecompanion.inline(opts)
-        end)
-      else
-        codecompanion.inline(opts)
-      end
+      codecompanion.inline(opts)
     end,
     opts = {
       desc = "Use the CodeCompanion Inline Assistant",

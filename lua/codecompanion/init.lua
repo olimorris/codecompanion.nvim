@@ -40,9 +40,20 @@ end
 CodeCompanion.inline = function(args)
   local context = get_context(api.nvim_get_current_buf(), args)
   local inline = require("codecompanion.interactions.inline").new({ buffer_context = context })
-  if inline then
-    inline:prompt(args.args)
+  if not inline then
+    return
   end
+
+  if vim.trim(args.args or "") ~= "" then
+    return inline:prompt(args.args)
+  end
+
+  require("codecompanion.interactions.shared.input").open({
+    title = " " .. config.display.input.title .. " ",
+    on_submit = function(prompt)
+      inline:prompt(prompt)
+    end,
+  })
 end
 
 ---Accept the next word of code completion

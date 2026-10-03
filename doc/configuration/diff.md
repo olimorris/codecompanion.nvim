@@ -20,6 +20,9 @@ require("codecompanion").setup({
     diff = {
       enabled = true,
 
+      -- Show the hunk count and keymaps above the current hunk, or in a float's winbar
+      show_banner = true,
+
       -- At or below this diff size, always display the diff in the chat buffer
       threshold_for_chat = 6,
 

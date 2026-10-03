@@ -84,6 +84,38 @@ M.reject_change = {
   end,
 }
 
+M.accept_hunk = {
+  desc = "Accept the hunk under the cursor",
+  hunk_action = true,
+  callback = function(diff_ui)
+    local cursor = api.nvim_win_get_cursor(diff_ui.winnr)
+    diff_ui:resolve_hunk(diff_ui:get_hunk_at(cursor[1]), { accept = true })
+  end,
+}
+
+M.reject_hunk = {
+  desc = "Reject the hunk under the cursor",
+  hunk_action = true,
+  callback = function(diff_ui)
+    local cursor = api.nvim_win_get_cursor(diff_ui.winnr)
+    diff_ui:resolve_hunk(diff_ui:get_hunk_at(cursor[1]), { accept = false })
+  end,
+}
+
+M.show_keymaps = {
+  desc = "Show the diff's keymaps",
+  callback = function(diff_ui)
+    local bound = {}
+    for name, keymap in pairs(config.interactions.shared.keymaps) do
+      local handler = M[name]
+      if handler and (diff_ui.hunk_actions or not handler.hunk_action) then
+        bound[name] = keymap
+      end
+    end
+    require("codecompanion.utils.ui").show_keymaps(bound, { title = "Diff" })
+  end,
+}
+
 M.close_window = {
   desc = "Close window",
   callback = function(diff_ui)

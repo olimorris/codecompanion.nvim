@@ -200,14 +200,6 @@ return {
         return data
       end,
 
-      ---Output the data from the API for the inline assistant
-      ---@param self CodeCompanion.HTTPAdapter
-      ---@param args { data: string|table, context?: table }
-      ---@return table|nil
-      parse_inline = function(self, args)
-        return openai.handlers.inline_output(self, args.data, args.context)
-      end,
-
       ---Returns the number of tokens generated from the LLM
       ---@param self CodeCompanion.HTTPAdapter
       ---@param args { data: table }

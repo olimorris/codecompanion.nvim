@@ -464,7 +464,7 @@ return {
               content = content,
               meta = {
                 compaction = compaction,
-                response_id = response_id,
+                response_id = json.id,
               },
               reasoning = reasoning,
               role = self.roles.llm,
@@ -558,42 +558,6 @@ return {
         }
       end,
 
-      ---Output the data from the API ready for inlining into the current buffer
-      ---@param self CodeCompanion.HTTPAdapter
-      ---@param args { data: string|table, context?: table }
-      ---@return {status: string, output: table}|nil
-      parse_inline = function(self, args)
-        local data = args.data
-        if self.opts.stream then
-          return log:error("Inline output is not supported for non-streaming models")
-        end
-
-        if data and data ~= "" then
-          local ok, json = pcall(vim.json.decode, data.body, { luanil = { object = true } })
-
-          if not ok or not json.output then
-            log:error("Error decoding JSON: %s", data.body)
-            return { status = "error", output = json }
-          end
-
-          local output
-          vim.iter(json.output):each(function(item)
-            if item.type == "message" then
-              if item.content then
-                for _, block in ipairs(item.content) do
-                  if block.type == "output_text" then
-                    output = block.text
-                    break
-                  end
-                end
-              end
-            end
-          end)
-          return { status = "success", output = output }
-        end
-
-        return { status = "error", output = "No output from the model" }
-      end,
       ---
       ---Returns the number of tokens generated from the LLM
       ---@param self CodeCompanion.HTTPAdapter
