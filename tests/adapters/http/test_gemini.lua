@@ -39,7 +39,7 @@ T["Gemini adapter"]["can form messages to be sent to the API"] = function()
     system_instruction = "Follow the user's request\n\nRespond in code",
   }
 
-  h.eq(output, adapter.handlers.request.build_messages(adapter, messages))
+  h.eq(output, adapter.handlers.request.build_messages(adapter, { messages = messages }))
 end
 
 T["Gemini adapter"]["can form messages without system prompt"] = function()
@@ -67,7 +67,7 @@ T["Gemini adapter"]["can form messages without system prompt"] = function()
     },
   }
 
-  h.eq(output, adapter.handlers.request.build_messages(adapter, messages))
+  h.eq(output, adapter.handlers.request.build_messages(adapter, { messages = messages }))
 end
 
 T["Gemini adapter"]["can form messages with tool calls and responses"] = function()
@@ -122,7 +122,7 @@ T["Gemini adapter"]["can form messages with tool calls and responses"] = functio
     },
   }
 
-  h.eq(output, adapter.handlers.request.build_messages(adapter, messages))
+  h.eq(output, adapter.handlers.request.build_messages(adapter, { messages = messages }))
 end
 
 T["Gemini adapter"]["can form messages with tool call text content"] = function()
@@ -147,7 +147,7 @@ T["Gemini adapter"]["can form messages with tool call text content"] = function(
     },
   }
 
-  local output = adapter.handlers.request.build_messages(adapter, messages)
+  local output = adapter.handlers.request.build_messages(adapter, { messages = messages })
 
   h.eq(3, #output.input)
   h.eq("model_output", output.input[2].type)
@@ -170,7 +170,7 @@ T["Gemini adapter"]["can form messages with reasoning"] = function()
     },
   }
 
-  local output = adapter.handlers.request.build_messages(adapter, messages)
+  local output = adapter.handlers.request.build_messages(adapter, { messages = messages })
 
   h.eq(3, #output.input)
   h.eq({
@@ -198,7 +198,7 @@ T["Gemini adapter"]["can form messages with an image and following text"] = func
     },
   }
 
-  local output = adapter.handlers.request.build_messages(adapter, messages)
+  local output = adapter.handlers.request.build_messages(adapter, { messages = messages })
 
   h.eq(1, #output.input)
   h.eq("user_input", output.input[1].type)
@@ -222,7 +222,7 @@ T["Gemini adapter"]["can form messages with a PDF document and following text"] 
     },
   }
 
-  local output = adapter.handlers.request.build_messages(adapter, messages)
+  local output = adapter.handlers.request.build_messages(adapter, { messages = messages })
 
   h.eq(1, #output.input)
   h.eq("user_input", output.input[1].type)
@@ -242,7 +242,7 @@ T["Gemini adapter"]["only PDFs are converted into document blocks"] = function()
     },
   }
 
-  local output = adapter.handlers.request.build_messages(adapter, messages)
+  local output = adapter.handlers.request.build_messages(adapter, { messages = messages })
 
   h.eq("user_input", output.input[1].type)
   h.eq("base64encodeddocx", output.input[1].content)
@@ -252,7 +252,7 @@ T["Gemini adapter"]["can form tools to be sent to the API"] = function()
   local weather = require("tests.interactions.chat.tools.builtin.stubs.weather").schema
   local tools = { weather = { weather } }
 
-  local output = adapter.handlers.request.build_tools(adapter, tools)
+  local output = adapter.handlers.request.build_tools(adapter, { tools = tools })
 
   h.eq(1, #output.tools)
   local decl = output.tools[1]
@@ -279,7 +279,7 @@ T["Gemini adapter"]["can form the built-in google_search tool"] = function()
     },
   }
 
-  h.eq({ tools = { { type = "google_search" } } }, adapter.handlers.request.build_tools(adapter, tools))
+  h.eq({ tools = { { type = "google_search" } } }, adapter.handlers.request.build_tools(adapter, { tools = tools }))
 end
 
 T["Gemini adapter"]["can form reasoning output from streamed chunks"] = function()
@@ -293,7 +293,7 @@ T["Gemini adapter"]["can form reasoning output from streamed chunks"] = function
   h.eq({
     content = "Let me think about this",
     signature = "sig-part-1sig-part-2",
-  }, adapter.handlers.request.build_reasoning(adapter, input))
+  }, adapter.handlers.request.build_reasoning(adapter, { data = input }))
 end
 
 T["Gemini adapter"]["can normalize tool calls via format_calls"] = function()
@@ -306,7 +306,7 @@ T["Gemini adapter"]["can normalize tool calls via format_calls"] = function()
     },
   }
 
-  local formatted = adapter.handlers.tools.format_calls(adapter, raw_tools)
+  local formatted = adapter.handlers.tools.format_calls(adapter, { tools = raw_tools })
 
   h.eq(1, #formatted)
   h.eq(1, formatted[1]._index)
@@ -326,7 +326,8 @@ T["Gemini adapter"]["can format tool response via format_response"] = function()
     ["function"] = { arguments = '{"location":"London"}', name = "weather" },
   }
 
-  local result = adapter.handlers.tools.format_response(adapter, tool_call, '{"temperature": 20}')
+  local result =
+    adapter.handlers.tools.format_response(adapter, { tool_call = tool_call, output = '{"temperature": 20}' })
 
   h.eq("tool", result.role)
   h.eq("weather", result.tools.name)
@@ -341,7 +342,7 @@ T["Gemini adapter"]["Streaming"]["can output streamed data into the chat buffer"
   local reasoning_signature
   local lines = vim.fn.readfile("tests/adapters/http/stubs/gemini_interactions_streaming.txt")
   for _, line in ipairs(lines) do
-    local chat_output = adapter.handlers.response.parse_chat(adapter, line)
+    local chat_output = adapter.handlers.response.parse_chat(adapter, { data = line })
     if chat_output then
       if chat_output.output.content then
         output = output .. chat_output.output.content
@@ -361,7 +362,7 @@ T["Gemini adapter"]["Streaming"]["can process reasoning summaries"] = function()
   local reasoning_signature
   local lines = vim.fn.readfile("tests/adapters/http/stubs/gemini_interactions_reasoning_streaming.txt")
   for _, line in ipairs(lines) do
-    local chat_output = adapter.handlers.response.parse_chat(adapter, line)
+    local chat_output = adapter.handlers.response.parse_chat(adapter, { data = line })
     if chat_output and chat_output.output.reasoning then
       if chat_output.output.reasoning.content then
         reasoning_content = (reasoning_content or "") .. chat_output.output.reasoning.content
@@ -385,7 +386,7 @@ T["Gemini adapter"]["Streaming"]["can process a streamed tool call"] = function(
   local reasoning_content
   local lines = vim.fn.readfile("tests/adapters/http/stubs/gemini_interactions_tools_streaming.txt")
   for _, line in ipairs(lines) do
-    local chat_output = adapter.handlers.response.parse_chat(adapter, line, tools)
+    local chat_output = adapter.handlers.response.parse_chat(adapter, { data = line, tools = tools })
     if chat_output and chat_output.output.reasoning and chat_output.output.reasoning.content then
       reasoning_content = (reasoning_content or "") .. chat_output.output.reasoning.content
     end
@@ -397,7 +398,7 @@ T["Gemini adapter"]["Streaming"]["can process a streamed tool call"] = function(
   h.eq("run_command", tools[1].name)
   h.eq('{"cmd":"ls -la"}', tools[1].args)
 
-  local formatted = adapter.handlers.tools.format_calls(adapter, tools)
+  local formatted = adapter.handlers.tools.format_calls(adapter, { tools = tools })
   h.eq("run_command", formatted[1]["function"].name)
   h.eq({ cmd = "ls -la" }, vim.json.decode(formatted[1]["function"].arguments))
 end
@@ -406,7 +407,7 @@ T["Gemini adapter"]["Streaming"]["can parse tokens from interaction.completed"] 
   local tokens
   local lines = vim.fn.readfile("tests/adapters/http/stubs/gemini_interactions_streaming.txt")
   for _, line in ipairs(lines) do
-    local count = adapter.handlers.response.parse_tokens(adapter, line)
+    local count = adapter.handlers.response.parse_tokens(adapter, { data = line })
     if count then
       tokens = count
     end
@@ -432,7 +433,7 @@ T["Gemini adapter"]["No Streaming"]["can output for the chat buffer"] = function
   data = table.concat(data, "\n")
 
   local json = { body = data }
-  local result = adapter.handlers.response.parse_chat(adapter, json)
+  local result = adapter.handlers.response.parse_chat(adapter, { data = json })
 
   h.expect_starts_with("There are 8 paws", result.output.content)
 end
@@ -443,7 +444,7 @@ T["Gemini adapter"]["No Streaming"]["can parse tokens"] = function()
 
   local json = { body = data }
 
-  h.eq(240, adapter.handlers.response.parse_tokens(adapter, json))
+  h.eq(240, adapter.handlers.response.parse_tokens(adapter, { data = json }))
 end
 
 T["Gemini adapter"]["No Streaming"]["can process a requested tool call"] = function()
@@ -452,7 +453,7 @@ T["Gemini adapter"]["No Streaming"]["can process a requested tool call"] = funct
 
   local tools = {}
   local json = { body = data }
-  adapter.handlers.response.parse_chat(adapter, json, tools)
+  adapter.handlers.response.parse_chat(adapter, { data = json, tools = tools })
 
   h.eq(1, #tools)
   h.eq("call_abc123", tools[1].id)
@@ -466,7 +467,7 @@ T["Gemini adapter"]["No Streaming"]["can process a completed tool call with text
 
   local tools = {}
   local json = { body = data }
-  local result = adapter.handlers.response.parse_chat(adapter, json, tools)
+  local result = adapter.handlers.response.parse_chat(adapter, { data = json, tools = tools })
 
   h.eq(1, #tools)
   h.eq("get_current_temperature", tools[1].name)
@@ -479,7 +480,7 @@ T["Gemini adapter"]["No Streaming"]["can output for the inline assistant"] = fun
 
   local json = { body = data }
 
-  h.expect_starts_with("There are 8 paws", adapter.handlers.response.parse_inline(adapter, json).output)
+  h.expect_starts_with("There are 8 paws", adapter.handlers.response.parse_inline(adapter, { data = json }).output)
 end
 
 T["Gemini adapter"]["No Streaming"]["can output an image description"] = function()
@@ -490,7 +491,7 @@ T["Gemini adapter"]["No Streaming"]["can output an image description"] = functio
 
   h.expect_starts_with(
     "The local image displays a pipe organ",
-    adapter.handlers.response.parse_chat(adapter, json).output.content
+    adapter.handlers.response.parse_chat(adapter, { data = json }).output.content
   )
 end
 
@@ -499,7 +500,7 @@ T["Gemini adapter"]["No Streaming"]["can output a structured output response"] =
   data = table.concat(data, "\n")
 
   local json = { body = data }
-  local content = adapter.handlers.response.parse_chat(adapter, json).output.content
+  local content = adapter.handlers.response.parse_chat(adapter, { data = json }).output.content
 
   local decoded = vim.json.decode(content)
   h.eq("Classic Banana Bread", decoded.recipe_name)
@@ -521,7 +522,10 @@ T["Gemini adapter"]["resolves model capabilities on the first request"] = functi
   adapters.call_handler(adapter, "setup")
 
   h.eq(true, adapter.opts.can_form_structured_outputs)
-  h.not_eq(nil, adapters.call_handler(adapter, "build_structured_output", { name = "verdict", schema = {} }))
+  h.not_eq(
+    nil,
+    adapters.call_handler(adapter, "build_structured_output", { schema = { name = "verdict", schema = {} } })
+  )
 end
 
 return T

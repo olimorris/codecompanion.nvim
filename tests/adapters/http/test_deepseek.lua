@@ -21,7 +21,7 @@ T["DeepSeek adapter"]["build_messages"]["it can form messages to be sent to the 
     role = "user",
   } }
 
-  h.eq({ messages = messages }, adapter.handlers.request.build_messages(adapter, messages))
+  h.eq({ messages = messages }, adapter.handlers.request.build_messages(adapter, { messages = messages }))
 end
 
 T["DeepSeek adapter"]["build_messages"]["merges consecutive messages with the same role"] = function()
@@ -41,7 +41,7 @@ T["DeepSeek adapter"]["build_messages"]["merges consecutive messages with the sa
     },
   }
 
-  h.eq(expected, adapter.handlers.request.build_messages(adapter, input))
+  h.eq(expected, adapter.handlers.request.build_messages(adapter, { messages = input }))
 end
 
 T["DeepSeek adapter"]["build_messages"]["merges system messages together at the start of the message chain"] = function()
@@ -65,7 +65,7 @@ T["DeepSeek adapter"]["build_messages"]["merges system messages together at the 
     },
   }
 
-  h.eq(expected, adapter.handlers.request.build_messages(adapter, input))
+  h.eq(expected, adapter.handlers.request.build_messages(adapter, { messages = input }))
 end
 
 T["DeepSeek adapter"]["build_messages"]["ensures message content is a string and not a list"] = function()
@@ -88,7 +88,7 @@ T["DeepSeek adapter"]["build_messages"]["ensures message content is a string and
     },
   }
 
-  h.eq(expected, adapter.handlers.request.build_messages(adapter, input))
+  h.eq(expected, adapter.handlers.request.build_messages(adapter, { messages = input }))
 end
 
 T["DeepSeek adapter"]["build_messages"]["it can form messages with tools"] = function()
@@ -157,7 +157,7 @@ T["DeepSeek adapter"]["build_messages"]["it can form messages with tools"] = fun
     },
   }
 
-  h.eq(expected, adapter.handlers.request.build_messages(adapter, input))
+  h.eq(expected, adapter.handlers.request.build_messages(adapter, { messages = input }))
 end
 
 T["DeepSeek adapter"]["build_messages"]["it can form tools to be sent to the API"] = function()
@@ -172,7 +172,7 @@ T["DeepSeek adapter"]["build_messages"]["it can form tools to be sent to the API
   local weather = require("tests.interactions.chat.tools.builtin.stubs.weather").schema
   local tools = { weather = { weather } }
 
-  h.eq({ tools = { weather } }, adapter.handlers.request.build_tools(adapter, tools))
+  h.eq({ tools = { weather } }, adapter.handlers.request.build_tools(adapter, { tools = tools }))
 end
 
 T["DeepSeek adapter"]["build_messages"]["includes reasoning_content in messages"] = function()
@@ -182,7 +182,7 @@ T["DeepSeek adapter"]["build_messages"]["includes reasoning_content in messages"
     { role = "user", content = "In two words" },
   }
 
-  local result = adapter.handlers.request.build_messages(adapter, input)
+  local result = adapter.handlers.request.build_messages(adapter, { messages = input })
 
   -- reasoning is normalized to a string by build_reasoning before message storage
   h.eq("Let me think about Ruby...", result.messages[2].reasoning_content)
@@ -194,7 +194,7 @@ T["DeepSeek adapter"]["Streaming"]["can output streamed data into a format for t
   local lines = vim.fn.readfile("tests/adapters/http/stubs/deepseek_streaming.txt")
   local output = ""
   for _, line in ipairs(lines) do
-    local chat_output = adapter.handlers.response.parse_chat(adapter, line)
+    local chat_output = adapter.handlers.response.parse_chat(adapter, { data = line })
     if chat_output then
       output = output .. (chat_output.output.content or "")
     end
@@ -211,9 +211,9 @@ T["DeepSeek adapter"]["Streaming"]["can handle reasoning content when streaming"
   }
   local lines = vim.fn.readfile("tests/adapters/http/stubs/deepseek_streaming.txt")
   for _, line in ipairs(lines) do
-    local chat_output = adapter.handlers.response.parse_chat(adapter, line)
+    local chat_output = adapter.handlers.response.parse_chat(adapter, { data = line })
     if chat_output and adapter.handlers.response.parse_meta and chat_output.extra then
-      chat_output = adapter.handlers.response.parse_meta(adapter, chat_output)
+      chat_output = adapter.handlers.response.parse_meta(adapter, { data = chat_output })
     end
     if chat_output then
       if chat_output.output.reasoning and chat_output.output.reasoning.content then
@@ -232,10 +232,10 @@ T["DeepSeek adapter"]["Streaming"]["can output streamed data without reasoning"]
   local output = ""
   local reasoning = ""
   for _, line in ipairs(lines) do
-    local chat_output = adapter.handlers.response.parse_chat(adapter, line)
+    local chat_output = adapter.handlers.response.parse_chat(adapter, { data = line })
     if chat_output then
       if chat_output.extra and adapter.handlers.response.parse_meta then
-        chat_output = adapter.handlers.response.parse_meta(adapter, chat_output)
+        chat_output = adapter.handlers.response.parse_meta(adapter, { data = chat_output })
       end
       if chat_output.output.content then
         output = output .. chat_output.output.content
@@ -253,7 +253,7 @@ T["DeepSeek adapter"]["Streaming"]["can process tools"] = function()
   local tools = {}
   local lines = vim.fn.readfile("tests/adapters/http/stubs/deepseek_tools_streaming.txt")
   for _, line in ipairs(lines) do
-    adapter.handlers.response.parse_chat(adapter, line, tools)
+    adapter.handlers.response.parse_chat(adapter, { data = line, tools = tools })
   end
 
   local tool_output = {
@@ -284,7 +284,7 @@ T["DeepSeek adapter"]["Streaming"]["can process tools without params"] = functio
   local tools = {}
   local lines = vim.fn.readfile("tests/adapters/http/stubs/deepseek_tools_no_params_streaming.txt")
   for _, line in ipairs(lines) do
-    adapter.handlers.response.parse_chat(adapter, line, tools)
+    adapter.handlers.response.parse_chat(adapter, { data = line, tools = tools })
   end
 
   local tool_output = {
@@ -329,7 +329,7 @@ T["DeepSeek adapter"]["No Streaming"]["can output for the chat buffer"] = functi
   local data = vim.fn.readfile("tests/adapters/http/stubs/deepseek_no_streaming.txt")
   data = table.concat(data, "\n")
 
-  h.eq("**Elegant syntax.**", adapter.handlers.response.parse_chat(adapter, data).output.content)
+  h.eq("**Elegant syntax.**", adapter.handlers.response.parse_chat(adapter, { data = data }).output.content)
 end
 
 T["DeepSeek adapter"]["No Streaming"]["can process tools"] = function()
@@ -340,7 +340,7 @@ T["DeepSeek adapter"]["No Streaming"]["can process tools"] = function()
 
   -- Match the format of the actual request
   local json = { body = data }
-  adapter.handlers.response.parse_chat(adapter, json, tools)
+  adapter.handlers.response.parse_chat(adapter, { data = json, tools = tools })
 
   local tool_output = {
     {
@@ -373,7 +373,7 @@ T["DeepSeek adapter"]["No Streaming"]["can output for the inline assistant"] = f
   -- Match the format of the actual request
   local json = { body = data }
 
-  h.eq("**Elegant syntax.**", adapter.handlers.response.parse_inline(adapter, json).output)
+  h.eq("**Elegant syntax.**", adapter.handlers.response.parse_inline(adapter, { data = json }).output)
 end
 
 return T

@@ -442,7 +442,7 @@ function Inline:submit(prompt)
         end
 
         if data then
-          data = adapters.call_handler(adapter, "parse_inline", data, self.buffer_context)
+          data = adapters.call_handler(adapter, "parse_inline", { data = data, context = self.buffer_context })
           if data and data.status == CONSTANTS.STATUS_SUCCESS then
             return self:done(data.output)
           elseif data then

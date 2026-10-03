@@ -1134,7 +1134,7 @@ function Chat:_complete_orphaned_tool_calls(opts)
 
   local reason = opts and opts.reason or "Cancelled by user"
   for id, call in pairs(pending) do
-    local output = adapters.call_handler(self.adapter, "format_response", call, reason)
+    local output = adapters.call_handler(self.adapter, "format_response", { tool_call = call, output = reason })
     if output then
       output.opts = vim.tbl_extend("force", output.opts or {}, { visible = false })
       output._meta = {
@@ -1249,17 +1249,16 @@ function Chat:_submit_http(payload)
 
   local function process_chunk(data)
     if adapter.features.tokens then
-      local token_count = adapters.call_handler(adapter, "parse_tokens", data)
+      local token_count = adapters.call_handler(adapter, "parse_tokens", { data = data })
       if token_count then
         self.tokens = token_count
       end
     end
 
-    local result = adapters.call_handler(adapter, "parse_chat", data, tools)
+    local result = adapters.call_handler(adapter, "parse_chat", { data = data, tools = tools })
     -- TODO: Rename this to be `parse_extra` for clarity
-    local parse_meta = adapters.get_handler(adapter, "parse_meta")
-    if result and result.extra and type(parse_meta) == "function" then
-      result = parse_meta(adapter, result)
+    if result and result.extra and adapters.get_handler(adapter, "parse_meta") then
+      result = adapters.call_handler(adapter, "parse_meta", { data = result })
     end
 
     if result and result.status then
@@ -1552,7 +1551,7 @@ function Chat:done(output, reasoning, tools, meta, opts)
     if vim.iter(reasoning):any(function(item)
       return item and type(item) ~= "string"
     end) then
-      reasoning_content = adapters.call_handler(self.adapter, "build_reasoning", reasoning)
+      reasoning_content = adapters.call_handler(self.adapter, "build_reasoning", { data = reasoning })
     else
       reasoning_content = table.concat(reasoning, "")
     end
@@ -1589,7 +1588,7 @@ function Chat:done(output, reasoning, tools, meta, opts)
 
   -- Process tools last
   if has_tools then
-    tools = adapters.call_handler(self.adapter, "format_calls", tools)
+    tools = adapters.call_handler(self.adapter, "format_calls", { tools = tools })
     if tools then
       local token_meta = { cumulative_tokens = self.tokens }
       local message = {
@@ -1914,7 +1913,7 @@ function Chat:add_tool_output(tool, for_llm, for_user)
   for_llm = args.for_llm
   for_user = args.for_user
 
-  local output = adapters.call_handler(self.adapter, "format_response", tool_call, for_llm)
+  local output = adapters.call_handler(self.adapter, "format_response", { tool_call = tool_call, output = for_llm })
   if not output then
     return log:error("Adapter does not support tool response formatting")
   end

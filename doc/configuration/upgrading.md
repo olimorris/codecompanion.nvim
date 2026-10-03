@@ -56,6 +56,73 @@ require("codecompanion").setup({
 
 :::
 
+- HTTP adapter handlers in the nested format (`lifecycle`, `request`, `response` and `tools`) now take a single `args` table after `self`, in place of positional arguments. New fields can then be added without breaking your handlers, and a handler that wraps another can pass `args` straight through. If you've written or extended an adapter in this format, update each handler:
+
+```lua
+require("codecompanion").setup({
+  adapters = {
+    http = {
+      openai = function()
+        return require("codecompanion.adapters").extend("openai", {
+          handlers = {
+            response = {
+              parse_chat = function(self, data, tools) -- [!code --]
+              parse_chat = function(self, args) -- [!code ++]
+                local data, tools = args.data, args.tools -- [!code ++]
+                -- ...
+              end,
+            },
+          },
+        })
+      end,
+    },
+  },
+})
+```
+
+The fields in `args` match the old positional arguments:
+
+| Handler | `args` |
+|---|---|
+| `lifecycle.on_exit` | `data` |
+| `request.build_parameters` | `params`, `messages` |
+| `request.build_messages` | `messages` |
+| `request.build_tools` | `tools` |
+| `request.build_structured_output` | `schema` |
+| `request.build_reasoning` | `data` |
+| `request.build_body` | `payload` |
+| `response.parse_chat` | `data`, `tools` |
+| `response.parse_inline` | `data`, `context` |
+| `response.parse_tokens` | `data` |
+| `response.parse_meta` | `data` |
+| `tools.format_calls` | `tools` |
+| `tools.format_response` | `tool_call`, `output` |
+
+`lifecycle.setup` and `lifecycle.teardown` still only take `self`. Adapters in the flat format, such as `form_messages` and `chat_output`, are unaffected.
+
+- ACP adapters now use the same nested format, with `lifecycle.setup`, `lifecycle.auth`, `lifecycle.on_exit` and `request.build_messages`. Flat handlers still work, and take precedence over the nested ones when you extend an adapter. `helpers.form_messages` is now `helpers.build_messages`, though the old name still works:
+
+```lua
+require("codecompanion").setup({
+  adapters = {
+    acp = {
+      claude_code = function()
+        return require("codecompanion.adapters").extend("claude_code", {
+          handlers = {
+            form_messages = function(self, messages, capabilities) -- [!code --]
+            request = { -- [!code ++]
+              build_messages = function(self, args) -- [!code ++]
+                -- args.messages, args.capabilities
+              end,
+            }, -- [!code ++]
+          },
+        })
+      end,
+    },
+  },
+})
+```
+
 ### Tools
 
 - The `insert_edit_into_file` tool has been replaced by [edit_file](/usage/chat-buffer/agents-tools#edit-file) ([#3427](https://github.com/olimorris/codecompanion.nvim/pull/3427)). It takes the same options, so rename any references in your config, custom groups and prompts:

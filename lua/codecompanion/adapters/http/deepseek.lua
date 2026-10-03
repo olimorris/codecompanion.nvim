@@ -127,44 +127,46 @@ return {
         return true
       end,
 
-      on_exit = function(self, data)
-        return openai.handlers.on_exit(self, data)
+      ---@param self CodeCompanion.HTTPAdapter
+      ---@param args { data?: table }
+      ---@return nil
+      on_exit = function(self, args)
+        return openai.handlers.on_exit(self, args.data)
       end,
     },
 
     request = {
       ---Set the parameters
       ---@param self CodeCompanion.HTTPAdapter
-      ---@param params table
-      ---@param messages table
+      ---@param args { params: table, messages: table }
       ---@return table
-      build_parameters = function(self, params, messages)
-        return params
+      build_parameters = function(self, args)
+        return args.params
       end,
 
       ---Set the format of the role and content for the messages from the chat buffer
       ---@param self CodeCompanion.HTTPAdapter
-      ---@param messages table Format is: { { role = "user", content = "Your prompt here" } }
+      ---@param args { messages: table }
       ---@return table
-      build_messages = function(self, messages)
-        return build_messages(self, messages)
+      build_messages = function(self, args)
+        return build_messages(self, args.messages)
       end,
 
       ---Provides the schemas of the tools that are available to the LLM to call
       ---@param self CodeCompanion.HTTPAdapter
-      ---@param tools table<string, table>
+      ---@param args { tools?: table<string, table> }
       ---@return table|nil
-      build_tools = function(self, tools)
-        return openai.handlers.form_tools(self, tools)
+      build_tools = function(self, args)
+        return openai.handlers.form_tools(self, args.tools)
       end,
 
       ---Aggregate reasoning parts into a string
       ---@param self CodeCompanion.HTTPAdapter
-      ---@param parts table
+      ---@param args { data: table }
       ---@return string
-      build_reasoning = function(self, parts)
+      build_reasoning = function(self, args)
         return vim
-          .iter(parts)
+          .iter(args.data)
           :map(function(part)
             return part.content
           end)
@@ -175,18 +177,18 @@ return {
     response = {
       ---Output the data from the API ready for insertion into the chat buffer
       ---@param self CodeCompanion.HTTPAdapter
-      ---@param data table The streamed JSON data from the API, also formatted by the format_data handler
-      ---@param tools? table The table to write any tool output to
+      ---@param args { data: string|table, tools?: table }
       ---@return table|nil
-      parse_chat = function(self, data, tools)
-        return openai.handlers.chat_output(self, data, tools)
+      parse_chat = function(self, args)
+        return openai.handlers.chat_output(self, args.data, args.tools)
       end,
 
       ---Extract reasoning_content from the response
       ---@param self CodeCompanion.HTTPAdapter
-      ---@param data table
+      ---@param args { data: table }
       ---@return table
-      parse_meta = function(self, data)
+      parse_meta = function(self, args)
+        local data = args.data
         local reasoning_content = data.extra and data.extra.reasoning_content
         if reasoning_content then
           data.output.reasoning = { content = reasoning_content }
@@ -200,38 +202,36 @@ return {
 
       ---Output the data from the API for the inline assistant
       ---@param self CodeCompanion.HTTPAdapter
-      ---@param data table
-      ---@param context table?
+      ---@param args { data: string|table, context?: table }
       ---@return table|nil
-      parse_inline = function(self, data, context)
-        return openai.handlers.inline_output(self, data, context)
+      parse_inline = function(self, args)
+        return openai.handlers.inline_output(self, args.data, args.context)
       end,
 
       ---Returns the number of tokens generated from the LLM
       ---@param self CodeCompanion.HTTPAdapter
-      ---@param data table
+      ---@param args { data: table }
       ---@return number|nil
-      parse_tokens = function(self, data)
-        return openai.handlers.tokens(self, data)
+      parse_tokens = function(self, args)
+        return openai.handlers.tokens(self, args.data)
       end,
     },
 
     tools = {
       ---Format the tool calls for the LLM
       ---@param self CodeCompanion.HTTPAdapter
-      ---@param tools table
+      ---@param args { tools: table }
       ---@return table
-      format_calls = function(self, tools)
-        return openai.handlers.tools.format_tool_calls(self, tools)
+      format_calls = function(self, args)
+        return openai.handlers.tools.format_tool_calls(self, args.tools)
       end,
 
       ---Format the tool response for the LLM
       ---@param self CodeCompanion.HTTPAdapter
-      ---@param tool_call table
-      ---@param output string
+      ---@param args { tool_call: table, output: string }
       ---@return table
-      format_response = function(self, tool_call, output)
-        return openai.handlers.tools.output_response(self, tool_call, output)
+      format_response = function(self, args)
+        return openai.handlers.tools.output_response(self, args.tool_call, args.output)
       end,
     },
   },

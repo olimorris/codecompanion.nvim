@@ -154,9 +154,10 @@ return {
 
       ---Function to run when the request has completed
       ---@param self CodeCompanion.HTTPAdapter
-      ---@param data? table
+      ---@param args { data?: table }
       ---@return nil
-      on_exit = function(self, data)
+      on_exit = function(self, args)
+        local data = args.data
         step_types = {}
         if data and data.status and data.status >= 400 then
           log:error("Error: %s", data.body)
@@ -167,18 +168,18 @@ return {
     request = {
       ---Set the parameters
       ---@param self CodeCompanion.HTTPAdapter
-      ---@param params table
-      ---@param messages table
+      ---@param args { params: table, messages: table }
       ---@return table
-      build_parameters = function(self, params, messages)
-        return params
+      build_parameters = function(self, args)
+        return args.params
       end,
 
       ---Set the format of the role and content for the messages from the chat buffer
       ---@param self CodeCompanion.HTTPAdapter
-      ---@param messages table
+      ---@param args { messages: table }
       ---@return table
-      build_messages = function(self, messages)
+      build_messages = function(self, args)
+        local messages = args.messages
         local system_parts = {}
         local input = {}
         local i = 1
@@ -307,9 +308,10 @@ return {
 
       ---Provides the schemas of the tools that are available to the LLM
       ---@param self CodeCompanion.HTTPAdapter
-      ---@param tools table<string, table>
+      ---@param args { tools?: table<string, table> }
       ---@return table|nil
-      build_tools = function(self, tools)
+      build_tools = function(self, args)
+        local tools = args.tools
         if not self.opts.tools or not tools then
           return nil
         end
@@ -335,9 +337,10 @@ return {
 
       ---Form the structured output schema for the request body
       ---@param self CodeCompanion.HTTPAdapter
-      ---@param schema CodeCompanion.StructuredOutput.Schema
+      ---@param args { schema?: CodeCompanion.StructuredOutput.Schema }
       ---@return table|nil
-      build_structured_output = function(self, schema)
+      build_structured_output = function(self, args)
+        local schema = args.schema
         if not schema or not self.opts.can_form_structured_outputs then
           return nil
         end
@@ -346,9 +349,10 @@ return {
 
       ---Form the reasoning output that is stored in the chat buffer
       ---@param self CodeCompanion.HTTPAdapter
-      ---@param data table The reasoning output from the LLM
+      ---@param args { data: table }
       ---@return nil|{ content: string, signature: string }
-      build_reasoning = function(self, data)
+      build_reasoning = function(self, args)
+        local data = args.data
         local content = vim
           .iter(data)
           :map(function(item)
@@ -380,9 +384,10 @@ return {
     response = {
       ---Returns the number of tokens generated from the LLM
       ---@param self CodeCompanion.HTTPAdapter
-      ---@param data string|table The data from the LLM
+      ---@param args { data: string|table }
       ---@return number|nil
-      parse_tokens = function(self, data)
+      parse_tokens = function(self, args)
+        local data = args.data
         if not data or data == "" then
           return nil
         end
@@ -405,10 +410,11 @@ return {
 
       ---Output the data from the API ready for insertion into the chat buffer
       ---@param self CodeCompanion.HTTPAdapter
-      ---@param data string|table The streamed or non-streamed data from the API
-      ---@param tools? table The table to write any tool output to
+      ---@param args { data: string|table, tools?: table }
       ---@return table|nil
-      parse_chat = function(self, data, tools)
+      parse_chat = function(self, args)
+        local data = args.data
+        local tools = args.tools
         if not data or data == "" then
           return nil
         end
@@ -535,10 +541,10 @@ return {
 
       ---Output the data from the API ready for inlining into the current buffer
       ---@param self CodeCompanion.HTTPAdapter
-      ---@param data string|table
-      ---@param context? table
+      ---@param args { data: string|table, context?: table }
       ---@return table|nil
-      parse_inline = function(self, data, context)
+      parse_inline = function(self, args)
+        local data = args.data
         if self.opts.stream then
           return log:error("Inline output is not supported in streaming mode")
         end
@@ -568,9 +574,10 @@ return {
     tools = {
       ---Normalize raw tool calls from parse_chat into the internal format
       ---@param self CodeCompanion.HTTPAdapter
-      ---@param tools table
+      ---@param args { tools: table }
       ---@return table
-      format_calls = function(self, tools)
+      format_calls = function(self, args)
+        local tools = args.tools
         local formatted = {}
         for _, tool in ipairs(tools) do
           table.insert(formatted, {
@@ -590,10 +597,11 @@ return {
 
       ---Format the tool response for inclusion in messages
       ---@param self CodeCompanion.HTTPAdapter
-      ---@param tool_call table
-      ---@param output string
+      ---@param args { tool_call: table, output: string }
       ---@return table
-      format_response = function(self, tool_call, output)
+      format_response = function(self, args)
+        local tool_call = args.tool_call
+        local output = args.output
         return {
           content = output,
           opts = { visible = false },

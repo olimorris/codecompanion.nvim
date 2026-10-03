@@ -84,21 +84,21 @@ return {
 
       ---Function to run when the request has completed. Useful to catch errors
       ---@param self CodeCompanion.HTTPAdapter
-      ---@param data? table
+      ---@param args { data?: table }
       ---@return nil
-      on_exit = function(self, data)
+      on_exit = function(self, args)
         response_id = nil
-        return openai.handlers.on_exit(self, data)
+        return openai.handlers.on_exit(self, args.data)
       end,
     },
 
     request = {
       ---Set the parameters
       ---@param self CodeCompanion.HTTPAdapter
-      ---@param params table
-      ---@param messages table
+      ---@param args { params: table, messages: table }
       ---@return table
-      build_parameters = function(self, params, messages)
+      build_parameters = function(self, args)
+        local params = args.params
         local model_opts = adapter_utils.model_choice(self)
         if model_opts and model_opts.opts and model_opts.opts.can_reason then
           params.include = { "reasoning.encrypted_content" }
@@ -109,9 +109,10 @@ return {
 
       ---Set the format of the role and content for the messages from the chat buffer
       ---@param self CodeCompanion.HTTPAdapter
-      ---@param messages table Format is: { { role = "user", content = "Your prompt here" } }
+      ---@param args { messages: table }
       ---@return table
-      build_messages = function(self, messages)
+      build_messages = function(self, args)
+        local messages = args.messages
         --Ref: https://platform.openai.com/docs/guides/migrate-to-responses?lang=bash
 
         -- Separate out system messages so they can be sent as instructions
@@ -292,9 +293,10 @@ return {
 
       ---Provides the schemas of the tools that are available to the LLM to call
       ---@param self CodeCompanion.HTTPAdapter
-      ---@param tools table<string, table>
+      ---@param args { tools?: table<string, table> }
       ---@return table|nil
-      build_tools = function(self, tools)
+      build_tools = function(self, args)
+        local tools = args.tools
         if not self.opts.tools or not tools then
           return
         end
@@ -325,9 +327,10 @@ return {
 
       ---Form the structured output schema for the request body
       ---@param self CodeCompanion.HTTPAdapter
-      ---@param schema CodeCompanion.StructuredOutput.Schema
+      ---@param args { schema?: CodeCompanion.StructuredOutput.Schema }
       ---@return table|nil
-      build_structured_output = function(self, schema)
+      build_structured_output = function(self, args)
+        local schema = args.schema
         if not schema or not self.opts.can_form_structured_outputs then
           return nil
         end
@@ -336,9 +339,10 @@ return {
 
       ---Form the reasoning output that is stored in the chat buffer
       ---@param self CodeCompanion.HTTPAdapter
-      ---@param data table The reasoning output from the LLM
+      ---@param args { data: table }
       ---@return nil|{ content: string, _data: table }
-      build_reasoning = function(self, data)
+      build_reasoning = function(self, args)
+        local data = args.data
         local reasoning = {}
 
         -- Join the content deltas into a single string
@@ -374,10 +378,11 @@ return {
     response = {
       ---Output the data from the API ready for insertion into the chat buffer
       ---@param self CodeCompanion.HTTPAdapter
-      ---@param data table The streamed JSON data from the API, also formatted by the format_data handler
-      ---@param tools? table The table to write any tool output to
+      ---@param args { data: string|table, tools?: table }
       ---@return table|nil [status: string, output: table]
-      parse_chat = function(self, data, tools)
+      parse_chat = function(self, args)
+        local data = args.data
+        local tools = args.tools
         if not data or data == "" then
           return nil
         end
@@ -555,10 +560,10 @@ return {
 
       ---Output the data from the API ready for inlining into the current buffer
       ---@param self CodeCompanion.HTTPAdapter
-      ---@param data string|table The streamed JSON data from the API, also formatted by the format_data handler
-      ---@param context? table Useful context about the buffer to inline to
+      ---@param args { data: string|table, context?: table }
       ---@return {status: string, output: table}|nil
-      parse_inline = function(self, data, context)
+      parse_inline = function(self, args)
+        local data = args.data
         if self.opts.stream then
           return log:error("Inline output is not supported for non-streaming models")
         end
@@ -592,9 +597,10 @@ return {
       ---
       ---Returns the number of tokens generated from the LLM
       ---@param self CodeCompanion.HTTPAdapter
-      ---@param data table The data from the LLM
+      ---@param args { data: table }
       ---@return number|nil
-      parse_tokens = function(self, data)
+      parse_tokens = function(self, args)
+        local data = args.data
         if data and data ~= "" then
           local data_mod = adapter_utils.clean_streamed_data(data)
           local ok, json = pcall(vim.json.decode, data_mod, { luanil = { object = true } })
@@ -611,18 +617,19 @@ return {
     tools = {
       ---Format the LLM's tool calls for inclusion back in the request
       ---@param self CodeCompanion.HTTPAdapter
-      ---@param tools table The raw tools collected by chat_output
+      ---@param args { tools: table }
       ---@return table
-      format_calls = function(self, tools)
-        return tools
+      format_calls = function(self, args)
+        return args.tools
       end,
 
       ---Output the LLM's tool call so we can include it in the messages
       ---@param self CodeCompanion.HTTPAdapter
-      ---@param tool_call {id: string, call_id: string, function: table, name: string}
-      ---@param output string
+      ---@param args { tool_call: {id: string, call_id: string, function: table, name: string}, output: string }
       ---@return table
-      format_response = function(self, tool_call, output)
+      format_response = function(self, args)
+        local tool_call = args.tool_call
+        local output = args.output
         -- Source: https://platform.openai.com/docs/guides/function-calling?api-mode=chat#handling-function-calls
         return {
           role = self.roles.tool or "tool",
