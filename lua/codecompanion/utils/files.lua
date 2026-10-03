@@ -272,6 +272,41 @@ function M.get_mimetype(path)
   return map[extension]
 end
 
+---@param headers? string[]
+---@return string|nil
+local function get_content_type(headers)
+  for _, header in ipairs(headers or {}) do
+    local key, value = header:match("^([^:]+):%s*(.+)$")
+    if key and key:lower() == "content-type" then
+      return vim.trim(value:match("^([^;]+)"))
+    end
+  end
+end
+
+---Download a URL to a temporary file, which Neovim deletes when it exits
+---@param url string
+---@param opts { callback: fun(err?: string, file?: { path: string, mimetype?: string }) }
+---@return nil
+function M.download(url, opts)
+  local http_opts = require("codecompanion.config").adapters.http.opts
+  local path = fn.tempname()
+
+  require("plenary.curl").get(url, {
+    insecure = http_opts.allow_insecure,
+    proxy = http_opts.proxy,
+    output = path,
+    callback = vim.schedule_wrap(function(response)
+      if response.status ~= 200 then
+        return opts.callback(fmt("Could not download %s (HTTP status %d)", url, response.status))
+      end
+      opts.callback(nil, { path = path, mimetype = get_content_type(response.headers) })
+    end),
+    on_error = vim.schedule_wrap(function(err)
+      opts.callback(err.message)
+    end),
+  })
+end
+
 ---Convert a glob pattern to a Lua pattern
 ---Based on lua-glob-pattern by David Manura
 ---@param glob string The glob pattern to convert

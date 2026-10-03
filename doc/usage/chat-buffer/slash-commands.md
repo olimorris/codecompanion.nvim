@@ -98,7 +98,7 @@ Paths may be relative or use `~`.
 
 **Images**
 
-Selecting an image sends it to the LLM as an image rather than as file content, in the same way as the [/image](#image) slash command.
+Selecting a gif, jpeg, png or webp image sends it to the LLM as an image rather than as file content. The adapter must support vision, otherwise the image isn't added.
 
 **PDFs**
 
@@ -118,6 +118,10 @@ This slash command is also available in the [CLI prompt input](/usage/cli#slash-
 - Select multiple files: `⇥ tab`
 
 Please note that these mappings may be different depending on your provider.
+
+## /file-from-url
+
+The _file-from-url_ slash command downloads a file and adds it to the chat buffer, in the same way as [/file](#file). Images and PDFs are sent as attachments and anything else as file content, with the URL shown in place of the file path. A webpage is handed to the [/fetch](#fetch) slash command instead.
 
 ## /fork
 
@@ -144,10 +148,6 @@ require("codecompanion").setup({
 ## /help
 
 The _help_ slash command allows you to add content from a vim help file (`:h helpfile`), to the chat buffer, by searching for help tags. Currently this is only available for _Telescope_, _mini.pick_, _fzf_lua_ and _snacks.nvim_ providers. By default, the slash command will prompt you to trim a help file that is over 1,000 lines in length.
-
-## /image
-
-The _image_ slash command allows you to add images into a chat buffer via remote URLs and through your file system. In the config for the slash command, you can specify a group of directories (with `opts.dirs`) that the image picker will always search in, alongside the current working directory. Currently the image picker is only available with _snacks.nvim_ and the `vim.ui.select`.
 
 ## /rules
 

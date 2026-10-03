@@ -1165,7 +1165,7 @@ end
 function Chat:add_image_message(image, opts)
   opts = vim.tbl_deep_extend("force", {
     role = config.constants.USER_ROLE,
-    source = "codecompanion.interactions.chat.slash_commands.image",
+    source = "codecompanion.interactions.shared.slash_commands.file",
     bufnr = image.bufnr,
   }, opts or {})
 

@@ -184,7 +184,7 @@ CodeCompanion changes `\compact` to `/compact` before sending it. Commands are d
 Why does #{buffer} fail on the errors in #{diagnostics}?
 ```
 
-**A buffer or file is shared as its path, and the agent reads it from disk, so save your changes first.** Everything else, such as `#{selection}`, `#{diagnostics}` and `#{terminal}`, is sent as text. `/image` works with agents that accept images, which includes Claude Code.
+**A buffer or file is shared as its path, and the agent reads it from disk, so save your changes first.** Everything else, such as `#{selection}`, `#{diagnostics}` and `#{terminal}`, is sent as text. An image added with `/file` is sent as an image to agents that accept them, which includes Claude Code.
 
 ## Passing MCP Servers to the Agent
 

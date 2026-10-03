@@ -275,15 +275,16 @@ end
 
 ---Format file content with XML wrapper for LLM consumption
 ---@param path string
----@param opts? { message?: string, range?: table }
+---@param opts? { message?: string, name?: string, range?: table }
 ---@return { content: string, filetype: string, id: string, path: string, raw: string }
 function M.format_file_for_llm(path, opts)
   opts = opts or {}
+  local name = opts.name or path
 
   local raw_content = files.read(path)
-  local filetype = vim.filetype.match({ filename = path })
+  local filetype = vim.filetype.match({ filename = name })
 
-  local file_contents, formatted = formatters.apply({ path = path, raw = raw_content })
+  local file_contents, formatted = formatters.apply({ path = name, raw = raw_content })
   if not formatted then
     file_contents = markdown.form_codeblock(raw_content, { ft = filetype })
   end
@@ -302,7 +303,7 @@ function M.format_file_for_llm(path, opts)
       [[<attachment filepath="%s">%s:
 %s
 </attachment>]],
-      path,
+      name,
       "Here is the content from the file",
       file_contents
     )
@@ -311,7 +312,7 @@ function M.format_file_for_llm(path, opts)
   return {
     content = content,
     filetype = filetype,
-    id = "<file>" .. vim.fn.fnamemodify(path, ":.") .. "</file>",
+    id = "<file>" .. vim.fn.fnamemodify(name, ":.") .. "</file>",
     path = path,
     raw = raw_content,
   }

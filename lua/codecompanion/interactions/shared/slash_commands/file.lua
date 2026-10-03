@@ -210,15 +210,28 @@ function SlashCommand.cli_render(slash_config, callback)
   }, providers)
 end
 
+---@class CodeCompanion.SlashCommand.File.Selected
+---@field path string
+---@field name? string
+---@field mimetype? string
+---@field description? string
+
+---How a file is shown to the user and the LLM
+---@param selected CodeCompanion.SlashCommand.File.Selected
+---@return string
+local function get_name(selected)
+  return selected.name or vim.fn.fnamemodify(selected.path, ":.")
+end
+
 ---Base64 encode an image and add it to the chat buffer for adapters that support vision
----@param selected { path: string }
----@param opts? { mimetype?: string, silent?: boolean }
+---@param selected CodeCompanion.SlashCommand.File.Selected
+---@param opts { mimetype: string, silent?: boolean }
 ---@return boolean attached
 function SlashCommand:output_image(selected, opts)
-  opts = opts or {}
+  local filename = vim.fn.fnamemodify(get_name(selected), ":t")
 
   if not vim.tbl_contains(CONSTANTS.IMAGE_MIMETYPES, opts.mimetype) then
-    log:warn("`%s` is not a supported image type", vim.fn.fnamemodify(selected.path, ":t"))
+    log:warn("`%s` is not a supported image type", filename)
     return false
   end
 
@@ -227,42 +240,41 @@ function SlashCommand:output_image(selected, opts)
     log:warn(
       "The `%s` adapter does not support images. `%s` was not added to the chat",
       adapter.formatted_name,
-      vim.fn.fnamemodify(selected.path, ":t")
+      filename
     )
     return false
   end
 
-  local image = image_utils.from_path(selected.path)
+  local image = image_utils.encode_image({ path = selected.path, id = get_name(selected), mimetype = opts.mimetype })
   if type(image) == "string" then
     log:error("Could not encode image: %s", image)
     return false
   end
-
-  -- `from_path` ids the image by its absolute path, which reads badly in the context block
-  image.id = vim.fn.fnamemodify(selected.path, ":.")
 
   self.Chat:add_image_message(image, {
     source = "codecompanion.interactions.shared.slash_commands.file",
   })
 
   if not opts.silent then
-    utils.notify(fmt("Added the `%s` image to the chat", vim.fn.fnamemodify(selected.path, ":t")))
+    utils.notify(fmt("Added the `%s` image to the chat", filename))
   end
 
   return true
 end
 
 ---Base64 encode a document and add it to the chat buffer for adapters that support documents
----@param selected { path: string }
----@param opts { filetype: string, mimetype: string, silent: boolean, sync_all: boolean }
+---@param selected CodeCompanion.SlashCommand.File.Selected
+---@param opts { mimetype: string, silent?: boolean, sync_all?: boolean }
 ---@return boolean attached
 function SlashCommand:output_pdf(selected, opts)
+  local filename = vim.fn.fnamemodify(get_name(selected), ":t")
+
   local adapter = self.Chat.adapter
   if not (adapter.opts and adapter.opts.documents) then
     log:warn(
       "The `%s` adapter does not support documents. `%s` was not added to the chat",
       adapter.formatted_name,
-      vim.fn.fnamemodify(selected.path, ":t")
+      filename
     )
     return false
   end
@@ -273,7 +285,7 @@ function SlashCommand:output_pdf(selected, opts)
     return false
   end
 
-  local id = "<file>" .. vim.fn.fnamemodify(selected.path, ":.") .. "</file>"
+  local id = "<file>" .. get_name(selected) .. "</file>"
 
   self.Chat:add_message({
     role = config.constants.USER_ROLE,
@@ -281,7 +293,7 @@ function SlashCommand:output_pdf(selected, opts)
   }, {
     visible = false,
     context = { id = id, mimetype = opts.mimetype, path = selected.path },
-    _meta = { tag = tags.DOCUMENT, filetype = opts.filetype },
+    _meta = { tag = tags.DOCUMENT, filetype = "pdf" },
   })
 
   if opts.sync_all then
@@ -295,38 +307,18 @@ function SlashCommand:output_pdf(selected, opts)
   })
 
   if not opts.silent then
-    utils.notify(fmt("Added the `%s` document to the chat", vim.fn.fnamemodify(selected.path, ":t")))
+    utils.notify(fmt("Added the `%s` document to the chat", filename))
   end
 
   return true
 end
 
----Output from the slash command in the chat buffer
----@param selected { path: string, relative_path?: string, description?: string }
----@param opts? { message?:string, description?: string, silent: boolean, sync_all: boolean }
+---Add the contents of a file to the chat buffer as text
+---@param selected CodeCompanion.SlashCommand.File.Selected
+---@param opts { message?: string, silent?: boolean, sync_all?: boolean }
 ---@return boolean attached
-function SlashCommand:output(selected, opts)
-  if not config.can_send_code() and (self.config.opts and self.config.opts.contains_code) then
-    log:warn("Sending of code has been disabled")
-    return false
-  end
-  opts = opts or {}
-
-  local mimetype = files_utils.get_mimetype(selected.path)
-  if mimetype == "application/pdf" then
-    opts = vim.tbl_extend("force", opts, { filetype = "pdf", mimetype = mimetype })
-    return self:output_pdf(selected, opts)
-  end
-  if mimetype and mimetype:match("^image/") then
-    opts = vim.tbl_extend("force", opts, { mimetype = mimetype })
-    return self:output_image(selected, opts)
-  end
-
-  if selected.description then
-    opts.message = selected.description
-  end
-
-  local file = helpers.format_file_for_llm(selected.path, opts)
+function SlashCommand:output_text(selected, opts)
+  local file = helpers.format_file_for_llm(selected.path, { message = opts.message, name = selected.name })
 
   self.Chat:add_message({
     role = config.constants.USER_ROLE,
@@ -348,10 +340,41 @@ function SlashCommand:output(selected, opts)
   })
 
   if not opts.silent then
-    utils.notify(fmt("Added the `%s` file to the chat", vim.fn.fnamemodify(selected.path, ":t")))
+    utils.notify(fmt("Added the `%s` file to the chat", vim.fn.fnamemodify(get_name(selected), ":t")))
   end
 
   return true
+end
+
+---Files that are sent as attachments rather than text, matched in order against their mimetype
+local ATTACHMENTS = {
+  { mimetype = "^application/pdf$", output = SlashCommand.output_pdf },
+  { mimetype = "^image/", output = SlashCommand.output_image },
+}
+
+---Output from the slash command in the chat buffer
+---@param selected CodeCompanion.SlashCommand.File.Selected
+---@param opts? { message?: string, description?: string, silent?: boolean, sync_all?: boolean }
+---@return boolean attached
+function SlashCommand:output(selected, opts)
+  if not config.can_send_code() and (self.config.opts and self.config.opts.contains_code) then
+    log:warn("Sending of code has been disabled")
+    return false
+  end
+  opts = opts or {}
+
+  local mimetype = selected.mimetype or files_utils.get_mimetype(selected.path)
+  for _, attachment in ipairs(ATTACHMENTS) do
+    if mimetype and mimetype:match(attachment.mimetype) then
+      return attachment.output(self, selected, vim.tbl_extend("force", opts, { mimetype = mimetype }))
+    end
+  end
+
+  if selected.description then
+    opts.message = selected.description
+  end
+
+  return self:output_text(selected, opts)
 end
 
 return SlashCommand

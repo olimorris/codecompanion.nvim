@@ -482,6 +482,13 @@ If you are providing code changes, use the edit_file tool (if available to you) 
             provider = providers.pickers, -- telescope|fzf_lua|mini_pick|snacks|default
           },
         },
+        ["file-from-url"] = {
+          path = "interactions.chat.slash_commands.builtin.file_from_url",
+          description = "Insert a file from a URL",
+          opts = {
+            contains_code = false,
+          },
+        },
         ["help"] = {
           path = "interactions.chat.slash_commands.builtin.help",
           description = "Insert content from help tags",
@@ -489,23 +496,6 @@ If you are providing code changes, use the edit_file tool (if available to you) 
             contains_code = false,
             max_lines = 128, -- Maximum amount of lines to of the help file to send (NOTE: Each vimdoc line is typically 10 tokens)
             provider = providers.help, -- telescope|fzf_lua|mini_pick|snacks
-          },
-        },
-        ["image"] = {
-          path = "interactions.chat.slash_commands.builtin.image",
-          description = "Insert an image",
-          ---@param opts { adapter: CodeCompanion.HTTPAdapter|CodeCompanion.ACPAdapter }
-          ---@return boolean
-          enabled = function(opts)
-            if opts.adapter and opts.adapter.opts then
-              return opts.adapter.opts.vision == true
-            end
-            return false
-          end,
-          opts = {
-            dirs = {}, -- Directories to search for images
-            filetypes = { "png", "jpg", "jpeg", "gif", "webp" }, -- Filetypes to search for
-            provider = providers.images, -- telescope|snacks|default
           },
         },
         ["mcp"] = {
