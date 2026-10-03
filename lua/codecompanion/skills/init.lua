@@ -186,10 +186,10 @@ local function add_skill(chat, skill)
     skill.path
   )
 
-  chat:add_context({ role = config.constants.SYSTEM_ROLE, content = content }, "skills", id, {
-    path = skill.path,
-    tag = tags.SKILLS,
-  })
+  chat:add_context(
+    { role = config.constants.SYSTEM_ROLE, content = content },
+    { source = "skills", id = id, path = skill.path, tag = tags.SKILLS }
+  )
 end
 
 ---@param chat CodeCompanion.Chat

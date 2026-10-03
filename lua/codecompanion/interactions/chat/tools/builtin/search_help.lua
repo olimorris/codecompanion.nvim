@@ -537,7 +537,7 @@ return {
     ---@param stdout string[] The output from the command
     ---@param meta { tools: CodeCompanion.Tools, cmd: table }
     success = function(self, stdout, meta)
-      meta.tools.chat:add_tool_output(self, stdout[1], "")
+      meta.tools.chat:add_tool_output({ tool = self, for_llm = stdout[1], for_user = "" })
     end,
 
     ---@param self CodeCompanion.Tool.SearchHelp
@@ -546,7 +546,7 @@ return {
     error = function(self, stderr, meta)
       local errors = vim.iter(stderr):flatten():join("\n")
       log:debug("[Search Help Tool] Error output: %s", stderr)
-      meta.tools.chat:add_tool_output(self, errors)
+      meta.tools.chat:add_tool_output({ tool = self, for_llm = errors })
     end,
 
     ---@param self CodeCompanion.Tool.SearchHelp

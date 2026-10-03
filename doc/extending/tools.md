@@ -366,7 +366,7 @@ output = {
   ---@param meta { tools: CodeCompanion.Tools, cmd: table }
   success = function(self, stdout, meta)
     local chat = meta.tools.chat
-    return chat:add_tool_output(self, tostring(stdout[1]))
+    return chat:add_tool_output({ tool = self, for_llm = tostring(stdout[1]) })
   end,
   ---@param self CodeCompanion.Tool.Calculator
   ---@param stderr table The error output from the command
@@ -381,16 +381,14 @@ The `add_tool_output` method is designed to make it as easy as possible for tool
 
 ```lua
 ---Add the output from a tool to the message history and a message to the UI
----@param tool table The Tool that was executed
----@param for_llm string The output to share with the LLM
----@param for_user? string The output to share with the user. If empty will use the LLM's output
+---@param args { tool: table, for_llm: string, for_user?: string }
 ---@return nil
-function Chat:add_tool_output(tool, for_llm, for_user)
+function Chat:add_tool_output(args)
   -- Omitted for brevity
 end
 ```
 
-The `for_llm` parameter is the string message that will be shared with the LLM as part of the message history in the chat buffer, this is not made visible to the user. The `for_user` parameter allows tool authors to customize the visible output in the chat buffer, but if this is nil then the `for_llm` string is used.
+The `tool` field is the tool that was executed, which is `self` from within a tool's `cmds` or `output` functions. The `for_llm` field is the string message that will be shared with the LLM as part of the message history in the chat buffer, this is not made visible to the user. The `for_user` field allows tool authors to customize the visible output in the chat buffer, but if this is nil then the `for_llm` string is used.
 
 ### Running the Calculator tool
 
@@ -514,7 +512,7 @@ require("codecompanion").setup({
             ---@param meta { tools: CodeCompanion.Tools, cmd: table }
             success = function(self, stdout, meta)
               local chat = meta.tools.chat
-              return chat:add_tool_output(self, tostring(stdout[1]))
+              return chat:add_tool_output({ tool = self, for_llm = tostring(stdout[1]) })
             end,
             ---@param self CodeCompanion.Tool.Calculator
             ---@param stderr table The error output from the command
@@ -599,7 +597,7 @@ output = {
   ---@param meta { tools: CodeCompanion.Tools, cmd: table, opts: table }
   ---@return nil
   rejected = function(self, meta)
-    meta.tools.chat:add_tool_output(self, "The user declined to run the calculator tool")
+    meta.tools.chat:add_tool_output({ tool = self, for_llm = "The user declined to run the calculator tool" })
   end,
 
   ---Cancellation message back to the LLM
@@ -607,7 +605,7 @@ output = {
   ---@param meta { tools: CodeCompanion.Tools, cmd: table }
   ---@return nil
   cancelled = function(self, meta)
-    meta.tools.chat:add_tool_output(self, "The user cancelled the execution of the calculator tool")
+    meta.tools.chat:add_tool_output({ tool = self, for_llm = "The user cancelled the execution of the calculator tool" })
   end,
 },
 ```

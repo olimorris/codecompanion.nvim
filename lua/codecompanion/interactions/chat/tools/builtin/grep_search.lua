@@ -228,11 +228,11 @@ Refers to line 335 of the init.lua file</grepSearchTool>]]
         -- Results were found - data is an array of file paths
         local results = #data
         local content = fmt("Searched text for `%s`, %d results\n%s", query, results, markdown.form_codeblock(output))
-        chat:add_tool_output(self, fmt(llm_output, content), "")
+        chat:add_tool_output({ tool = self, for_llm = fmt(llm_output, content), for_user = "" })
       else
         -- No results found - data is a string message
         local content = fmt("Searched text for `%s`, no results", query)
-        chat:add_tool_output(self, fmt(llm_output, content), "")
+        chat:add_tool_output({ tool = self, for_llm = fmt(llm_output, content), for_user = "" })
       end
     end,
 
@@ -246,7 +246,7 @@ Refers to line 335 of the init.lua file</grepSearchTool>]]
       log:debug("[Grep Search Tool] Error output: %s", stderr)
 
       local content = fmt("Searched text for `%s`, error:\n%s", query, markdown.form_codeblock(errors))
-      chat:add_tool_output(self, content)
+      chat:add_tool_output({ tool = self, for_llm = content })
     end,
 
     ---Rejection message back to the LLM

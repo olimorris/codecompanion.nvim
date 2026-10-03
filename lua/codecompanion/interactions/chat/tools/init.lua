@@ -81,7 +81,11 @@ function Tools:_handle_tool_error(tool, error_message)
   end
 
   self.status = CONSTANTS.STATUS_ERROR
-  self.chat:add_tool_output(tool_call, string.format("Tool `%s` not found. %s", name, available_tools_msg), "")
+  self.chat:add_tool_output({
+    tool = tool_call,
+    for_llm = string.format("Tool `%s` not found. %s", name, available_tools_msg),
+    for_user = "",
+  })
 end
 
 ---Resolve and prepare a tool for execution
@@ -128,11 +132,11 @@ function Tools:_resolve_and_prepare_tool(tool)
       local ok, decoded = pcall(vim.json.decode, args)
       if not ok then
         log:error("Couldn't decode the tool arguments: %s", args)
-        self.chat:add_tool_output(
-          prepared_tool,
-          string.format('You made an error in calling the %s tool: "%s"', name, decoded),
-          ""
-        )
+        self.chat:add_tool_output({
+          tool = prepared_tool,
+          for_llm = string.format('You made an error in calling the %s tool: "%s"', name, decoded),
+          for_user = "",
+        })
         self.status = CONSTANTS.STATUS_ERROR
         return nil, "JSON parsing failed", true -- Special flag to indicate this was handled
       end

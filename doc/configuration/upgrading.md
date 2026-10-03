@@ -8,6 +8,27 @@ This document provides a guide for upgrading from one version of CodeCompanion t
 
 CodeCompanion follows [semantic versioning](https://semver.org/) and to avoid breaking changes, it is recommended to pin the plugin to a specific version in your Neovim configuration. The [installation guide](/installation) provides more information on how to do this.
 
+## v19.27.0 to v20.0.0
+
+### Chat
+
+Chat buffer methods that took several positional arguments now take a single table. If you call any of these from a custom tool, slash command or callback, you'll need to update them:
+
+| Method | Before | After |
+|--------|--------|-------|
+| `add_tool_output` | `(tool, for_llm, for_user)` | `({ tool, for_llm, for_user? })` |
+| `add_context` | `(data, source, id, opts)` | `(data, { source, id, bufnr?, path?, tag?, visible?, context_opts? })` |
+| `change_adapter` | `(adapter, callback)` | `({ adapter, model?, callback? })` |
+| `done` | `(output, reasoning, tools, meta, opts)` | `({ output?, reasoning?, tools?, meta?, status?, error? })` |
+| `update_buf_line` | `(line_number, content, opts)` | `({ line_number, content, status?, icon_id?, priority?, virt_text_pos? })` |
+
+For example, in a tool's output handler:
+
+```lua
+chat:add_tool_output(self, "The result is 42") -- [!code --]
+chat:add_tool_output({ tool = self, for_llm = "The result is 42" }) -- [!code ++]
+```
+
 ## v18.7.0 to v19.0.0
 
 - The Super Diff has now been removed from CodeCompanion ([#2600](https://github.com/olimorris/codecompanion.nvim/pull/2600))

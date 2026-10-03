@@ -330,7 +330,7 @@ return {
       if stderr then
         local chat = meta.tools.chat
         local errors = vim.iter(stderr):flatten():join("\n")
-        chat:add_tool_output(self, "**Error:**\n" .. errors)
+        chat:add_tool_output({ tool = self, for_llm = "**Error:**\n" .. errors })
       end
     end,
 
@@ -352,7 +352,7 @@ return {
       if stdout then
         local chat = meta.tools.chat
         local llm_output = vim.iter(stdout):flatten():join("\n")
-        chat:add_tool_output(self, llm_output, "")
+        chat:add_tool_output({ tool = self, for_llm = llm_output, for_user = "" })
       end
     end,
   },

@@ -97,7 +97,7 @@ function ACPHandler:submit(payload)
 
     if not session_ready then
       self.chat.status = "error"
-      return self.chat:done(self.output)
+      return self.chat:done({ output = self.output })
     end
 
     request.prompt = self:create_and_send_prompt(payload)
@@ -349,13 +349,14 @@ function ACPHandler:process_tool_call(tool_call)
   -- existing line rather than adding a new one
   local cached = self.ui_state[id]
   if cached then
-    local update_ok, _, new_icon_id = pcall(
-      self.chat.update_buf_line,
-      self.chat,
-      cached.line_number,
-      content,
-      { status = tool_call.status, icon_id = cached.icon_id, priority = 120, virt_text_pos = "inline" }
-    )
+    local update_ok, _, new_icon_id = pcall(self.chat.update_buf_line, self.chat, {
+      line_number = cached.line_number,
+      content = content,
+      status = tool_call.status,
+      icon_id = cached.icon_id,
+      priority = 120,
+      virt_text_pos = "inline",
+    })
 
     if update_ok then
       if tool_call.status == "completed" then
@@ -467,7 +468,7 @@ function ACPHandler:handle_complete()
     self.chat.status = "success"
   end
 
-  self.chat:done(self.output, self.reasoning, {})
+  self.chat:done({ output = self.output, reasoning = self.reasoning, tools = {} })
 end
 
 ---Handle errors
@@ -484,7 +485,7 @@ function ACPHandler:handle_error(error)
     { type = self.chat.MESSAGE_TYPES.LLM_MESSAGE }
   )
 
-  self.chat:done(self.output, nil, nil, nil, { error = error })
+  self.chat:done({ output = self.output, error = error })
 end
 
 return ACPHandler

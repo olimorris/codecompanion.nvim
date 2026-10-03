@@ -94,7 +94,7 @@ T["Tool output"]["first call creates one message"] = function()
   local output = child.lua([[
     local chat = _G.chat
 
-    chat:add_tool_output(_G.tool, "Hello!")
+    chat:add_tool_output({ tool = _G.tool, for_llm = "Hello!" })
 
     -- return how many chat.messages and that message's content
     return {
@@ -113,9 +113,9 @@ T["Tool output"]["second call appends to same message"] = function()
     local chat = _G.chat
 
     -- first insert
-    chat:add_tool_output(_G.tool, "Hello!")
+    chat:add_tool_output({ tool = _G.tool, for_llm = "Hello!" })
     -- second insert with same id => should append
-    chat:add_tool_output(_G.tool, "Again!")
+    chat:add_tool_output({ tool = _G.tool, for_llm = "Again!" })
 
     return {
       count = #chat.messages,

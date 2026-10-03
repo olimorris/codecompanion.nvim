@@ -138,11 +138,11 @@ return {
         local files = #data
         local results_msg =
           fmt("Searched files for `%s`, %d results\n%s", query, files, markdown.form_codeblock(output))
-        chat:add_tool_output(self, fmt(llm_output, results_msg), "")
+        chat:add_tool_output({ tool = self, for_llm = fmt(llm_output, results_msg), for_user = "" })
       else
         -- No files found - data is a string message
         local no_results_msg = fmt("Searched files for `%s`, no results", query)
-        chat:add_tool_output(self, fmt(llm_output, no_results_msg), "")
+        chat:add_tool_output({ tool = self, for_llm = fmt(llm_output, no_results_msg), for_user = "" })
       end
     end,
 
@@ -157,7 +157,7 @@ return {
 
       local error_output =
         fmt("Searched files for `%s`, error:\n\n%s", query, markdown.form_codeblock(errors, { ft = "txt" }))
-      chat:add_tool_output(self, error_output)
+      chat:add_tool_output({ tool = self, for_llm = error_output })
     end,
 
     ---Rejection message back to the LLM

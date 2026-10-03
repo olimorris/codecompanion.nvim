@@ -14,7 +14,7 @@ M.rejected = function(self, opts)
     rejection = fmt('%s, with the reason: "%s"', rejection, opts.opts.reason)
   end
 
-  return opts.tools.chat:add_tool_output(self, rejection)
+  return opts.tools.chat:add_tool_output({ tool = self, for_llm = rejection })
 end
 
 return M
