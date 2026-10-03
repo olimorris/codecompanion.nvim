@@ -278,7 +278,7 @@ return {
     ---@param meta { tools: CodeCompanion.Tools }
     ---@return nil
     success = function(self, stdout, meta)
-      meta.tools.chat:add_tool_output(self, vim.iter(stdout):flatten():join("\n"), "")
+      meta.tools.chat:add_tool_output({ tool = self, for_llm = vim.iter(stdout):flatten():join("\n"), for_user = "" })
     end,
 
     ---@param self CodeCompanion.Tool.EditFile
@@ -286,7 +286,7 @@ return {
     ---@param meta { tools: CodeCompanion.Tools }
     ---@return nil
     error = function(self, stderr, meta)
-      meta.tools.chat:add_tool_output(self, vim.iter(stderr):flatten():join("\n"))
+      meta.tools.chat:add_tool_output({ tool = self, for_llm = vim.iter(stderr):flatten():join("\n") })
     end,
   },
 }

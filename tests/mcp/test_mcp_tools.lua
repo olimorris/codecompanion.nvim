@@ -310,7 +310,7 @@ T["MCP Tools"]["allows overriding tool options and behavior"] = function()
                     assert(block.type == "text")
                     return block.text
                   end):join(",")
-                  meta.tools.chat:add_tool_output(self, output)
+                  meta.tools.chat:add_tool_output({ tool = self, for_llm = output })
                 end
               },
             },

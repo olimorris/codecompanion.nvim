@@ -47,7 +47,7 @@ return {
     ---@param meta { tools: CodeCompanion.Tools, cmd: table }
     success = function(self, stdout, meta)
       local output = stdout[#stdout]
-      meta.tools.chat:add_tool_output(self, "Ran the weather tool " .. output, output)
+      meta.tools.chat:add_tool_output({ tool = self, for_llm = "Ran the weather tool " .. output, for_user = output })
     end,
   },
 }

@@ -200,7 +200,7 @@ return {
     success = function(self, stdout, meta)
       local chat = meta.tools.chat
       local output = stdout[1]
-      chat:add_tool_output(self, output.for_llm, "")
+      chat:add_tool_output({ tool = self, for_llm = output.for_llm, for_user = "" })
     end,
 
     ---@param self CodeCompanion.Tool.ReadFile
@@ -211,7 +211,7 @@ return {
       local errors = vim.iter(stderr):flatten():join("\n")
       log:debug("[Read File Tool] Error output: %s", stderr)
 
-      chat:add_tool_output(self, errors)
+      chat:add_tool_output({ tool = self, for_llm = errors })
     end,
 
     ---Rejection message back to the LLM

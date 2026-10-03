@@ -801,15 +801,14 @@ function Chat:apply_settings(settings)
 end
 
 ---Change the adapter in the chat buffer
----@param adapter string
----@param cb? function
+---@param args { adapter: string, model?: string, callback?: function }
 ---@return boolean swapped Whether the adapter was actually swapped
-function Chat:change_adapter(adapter, cb)
+function Chat:change_adapter(args)
   local function fire()
     return utils.fire("ChatAdapter", { bufnr = self.bufnr, adapter = adapters.make_safe(self.adapter) })
   end
 
-  local new_adapter = require("codecompanion.adapters").resolve(adapter)
+  local new_adapter = require("codecompanion.adapters").resolve(args.adapter, { model = args.model })
 
   -- Block adapter swaps once tool calls or reasoning have happened. Adapter-
   -- specific state (tool-call signatures, encrypted reasoning blobs) cannot
@@ -834,11 +833,11 @@ function Chat:change_adapter(adapter, cb)
   self.ui.adapter = self.adapter
 
   if self.adapter.type == "acp" then
-    helpers.create_acp_connection(self, cb)
+    helpers.create_acp_connection(self, args.callback)
     helpers.remove_mcp_tools(self)
   else
-    if cb then
-      vim.schedule(cb)
+    if args.callback then
+      vim.schedule(args.callback)
     end
   end
 
@@ -1280,7 +1279,7 @@ function Chat:_submit_http(payload)
         if result.output.meta then
           if result.output.meta.compaction then
             log:info("[chat] Context compacted by adapter")
-            self:_set_status("compacting", "Compacting the chat...")
+            self:_set_status({ key = "compacting", message = "Compacting the chat..." })
             utils.fire("ChatCompacting", { bufnr = self.bufnr, id = self.id })
           end
           meta = vim.tbl_deep_extend("force", meta, result.output.meta)
@@ -1294,7 +1293,7 @@ function Chat:_submit_http(payload)
         end
       elseif self.status == CONSTANTS.STATUS_ERROR then
         log:error("[chat::_submit_http] Error: %s", result.output)
-        self:done(output, nil, nil, nil, { error = describe_error(result.output) })
+        self:done({ output = output, error = describe_error(result.output) })
       end
     end
   end
@@ -1307,7 +1306,7 @@ function Chat:_submit_http(payload)
       if data and not adapter.opts.stream then
         process_chunk(data)
       end
-      self:done(output, reasoning, tools, meta)
+      self:done({ output = output, reasoning = reasoning, tools = tools, meta = meta })
     end,
     on_error = function(err)
       if self.status == CONSTANTS.STATUS_CANCELLING then
@@ -1316,7 +1315,7 @@ function Chat:_submit_http(payload)
       self.status = CONSTANTS.STATUS_ERROR
       local reason = (err and (err.stderr or err.message)) or "unknown"
       log:error("[chat::_submit_http] Error: %s", reason)
-      self:done(output, nil, nil, nil, { error = describe_error(reason) })
+      self:done({ output = output, error = describe_error(reason) })
     end,
     bufnr = self.bufnr,
     interaction = "chat",
@@ -1512,14 +1511,11 @@ function Chat:label_sent_items()
 end
 
 ---Method to call after the response from the LLM is received
----@param output? table The message output from the LLM
----@param reasoning? table The reasoning output from the LLM
----@param tools? table The tools output from the LLM
----@param meta? table Any metadata from the LLM
----@param opts? { status?: "stopped", error?: string } The reason the done method was called
+---@param args? { output?: table, reasoning?: table, tools?: table, meta?: table, status?: "stopped", error?: string }
 ---@return nil
-function Chat:done(output, reasoning, tools, meta, opts)
-  opts = opts or {}
+function Chat:done(args)
+  args = args or {}
+  local output, reasoning, tools, meta = args.output, args.reasoning, args.tools, args.meta
   self.current_request = nil
 
   -- NOTE: When doing automated testing, the chat buffer may be closed before the response is received
@@ -1529,7 +1525,7 @@ function Chat:done(output, reasoning, tools, meta, opts)
 
   self:_clear_status()
 
-  if opts.status == "stopped" then
+  if args.status == "stopped" then
     self:_complete_orphaned_tool_calls()
   end
 
@@ -1582,7 +1578,7 @@ function Chat:done(output, reasoning, tools, meta, opts)
 
   -- If a user stops the request, we should be prepared to send the last message
   -- again as we can't be sure what the LLM had actually received
-  if not opts.status or opts.status ~= "stopped" then
+  if args.status ~= "stopped" then
     self:label_sent_items()
   end
 
@@ -1613,7 +1609,7 @@ function Chat:done(output, reasoning, tools, meta, opts)
     end
   end
 
-  agent_loop.after_response(self, { error = opts.error })
+  agent_loop.after_response(self, { error = args.error })
 end
 
 ---End the turn, handing the chat buffer back to the user
@@ -1631,11 +1627,9 @@ end
 
 ---Add context to the chat buffer (Useful for user's adding custom Slash Commands)
 ---@param data { role?: string, content: string }
----@param source string The source of the context
----@param id string The uniqie ID linkin the context to the message
----@param opts? { bufnr: number, context_opts: table, path: string, tag: string, visible: boolean}
-function Chat:add_context(data, source, id, opts)
-  opts = vim.tbl_extend("force", { visible = false }, opts or {})
+---@param opts { source: string, id: string, bufnr?: number, context_opts?: table, path?: string, tag?: string, visible?: boolean }
+function Chat:add_context(data, opts)
+  opts = vim.tbl_extend("force", { visible = false }, opts)
 
   local message = {
     role = data.role or config.constants.USER_ROLE,
@@ -1643,8 +1637,17 @@ function Chat:add_context(data, source, id, opts)
   }
 
   -- Context is created by adding it to the context class and linking it to a message on the chat buffer
-  self.context:add({ source = source, id = id, bufnr = opts.bufnr, path = opts.path, opts = opts.context_opts })
-  self:add_message(message, { visible = opts.visible, context = { id = id }, _meta = { tag = opts.tag or source } })
+  self.context:add({
+    source = opts.source,
+    id = opts.id,
+    bufnr = opts.bufnr,
+    path = opts.path,
+    opts = opts.context_opts,
+  })
+  self:add_message(
+    message,
+    { visible = opts.visible, context = { id = opts.id }, _meta = { tag = opts.tag or opts.source } }
+  )
 end
 
 ---Reconcile the context_items table to the items in the chat buffer
@@ -1811,7 +1814,7 @@ function Chat:stop()
 
   vim.schedule(function()
     log:debug("Chat request cancelled")
-    self:done(nil, nil, nil, nil, { status = "stopped" })
+    self:done({ status = "stopped" })
   end)
 end
 
@@ -1855,12 +1858,11 @@ function Chat:close()
 end
 
 ---Set a status message as virtual text in the chat buffer
----@param key string The status key (e.g. "compacting")
----@param message string The message to display
+---@param args { key: string, message: string }
 ---@return nil
-function Chat:_set_status(key, message)
+function Chat:_set_status(args)
   self:_clear_status()
-  self._status = { extmark = self.ui:set_virtual_text(message), [key] = true }
+  self._status = { extmark = self.ui:set_virtual_text(args.message), [args.key] = true }
 end
 
 ---Clear any active status virtual text
@@ -1887,31 +1889,28 @@ function Chat:add_buf_message(data, opts)
 end
 
 ---Update a specific line in the chat buffer
----@param line_number number The line number to update (1-based)
----@param content string The new content for the line
----@param opts? table Optional parameters
+---@param args { line_number: number, content: string, status?: string, icon_id?: number, priority?: number, virt_text_pos?: string }
 ---@return boolean success Whether the update was successful
-function Chat:update_buf_line(line_number, content, opts)
-  assert(type(content) == "string", "content must be a string")
-  opts = opts or {}
+function Chat:update_buf_line(args)
+  assert(type(args.content) == "string", "content must be a string")
 
-  return self.builder:update_line(line_number, content, opts)
+  return self.builder:update_line(args.line_number, args.content, args)
 end
 
 ---Add the output from a tool to the message history and a message to the UI
----@param tool table The Tool that was executed
----@param for_llm string The output to share with the LLM
----@param for_user? string The output to share with the user. If empty will use the LLM's output
+---@param args { tool: table, for_llm: string, for_user?: string }
 ---@return nil
-function Chat:add_tool_output(tool, for_llm, for_user)
+function Chat:add_tool_output(args)
+  local tool = args.tool
+  local for_llm, for_user = args.for_llm, args.for_user
   local tool_call = tool.function_call
   log:debug("Tool output: %s", tool_call)
 
   -- Allow users to modify the tool output before it's added to the message history
-  local args = { tool = tool.name, for_llm = for_llm, for_user = for_user }
-  self:dispatch("on_tool_output", args)
-  for_llm = args.for_llm
-  for_user = args.for_user
+  local tool_output = { tool = tool.name, for_llm = for_llm, for_user = for_user }
+  self:dispatch("on_tool_output", tool_output)
+  for_llm = tool_output.for_llm
+  for_user = tool_output.for_user
 
   local output = adapters.call_handler(self.adapter, "format_response", { tool_call = tool_call, output = for_llm })
   if not output then
