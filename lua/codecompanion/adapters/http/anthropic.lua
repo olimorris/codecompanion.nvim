@@ -590,8 +590,7 @@ return {
               if content.type == "text" then
                 output.content = (output.content or "") .. content.text
               elseif content.type == "thinking" then
-                output.reasoning = output.reasoning and output.reasoning or {}
-                output.reasoning.content = content.text
+                output.reasoning = { content = content.thinking, signature = content.signature }
               elseif content.type == "compaction" then
                 output.meta = output.meta or {}
                 output.meta.compaction = { type = "compaction", content = content.content }
@@ -611,35 +610,6 @@ return {
             status = "success",
             output = output,
           }
-        end
-      end
-    end,
-
-    ---Output the data from the API ready for inlining into the current buffer
-    ---@param self CodeCompanion.HTTPAdapter
-    ---@param data table The streamed JSON data from the API, also formatted by the format_data handler
-    ---@param context? table Useful context about the buffer to inline to
-    ---@return table|nil
-    inline_output = function(self, data, context)
-      if self.opts.stream then
-        return log:error("Inline output is not supported for non-streaming models")
-      end
-
-      if data and data ~= "" then
-        local ok, json = pcall(vim.json.decode, data.body, { luanil = { object = true } })
-
-        if not ok then
-          log:error("Error decoding JSON: %s", data.body)
-          return { status = "error", output = json }
-        end
-
-        if ok then
-          if json.type == "message" then
-            if json.content[2] then
-              return { status = "success", output = json.content[2].text }
-            end
-            return { status = "success", output = json.content[1].text }
-          end
         end
       end
     end,

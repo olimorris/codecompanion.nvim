@@ -41,8 +41,8 @@ The events that are fired from within the plugin are:
 - `CodeCompanionCLIApprovalFinished` - Fired when a CLI agent resumes after waiting. Requires [agent hooks](/configuration/cli#hooks)
 - `CodeCompanionContextChanged` - Fired when the context that a chat buffer follows, changes
 - `CodeCompanionFileEdited` - Fired after the LLM has edited or created a file; the data payload includes the `path` and what made the change (`tool`)
-- `CodeCompanionInlineStarted` - Fired at the start of the Inline interaction
-- `CodeCompanionInlineFinished` - Fired at the end of the Inline interaction
+- `CodeCompanionInlineStarted` - Fired when an inline prompt is sent to the LLM, with the `bufnr` being edited in the data payload
+- `CodeCompanionInlineFinished` - Fired once the LLM has finished with an inline prompt, whether it succeeded, failed or was stopped, with the `bufnr` in the data payload
 - `CodeCompanionMCPServerStart` - Fired when an MCP server is started
 - `CodeCompanionMCPServerReady` - Fired when an MCP server is ready for requests
 - `CodeCompanionMCPServerClosed` - Fired when an MCP server is closed
@@ -109,7 +109,7 @@ vim.api.nvim_create_autocmd({ "User" }, {
   callback = function(request)
     if request.match == "CodeCompanionInlineFinished" then
       -- Format the buffer after the inline request has completed
-      require("conform").format({ bufnr = request.buf })
+      require("conform").format({ bufnr = request.data.bufnr })
     end
   end,
 })

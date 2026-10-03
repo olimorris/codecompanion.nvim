@@ -368,6 +368,124 @@ def process():
   h.expect_screenshot(child.get_screenshot(), "tests/screenshots/diff_integration_example_3")
 end
 
+T["Diff"]["Hunks"] = new_set({
+  hooks = {
+    pre_case = function()
+      child.lua([[
+        _G.from_lines = { "a", "b", "c" }
+        _G.to_lines = { "A", "b", "C" }
+
+        _G.show_inline_diff = function(from_lines, to_lines)
+          local bufnr = vim.api.nvim_create_buf(false, true)
+          vim.api.nvim_set_current_buf(bufnr)
+          vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, from_lines)
+          _G.accepted = false
+          return require("codecompanion.helpers").show_diff({
+            bufnr = bufnr,
+            diff_id = math.random(10000000),
+            from_lines = from_lines,
+            to_lines = to_lines,
+            ft = "lua",
+            hunk_actions = true,
+            inline = true,
+            keymaps = {
+              on_accept = function()
+                _G.accepted = true
+              end,
+            },
+          })
+        end
+      ]])
+    end,
+  },
+})
+
+T["Diff"]["Hunks"]["accepting a hunk leaves the others to review"] = function()
+  local result = child.lua([[
+    local diff_ui = _G.show_inline_diff(_G.from_lines, _G.to_lines)
+    diff_ui:resolve_hunk(1, { accept = true })
+    return { from = diff_ui.diff.from.lines, hunks = diff_ui.hunks, resolved = diff_ui.resolved }
+  ]])
+
+  h.eq({ "A", "b", "c" }, result.from)
+  h.eq(1, result.hunks)
+  h.eq(false, result.resolved)
+end
+
+T["Diff"]["Hunks"]["resolving the last hunk keeps only the accepted hunks"] = function()
+  local result = child.lua([[
+    local diff_ui = _G.show_inline_diff(_G.from_lines, _G.to_lines)
+    diff_ui:resolve_hunk(1, { accept = true })
+    diff_ui:resolve_hunk(1, { accept = false })
+    return { lines = vim.api.nvim_buf_get_lines(diff_ui.bufnr, 0, -1, false), accepted = _G.accepted }
+  ]])
+
+  h.eq({ "A", "b", "c" }, result.lines)
+  h.eq(true, result.accepted)
+end
+
+T["Diff"]["Hunks"]["rejecting a hunk on the first line leaves no spacer line"] = function()
+  local lines = child.lua([[
+    local diff_ui = _G.show_inline_diff(_G.from_lines, _G.to_lines)
+    diff_ui:resolve_hunk(1, { accept = false })
+    diff_ui:resolve_hunk(1, { accept = true })
+    return vim.api.nvim_buf_get_lines(diff_ui.bufnr, 0, -1, false)
+  ]])
+
+  h.eq({ "a", "b", "C" }, lines)
+end
+
+T["Diff"]["Hunks"]["finds the hunk under the cursor"] = function()
+  local index = child.lua([[
+    local diff_ui = _G.show_inline_diff(_G.from_lines, _G.to_lines)
+    return diff_ui:get_hunk_at(diff_ui.diff.hunks[2].pos[1] + 1)
+  ]])
+
+  h.eq(2, index)
+end
+
+T["Diff"]["Hunks"]["the keymaps float lists hunk actions WHEN hunks can be resolved"] = function()
+  local lines = child.lua([[
+    local diff_ui = _G.show_inline_diff(_G.from_lines, _G.to_lines)
+    require("codecompanion.diff.keymaps").show_keymaps.callback(diff_ui)
+    return vim.api.nvim_buf_get_lines(0, 0, -1, false)
+  ]])
+
+  h.expect_contains("Accept the hunk under the cursor", table.concat(lines, "\n"))
+end
+
+T["Diff"]["Hunks"]["the keymaps float DOES NOT list hunk actions WHEN hunks can't be resolved"] = function()
+  local lines = child.lua([[
+    local diff_ui = _G.show_inline_diff(_G.from_lines, _G.to_lines)
+    diff_ui.hunk_actions = false
+    require("codecompanion.diff.keymaps").show_keymaps.callback(diff_ui)
+    return vim.api.nvim_buf_get_lines(0, 0, -1, false)
+  ]])
+
+  local text = table.concat(lines, "\n")
+  h.expect_contains("Accept all changes", text)
+  h.eq(nil, text:find("Accept the hunk under the cursor", 1, true))
+end
+
+T["Diff"]["Hunks"]["shows a banner WHEN show_banner is on"] = function()
+  local banner_ns = child.lua([[
+    return _G.show_inline_diff(_G.from_lines, _G.to_lines).banner_ns
+  ]])
+
+  h.not_eq(nil, banner_ns)
+end
+
+T["Diff"]["Hunks"]["DOES NOT show a banner WHEN show_banner is off"] = function()
+  local banner_ns = child.lua([[
+    require("codecompanion.config").display.diff.show_banner = false
+    local banner_ns = _G.show_inline_diff(_G.from_lines, _G.to_lines).banner_ns
+    require("codecompanion.config").display.diff.show_banner = true
+    return banner_ns
+  ]])
+
+  h.eq(vim.NIL, banner_ns)
+end
+
 T["Diff"]["Inline Integration Test"] = new_set()
 
 T["Diff"]["Inline Integration Test"]["Example 1"] = function()
@@ -389,6 +507,7 @@ async fn rn_crgo_build_jsons() -> io::Result<Option<String>> {
   child.lua(string.format(
     [[
     local helpers = require("codecompanion.helpers")
+    require("codecompanion.config").display.diff.show_banner = false
     for _, win in ipairs(vim.api.nvim_list_wins()) do
       local cfg = vim.api.nvim_win_get_config(win)
       if cfg.relative ~= "" then

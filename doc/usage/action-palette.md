@@ -20,7 +20,6 @@ The plugin also defines a number of prompts in the form of the prompt library:
 - `Explain code` - Explain how code in a buffer works
 - `Explain LSP diagnostics`  - Explain the LSP diagnostics for the selected code
 - `Fix code` - Fix the selected code
-- `Unit tests` - Generate unit tests for selected code
 
 > [!INFO]
 > These can also be called via the cmd line with their `alias`, for example `:CodeCompanion /explain`

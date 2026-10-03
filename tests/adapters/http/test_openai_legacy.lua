@@ -371,16 +371,6 @@ T["OpenAI Legacy adapter"]["No Streaming"]["can process tools"] = function()
   h.eq(tool_output, tools)
 end
 
-T["OpenAI Legacy adapter"]["No Streaming"]["can output for the inline assistant"] = function()
-  local data = vim.fn.readfile("tests/adapters/http/stubs/openai_no_streaming.txt")
-  data = table.concat(data, "\n")
-
-  -- Match the format of the actual request
-  local json = { body = data }
-
-  h.eq("Elegant simplicity.", adapter.handlers.inline_output(adapter, json).output)
-end
-
 T["OpenAI Legacy adapter"]["reasoning_effort enabled"] = function()
   -- Test when choices is a function and model supports reasoning
   local adapter_with_reasoning = require("codecompanion.adapters").extend("openai_legacy", {

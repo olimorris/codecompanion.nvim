@@ -61,7 +61,6 @@ handlers = {
   -- Response parsers (pure transformations)
   response = {
     parse_chat = function(self, args) end,    -- args.data, args.tools
-    parse_inline = function(self, args) end,  -- args.data, args.context
     parse_tokens = function(self, args) end,  -- args.data
   },
 
@@ -174,7 +173,6 @@ These handlers transform data for the LLM request:
 These handlers parse LLM responses:
 
 - `response.parse_chat` - Format chat output for the chat buffer
-- `response.parse_inline` - Format output for inline insertion
 - `response.parse_tokens` - Extract token count from the response
 - `response.parse_meta` - Process non-standard fields in the response (currently only supported by OpenAI-based adapters)
 
@@ -377,6 +375,9 @@ handlers = {
 }
 ```
 
+> [!IMPORTANT]
+> The inline interaction also calls `parse_chat`, but with `self.opts.stream` set to `false`. `args.data` is then the full response, with the JSON in `args.data.body`, and any tool calls must be added to `args.tools`
+
 ### `response.parse_meta`
 
 Some OpenAI-compatible API providers like deepseek, Gemini and OpenRouter implement a superset of the standard specification, and provide reasoning tokens/summaries within their response.
@@ -429,33 +430,6 @@ handlers = {
 }
 ```
 
-### `response.parse_inline`
-
-From a design perspective, the inline interaction is very similar to the chat interaction. With the `parse_inline` handler we simply return the content we wish to be streamed into the buffer.
-
-In the case of OpenAI, once we've checked the data we have back from the LLM and parsed it as JSON, we simply need to:
-
-```lua
----Output the data from the API ready for inlining into the current buffer
----@param self CodeCompanion.HTTPAdapter
----@param args { data: table, context: table }
----@return string|table|nil
-handlers = {
-  response = {
-    parse_inline = function(self, args)
-      -- Data cleansed, parsed and validated
-      -- ..
-      local content = json.choices[1].delta.content
-      if content then
-        return content
-      end
-    end,
-  },
-}
-```
-
-The `parse_inline` handler also receives `args.context` from the buffer that initiated the request.
-
 ### `lifecycle.on_exit`
 
 Handling errors from a streaming endpoint can be challenging. It's recommended that any errors are managed in the `on_exit` handler which is initiated when the response has completed. In the case of OpenAI, if there is an error, we'll see a response back from the API like:
@@ -500,7 +474,7 @@ handlers = {
 }
 ```
 
-The `log:error` call ensures that any errors are logged to the logfile as well as displayed to the user in Neovim. It's also important to reference that the `parse_chat` and `parse_inline` handlers need to be able to ignore any errors from the API and let `on_exit` handle them.
+The `log:error` call ensures that any errors are logged to the logfile as well as displayed to the user in Neovim. It's also important to reference that the `parse_chat` handler needs to be able to ignore any errors from the API and let `on_exit` handle them.
 
 ### `lifecycle.setup` and `lifecycle.teardown`
 
@@ -673,7 +647,6 @@ handlers = {
   form_parameters = function(self, params, messages) end,
   form_messages = function(self, messages) end,
   chat_output = function(self, data, tools) end,
-  inline_output = function(self, data, context) end,
   on_exit = function(self, data) end,
   teardown = function(self) end,
   tools = {
@@ -697,7 +670,6 @@ handlers = {
   },
   response = {
     parse_chat = function(self, args) end,
-    parse_inline = function(self, args) end,
   },
   tools = {
     format_calls = function(self, args) end,

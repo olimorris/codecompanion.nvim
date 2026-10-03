@@ -1,5 +1,5 @@
 ---
-description: "Write and refactor code directly in Neovim buffers using CodeCompanion's inline interaction — supports visual selection, prompt library aliases, and diff review."
+description: "Edit code directly in a Neovim buffer with CodeCompanion's inline interaction, with diff review and visual selections."
 ---
 
 # Using the Inline Interaction
@@ -8,37 +8,43 @@ description: "Write and refactor code directly in Neovim buffers using CodeCompa
   <video controls muted title="Inline interaction demo" src="https://github.com/user-attachments/assets/dcddcb85-cba0-4017-9723-6e6b7f080fee"></video>
 </p>
 
-As per the [Getting Started](/getting-started#editing-inline) guide, the inline interaction enables you to code directly into a Neovim buffer. Simply run `:CodeCompanion <your prompt>`, or make a visual selection to send that as context to the LLM alongside your prompt.
+As per the [Getting Started](/getting-started#editing-inline) guide, the inline interaction lets the LLM edit the current buffer directly. Run `:CodeCompanion <your prompt>` to let it edit the whole buffer, or make a visual selection first to limit its edits to those lines. Running `:CodeCompanion` on its own opens an input box to write your prompt in.
 
-For convenience, you can call prompts from the [prompt library](/configuration/prompt-library) via the interaction. For example, `:'<,'>CodeCompanion /tests` would ask the LLM to create some unit tests from the selected text.
+You can also call inline prompts from the [prompt library](/configuration/prompt-library) by their alias, such as `:'<,'>CodeCompanion /docstrings`.
 
 ## Adapters
 
-You can specify a different adapter to that in the configuration (`interactions.inline.adapter`) when sending an inline prompt. Simply include the adapter via `adapter=*`. For example `:<','>CodeCompanion adapter=deepseek can you refactor this?`. This approach can also be combined with variables.
+You can specify a different adapter to that in the configuration (`interactions.inline.adapter`) when sending an inline prompt. Simply include the adapter via `adapter=*`. For example `:<','>CodeCompanion adapter=deepseek can you refactor this?`. This approach can also be combined with editor context.
 
-## Classification
+## How Edits Work
 
-One of the challenges with inline editing is determining how the LLM's response should be handled in the buffer. If you've prompted the LLM to _"create a table of 5 common text editors"_ then you may wish for the response to be placed at the cursor's position in the current buffer. However, if you asked the LLM to _"refactor this function"_ then you'd expect the response to _replace_ a visual selection. The plugin uses the inline LLM you've specified in your config to determine if the response should:
+The current buffer is shared with the LLM, which edits it by calling the `edit_file` tool, once per change. What it can edit depends on your selection:
 
-- _replace_ - replace a visual selection you've made
-- _add_ - be added in the current buffer at the cursor position
-- _before_ - to be added in the current buffer before the cursor position
-- _new_ - be placed in a new buffer
-- _chat_ - be placed in a chat buffer
+- **No selection** - The LLM can edit anything it's been shared
+- **Visual selection** - The LLM can only edit the selected lines. The rest of the buffer is still shared, so it can see imports and surrounding code
+
+If a buffer is over the [context limit](/configuration/inline#context-limit), only the lines around your cursor, or your selection, are shared. Without a selection, those are also the only lines the LLM can edit.
+
+If an edit fails, for example because the text it targets isn't in the buffer, the error is sent back to the LLM once so it can try again. If it fails a second time, nothing is changed and the error is logged.
+
+If you ask a question rather than for a change, such as _"what does this function do?"_, the LLM replies without editing and the reply opens in a chat buffer.
 
 ## Diff Mode
 
-By default, an inline interaction prompt will trigger the diff feature, showing differences between the original buffer and the changes made by the LLM. This can be turned off in your config via the `display.diff.provider` table. You can also choose to accept or reject the LLM's suggestions with the following keymaps:
+By default, the LLM's edits are shown as a diff in the buffer, which you can review a hunk at a time. Press `?` in the diff to see these keymaps:
 
-- `gda` - Accept an inline edit
-- `gdr` - Reject an inline edit
+| Keymap | Action |
+|---|---|
+| `}` / `{` | Move to the next or previous hunk |
+| `ga` | Accept the hunk under the cursor |
+| `gr` | Reject the hunk under the cursor |
+| `g2` | Accept the hunks that are left |
+| `g3` | Reject the hunks that are left |
+| `g1` | Accept the hunks that are left, and every future edit to this buffer |
 
-These keymaps can also be changed in your config via the `interactions.inline.keymaps` table.
+Once every hunk has been accepted or rejected, the diff closes. Edits within four lines of each other are shown as one hunk. The diff can be turned off with `display.diff.enabled`, the banner above the current hunk hidden with `display.diff.show_banner`, and the keymaps changed in `interactions.shared.keymaps`.
 
 ## Editor Context
-
-> [!TIP]
-> To ensure the LLM has enough context to complete a complex ask, it's recommended to use the `buffer` editor context
 
 The inline interaction allows you to send context alongside your prompt via the notion of editor context. That is, context that relates to your current Neovim session:
 
@@ -46,7 +52,11 @@ The inline interaction allows you to send context alongside your prompt via the 
 - `chat` - shares the LLM's messages from the last chat buffer
 - `clipboard` - shares the data on your clipboard with the LLM
 
-Simply include them in your prompt. For example `:CodeCompanion #{buffer} add a new method to this file`. Multiple context items can be sent as part of the same prompt. You can even add your own custom variables as per the [configuration](/configuration/inline#editor-context).
+Include them in your prompt, for example `:CodeCompanion #{clipboard} use this function in the buffer`. Multiple context items can be sent as part of the same prompt, and you can add your own as per the [configuration](/configuration/inline#editor-context).
 
-You can also have multiple editor context as part of a prompt, for example: `:CodeCompanion #{buffer} #{clipboard} analyze this code`.
+## Limitations
+
+- The adapter's model must support tool calling. Adapters that don't, such as _xai_, are refused
+- A selection is limited by whole lines, so selecting part of a line lets the LLM edit all of it
+- If the buffer changes while the LLM is responding, its edits are discarded
 

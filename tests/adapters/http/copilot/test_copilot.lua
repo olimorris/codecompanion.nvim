@@ -491,19 +491,6 @@ T["Copilot adapter"]["No Streaming"]["can process tools"] = function()
   h.eq(tool_output, tools)
 end
 
-T["Copilot adapter"]["No Streaming"]["can output for the inline assistant"] = function()
-  local data = vim.fn.readfile("tests/adapters/http/copilot/stubs/copilot_no_streaming.txt")
-  data = table.concat(data, "\n")
-
-  -- Match the format of the actual request
-  local json = { body = data }
-
-  h.eq(
-    "**Dynamic elegance.**\\n\\nWhat specific aspect of Ruby would you like to explore further?",
-    adapter.handlers.inline_output(adapter, json).output
-  )
-end
-
 local token_child = MiniTest.new_child_neovim()
 
 T["Token initialization"] = new_set({

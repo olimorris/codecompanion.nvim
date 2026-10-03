@@ -17,6 +17,7 @@ local M = {}
 ---@field current_hunk number The current hunk index (1-based)
 ---@field diff CC.Diff
 ---@field diff_id number
+---@field hunk_actions? boolean Whether hunks can be accepted or rejected one at a time
 ---@field hunks number The total number of hunks in the diff
 ---@field inline? boolean Whether the diff is shown inline or in a floating window
 ---@field keymaps table<string, fun(diff_ui: CodeCompanion.DiffUI)> Custom keymap callbacks (on_accept, on_reject, on_always_accept)
@@ -64,7 +65,7 @@ end
 ---@param opts { banner?: string, current_hunk: number, hunks: number }
 ---@return string
 local function build_banner_text(opts)
-  return fmt(" [Hunk: %d/%d]  %s ", opts.current_hunk or 1, opts.hunks or 1, opts.banner or get_default_banner())
+  return fmt(" [Hunk: %d/%d] · %s ", opts.current_hunk or 1, opts.hunks or 1, opts.banner or get_default_banner())
 end
 
 ---Show banner in the diff buffer
@@ -144,6 +145,74 @@ function DiffUI:previous_hunk(line)
   end
 end
 
+---Replace `count` lines from `start`, where a count of 0 inserts after `start` as in a unified diff
+---@param lines string[]
+---@param opts { start: number, count: number, replacement: string[] }
+---@return string[]
+local function splice(lines, opts)
+  local first = opts.count == 0 and opts.start + 1 or opts.start
+  local result = vim.list_slice(lines, 1, first - 1)
+  vim.list_extend(result, opts.replacement)
+  return vim.list_extend(result, vim.list_slice(lines, first + opts.count))
+end
+
+---The hunk under the cursor, or the one last navigated to
+---@param line number
+---@return number
+function DiffUI:get_hunk_at(line)
+  for index, hunk in ipairs(self.diff.hunks) do
+    local first = hunk.pos[1] + 1
+    if line >= first and line <= first + math.max(hunk.to_count, 1) - 1 then
+      return index
+    end
+  end
+  return self.current_hunk
+end
+
+---Accept or reject a single hunk, then redraw the hunks that are left
+---@param index number
+---@param opts { accept: boolean }
+---@return nil
+function DiffUI:resolve_hunk(index, opts)
+  local hunk = self.diff.hunks[index]
+  if not hunk then
+    return
+  end
+
+  local from_lines, to_lines = self.diff.from.lines, self.diff.to.lines
+  if opts.accept then
+    local accepted = vim.list_slice(to_lines, hunk.to_start, hunk.to_start + hunk.to_count - 1)
+    from_lines = splice(from_lines, { start = hunk.from_start, count = hunk.from_count, replacement = accepted })
+  else
+    local original = vim.list_slice(from_lines, hunk.from_start, hunk.from_start + hunk.from_count - 1)
+    to_lines = splice(to_lines, { start = hunk.to_start, count = hunk.to_count, replacement = original })
+  end
+
+  self:remove_inline_marks()
+  api.nvim_buf_set_lines(self.bufnr, 0, -1, false, to_lines)
+
+  if vim.deep_equal(from_lines, to_lines) then
+    return require("codecompanion.diff.keymaps").accept_change.callback(self)
+  end
+
+  api.nvim_buf_set_lines(self.bufnr, 0, -1, false, from_lines)
+  self.diff = require("codecompanion.diff").create({
+    bufnr = self.bufnr,
+    ft = self.diff.ft,
+    from_lines = from_lines,
+    to_lines = to_lines,
+    marker_add = self.diff.marker_add,
+    marker_delete = self.diff.marker_delete,
+    inline = true,
+  })
+  self.hunks = #self.diff.hunks
+  self:apply_inline(self.diff, self.bufnr)
+
+  self.current_hunk = math.min(index, self.hunks)
+  ui_utils.scroll_to_line(self.bufnr, self.diff.hunks[self.current_hunk].pos[1] + 1)
+  utils.fire("DiffHunkChanged", { id = self.diff_id, bufnr = self.bufnr })
+end
+
 ---Close the diff window
 ---@return nil
 function DiffUI:close()
@@ -183,7 +252,7 @@ function DiffUI:setup_keymaps(opts)
   if not opts.skip_default_keymaps then
     for name, keymap in pairs(shared_keymaps) do
       local handler = keymaps[name]
-      if handler then
+      if handler and (self.hunk_actions or not handler.hunk_action) then
         for mode, lhs in pairs(keymap.modes) do
           self:_set_keymap(mode, lhs, handler)
         end
@@ -284,15 +353,21 @@ function DiffUI:clear()
   end
 
   if self.inline then
-    if self.inline_spacer_mark then
-      local pos = api.nvim_buf_get_extmark_by_id(self.bufnr, self.ns, self.inline_spacer_mark, {})
-      if pos and pos[1] then
-        pcall(api.nvim_buf_set_lines, self.bufnr, pos[1], pos[1] + 1, false, {})
-      end
-      self.inline_spacer_mark = nil
-    end
-    return pcall(api.nvim_buf_clear_namespace, self.bufnr, self.ns, 0, -1)
+    self:remove_inline_marks()
   end
+end
+
+---Remove the inline diff's highlights, virtual lines and spacer line, leaving the proposed lines
+---@return nil
+function DiffUI:remove_inline_marks()
+  if self.inline_spacer_mark then
+    local pos = api.nvim_buf_get_extmark_by_id(self.bufnr, self.ns, self.inline_spacer_mark, {})
+    if pos and pos[1] then
+      pcall(api.nvim_buf_set_lines, self.bufnr, pos[1], pos[1] + 1, false, {})
+    end
+    self.inline_spacer_mark = nil
+  end
+  pcall(api.nvim_buf_clear_namespace, self.bufnr, self.ns, 0, -1)
 end
 
 ---Apply inline diff changes and virtual deletion lines
@@ -454,12 +529,11 @@ end
 
 ---Set up banner display and tracking
 ---@param diff_ui CodeCompanion.DiffUI
----@param opts { banner?: string, is_float: boolean, inline: boolean }
----@return number group Autocommand group ID
+---@param opts { banner?: string, group: number, is_float: boolean, inline: boolean }
+---@return nil
 local function setup_banner(diff_ui, opts)
   local bufnr = diff_ui.bufnr
-  local group = api.nvim_create_augroup("codecompanion.diff_window_" .. bufnr, { clear = true })
-  diff_ui.aug_group = group
+  local group = opts.group
 
   local function show_banner(args)
     args = args or {}
@@ -516,8 +590,6 @@ local function setup_banner(diff_ui, opts)
       end,
     })
   end
-
-  return group
 end
 
 ---Set up window close handler
@@ -555,6 +627,7 @@ end
 ---@field banner? string
 ---@field diff_id? number
 ---@field float? boolean
+---@field hunk_actions? boolean
 ---@field inline? boolean
 ---@field keymaps.on_always_accept? fun(diff_ui: CodeCompanion.DiffUI)
 ---@field keymaps.on_accept? fun(diff_ui: CodeCompanion.DiffUI)
@@ -592,6 +665,7 @@ function M.show(diff, opts)
     current_hunk = 1,
     diff = diff,
     diff_id = diff_id,
+    hunk_actions = opts.hunk_actions,
     hunks = #diff.hunks,
     inline = opts.inline or not is_float,
     keymaps = opts.keymaps or {},
@@ -615,11 +689,17 @@ function M.show(diff, opts)
     end)
   end
 
-  local group = setup_banner(diff_ui, {
-    banner = opts.banner,
-    is_float = is_float,
-    inline = is_inline,
-  })
+  local group = api.nvim_create_augroup("codecompanion.diff_window_" .. bufnr, { clear = true })
+  diff_ui.aug_group = group
+
+  if config.display.diff.show_banner then
+    setup_banner(diff_ui, {
+      banner = opts.banner,
+      group = group,
+      is_float = is_float,
+      inline = is_inline,
+    })
+  end
 
   setup_close_handler(diff_ui, group, opts.skip_default_keymaps or false)
 
