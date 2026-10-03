@@ -145,6 +145,17 @@ local function _history_down()
   end
 end
 
+---Bind the input's own keymaps and then the caller's, rebinding any key that hiding removed
+---@param callbacks table<string, function>
+---@return nil
+local function _bind_keymaps(callbacks)
+  _set_keymaps(
+    _input.bufnr,
+    { send = _buf_send, close = M.hide, history_up = _history_up, history_down = _history_down }
+  )
+  _input.caller_keymaps = _set_keymaps(_input.bufnr, callbacks)
+end
+
 ---Open an input buffer
 ---@param opts { title?: string, on_submit: fun(text: string, submit_opts: { bang: boolean }), on_open?: fun(bufnr: number, winnr: number), initial_content?: string, allow_empty?: boolean, callbacks?: table<string, function> }
 ---@return nil
@@ -161,7 +172,7 @@ function M.open(opts)
     end
 
     _show({ title = opts.title })
-    _input.caller_keymaps = _set_keymaps(_input.bufnr, opts.callbacks or {})
+    _bind_keymaps(opts.callbacks or {})
 
     -- Set initial content if explicitly provided (overwrites draft)
     if opts.initial_content and opts.initial_content ~= "" then
@@ -198,7 +209,7 @@ function M.open(opts)
   }
 
   _show({ title = opts.title })
-  _input.caller_keymaps = _set_keymaps(bufnr, opts.callbacks or {})
+  _bind_keymaps(opts.callbacks or {})
 
   local aug = api.nvim_create_augroup("codecompanion.input." .. bufnr, { clear = true })
   api.nvim_create_autocmd("BufWriteCmd", {
@@ -216,9 +227,6 @@ function M.open(opts)
     end,
   })
   _input.aug = aug
-
-  -- Keymaps (set once, persist with the buffer)
-  _set_keymaps(bufnr, { send = _buf_send, close = M.hide, history_up = _history_up, history_down = _history_down })
 
   -- Set initial content if provided
   if opts.initial_content and opts.initial_content ~= "" then

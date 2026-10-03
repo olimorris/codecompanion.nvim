@@ -143,7 +143,10 @@ end
 ---@return string[]
 function M.get_new_content(target)
   local new_content = vim.list_slice(target.lines, 1, target.editable.first - 1)
-  vim.list_extend(new_content, vim.split(target.edited, "\n", { plain = true }))
+  -- Splitting an empty string gives one blank line, which deleting the whole selection would leave behind
+  if target.edited ~= "" then
+    vim.list_extend(new_content, vim.split(target.edited, "\n", { plain = true }))
+  end
 
   return vim.list_extend(new_content, vim.list_slice(target.lines, target.editable.last + 1))
 end

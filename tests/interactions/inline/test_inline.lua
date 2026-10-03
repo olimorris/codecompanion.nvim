@@ -100,6 +100,18 @@ T["Inline"]["edits stay inside the selection"] = function()
   h.eq({ "local a = 1", "local a = 10", "local b = 2" }, child.lua_get([[vim.api.nvim_buf_get_lines(0, 0, -1, false)]]))
 end
 
+T["Inline"]["deleting everything in the selection removes its lines"] = function()
+  child.lua([[
+    vim.api.nvim_buf_set_lines(0, 0, -1, false, { "local a = 1", "local b = 2", "local c = 3" })
+    table.insert(_G.responses, _G.edit({ old_string = "local b = 2", new_string = "" }))
+
+    _G.new_inline({ is_visual = true, start_line = 2, end_line = 2, start_col = 1, end_col = 11 }):prompt("Delete b")
+    _G.wait_for_requests()
+  ]])
+
+  h.eq({ "local a = 1", "local c = 3" }, child.lua_get([[vim.api.nvim_buf_get_lines(0, 0, -1, false)]]))
+end
+
 T["Inline"]["applies every edit in a response"] = function()
   child.lua([[
     vim.api.nvim_buf_set_lines(0, 0, -1, false, { "local a = 1", "local b = 2" })

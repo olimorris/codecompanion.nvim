@@ -14,6 +14,7 @@ The Inline Interaction - This is where code is applied directly to a Neovim buff
 ---@field prompts table The prompts to send to the LLM
 ---@field requesting? boolean Whether the LLM is working on the prompt, so the start and finish events fire once
 ---@field retries number How many times a failed edit has been sent back to the LLM
+---@field streaming? boolean The adapter's stream setting before inline turned it off
 ---@field target CodeCompanion.Inline.Target
 
 ---@class CodeCompanion.InlineArgs
@@ -62,8 +63,6 @@ local CONSTANTS = {
 - Preserve the exact indentation (tabs/spaces) of the surrounding code
 - If the prompt is a question, or can't be answered by editing the buffer, reply in %s without calling the tool]],
 }
-
-local _streaming = true
 
 ---@class CodeCompanion.Inline
 local Inline = {}
@@ -341,14 +340,11 @@ end
 ---@param messages table
 ---@return nil
 function Inline:submit(messages)
-  -- Inline editing only works with streaming off - We should remember the current status
-  _streaming = self.adapter.opts.stream
-  self.adapter.opts.stream = false
-
   self:set_keymaps(self.bufnr, { keymaps = { "stop" } })
 
   if not self.requesting then
     self.requesting = true
+    self.streaming = self.adapter.opts.stream
     utils.fire("InlineStarted", {
       id = self.id,
       bufnr = self.bufnr,
@@ -360,6 +356,7 @@ function Inline:submit(messages)
       range = { editable = self.target.editable, sent = self.target.context },
     })
   end
+  self.adapter.opts.stream = false
 
   local function clear_stop_keymap()
     require("codecompanion.interactions.inline.keymaps").clear_map(config.interactions.inline.keymaps, self.bufnr)
@@ -605,7 +602,7 @@ end
 ---Reset the inline prompt class
 ---@return nil
 function Inline:reset()
-  self.adapter.opts.stream = _streaming
+  self.adapter.opts.stream = self.streaming
   self.current_request = nil
   api.nvim_clear_autocmds({ group = self.aug })
   self:finish_request()
