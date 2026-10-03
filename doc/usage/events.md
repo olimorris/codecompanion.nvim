@@ -41,8 +41,9 @@ The events that are fired from within the plugin are:
 - `CodeCompanionCLIApprovalFinished` - Fired when a CLI agent resumes after waiting. Requires [agent hooks](/configuration/cli#hooks)
 - `CodeCompanionContextChanged` - Fired when the context that a chat buffer follows, changes
 - `CodeCompanionFileEdited` - Fired after the LLM has edited or created a file; the data payload includes the `path` and what made the change (`tool`)
-- `CodeCompanionInlineStarted` - Fired when an inline prompt is sent to the LLM, with the `bufnr` being edited in the data payload
-- `CodeCompanionInlineFinished` - Fired once the LLM has finished with an inline prompt, whether it succeeded, failed or was stopped, with the `bufnr` in the data payload
+- `CodeCompanionInlineStarted` - Fired when an inline prompt is sent to the LLM, with the `id` of the prompt, the `bufnr`, the `adapter` and the `range` of lines in the data payload
+- `CodeCompanionInlineFinished` - Fired once the LLM has finished with an inline prompt, whether it succeeded, failed or was stopped, with the `id` and `bufnr` in the data payload
+- `CodeCompanionInlineAccepted` - Fired after an inline edit has been written to the buffer, with the `id` and `bufnr` in the data payload. Not fired if every change is rejected
 - `CodeCompanionMCPServerStart` - Fired when an MCP server is started
 - `CodeCompanionMCPServerReady` - Fired when an MCP server is ready for requests
 - `CodeCompanionMCPServerClosed` - Fired when an MCP server is closed
@@ -96,6 +97,26 @@ Each event also comes with a data payload. For example, with `CodeCompanionReque
 
 And the `CodeCompanionRequestFinished` also has a `data.status` value.
 
+`CodeCompanionInlineStarted` carries the adapter and the lines being edited, so you can show progress whilst the LLM responds, such as a virtual line above `range.editable` naming the model, or a highlight over those lines:
+
+```lua
+{
+  adapter = {
+    formatted_name = "Copilot",
+    model = "claude-sonnet-5",
+    name = "copilot"
+  },
+  bufnr = 10,
+  id = 4817362,
+  range = {
+    editable = { first = 12, last = 30 },
+    sent = { first = 1, last = 180 }
+  }
+}
+```
+
+`range.sent` is the lines shared with the LLM, which is the whole buffer unless it's over the [context limit](/configuration/inline#context-limit). `CodeCompanionInlineFinished` carries the same `id`, so you can clear what you drew for that prompt even when several are running.
+
 ## Consuming an Event
 
 Events can be hooked into as follows:
@@ -104,13 +125,10 @@ Events can be hooked into as follows:
 local group = vim.api.nvim_create_augroup("CodeCompanionHooks", {})
 
 vim.api.nvim_create_autocmd({ "User" }, {
-  pattern = "CodeCompanionInline*",
+  pattern = "CodeCompanionInlineAccepted",
   group = group,
   callback = function(request)
-    if request.match == "CodeCompanionInlineFinished" then
-      -- Format the buffer after the inline request has completed
-      require("conform").format({ bufnr = request.data.bufnr })
-    end
+    require("conform").format({ bufnr = request.data.bufnr })
   end,
 })
 ```

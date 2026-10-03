@@ -34,7 +34,7 @@ See the section on [HTTP Adapters](/configuration/adapters-http) for more inform
 
 ## Keymaps
 
-The keymaps for reviewing an inline diff are shared with the chat buffer's diff. `accept_hunk` and `reject_hunk` only apply to the inline interaction:
+The keymaps for reviewing an inline diff are shared with the chat buffer's diff. `accept_hunk`, `reject_hunk` and `undo_hunk` only apply to the inline interaction:
 
 ```lua
 require("codecompanion").setup({
@@ -52,6 +52,9 @@ require("codecompanion").setup({
         },
         reject_hunk = {
           modes = { n = "gr" },
+        },
+        undo_hunk = {
+          modes = { n = "u" },
         },
         next_hunk = {
           modes = { n = "}" },

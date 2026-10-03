@@ -860,7 +860,10 @@ The user is working on a %s machine. Please respond with system specific command
     },
     -- INLINE INTERACTION -----------------------------------------------------
     inline = {
-      adapter = "copilot",
+      adapter = {
+        name = "copilot",
+        model = "gpt-5.4-mini",
+      },
       opts = {
         max_context_tokens = nil, -- Defaults to 16000, or the model's input limit minus 3000 if that's smaller
       },
@@ -873,13 +876,6 @@ The user is working on a %s machine. Please respond with system specific command
         },
       },
       editor_context = {
-        ["buffer"] = {
-          path = "interactions.inline.editor_context.buffer",
-          description = "Share the current buffer with the LLM",
-          opts = {
-            contains_code = true,
-          },
-        },
         ["chat"] = {
           path = "interactions.inline.editor_context.chat",
           description = "Share the currently open chat buffer with the LLM",
@@ -1140,6 +1136,11 @@ The user is working on a %s machine. Please respond with system specific command
           description = "Reject the hunk under the cursor (inline only)",
           modes = { n = "gr" },
           opts = { nowait = true },
+        },
+        undo_hunk = {
+          callback = "keymaps.undo_hunk",
+          description = "Undo the last hunk decision (inline only)",
+          modes = { n = "u" },
         },
         next_hunk = {
           callback = "keymaps.next_hunk",
@@ -1483,6 +1484,10 @@ The user is working on a %s machine. Please respond with system specific command
             n = "<Down>",
           },
           description = "Next prompt",
+        },
+        change_adapter = {
+          modes = { n = "ga" },
+          description = "Change adapter (inline only)",
         },
       },
     },

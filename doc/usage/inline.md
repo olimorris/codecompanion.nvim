@@ -8,13 +8,15 @@ description: "Edit code directly in a Neovim buffer with CodeCompanion's inline 
   <video controls muted title="Inline interaction demo" src="https://github.com/user-attachments/assets/dcddcb85-cba0-4017-9723-6e6b7f080fee"></video>
 </p>
 
-As per the [Getting Started](/getting-started#editing-inline) guide, the inline interaction lets the LLM edit the current buffer directly. Run `:CodeCompanion <your prompt>` to let it edit the whole buffer, or make a visual selection first to limit its edits to those lines. Running `:CodeCompanion` on its own opens an input box to write your prompt in.
+As per the [Getting Started](/getting-started#editing-inline) guide, the inline interaction lets the LLM edit the current buffer directly. Run `:CodeCompanion <your prompt>` to let it edit the whole buffer, or make a visual selection first to limit its edits to those lines. Running `:CodeCompanion` on its own opens an input box to write your prompt in, with the adapter and model that will answer in its title.
 
 You can also call inline prompts from the [prompt library](/configuration/prompt-library) by their alias, such as `:'<,'>CodeCompanion /docstrings`.
 
 ## Adapters
 
-You can specify a different adapter to that in the configuration (`interactions.inline.adapter`) when sending an inline prompt. Simply include the adapter via `adapter=*`. For example `:<','>CodeCompanion adapter=deepseek can you refactor this?`. This approach can also be combined with editor context.
+Press `ga` in the input box to pick an adapter and model. Your choice is remembered for that buffer, so later inline prompts in it use the same adapter and model until you pick again. Other buffers keep using `interactions.inline.adapter`.
+
+For a one-off, include the adapter in your prompt with `adapter=*`. For example `:<','>CodeCompanion adapter=deepseek can you refactor this?`. This isn't remembered, and can be combined with editor context.
 
 ## How Edits Work
 
@@ -27,7 +29,7 @@ If a buffer is over the [context limit](/configuration/inline#context-limit), on
 
 If an edit fails, for example because the text it targets isn't in the buffer, the error is sent back to the LLM once so it can try again. If it fails a second time, nothing is changed and the error is logged.
 
-If you ask a question rather than for a change, such as _"what does this function do?"_, the LLM replies without editing and the reply opens in a chat buffer.
+If you ask a question rather than for a change, such as _"what does this function do?"_, the LLM replies without editing and the reply opens in a float. Moving the cursor or pressing `q` closes it, and `<C-w>w` moves into it to scroll a long reply.
 
 ## Diff Mode
 
@@ -38,17 +40,17 @@ By default, the LLM's edits are shown as a diff in the buffer, which you can rev
 | `}` / `{` | Move to the next or previous hunk |
 | `ga` | Accept the hunk under the cursor |
 | `gr` | Reject the hunk under the cursor |
+| `u` | Undo the last hunk you accepted or rejected |
 | `g2` | Accept the hunks that are left |
 | `g3` | Reject the hunks that are left |
 | `g1` | Accept the hunks that are left, and every future edit to this buffer |
 
-Once every hunk has been accepted or rejected, the diff closes. Edits within four lines of each other are shown as one hunk. The diff can be turned off with `display.diff.enabled`, the banner above the current hunk hidden with `display.diff.show_banner`, and the keymaps changed in `interactions.shared.keymaps`.
+Once every hunk has been accepted or rejected, the diff closes. Pressing `u` afterwards undoes the whole edit in one step, however many hunks you resolved, and rejecting every hunk leaves nothing to undo. The diff can be turned off with `display.diff.enabled`, the banner above the current hunk hidden with `display.diff.show_banner`, and the keymaps changed in `interactions.shared.keymaps`.
 
 ## Editor Context
 
 The inline interaction allows you to send context alongside your prompt via the notion of editor context. That is, context that relates to your current Neovim session:
 
-- `buffer` - shares the contents of the current buffer
 - `chat` - shares the LLM's messages from the last chat buffer
 - `clipboard` - shares the data on your clipboard with the LLM
 

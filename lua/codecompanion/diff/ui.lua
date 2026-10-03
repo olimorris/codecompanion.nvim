@@ -15,6 +15,7 @@ local M = {}
 ---@field bufnr number The buffer number of the diff window
 ---@field chat_bufnr? number If the diff has an associated chat buffer, pass in the chat buffer number
 ---@field current_hunk number The current hunk index (1-based)
+---@field decisions { from_lines: string[], to_lines: string[], hunk: number }[] The diff before each hunk decision, for undo
 ---@field diff CC.Diff
 ---@field diff_id number
 ---@field hunk_actions? boolean Whether hunks can be accepted or rejected one at a time
@@ -24,6 +25,7 @@ local M = {}
 ---@field ns number The namespace ID for diff extmarks
 ---@field resolved boolean Whether the diff has been resolved (accepted/rejected)
 ---@field tool_name? string This is essential for approvals to work with tools
+---@field undo_seq? number The buffer's undo state before an inline diff was drawn into it
 ---@field winnr number
 local DiffUI = {}
 DiffUI.__index = DiffUI
@@ -65,7 +67,7 @@ end
 ---@param opts { banner?: string, current_hunk: number, hunks: number }
 ---@return string
 local function build_banner_text(opts)
-  return fmt(" [Hunk: %d/%d] · %s ", opts.current_hunk or 1, opts.hunks or 1, opts.banner or get_default_banner())
+  return fmt("[Hunk: %d/%d] · %s ", opts.current_hunk or 1, opts.hunks or 1, opts.banner or get_default_banner())
 end
 
 ---Show banner in the diff buffer
@@ -188,19 +190,36 @@ function DiffUI:resolve_hunk(index, opts)
     to_lines = splice(to_lines, { start = hunk.to_start, count = hunk.to_count, replacement = original })
   end
 
-  self:remove_inline_marks()
-  api.nvim_buf_set_lines(self.bufnr, 0, -1, false, to_lines)
-
   if vim.deep_equal(from_lines, to_lines) then
+    self:remove_inline_marks()
+    api.nvim_buf_set_lines(self.bufnr, 0, -1, false, to_lines)
     return require("codecompanion.diff.keymaps").accept_change.callback(self)
   end
 
-  api.nvim_buf_set_lines(self.bufnr, 0, -1, false, from_lines)
+  table.insert(self.decisions, { from_lines = self.diff.from.lines, to_lines = self.diff.to.lines, hunk = index })
+  self:redraw({ from_lines = from_lines, to_lines = to_lines, hunk = index })
+end
+
+---Take back the last hunk decision
+---@return nil
+function DiffUI:undo_hunk()
+  local decision = table.remove(self.decisions)
+  if decision then
+    self:redraw(decision)
+  end
+end
+
+---Redraw the inline diff between two sets of lines, moving to the given hunk
+---@param opts { from_lines: string[], to_lines: string[], hunk: number }
+---@return nil
+function DiffUI:redraw(opts)
+  self:remove_inline_marks()
+  api.nvim_buf_set_lines(self.bufnr, 0, -1, false, opts.from_lines)
   self.diff = require("codecompanion.diff").create({
     bufnr = self.bufnr,
     ft = self.diff.ft,
-    from_lines = from_lines,
-    to_lines = to_lines,
+    from_lines = opts.from_lines,
+    to_lines = opts.to_lines,
     marker_add = self.diff.marker_add,
     marker_delete = self.diff.marker_delete,
     inline = true,
@@ -208,7 +227,7 @@ function DiffUI:resolve_hunk(index, opts)
   self.hunks = #self.diff.hunks
   self:apply_inline(self.diff, self.bufnr)
 
-  self.current_hunk = math.min(index, self.hunks)
+  self.current_hunk = math.min(opts.hunk, self.hunks)
   ui_utils.scroll_to_line(self.bufnr, self.diff.hunks[self.current_hunk].pos[1] + 1)
   utils.fire("DiffHunkChanged", { id = self.diff_id, bufnr = self.bufnr })
 end
@@ -354,6 +373,19 @@ function DiffUI:clear()
 
   if self.inline then
     self:remove_inline_marks()
+    self:collapse_undo()
+  end
+end
+
+---Replace the undo history of drawing and redrawing the diff with a single change to the final lines
+---@return nil
+function DiffUI:collapse_undo()
+  local final_lines = api.nvim_buf_get_lines(self.bufnr, 0, -1, false)
+  api.nvim_buf_call(self.bufnr, function()
+    vim.cmd("silent undo " .. self.undo_seq)
+  end)
+  if not vim.deep_equal(api.nvim_buf_get_lines(self.bufnr, 0, -1, false), final_lines) then
+    api.nvim_buf_set_lines(self.bufnr, 0, -1, false, final_lines)
   end
 end
 
@@ -663,6 +695,7 @@ function M.show(diff, opts)
     bufnr = bufnr,
     chat_bufnr = opts.chat_bufnr,
     current_hunk = 1,
+    decisions = {},
     diff = diff,
     diff_id = diff_id,
     hunk_actions = opts.hunk_actions,
@@ -676,6 +709,11 @@ function M.show(diff, opts)
   }, DiffUI)
 
   if is_inline then
+    diff_ui.undo_seq = api.nvim_buf_call(bufnr, function()
+      -- Breaks the undo block, or a change made just before the diff would be undone along with it
+      vim.go.undolevels = vim.go.undolevels
+      return vim.fn.undotree().seq_cur
+    end)
     diff_ui:apply_inline(diff, bufnr)
   else
     diff_ui:apply_extmarks(diff, bufnr)

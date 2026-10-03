@@ -435,6 +435,28 @@ T["Diff"]["Hunks"]["rejecting a hunk on the first line leaves no spacer line"] =
   h.eq({ "a", "b", "C" }, lines)
 end
 
+T["Diff"]["Hunks"]["undoing takes back the last hunk decision"] = function()
+  local result = child.lua([[
+    local diff_ui = _G.show_inline_diff({ "a", "b", "c", "d", "e" }, { "A", "b", "C", "d", "E" })
+    local drawn = vim.api.nvim_buf_get_lines(diff_ui.bufnr, 0, -1, false)
+    diff_ui:resolve_hunk(1, { accept = true })
+    diff_ui:resolve_hunk(1, { accept = false })
+    diff_ui:undo_hunk()
+    local after_one = { from = diff_ui.diff.from.lines, to = diff_ui.diff.to.lines, hunks = diff_ui.hunks }
+    diff_ui:undo_hunk()
+    return {
+      after_one = after_one,
+      after_both = { from = diff_ui.diff.from.lines, hunks = diff_ui.hunks },
+      drawn = drawn,
+      lines = vim.api.nvim_buf_get_lines(diff_ui.bufnr, 0, -1, false),
+    }
+  ]])
+
+  h.eq({ from = { "A", "b", "c", "d", "e" }, to = { "A", "b", "C", "d", "E" }, hunks = 2 }, result.after_one)
+  h.eq({ from = { "a", "b", "c", "d", "e" }, hunks = 3 }, result.after_both)
+  h.eq(result.drawn, result.lines)
+end
+
 T["Diff"]["Hunks"]["finds the hunk under the cursor"] = function()
   local index = child.lua([[
     local diff_ui = _G.show_inline_diff(_G.from_lines, _G.to_lines)

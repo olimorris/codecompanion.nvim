@@ -48,8 +48,7 @@ CodeCompanion.inline = function(args)
     return inline:prompt(args.args)
   end
 
-  require("codecompanion.interactions.shared.input").open({
-    title = " " .. config.display.input.title .. " ",
+  require("codecompanion.interactions.inline.ui").open_input(inline, {
     on_submit = function(prompt)
       inline:prompt(prompt)
     end,

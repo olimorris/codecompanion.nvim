@@ -102,6 +102,14 @@ M.reject_hunk = {
   end,
 }
 
+M.undo_hunk = {
+  desc = "Undo the last hunk decision",
+  hunk_action = true,
+  callback = function(diff_ui)
+    diff_ui:undo_hunk()
+  end,
+}
+
 M.show_keymaps = {
   desc = "Show the diff's keymaps",
   callback = function(diff_ui)
