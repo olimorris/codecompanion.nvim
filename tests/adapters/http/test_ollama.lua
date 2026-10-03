@@ -115,6 +115,13 @@ T["Ollama adapter"]["it can form messages with tools"] = function()
   h.eq(output, adapter.handlers.form_messages(adapter, messages))
 end
 
+T["Ollama adapter"]["pairs a tool result with its tool call"] = function()
+  local tool_call = { id = "call_1", ["function"] = { name = "weather", arguments = {} } }
+  local result = adapter.handlers.tools.output_response(adapter, tool_call, "15 degrees")
+
+  h.eq("call_1", result.tools.call_id)
+end
+
 T["Ollama adapter"]["it can form tools to be sent to the API"] = function()
   local weather = require("tests.interactions.chat.tools.builtin.stubs.weather").schema
   local tools = { weather = { weather } }

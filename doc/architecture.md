@@ -30,7 +30,7 @@ CodeCompanion uses two thresholds: an **editing** trigger (default `0.65` of the
 
 Context editing is the lighter and more risk-free option of the two operations. It walks through the chat's message history and replaces the *content* of older tool call results with a placeholder, leaving the conversation intact. This ensures that tool calls and tool results are never orphaned, whilst ensuring the token count is reduced.
 
-Editing works in terms of **cycles**. A cycle represents one user turn and everything the LLM did in response to it (tool calls, tool results, replies). By default, the most recent 3 cycles are preserved in full; older cycles have their tool results swapped for a placeholder. This means an in-flight agentic loop is never cut in half — a cycle is preserved or aged as a whole.
+Editing works in terms of **cycles**. A cycle represents one user turn and everything the LLM did in response to it (tool calls, tool results, replies). By default, the most recent 3 cycles are preserved in full; older cycles have their tool results swapped for a placeholder. This means an in-flight [agent loop](/usage/chat-buffer/agents-tools#how-they-work) is never cut in half — a cycle is preserved or aged as a whole.
 
 You can exclude specific tools from being edited via the `exclude_tools` configuration option. For example, the `memory` tool is excluded by default, since its output is often referenced again later in the conversation.
 
@@ -62,7 +62,7 @@ The placeholder names the file so the LLM knows how to re-read or re-request it.
 
 Compaction can use a different adapter than the chat itself, which is useful if you want a cheaper or faster model handling the summary. You can also choose to fall back to the chat adapter if the override fails — by default, a failure simply skips that round and notifies you.
 
-The summary is appended to the chat as a new user message and tagged so future compactions can identify and replace it. The chat is automatically submitted so the LLM has a chance to respond to the summarised context and restart the agentic loop.
+The summary is appended to the chat as a new user message and tagged so future compactions can identify and replace it. The chat is automatically submitted so the LLM has a chance to respond to the summarised context and restart the agent loop.
 
 #### Server-Side Compaction
 

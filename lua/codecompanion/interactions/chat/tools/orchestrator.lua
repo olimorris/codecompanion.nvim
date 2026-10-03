@@ -1,6 +1,7 @@
 local Approvals = require("codecompanion.interactions.chat.tools.approvals")
 local Queue = require("codecompanion.interactions.chat.tools.runtime.queue")
 local Runner = require("codecompanion.interactions.chat.tools.runtime.runner")
+local agent_loop = require("codecompanion.interactions.chat.agent_loop")
 
 local config = require("codecompanion.config")
 local log = require("codecompanion.utils.log")
@@ -328,11 +329,12 @@ function Orchestrator:_finalize_tools()
   self.tools.tool = nil
   self.tools.chat.tool_orchestrator = nil
 
-  return utils.fire("ToolsFinished", {
+  utils.fire("ToolsFinished", {
     bufnr = self.tools.bufnr,
     id = self.id,
     status = self.tools.status,
   })
+  return agent_loop.after_tools(self.tools)
 end
 
 ---Setup the tool to be executed
@@ -444,10 +446,9 @@ function Orchestrator:_prompt_for_approval(args)
         keymap = keys.cancel,
         label = labels.cancel,
         callback = function()
-          self.output.cancelled(cmd)
-          self:finalize_tool()
-          self:cancel_pending_tools()
-          self:_finalize_tools()
+          -- Stop queued workflow prompts from auto-submitting once the chat is handed back
+          self.tools.chat:dispatch("on_cancelled")
+          self:cancel()
         end,
       },
     },
@@ -558,6 +559,8 @@ function Orchestrator:cancel()
   self:cancel_pending_tools()
 
   self.tools.tool = nil
+  self.tools.chat.tool_orchestrator = nil
+  utils.fire("ToolsFinished", { bufnr = self.tools.bufnr, id = self.id, status = self.tools.status })
   self.tools:reset({ auto_submit = false })
 end
 

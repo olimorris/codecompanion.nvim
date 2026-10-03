@@ -280,9 +280,6 @@ return {
           },
         },
         opts = {
-          -- Keep tool output in the chat buffer; auto-submitting would fire a request to the adapter
-          auto_submit_errors = false,
-          auto_submit_success = false,
           system_prompt = "My tool system prompt",
           folds = {
             enabled = false,

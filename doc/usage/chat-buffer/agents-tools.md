@@ -22,7 +22,16 @@ In the plugin, tools are simply context and actions that are shared with an LLM.
 
 Tools make use of an LLM's [function calling](https://platform.openai.com/docs/guides/function-calling) ability. All tools in CodeCompanion follow [OpenAI's function calling specification for defining functions](https://platform.openai.com/docs/guides/function-calling#defining-functions).
 
-When a tool is added to the chat buffer, the LLM is instructured by the plugin to return a structured JSON schema which has been defined for each tool. The chat buffer parses the LLMs response and detects the tool use before triggering the _tools/init.lua_ file. The tool system triggers off a series of events, which sees tool's added to a queue and sequentially worked with their output being shared back to the LLM via the chat buffer. Depending on the tool, flags may be inserted on the chat buffer for later processing.
+For HTTP adapters, CodeCompanion is the _harness_: the system prompt, tools, approvals and [context management](/architecture#how-context-is-managed) that turn an LLM into an agent. ACP adapters such as Claude Code and Codex bring their own harness, which is why the built-in tools are for HTTP adapters only.
+
+The harness runs the _agent loop_:
+
+1. You submit a prompt
+2. The LLM responds, optionally asking to run one or more tools
+3. CodeCompanion runs each tool in turn, asking for your [approval](#approvals) where needed
+4. The tools' output is sent back to the LLM and the loop returns to step 2
+
+The loop ends when the LLM responds without asking for a tool, or when you stop the request or cancel a tool. Rejecting a tool doesn't end the loop - the LLM is told you rejected it, along with your reason, and carries on.
 
 An outline of the [tool system architecture](/extending/tools#architecture) is available in the extending section.
 
@@ -503,6 +512,3 @@ Below is the tool use status of various adapters and models in CodeCompanion:
 | OpenRouter            |                   | :white_check_mark: | Dependent on the model              |
 | xAI               | | :x:                | Not supported yet                   |
 
-
-> [!IMPORTANT]
-> When using Mistral, you will need to set `interactions.chat.tools.opts.auto_submit_errors` to `true`. See [#2278](https://github.com/olimorris/codecompanion.nvim/pull/2278) for more information.

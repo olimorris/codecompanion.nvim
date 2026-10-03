@@ -113,6 +113,8 @@ require("codecompanion").setup({
 })
 ```
 
+- `interactions.chat.tools.opts.auto_submit_errors` and `interactions.chat.tools.opts.auto_submit_success` have been removed. A tool's output is now always sent back to the LLM, as part of the [agent loop](/usage/chat-buffer/agents-tools#how-they-work)
+
 ## v18.7.0 to v19.0.0
 
 - The Super Diff has now been removed from CodeCompanion ([#2600](https://github.com/olimorris/codecompanion.nvim/pull/2600))

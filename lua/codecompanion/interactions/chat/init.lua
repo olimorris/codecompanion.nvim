@@ -69,6 +69,7 @@
 
 local adapter_utils = require("codecompanion.adapters.utils")
 local adapters = require("codecompanion.adapters")
+local agent_loop = require("codecompanion.interactions.chat.agent_loop")
 local approvals = require("codecompanion.interactions.chat.tools.approvals")
 local config = require("codecompanion.config")
 local context_helpers = require("codecompanion.interactions.chat.helpers.context")
@@ -1199,7 +1200,7 @@ function Chat:replace_user_inputs(message)
   end
 end
 
----Send a "btw" message to the LLM during the agentic loop
+---Send a "btw" message to the LLM during the agent loop
 ---@param content string
 ---@return nil
 function Chat:btw(content)
@@ -1609,22 +1610,11 @@ function Chat:done(output, reasoning, tools, meta, opts)
         self._last_role = config.constants.LLM_ROLE
         self:add_buf_message({ role = config.constants.LLM_ROLE })
       end
-      return self.tools:execute(self, tools)
+      return agent_loop.after_response(self, { tool_calls = tools })
     end
   end
 
-  -- If a message was queued during the request, submit it now so the LLM sees it
-  if self._btw then
-    self:checkpoint()
-    return self:submit({ auto_submit = true })
-  end
-
-  self:checkpoint()
-  -- A compaction request ends the turn itself once its summary lands
-  if require("codecompanion.interactions.chat.context_management").apply(self) then
-    return
-  end
-  self:finish({ error = opts.error })
+  agent_loop.after_response(self, { error = opts.error })
 end
 
 ---End the turn, handing the chat buffer back to the user
