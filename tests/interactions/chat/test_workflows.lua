@@ -153,4 +153,35 @@ T["Workflows"]["prompts are sequentially added to the chat buffer"] = function()
   h.eq("", last_line)
 end
 
+T["Workflows"]["a prompt can change the adapter and model"] = function()
+  child.lua([[
+    h.setup_plugin()
+    _G.chat = require("codecompanion.interactions")
+      .new({
+        buffer_context = { bufnr = 0, filetype = "lua" },
+        selected = {
+          adapter = "test_adapter",
+          description = "Test Workflow",
+          name = "Adapter workflow",
+          strategy = "workflow",
+          prompts = {
+            { { role = "user", opts = { auto_submit = false }, content = "First prompt" } },
+            {
+              {
+                role = "user",
+                opts = { auto_submit = false, adapter = { name = "test_adapter", model = "gpt-4o" } },
+                content = "Second prompt",
+              },
+            },
+          },
+        },
+      })
+      :start("workflow")
+  ]])
+
+  h.eq("gpt-3.5-turbo", child.lua_get([[_G.chat.settings.model]]))
+  child.lua([[h.send_to_llm(_G.chat, "Done")]])
+  h.eq("gpt-4o", child.lua_get([[_G.chat.settings.model]]))
+end
+
 return T

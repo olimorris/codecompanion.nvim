@@ -32,7 +32,7 @@ end
 ---@param url string
 ---@return string|nil
 local function attach_url(chat, url)
-  chat:_set_status("fetching", "Resolving URL...")
+  chat:_set_status({ key = "fetching", message = "Resolving URL..." })
   vim.cmd("redraw")
 
   local attached = require("codecompanion.interactions.chat.slash_commands.builtin.fetch").fetch_sync({
@@ -41,7 +41,7 @@ local function attach_url(chat, url)
     url = url,
   })
 
-  chat:_set_status("fetching", attached and "Resolved..." or "Could not resolve URL")
+  chat:_set_status({ key = "fetching", message = attached and "Resolved..." or "Could not resolve URL" })
   return attached and url or nil
 end
 

@@ -1,6 +1,7 @@
 local Approvals = require("codecompanion.interactions.chat.tools.approvals")
 local Queue = require("codecompanion.interactions.chat.tools.runtime.queue")
 local Runner = require("codecompanion.interactions.chat.tools.runtime.runner")
+local agent_loop = require("codecompanion.interactions.chat.agent_loop")
 
 local config = require("codecompanion.config")
 local log = require("codecompanion.utils.log")
@@ -25,7 +26,7 @@ end
 ---@param llm_message string
 ---@param user_message? string
 local send_response_to_chat = function(exec, llm_message, user_message)
-  exec.tools.chat:add_tool_output(exec.tool, llm_message, user_message)
+  exec.tools.chat:add_tool_output({ tool = exec.tool, for_llm = llm_message, for_user = user_message })
 end
 
 ---Execute a shell command with platform-specific handling
@@ -312,13 +313,14 @@ function Orchestrator:_label_completed()
     return
   end
 
-  pcall(
-    self.tools.chat.update_buf_line,
-    self.tools.chat,
-    label.line_number,
-    label.text,
-    { status = label.status, icon_id = label.icon_id, priority = 120, virt_text_pos = "inline" }
-  )
+  pcall(self.tools.chat.update_buf_line, self.tools.chat, {
+    line_number = label.line_number,
+    content = label.text,
+    status = label.status,
+    icon_id = label.icon_id,
+    priority = 120,
+    virt_text_pos = "inline",
+  })
 end
 
 ---When the tools coordinator is finished, finalize it via an autocmd
@@ -328,11 +330,12 @@ function Orchestrator:_finalize_tools()
   self.tools.tool = nil
   self.tools.chat.tool_orchestrator = nil
 
-  return utils.fire("ToolsFinished", {
+  utils.fire("ToolsFinished", {
     bufnr = self.tools.bufnr,
     id = self.id,
     status = self.tools.status,
   })
+  return agent_loop.after_tools(self.tools)
 end
 
 ---Setup the tool to be executed
@@ -444,10 +447,9 @@ function Orchestrator:_prompt_for_approval(args)
         keymap = keys.cancel,
         label = labels.cancel,
         callback = function()
-          self.output.cancelled(cmd)
-          self:finalize_tool()
-          self:cancel_pending_tools()
-          self:_finalize_tools()
+          -- Stop queued workflow prompts from auto-submitting once the chat is handed back
+          self.tools.chat:dispatch("on_cancelled")
+          self:cancel()
         end,
       },
     },
@@ -558,6 +560,8 @@ function Orchestrator:cancel()
   self:cancel_pending_tools()
 
   self.tools.tool = nil
+  self.tools.chat.tool_orchestrator = nil
+  utils.fire("ToolsFinished", { bufnr = self.tools.bufnr, id = self.id, status = self.tools.status })
   self.tools:reset({ auto_submit = false })
 end
 
@@ -597,10 +601,10 @@ function Orchestrator:error(args)
   end)
   if not ok then
     if self.tool and self.tool.function_call then
-      self.tools.chat:add_tool_output(
-        self.tool,
-        string.format("Internal error with `%s` tool: %s", self.tool.name, err)
-      )
+      self.tools.chat:add_tool_output({
+        tool = self.tool,
+        for_llm = string.format("Internal error with `%s` tool: %s", self.tool.name, err),
+      })
     end
   end
 
@@ -631,7 +635,10 @@ function Orchestrator:success(args)
   if not ok then
     log:error("Internal error with the %s success handler: %s", self.tool.name, err)
     if self.tool and self.tool.function_call then
-      self.tools.chat:add_tool_output(self.tool, string.format("Internal error with `%s` tool", self.tool.name))
+      self.tools.chat:add_tool_output({
+        tool = self.tool,
+        for_llm = string.format("Internal error with `%s` tool", self.tool.name),
+      })
     end
   end
 end

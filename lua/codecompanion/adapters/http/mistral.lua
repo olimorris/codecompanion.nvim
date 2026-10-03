@@ -1,7 +1,7 @@
 local adapter_utils = require("codecompanion.adapters.utils")
 local config = require("codecompanion.config")
 local fetch_models = require("codecompanion.adapters.utils.models.fetch")
-local openai = require("codecompanion.adapters.http.openai")
+local openai = require("codecompanion.adapters.http.openai_legacy")
 
 local models_source = {
   name = "Mistral",

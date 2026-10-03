@@ -8,6 +8,220 @@ This document provides a guide for upgrading from one version of CodeCompanion t
 
 CodeCompanion follows [semantic versioning](https://semver.org/) and to avoid breaking changes, it is recommended to pin the plugin to a specific version in your Neovim configuration. The [installation guide](/installation) provides more information on how to do this.
 
+## v19.27.0 to v20.0.0
+
+> [!IMPORTANT]
+> The `openai` and `gemini` adapters now use different APIs. If you use either of them, read the [Adapters](#adapters) section before upgrading
+
+### Adapters
+
+- `openai` now uses OpenAI's [Responses API](https://platform.openai.com/docs/api-reference/responses) and `gemini` uses Google's [Interactions API](https://ai.google.dev/gemini-api/docs/interactions). The previous adapters have been renamed to `openai_legacy` and `gemini_legacy`
+- This includes `extend("openai")` and `extend("gemini")`, so any adapter you've built on them now uses the new APIs
+- The `openai_responses` and `gemini_interactions` adapters have been removed. Use `openai` and `gemini` instead
+- Update any references in your own plugins from `require("codecompanion.adapters.http.openai")` to `require("codecompanion.adapters.http.openai_legacy")`
+- The GitHub Models adapter has been removed
+
+To keep using the previous APIs:
+
+::: code-group
+
+```lua [Interactions]
+require("codecompanion").setup({
+  interactions = {
+    chat = {
+      adapter = "openai_legacy", -- Can be "openai_legacy" or "gemini_legacy"
+    },
+    inline = {
+      adapter = "openai_legacy",
+    },
+  },
+})
+```
+
+```lua [Extending]
+require("codecompanion").setup({
+  adapters = {
+    http = {
+      openai = function()
+        return require("codecompanion.adapters").extend("openai_legacy", { -- [!code ++]
+          env = {
+            api_key = "OPENAI_API_KEY",
+          },
+        })
+      end,
+    },
+  },
+})
+```
+
+:::
+
+- HTTP adapter handlers in the nested format (`lifecycle`, `request`, `response` and `tools`) now take a single `args` table after `self`, in place of positional arguments. New fields can then be added without breaking your handlers, and a handler that wraps another can pass `args` straight through. If you've written or extended an adapter in this format, update each handler:
+
+```lua
+require("codecompanion").setup({
+  adapters = {
+    http = {
+      openai = function()
+        return require("codecompanion.adapters").extend("openai", {
+          handlers = {
+            response = {
+              parse_chat = function(self, data, tools) -- [!code --]
+              parse_chat = function(self, args) -- [!code ++]
+                local data, tools = args.data, args.tools -- [!code ++]
+                -- ...
+              end,
+            },
+          },
+        })
+      end,
+    },
+  },
+})
+```
+
+The fields in `args` match the old positional arguments:
+
+| Handler | `args` |
+|---|---|
+| `lifecycle.on_exit` | `data` |
+| `request.build_parameters` | `params`, `messages` |
+| `request.build_messages` | `messages` |
+| `request.build_tools` | `tools` |
+| `request.build_structured_output` | `schema` |
+| `request.build_reasoning` | `data` |
+| `request.build_body` | `payload` |
+| `response.parse_chat` | `data`, `tools` |
+| `response.parse_inline` | `data`, `context` |
+| `response.parse_tokens` | `data` |
+| `response.parse_meta` | `data` |
+| `tools.format_calls` | `tools` |
+| `tools.format_response` | `tool_call`, `output` |
+
+`lifecycle.setup` and `lifecycle.teardown` still only take `self`. Adapters in the flat format, such as `form_messages` and `chat_output`, are unaffected.
+
+- ACP adapters now use the same nested format, with `lifecycle.setup`, `lifecycle.auth`, `lifecycle.on_exit` and `request.build_messages`. Flat handlers still work, and take precedence over the nested ones when you extend an adapter. `helpers.form_messages` is now `helpers.build_messages`, though the old name still works:
+
+```lua
+require("codecompanion").setup({
+  adapters = {
+    acp = {
+      claude_code = function()
+        return require("codecompanion.adapters").extend("claude_code", {
+          handlers = {
+            form_messages = function(self, messages, capabilities) -- [!code --]
+            request = { -- [!code ++]
+              build_messages = function(self, args) -- [!code ++]
+                -- args.messages, args.capabilities
+              end,
+            }, -- [!code ++]
+          },
+        })
+      end,
+    },
+  },
+})
+```
+
+### Slash Commands
+
+- The `/image` slash command has been removed. Select an image with [/file](/usage/chat-buffer/slash-commands#file) instead, or use the new [/file-from-url](/usage/chat-buffer/slash-commands#file-from-url) slash command for an image at a URL. If you set `opts.dirs` for `/image`, move it to `/file`. `opts.filetypes` and `opts.provider` have no equivalent and can be deleted:
+
+```lua
+require("codecompanion").setup({
+  interactions = {
+    chat = {
+      slash_commands = {
+        ["image"] = { -- [!code --]
+        ["file"] = { -- [!code ++]
+          opts = {
+            dirs = { "~/Pictures" },
+          },
+        },
+      },
+    },
+  },
+})
+```
+
+### Tools
+
+- The `insert_edit_into_file` tool has been replaced by [edit_file](/usage/chat-buffer/agents-tools#edit-file) ([#3427](https://github.com/olimorris/codecompanion.nvim/pull/3427)). It takes the same options, so rename any references in your config, custom groups and prompts:
+
+```lua
+require("codecompanion").setup({
+  interactions = {
+    chat = {
+      tools = {
+        ["insert_edit_into_file"] = { -- [!code --]
+        ["edit_file"] = { -- [!code ++]
+          opts = {
+            require_confirmation_after = false,
+          },
+        },
+      },
+    },
+  },
+})
+```
+
+- The [web_search](/usage/chat-buffer/agents-tools#web-search) tool now uses DuckDuckGo by default, which doesn't need an API key. Previously it used Tavily
+- The [fetch_webpage](/usage/chat-buffer/agents-tools#fetch-webpage) tool and [/fetch](/usage/chat-buffer/slash-commands#fetch) slash command now use [MarkItDown](https://github.com/microsoft/markitdown) by default. Previously they used Jina
+
+> [!IMPORTANT]
+> MarkItDown runs the `markitdown` CLI on your machine, so it must be installed. `:checkhealth codecompanion` will tell you if it's missing
+
+To keep the previous defaults:
+
+```lua
+require("codecompanion").setup({
+  interactions = {
+    chat = {
+      slash_commands = {
+        ["fetch"] = {
+          opts = {
+            adapter = "jina",
+          },
+        },
+      },
+      tools = {
+        ["fetch_webpage"] = {
+          opts = {
+            adapter = "jina",
+          },
+        },
+        ["web_search"] = {
+          opts = {
+            adapter = "tavily",
+          },
+        },
+      },
+    },
+  },
+})
+```
+
+- `interactions.chat.tools.opts.auto_submit_errors` and `interactions.chat.tools.opts.auto_submit_success` have been removed. A tool's output is now always sent back to the LLM, as part of the [agent loop](/usage/chat-buffer/agents-tools#how-they-work)
+
+### Chat
+
+Chat buffer methods that took several positional arguments now take a single table. If you call any of these from a custom tool, slash command or callback, you'll need to update them:
+
+| Method | Before | After |
+|--------|--------|-------|
+| `add_tool_output` | `(tool, for_llm, for_user)` | `({ tool, for_llm, for_user? })` |
+| `add_context` | `(data, source, id, opts)` | `(data, { source, id, bufnr?, path?, tag?, visible?, context_opts? })` |
+| `change_adapter` | `(adapter, callback)` | `({ adapter, model?, callback? })` |
+| `done` | `(output, reasoning, tools, meta, opts)` | `({ output?, reasoning?, tools?, meta?, status?, error? })` |
+| `update_buf_line` | `(line_number, content, opts)` | `({ line_number, content, status?, icon_id?, priority?, virt_text_pos? })` |
+
+For example, in a tool's output handler:
+
+```lua
+chat:add_tool_output(self, "The result is 42") -- [!code --]
+chat:add_tool_output({ tool = self, for_llm = "The result is 42" }) -- [!code ++]
+```
+
 ## v18.7.0 to v19.0.0
 
 - The Super Diff has now been removed from CodeCompanion ([#2600](https://github.com/olimorris/codecompanion.nvim/pull/2600))

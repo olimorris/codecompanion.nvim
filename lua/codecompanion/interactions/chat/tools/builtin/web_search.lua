@@ -100,7 +100,7 @@ return {
         :totable()
       local llm_output = fmt([[%s]], table.concat(content, "\n"))
 
-      chat:add_tool_output(self, llm_output, "")
+      chat:add_tool_output({ tool = self, for_llm = llm_output, for_user = "" })
     end,
 
     ---@param self CodeCompanion.Tool.WebSearch
@@ -112,7 +112,7 @@ return {
 
       local error_output = fmt([[Error searching for `%s`]], args.query)
 
-      chat:add_tool_output(self, error_output)
+      chat:add_tool_output({ tool = self, for_llm = error_output })
     end,
   },
 }

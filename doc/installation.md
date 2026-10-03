@@ -10,7 +10,7 @@ description: "Install CodeCompanion.nvim with lazy.nvim or packer. Covers depend
 ## Requirements
 
 - The `curl` library
-- Neovim 0.11.0 or greater
+- Neovim 0.12.0 or greater
 - _(Optional)_ An API key for your chosen LLM
 - _(Optional)_ [nvim-treesitter](https://github.com/nvim-treesitter/nvim-treesitter) and a `yaml` parser for markdown prompt library items
 - _(Optional)_ The [file](https://man7.org/linux/man-pages/man1/file.1.html) command for detecting image mimetype

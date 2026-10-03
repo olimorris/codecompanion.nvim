@@ -166,7 +166,7 @@ interaction: chat
 description: A prompt that loads tools
 tools:
   - run_command
-  - insert_edit_into_file
+  - edit_file
 ---
   ]]
 
@@ -183,7 +183,7 @@ tools:
     interaction = "chat",
     tools = {
       "run_command",
-      "insert_edit_into_file",
+      "edit_file",
     },
   }, "Frontmatter with tools should be parsed correctly")
 end

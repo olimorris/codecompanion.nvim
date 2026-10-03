@@ -58,7 +58,7 @@ The events that are fired from within the plugin are:
 - `CodeCompanionToolStarted` - Fired when a tool has started executing
 - `CodeCompanionToolFinished` - Fired when a tool has finished executing
 - `CodeCompanionToolsStarted` - Fired when the tool system has been initiated
-- `CodeCompanionToolsFinished` - Fired when the tool system has finished running all tools
+- `CodeCompanionToolsFinished` - Fired when the tool system has finished running all tools, or when they have been stopped or cancelled
 - `CodeCompanionToolsJudgeStarted` - Fired when the background judge begins vetting a tool call
 - `CodeCompanionToolsJudgeFinished` - Fired when the background judge returns its verdict
 

@@ -56,9 +56,8 @@ sequenceDiagram
         O->>T: handlers.on_exit()
     end
 
-    TS->>TS: reset()
-    TS->>C: Fire "ToolsFinished" autocmd
-    TS->>C: tools_done()
+    O->>C: Fire "ToolsFinished" autocmd
+    C->>L: Agent loop sends the tools' output back
 ```
 
 ## Building Your First Tool
@@ -74,7 +73,7 @@ interactions/chat/tools
 │   ├── runner.lua
 ├── builtin/
 │   ├── run_command.lua
-│   ├── insert_edit_into_file.lua
+│   ├── edit_file/
 │   ├── create_file.lua
 │   ├── ...
 ```
@@ -84,7 +83,7 @@ When a tool is detected, the chat buffer sends any output to the `tools/init.lua
 There are two types of tools that CodeCompanion can leverage:
 
 1. **Command-based**: These tools can execute a series of commands in the background using `vim.system`. They're non-blocking, meaning you can carry out other activities in Neovim whilst they run. Useful for heavy/time-consuming tasks.
-2. **Function-based**: These tools, like [insert_edit_into_file](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/interactions/chat/tools/builtin/insert_edit_into_file/init.lua), execute Lua functions directly in Neovim within the main process, one after another. They can also be executed asynchronously.
+2. **Function-based**: These tools, like [edit_file](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/interactions/chat/tools/builtin/edit_file/init.lua), execute Lua functions directly in Neovim within the main process, one after another. They can also be executed asynchronously.
 
 For the purposes of this section of the guide, we'll be building a simple function-based calculator tool that an LLM can use to do basic maths.
 
@@ -298,7 +297,7 @@ schema = {
 
 ### `system_prompt`
 
-In the plugin, LLMs are given knowledge about a tool and how it can be used via the schema. However, for a particularly complicated tool, you can choose to include a system prompt. This is something that CodeCompanion does for the `insert_edit_into_file` tool.
+In the plugin, LLMs are given knowledge about a tool and how it can be used via the schema. However, for a particularly complicated tool, you can choose to include a system prompt. This is something that CodeCompanion does for the `memory` tool.
 
 > [!TIP]
 > From experience, a system prompt should be used sparingly. It's often an indication that your tool is too complicated and should be split out into multiple tools.
@@ -326,7 +325,7 @@ The _handlers_ table contains two functions that are executed before and after a
 
 1. `setup` - Is called **before** anything in the [cmds](/extending/tools#cmds) and [output](/extending/tools#output) table. This is useful if you wish to set the cmds dynamically on the tool itself, like in the [@run_command](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/interactions/chat/tools/builtin/run_command.lua) tool.
 2. `on_exit` - Is called **after** everything in the [cmds](/extending/tools#cmds) and [output](/extending/tools#output) table.
-3. `prompt_condition` - Is called **before** anything in the [cmds](/extending/tools#cmds) and [output](/extending/tools#output) table and is used to determine _if_ the user should be prompted for approval. This is used in the `@insert_edit_into_file` tool to allow users to determine if they'd like to apply an approval to _buffer_ or _file_ edits.
+3. `prompt_condition` - Is called **before** anything in the [cmds](/extending/tools#cmds) and [output](/extending/tools#output) table and is used to determine _if_ the user should be prompted for approval. This is used in the `@edit_file` tool to allow users to determine if they'd like to apply an approval to _buffer_ or _file_ edits.
 
 For the purposes of our calculator, let's just return some notifications so you can see the tool system and tool flow:
 
@@ -366,7 +365,7 @@ output = {
   ---@param meta { tools: CodeCompanion.Tools, cmd: table }
   success = function(self, stdout, meta)
     local chat = meta.tools.chat
-    return chat:add_tool_output(self, tostring(stdout[1]))
+    return chat:add_tool_output({ tool = self, for_llm = tostring(stdout[1]) })
   end,
   ---@param self CodeCompanion.Tool.Calculator
   ---@param stderr table The error output from the command
@@ -381,16 +380,14 @@ The `add_tool_output` method is designed to make it as easy as possible for tool
 
 ```lua
 ---Add the output from a tool to the message history and a message to the UI
----@param tool table The Tool that was executed
----@param for_llm string The output to share with the LLM
----@param for_user? string The output to share with the user. If empty will use the LLM's output
+---@param args { tool: table, for_llm: string, for_user?: string }
 ---@return nil
-function Chat:add_tool_output(tool, for_llm, for_user)
+function Chat:add_tool_output(args)
   -- Omitted for brevity
 end
 ```
 
-The `for_llm` parameter is the string message that will be shared with the LLM as part of the message history in the chat buffer, this is not made visible to the user. The `for_user` parameter allows tool authors to customize the visible output in the chat buffer, but if this is nil then the `for_llm` string is used.
+The `tool` field is the tool that was executed, which is `self` from within a tool's `cmds` or `output` functions. The `for_llm` field is the string message that will be shared with the LLM as part of the message history in the chat buffer, this is not made visible to the user. The `for_user` field allows tool authors to customize the visible output in the chat buffer, but if this is nil then the `for_llm` string is used.
 
 ### Running the Calculator tool
 
@@ -514,7 +511,7 @@ require("codecompanion").setup({
             ---@param meta { tools: CodeCompanion.Tools, cmd: table }
             success = function(self, stdout, meta)
               local chat = meta.tools.chat
-              return chat:add_tool_output(self, tostring(stdout[1]))
+              return chat:add_tool_output({ tool = self, for_llm = tostring(stdout[1]) })
             end,
             ---@param self CodeCompanion.Tool.Calculator
             ---@param stderr table The error output from the command
@@ -599,7 +596,7 @@ output = {
   ---@param meta { tools: CodeCompanion.Tools, cmd: table, opts: table }
   ---@return nil
   rejected = function(self, meta)
-    meta.tools.chat:add_tool_output(self, "The user declined to run the calculator tool")
+    meta.tools.chat:add_tool_output({ tool = self, for_llm = "The user declined to run the calculator tool" })
   end,
 
   ---Cancellation message back to the LLM
@@ -607,7 +604,7 @@ output = {
   ---@param meta { tools: CodeCompanion.Tools, cmd: table }
   ---@return nil
   cancelled = function(self, meta)
-    meta.tools.chat:add_tool_output(self, "The user cancelled the execution of the calculator tool")
+    meta.tools.chat:add_tool_output({ tool = self, for_llm = "The user cancelled the execution of the calculator tool" })
   end,
 },
 ```
@@ -727,7 +724,7 @@ Thankfully, adding support for adapter tools is trivial. The [#2307](https://git
 1. Add the tool to the structure of the adapter:
 
 ```lua
--- openai_responses.lua
+-- openai.lua
 -- ... existing code ...
 available_tools = {
   ["web_search"] = {

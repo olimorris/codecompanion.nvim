@@ -100,8 +100,8 @@ Helpers.create_mock_adapter = function(child, adapter, opts)
         },
         handlers = {
           response = {
-            parse_chat = function(self, data)
-              local raw = type(data) == "table" and data.body or data
+            parse_chat = function(self, args)
+              local raw = type(args.data) == "table" and args.data.body or args.data
               local ok, body = pcall(vim.json.decode, raw)
               if not ok then
                 return nil
@@ -197,7 +197,7 @@ Helpers.mock_submit = function(response, status)
       content = response or "This is a mocked response",
     })
     self.status = status or "success"
-    self:done({ response or "Mocked response" })
+    self:done({ output = { response or "Mocked response" } })
     return true
   end
 
@@ -255,7 +255,7 @@ Helpers.send_to_llm = function(chat, message, callback)
   if callback then
     callback()
   end
-  chat:done({ message })
+  chat:done({ output = { message } })
 end
 
 ---Clean down the chat buffer if required
@@ -293,7 +293,7 @@ Helpers.make_tool_call = function(chat, tool_call, tool_output, messages)
   }, { visible = false })
 
   -- Then add the tool output
-  chat:add_tool_output(tool_call, tool_output)
+  chat:add_tool_output({ tool = tool_call, for_llm = tool_output })
 
   -- Finally, add any LLM messages
   if messages.llm_final_response then

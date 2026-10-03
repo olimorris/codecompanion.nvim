@@ -22,7 +22,16 @@ In the plugin, tools are simply context and actions that are shared with an LLM.
 
 Tools make use of an LLM's [function calling](https://platform.openai.com/docs/guides/function-calling) ability. All tools in CodeCompanion follow [OpenAI's function calling specification for defining functions](https://platform.openai.com/docs/guides/function-calling#defining-functions).
 
-When a tool is added to the chat buffer, the LLM is instructured by the plugin to return a structured JSON schema which has been defined for each tool. The chat buffer parses the LLMs response and detects the tool use before triggering the _tools/init.lua_ file. The tool system triggers off a series of events, which sees tool's added to a queue and sequentially worked with their output being shared back to the LLM via the chat buffer. Depending on the tool, flags may be inserted on the chat buffer for later processing.
+For HTTP adapters, CodeCompanion is the _harness_: the system prompt, tools, approvals and [context management](/architecture#how-context-is-managed) that turn an LLM into an agent. ACP adapters such as Claude Code and Codex bring their own harness, which is why the built-in tools are for HTTP adapters only.
+
+The harness runs the _agent loop_:
+
+1. You submit a prompt
+2. The LLM responds, optionally asking to run one or more tools
+3. CodeCompanion runs each tool in turn, asking for your [approval](#approvals) where needed
+4. The tools' output is sent back to the LLM and the loop returns to step 2
+
+The loop ends when the LLM responds without asking for a tool, or when you stop the request or cancel a tool. Rejecting a tool doesn't end the loop - the LLM is told you rejected it, along with your reason, and carries on.
 
 An outline of the [tool system architecture](/extending/tools#architecture) is available in the extending section.
 
@@ -51,7 +60,7 @@ groups = {
         ctx.os
       )
     end,
-    tools = { "read_file", "insert_edit_into_file", "run_command" },
+    tools = { "read_file", "edit_file", "run_command" },
     opts = {
       collapse_tools = true,
       ignore_system_prompt = true, -- Remove the chat's default system prompt
@@ -70,11 +79,11 @@ It contains the following tools:
 - [ask_questions](/usage/chat-buffer/agents-tools#ask-questions)
 - [create_file](/usage/chat-buffer/agents-tools#create-file)
 - [delete_file](/usage/chat-buffer/agents-tools#delete-file)
+- [edit_file](/usage/chat-buffer/agents-tools#edit-file)
 - [file_search](/usage/chat-buffer/agents-tools#file-search)
 - [get_changed_files](/usage/chat-buffer/agents-tools#get-changed-files)
 - [get_diagnostics](/usage/chat-buffer/agents-tools#get-diagnostics)
 - [grep_search](/usage/chat-buffer/agents-tools#grep-search)
-- [insert_edit_into_file](/usage/chat-buffer/agents-tools#insert-edit-into-file)
 - [read_file](/usage/chat-buffer/agents-tools#read-file)
 - [run_command](/usage/chat-buffer/agents-tools#run-command)
 
@@ -89,10 +98,10 @@ You can use it with:
 The `@{files}` tool is a collection of tools that allows an LLM to carry out file operations in your current working directory. It contains the following files:
 
 - [create_file](/usage/chat-buffer/agents-tools#create-file)
+- [edit_file](/usage/chat-buffer/agents-tools#edit-file)
 - [file_search](/usage/chat-buffer/agents-tools#file-search)
 - [get_changed_files](/usage/chat-buffer/agents-tools#get-changed-files)
 - [grep_search](/usage/chat-buffer/agents-tools#grep-search)
-- [insert_edit_into_file](/usage/chat-buffer/agents-tools#insert-edit-into-file)
 - [read_file](/usage/chat-buffer/agents-tools#read-file)
 
 You can use it with:
@@ -160,6 +169,33 @@ Can you use @{delete_file} to delete the quotes.lua file?
 - `protect` always ask before deleting a file in Auto mode? (Default: true)
 - `require_approval_before` require approval before deleting a file? (Default: true)
 
+### edit_file
+
+> [!NOTE]
+> By default, you're asked to confirm each edit in a diff before it's written
+
+<p>
+  <video controls muted title="edit_file tool demo" src="https://github.com/user-attachments/assets/990bbc99-7b12-4dca-8770-c24b9f3e7838"></video>
+</p>
+
+This tool edits buffers and files by replacing an exact piece of text with new text:
+
+```md
+Use @{edit_file} to refactor the code in #buffer
+```
+
+```md
+Can you apply the suggested changes to the buffer with @{edit_file}?
+```
+
+The text being replaced must match the file exactly, including indentation. If it can't be found, or it appears more than once, the edit fails and the LLM is told why so it can try again. A file that's open in Neovim is edited in its buffer and saved, and any other file keeps its line endings.
+
+**Options:**
+- `require_approval_before.buffer` (boolean) Require approval before editing a buffer? (Default: false)
+- `require_approval_before.file` (boolean) Require approval before editing a file? (Default: false)
+- `require_confirmation_after` (boolean) Require confirmation of the diff before the edit is written? (Default: true)
+- `file_size_limit_mb` (number) Files larger than this aren't edited (Default: 2)
+
 ### fetch_webpage
 
 This tools enables an LLM to fetch the content from a specific webpage. It will return the text in a text format, depending on which adapter you've configured for the tool.
@@ -169,7 +205,7 @@ Use @{fetch_webpage} to tell me what the latest version on neovim.io is
 ```
 
 **Options:**
-- `adapter` The adapter used to fetch, process and format the webpage's content (Default: `jina`). The [MarkItDown](https://github.com/microsoft/markitdown) adapter is also available as an alternative, configurable via [/fetch](/usage/chat-buffer/slash-commands#fetch).
+- `adapter` The adapter used to fetch, process and format the webpage's content (Default: `markitdown`). The [Jina](https://jina.ai) adapter is also available as an alternative, configurable via [/fetch](/usage/chat-buffer/slash-commands#fetch).
 
 ### file_search
 
@@ -220,31 +256,6 @@ Use @{grep_search} to find all occurrences of `buf_add_message`?
 **Options:**
 - `max_files` (number) limits the amount of files that can be sent to the LLM in the response (Default: 100)
 - `respect_gitignore` (boolean) (Default: true)
-
-### insert_edit_into_file
-
-> [!NOTE]
-> By default, when editing files, this tool requires user approval before it can be executed
-
-<p>
-  <video controls muted title="insert_edit_into_file tool demo" src="https://github.com/user-attachments/assets/990bbc99-7b12-4dca-8770-c24b9f3e7838"></video>
-</p>
-
-This tool can edit buffers and files for code changes from an LLM:
-
-```md
-Use @{insert_edit_into_file} to refactor the code in #buffer
-```
-
-```md
-Can you apply the suggested changes to the buffer with @{insert_edit_into_file}?
-```
-
-**Options:**
-- `patching_algorithm` (string|table|function) The algorithm to use to determine how to edit files and buffers
-- `require_approval_before.buffer` (boolean) Require approval before editng a buffer? (Default: false)
-- `require_approval_before.file` (boolean) Require approval before editng a file? (Default: true)
-- `require_confirmation_after` (boolean) require confirmation after the execution and before moving on in the chat buffer? (Default: true)
 
 ### memory
 
@@ -371,7 +382,7 @@ In the `anthropic` adapter, the following tools are available:
 
 ### OpenAI
 
-In the `openai_responses` adapter, the following tools are available:
+In the `openai` adapter, the following tools are available:
 
 - `web_search` - Allow models to search the web for the latest information before generating a response.
 
@@ -501,6 +512,3 @@ Below is the tool use status of various adapters and models in CodeCompanion:
 | OpenRouter            |                   | :white_check_mark: | Dependent on the model              |
 | xAI               | | :x:                | Not supported yet                   |
 
-
-> [!IMPORTANT]
-> When using Mistral, you will need to set `interactions.chat.tools.opts.auto_submit_errors` to `true`. See [#2278](https://github.com/olimorris/codecompanion.nvim/pull/2278) for more information.

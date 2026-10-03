@@ -371,11 +371,11 @@ T["add_files_or_buffers() prevents duplicate files from being added"] = function
 
     local chat = {
       messages = {},
-      add_context = function(self, content, tag, id, opts)
+      add_context = function(self, content, opts)
         table.insert(self.messages, {
           content = content.content,
-          context = { id = id },
-          _meta = { tag = tag },
+          context = { id = opts.id },
+          _meta = { tag = opts.source },
         })
       end
     }
@@ -431,11 +431,11 @@ T["add_context() prevents duplicate rules context from being added"] = function(
 
     local chat = {
       messages = {},
-      add_context = function(self, content, tag, id, opts)
+      add_context = function(self, content, opts)
         table.insert(self.messages, {
           content = content.content,
-          context = { id = id },
-          _meta = { tag = tag },
+          context = { id = opts.id },
+          _meta = { tag = opts.source },
         })
       end
     }

@@ -17,15 +17,14 @@ local defaults = {
       copilot = "copilot",
       deepseek = "deepseek",
       gemini = "gemini",
-      gemini_interactions = "gemini_interactions",
-      githubmodels = "githubmodels",
+      gemini_legacy = "gemini_legacy",
       huggingface = "huggingface",
       kimi = "kimi",
       novita = "novita",
       mistral = "mistral",
       ollama = "ollama",
       openai = "openai",
-      openai_responses = "openai_responses",
+      openai_legacy = "openai_legacy",
       openrouter = "openrouter",
       xai = "xai",
       -- web_search adapters --------------------------------------------------
@@ -145,14 +144,14 @@ Follow the JSON schema carefully and include ALL required properties.
 Always output valid JSON when using a tool.
 Use tools to take actions rather than asking the user to do it manually.
 If you say you'll take an action, go ahead and do it.
-Never say the name of a tool to a user — e.g. say "I'll edit the file" not "I'll use the insert_edit_into_file tool".
+Never say the name of a tool to a user - e.g. say "I'll edit the file" not "I'll use the edit_file tool".
 Prefer calling multiple tools in parallel when possible.
 Use file paths given by the user or by tool output.
 </toolUseInstructions>
 <outputFormatting>
 Use proper Markdown formatting. Wrap filenames and symbols in backticks.
 Code block examples must use four backticks with the language ID.
-If you are providing code changes, use the insert_edit_into_file tool (if available) instead of printing a code block.
+If you are providing code changes, use the edit_file tool (if available) instead of printing a code block.
 </outputFormatting>
 <additionalContext>
 All non-code text responses must be written in the %s language.
@@ -172,11 +171,11 @@ The user is working on a %s machine. Please respond with system specific command
               "ask_questions",
               "create_file",
               "delete_file",
+              "edit_file",
               "file_search",
               "get_changed_files",
               "get_diagnostics",
               "grep_search",
-              "insert_edit_into_file",
               "read_file",
               "run_command",
             },
@@ -192,10 +191,10 @@ The user is working on a %s machine. Please respond with system specific command
             tools = {
               "create_file",
               "delete_file",
+              "edit_file",
               "file_search",
               "get_changed_files",
               "grep_search",
-              "insert_edit_into_file",
               "read_file",
             },
             opts = {
@@ -227,11 +226,23 @@ The user is working on a %s machine. Please respond with system specific command
             require_cmd_approval = true,
           },
         },
+        ["edit_file"] = {
+          path = "interactions.chat.tools.builtin.edit_file",
+          description = "Edit an existing file by replacing exact text",
+          opts = {
+            require_approval_before = { -- Require approval before the tool is executed?
+              buffer = false, -- For editing buffers in Neovim
+              file = false, -- For editing files in the current working directory
+            },
+            require_confirmation_after = true, -- Require confirmation from the user before accepting the edit?
+            file_size_limit_mb = 2, -- Files larger than this are not edited
+          },
+        },
         ["fetch_webpage"] = {
           path = "interactions.chat.tools.builtin.fetch_webpage",
           description = "Fetches content from a webpage",
           opts = {
-            adapter = "jina", -- jina, markitdown
+            adapter = "markitdown", -- jina, markitdown
           },
         },
         ["file_search"] = {
@@ -263,18 +274,6 @@ The user is working on a %s machine. Please respond with system specific command
             max_results = 100,
             respect_gitignore = true,
             require_approval_before = true,
-          },
-        },
-        ["insert_edit_into_file"] = {
-          path = "interactions.chat.tools.builtin.insert_edit_into_file",
-          description = "Robustly edit existing files with multiple automatic fallback interactions",
-          opts = {
-            require_approval_before = { -- Require approval before the tool is executed?
-              buffer = false, -- For editing buffers in Neovim
-              file = false, -- For editing files in the current working directory
-            },
-            require_confirmation_after = true, -- Require confirmation from the user before accepting the edit?
-            file_size_limit_mb = 2, -- Maximum file size in MB
           },
         },
         ["memory"] = {
@@ -315,7 +314,7 @@ The user is working on a %s machine. Please respond with system specific command
           path = "interactions.chat.tools.builtin.web_search",
           description = "Search the web for information",
           opts = {
-            adapter = "tavily", -- tavily, duckduckgo, jina, serply
+            adapter = "duckduckgo", -- tavily, duckduckgo, jina, serply
             opts = {
               -- Tavily options
               search_depth = "advanced",
@@ -329,8 +328,6 @@ The user is working on a %s machine. Please respond with system specific command
           ---The approval mode every chat buffer starts in
           ---@type CodeCompanion.Tools.ApprovalMode
           approval_mode = "ask",
-          auto_submit_errors = true, -- Send any errors to the LLM automatically?
-          auto_submit_success = true, -- Send any successful output to the LLM automatically?
           max_output_tokens = 30000, -- Truncate a tool's output above this many tokens, or the model's limit if lower
           notify_on_approval = true, -- Notify the user when a tool requires approval?,
 
@@ -376,7 +373,7 @@ Always output valid JSON when using a tool.
 If a tool exists to do a task, use the tool instead of asking the user to manually take an action.
 If you say that you will take an action, then go ahead and use the tool to do it. No need to ask permission.
 Never use a tool that does not exist. Use tools using the proper procedure, DO NOT write out a json codeblock with the tool inputs.
-Never say the name of a tool to a user. For example, instead of saying that you'll use the insert_edit_into_file tool, say "I'll edit the file".
+Never say the name of a tool to a user. For example, instead of saying that you'll use the edit_file tool, say "I'll edit the file".
 For maximum efficiency, whenever you need to perform multiple independent operations, invoke all relevant tools simultaneously rather than sequentially.
 When invoking a tool that takes a file path, always use the file path you have been given by the user or by the output of a tool.
 </toolUseInstructions>
@@ -389,7 +386,7 @@ Any code block examples must be wrapped in four backticks with the programming l
 ````
 </example>
 The languageId must be the correct identifier for the programming language, e.g. python, javascript, lua, etc.
-If you are providing code changes, use the insert_edit_into_file tool (if available to you) to make the changes directly instead of printing out a code block with the changes.
+If you are providing code changes, use the edit_file tool (if available to you) to make the changes directly instead of printing out a code block with the changes.
 </outputFormatting>]]
             end,
           },
@@ -455,7 +452,7 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
           path = "interactions.chat.slash_commands.builtin.fetch",
           description = "Insert URL contents",
           opts = {
-            adapter = "jina", -- jina, markitdown
+            adapter = "markitdown", -- jina, markitdown
             cache_path = vim.fn.stdpath("data") .. "/codecompanion/urls",
             provider = providers.pickers, -- telescope|fzf_lua|mini_pick|snacks|default
           },
@@ -485,6 +482,13 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
             provider = providers.pickers, -- telescope|fzf_lua|mini_pick|snacks|default
           },
         },
+        ["file-from-url"] = {
+          path = "interactions.chat.slash_commands.builtin.file_from_url",
+          description = "Insert a file from a URL",
+          opts = {
+            contains_code = true,
+          },
+        },
         ["help"] = {
           path = "interactions.chat.slash_commands.builtin.help",
           description = "Insert content from help tags",
@@ -492,23 +496,6 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
             contains_code = false,
             max_lines = 128, -- Maximum amount of lines to of the help file to send (NOTE: Each vimdoc line is typically 10 tokens)
             provider = providers.help, -- telescope|fzf_lua|mini_pick|snacks
-          },
-        },
-        ["image"] = {
-          path = "interactions.chat.slash_commands.builtin.image",
-          description = "Insert an image",
-          ---@param opts { adapter: CodeCompanion.HTTPAdapter|CodeCompanion.ACPAdapter }
-          ---@return boolean
-          enabled = function(opts)
-            if opts.adapter and opts.adapter.opts then
-              return opts.adapter.opts.vision == true
-            end
-            return false
-          end,
-          opts = {
-            dirs = {}, -- Directories to search for images
-            filetypes = { "png", "jpg", "jpeg", "gif", "webp" }, -- Filetypes to search for
-            provider = providers.images, -- telescope|snacks|default
           },
         },
         ["mcp"] = {

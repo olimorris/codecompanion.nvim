@@ -21,7 +21,7 @@ require("codecompanion").setup({
             system_prompt = "Describe what the agent should do",
             tools = {
               "run_command",
-              "insert_edit_into_file",
+              "edit_file",
               -- Add your own tools or reuse existing ones
             },
             opts = {
@@ -67,8 +67,8 @@ require("codecompanion").setup({
 
 ```lua [Enable Adapter Tools]
 require("codecompanion").setup({
-  openai_responses = function()
-    return require("codecompanion.adapters").extend("openai_responses", {
+  openai = function()
+    return require("codecompanion.adapters").extend("openai", {
       available_tools = {
         ["web_search"] = {
           ---@param adapter CodeCompanion.HTTPAdapter
@@ -155,25 +155,6 @@ require("codecompanion").setup({
 ```
 
 :::
-
-## Auto Submit (Recursion)
-
-When a tool executes, it can be useful to automatically send its output back to the LLM. This is turned on by default and can be configured with:
-
-```lua {6-7}
-require("codecompanion").setup({
-  interactions = {
-    chat = {
-      tools = {
-        opts = {
-          auto_submit_errors = true, -- Send any errors to the LLM automatically?
-          auto_submit_success = true, -- Send any successful output to the LLM automatically?
-        },
-      }
-    }
-  }
-})
-```
 
 ## Default Tools
 

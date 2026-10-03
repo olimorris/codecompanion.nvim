@@ -1,6 +1,7 @@
 --=============================================================================
 -- PromptBuilder - Fluidly build the prompt which is sent to the agent
 --=============================================================================
+local acp_adapter = require("codecompanion.adapters.acp")
 local log = require("codecompanion.utils.log")
 local utils = require("codecompanion.utils")
 
@@ -21,11 +22,10 @@ function PromptBuilder.new(connection, messages)
   local self = setmetatable({
     connection = connection,
     handlers = {},
-    messages = connection.adapter.handlers.form_messages(
-      connection.adapter,
-      messages,
-      connection._agent_info.agentCapabilities
-    ),
+    messages = acp_adapter.call_handler(connection.adapter, "build_messages", {
+      messages = messages,
+      capabilities = connection._agent_info.agentCapabilities,
+    }),
     options = {},
     _sent = false,
   }, { __index = PromptBuilder }) ---@cast self CodeCompanion.ACP.PromptBuilder

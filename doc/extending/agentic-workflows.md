@@ -44,7 +44,7 @@ Your instructions here
 
 You are required to write code following the instructions provided above and test the correctness by running the designated test suite. Follow these steps exactly:
 
-1. Update the code in #{buffer} using the @{insert_edit_into_file} tool
+1. Update the code in #{buffer} using the @{edit_file} tool
 2. Then use the @{run_command} tool to run the test suite with `<test_cmd>` (do this after you have updated the code)
 3. Make sure you trigger both tools in the same response
 
@@ -95,7 +95,7 @@ Your instructions here
 
 You are required to write code following the instructions provided above and test the correctness by running the designated test suite. Follow these steps exactly:
 
-1. Update the code in #{buffer}{watch} using the @{insert_edit_into_file} tool
+1. Update the code in #{buffer}{watch} using the @{edit_file} tool
 2. Then use the @{run_command} tool to run the test suite with `<test_cmd>` (do this after you have updated the code)
 3. Make sure you trigger both tools in the same response
 
@@ -107,7 +107,7 @@ We'll repeat this cycle until the tests pass. Ensure no deviations from these st
 },
 ```
 
-The first prompt in a workflow should set the ask of the LLM and provide clear instructions. In this case, we're giving the LLM access to the [@insert_edit_into_file](/usage/chat-buffer/agents-tools#files) and [@run_command](/usage/chat-buffer/agents-tools#run-command) tools to edit a buffer and run tests, respectively.
+The first prompt in a workflow should set the ask of the LLM and provide clear instructions. In this case, we're giving the LLM access to the [@edit_file](/usage/chat-buffer/agents-tools#edit-file) and [@run_command](/usage/chat-buffer/agents-tools#run-command) tools to edit a buffer and run tests, respectively.
 
 We're giving the LLM knowledge of the buffer with the `#buffer` editor context and also telling CodeCompanion to watch it for any changes with the `{watch}` parameter. Prior to sending a response to the LLM, the plugin will share any changes to that buffer, keeping the LLM updated.
 

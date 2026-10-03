@@ -126,8 +126,8 @@ LLMs have many settings such as model, temperature and max_tokens. In an adapter
 require("codecompanion").setup({
   adapters = {
     http = {
-      openai_responses = function()
-        return require("codecompanion.adapters").extend("openai_responses", {
+      openai = function()
+        return require("codecompanion.adapters").extend("openai", {
           schema = {
             top_p = {
               default = 0
@@ -144,8 +144,8 @@ require("codecompanion").setup({
 require("codecompanion").setup({
   adapters = {
     http = {
-      openai_responses = function()
-        return require("codecompanion.adapters").extend("openai_responses", {
+      openai = function()
+        return require("codecompanion.adapters").extend("openai", {
           schema = {
             top_p = {
               ---@type fun(self: CodeCompanion.HTTPAdapter): boolean | boolean
@@ -334,7 +334,7 @@ Supported `env` value types:
 
 ## Disabling Compaction
 
-If you use the `anthropic` or `openai_responses` adapters, then the plugin will look to use their server-side compaction capabilities to manage context. If you want to disable this:
+If you use the `anthropic` or `openai` adapters, then the plugin will look to use their server-side compaction capabilities to manage context. If you want to disable this:
 
 ```lua
 require("codecompanion").setup({
@@ -534,37 +534,19 @@ require("codecompanion").setup({
 
 ### OpenAI Responses API
 
-CodeCompanion supports OpenAI's [Responses API](https://platform.openai.com/docs/api-reference/responses) out of the box, via a separate adapter:
+The `openai` adapter uses OpenAI's [Responses API](https://platform.openai.com/docs/api-reference/responses). To use the [Chat Completions API](https://platform.openai.com/docs/api-reference/chat) instead:
 
 ```lua
 require("codecompanion").setup({
   interactions = {
     chat = {
-      adapter = "openai_responses",
+      adapter = "openai_legacy",
     },
     inline = {
-      adapter = "openai_responses",
+      adapter = "openai_legacy",
     },
   },
 }),
-```
-
-and it can be configured as with any other adapter:
-
-```lua
-require("codecompanion").setup({
-  adapters = {
-    http = {
-      openai_responses = function()
-        return require("codecompanion.adapters").extend("openai_responses", {
-          env = {
-            api_key = "OPENAI_API_KEY",
-          },
-        })
-      end,
-    },
-  },
-},
 ```
 
 By default, CodeCompanion sets `store = false` to ensure that state isn't [stored](https://platform.openai.com/docs/api-reference/responses/create#responses-create-store) via the API. This is standard behaviour across all http adapters within the plugin.

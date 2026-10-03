@@ -259,7 +259,7 @@ T["Context"]["Can share all of a buffer"] = function()
      })
      _G.chat:submit()
      _G.chat.status = "success"
-     _G.chat:done({ content = "This is a mocked response" })
+     _G.chat:done({ output = { content = "This is a mocked response" } })
    ]])
 
   h.eq(child.lua_get([[#_G.chat.messages]]), 4, "There are four messages")

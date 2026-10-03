@@ -65,14 +65,14 @@ end
 T["always()"]["adds multiple tools to same buffer"] = function()
   child.lua([[
     Approvals:always(1, { tool_name = 'read_file' })
-    Approvals:always(1, { tool_name = 'insert_edit_into_file' })
+    Approvals:always(1, { tool_name = 'edit_file' })
   ]])
 
   local read_approved = child.lua([[
     return Approvals:is_approved(1, { tool_name = 'read_file' })
   ]])
   local insert_approved = child.lua([[
-    return Approvals:is_approved(1, { tool_name = 'insert_edit_into_file' })
+    return Approvals:is_approved(1, { tool_name = 'edit_file' })
   ]])
 
   h.eq(read_approved, true)
@@ -82,20 +82,20 @@ end
 T["always()"]["handles multiple buffers independently"] = function()
   child.lua([[
     Approvals:always(1, { tool_name = 'read_file' })
-    Approvals:always(2, { tool_name = 'insert_edit_into_file' })
+    Approvals:always(2, { tool_name = 'edit_file' })
   ]])
 
   local buf1_read = child.lua([[
     return Approvals:is_approved(1, { tool_name = 'read_file' })
   ]])
   local buf1_insert = child.lua([[
-    return Approvals:is_approved(1, { tool_name = 'insert_edit_into_file' })
+    return Approvals:is_approved(1, { tool_name = 'edit_file' })
   ]])
   local buf2_read = child.lua([[
     return Approvals:is_approved(2, { tool_name = 'read_file' })
   ]])
   local buf2_insert = child.lua([[
-    return Approvals:is_approved(2, { tool_name = 'insert_edit_into_file' })
+    return Approvals:is_approved(2, { tool_name = 'edit_file' })
   ]])
 
   h.eq(buf1_read, true)
@@ -229,7 +229,7 @@ T["reset()"] = new_set()
 T["reset()"]["clears all approvals for buffer"] = function()
   child.lua([[
     Approvals:always(1, { tool_name = 'read_file' })
-    Approvals:always(1, { tool_name = 'insert_edit_into_file' })
+    Approvals:always(1, { tool_name = 'edit_file' })
     Approvals:reset(1)
   ]])
 
@@ -237,7 +237,7 @@ T["reset()"]["clears all approvals for buffer"] = function()
     return Approvals:is_approved(1, { tool_name = 'read_file' })
   ]])
   local result2 = child.lua([[
-    return Approvals:is_approved(1, { tool_name = 'insert_edit_into_file' })
+    return Approvals:is_approved(1, { tool_name = 'edit_file' })
   ]])
 
   h.eq(result1, false)

@@ -48,7 +48,7 @@ System prompts, rules and file/buffer shares will be preserved but all user, ass
 > [!TIP]
 > To better understand a Neovim plugin, send its `config.lua` to your LLM via the _fetch_ command alongside a prompt
 
-The _fetch_ slash command allows you to add the contents of a URL to the chat buffer. By default, the plugin uses the awesome and powerful [jina.ai](https://jina.ai) to parse the page's content and convert it into plain text. You can also use the [markitdown](https://github.com/microsoft/markitdown) adapter for the same purpose, which adds support for local files and various document formats like pdf, docx, etc. For convenience, the slash command will cache the output to disk and prompt the user if they wish to restore from the cache, should they look to fetch the same URL.
+The _fetch_ slash command allows you to add the contents of a URL to the chat buffer. By default, it uses the [markitdown](https://github.com/microsoft/markitdown) CLI to convert the page into Markdown, which also supports local files and document formats like pdf and docx. You can also use the [jina.ai](https://jina.ai) adapter, which converts the page into plain text without anything installed locally. For convenience, the slash command will cache the output to disk and prompt the user if they wish to restore from the cache, should they look to fetch the same URL.
 
 The markitdown adapter runs the `markitdown` CLI, timing out at two minutes. This can be modified with:
 
@@ -98,7 +98,7 @@ Paths may be relative or use `~`.
 
 **Images**
 
-Selecting an image sends it to the LLM as an image rather than as file content, in the same way as the [/image](#image) slash command.
+Selecting a gif, jpeg, png or webp image sends it to the LLM as an image rather than as file content. The adapter must support vision, otherwise the image isn't added.
 
 **PDFs**
 
@@ -118,6 +118,10 @@ This slash command is also available in the [CLI prompt input](/usage/cli#slash-
 - Select multiple files: `⇥ tab`
 
 Please note that these mappings may be different depending on your provider.
+
+## /file-from-url
+
+The _file-from-url_ slash command downloads a file and adds it to the chat buffer, in the same way as [/file](#file). Images and PDFs are sent as attachments and anything else as file content, with the URL shown in place of the file path. A webpage is handed to the [/fetch](#fetch) slash command instead.
 
 ## /fork
 
@@ -144,10 +148,6 @@ require("codecompanion").setup({
 ## /help
 
 The _help_ slash command allows you to add content from a vim help file (`:h helpfile`), to the chat buffer, by searching for help tags. Currently this is only available for _Telescope_, _mini.pick_, _fzf_lua_ and _snacks.nvim_ providers. By default, the slash command will prompt you to trim a help file that is over 1,000 lines in length.
-
-## /image
-
-The _image_ slash command allows you to add images into a chat buffer via remote URLs and through your file system. In the config for the slash command, you can specify a group of directories (with `opts.dirs`) that the image picker will always search in, alongside the current working directory. Currently the image picker is only available with _snacks.nvim_ and the `vim.ui.select`.
 
 ## /rules
 

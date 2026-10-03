@@ -41,26 +41,17 @@ return {
         return true
       end,
 
-      on_exit = function(self, data)
-        return deepseek.handlers.lifecycle.on_exit(self, data)
-      end,
+      on_exit = deepseek.handlers.lifecycle.on_exit,
     },
 
     request = {
-      ---Set the parameters
-      ---@param self CodeCompanion.HTTPAdapter
-      ---@param params table
-      ---@param messages table
-      ---@return table
-      build_parameters = function(self, params, messages)
-        return deepseek.handlers.request.build_parameters(self, params, messages)
-      end,
+      build_parameters = deepseek.handlers.request.build_parameters,
 
       ---@param self CodeCompanion.HTTPAdapter
-      ---@param messages table
+      ---@param args { messages: table }
       ---@return table
-      build_messages = function(self, messages)
-        return deepseek.build_messages(self, messages, function(msg)
+      build_messages = function(self, args)
+        return deepseek.build_messages(self, args.messages, function(msg)
           if msg._meta and msg._meta.tag == tags.IMAGE and msg.context and msg.context.mimetype then
             if not (self.opts and self.opts.vision) then
               return nil
@@ -78,76 +69,20 @@ return {
         end)
       end,
 
-      ---Provides the schemas of the tools that are available to the LLM to call
-      ---@param self CodeCompanion.HTTPAdapter
-      ---@param tools table<string, table>
-      ---@return table|nil
-      build_tools = function(self, tools)
-        return deepseek.handlers.request.build_tools(self, tools)
-      end,
-
-      ---Aggregate reasoning parts into a string
-      ---@param self CodeCompanion.HTTPAdapter
-      ---@param parts table
-      ---@return string
-      build_reasoning = function(self, parts)
-        return deepseek.handlers.request.build_reasoning(self, parts)
-      end,
+      build_tools = deepseek.handlers.request.build_tools,
+      build_reasoning = deepseek.handlers.request.build_reasoning,
     },
 
     response = {
-      ---Output the data from the API ready for insertion into the chat buffer
-      ---@param self CodeCompanion.HTTPAdapter
-      ---@param data table The streamed JSON data from the API, also formatted by the format_data handler
-      ---@param tools? table The table to write any tool output to
-      ---@return table|nil
-      parse_chat = function(self, data, tools)
-        return deepseek.handlers.response.parse_chat(self, data, tools)
-      end,
-
-      ---Extract reasoning_content from the response
-      ---@param self CodeCompanion.HTTPAdapter
-      ---@param data table
-      ---@return table
-      parse_meta = function(self, data)
-        return deepseek.handlers.response.parse_meta(self, data)
-      end,
-
-      ---Output the data from the API for the inline assistant
-      ---@param self CodeCompanion.HTTPAdapter
-      ---@param data table
-      ---@param context table?
-      ---@return table|nil
-      parse_inline = function(self, data, context)
-        return deepseek.handlers.response.parse_inline(self, data, context)
-      end,
-
-      ---Returns the number of tokens generated from the LLM
-      ---@param self CodeCompanion.HTTPAdapter
-      ---@param data table
-      ---@return number|nil
-      parse_tokens = function(self, data)
-        return deepseek.handlers.response.parse_tokens(self, data)
-      end,
+      parse_chat = deepseek.handlers.response.parse_chat,
+      parse_meta = deepseek.handlers.response.parse_meta,
+      parse_inline = deepseek.handlers.response.parse_inline,
+      parse_tokens = deepseek.handlers.response.parse_tokens,
     },
 
     tools = {
-      ---Format the tool calls for the LLM
-      ---@param self CodeCompanion.HTTPAdapter
-      ---@param tools table
-      ---@return table
-      format_calls = function(self, tools)
-        return deepseek.handlers.tools.format_calls(self, tools)
-      end,
-
-      ---Format the tool response for the LLM
-      ---@param self CodeCompanion.HTTPAdapter
-      ---@param tool_call table
-      ---@param output string
-      ---@return table
-      format_response = function(self, tool_call, output)
-        return deepseek.handlers.tools.format_response(self, tool_call, output)
-      end,
+      format_calls = deepseek.handlers.tools.format_calls,
+      format_response = deepseek.handlers.tools.format_response,
     },
   },
   schema = {
