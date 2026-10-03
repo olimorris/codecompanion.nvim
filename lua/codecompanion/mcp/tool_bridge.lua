@@ -41,7 +41,7 @@ local tool_output = {
       output_for_user = output_for_user:sub(1, DISPLAY_LIMIT_BYTES + utf_offset) .. "\n\n...[truncated]"
     end
     local for_user = fmt("MCP: %s executed successfully:\n%s", self.name, markdown.form_codeblock(output_for_user))
-    chat:add_tool_output(self, output, for_user)
+    chat:add_tool_output({ tool = self, for_llm = output, for_user = for_user })
   end,
 
   ---@param self CodeCompanion.Tool.MCPToolBridge
@@ -56,7 +56,7 @@ local tool_output = {
       markdown.form_codeblock(err_msg),
       markdown.form_codeblock(vim.inspect(self.args))
     )
-    chat:add_tool_output(self, "MCP Tool execution failed:\n" .. err_msg, for_user)
+    chat:add_tool_output({ tool = self, for_llm = "MCP Tool execution failed:\n" .. err_msg, for_user = for_user })
   end,
 
   ---The message which is shared with the user when asking for their approval

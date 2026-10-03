@@ -26,7 +26,7 @@ end
 ---@param llm_message string
 ---@param user_message? string
 local send_response_to_chat = function(exec, llm_message, user_message)
-  exec.tools.chat:add_tool_output(exec.tool, llm_message, user_message)
+  exec.tools.chat:add_tool_output({ tool = exec.tool, for_llm = llm_message, for_user = user_message })
 end
 
 ---Execute a shell command with platform-specific handling
@@ -313,13 +313,14 @@ function Orchestrator:_label_completed()
     return
   end
 
-  pcall(
-    self.tools.chat.update_buf_line,
-    self.tools.chat,
-    label.line_number,
-    label.text,
-    { status = label.status, icon_id = label.icon_id, priority = 120, virt_text_pos = "inline" }
-  )
+  pcall(self.tools.chat.update_buf_line, self.tools.chat, {
+    line_number = label.line_number,
+    content = label.text,
+    status = label.status,
+    icon_id = label.icon_id,
+    priority = 120,
+    virt_text_pos = "inline",
+  })
 end
 
 ---When the tools coordinator is finished, finalize it via an autocmd
@@ -600,10 +601,10 @@ function Orchestrator:error(args)
   end)
   if not ok then
     if self.tool and self.tool.function_call then
-      self.tools.chat:add_tool_output(
-        self.tool,
-        string.format("Internal error with `%s` tool: %s", self.tool.name, err)
-      )
+      self.tools.chat:add_tool_output({
+        tool = self.tool,
+        for_llm = string.format("Internal error with `%s` tool: %s", self.tool.name, err),
+      })
     end
   end
 
@@ -634,7 +635,10 @@ function Orchestrator:success(args)
   if not ok then
     log:error("Internal error with the %s success handler: %s", self.tool.name, err)
     if self.tool and self.tool.function_call then
-      self.tools.chat:add_tool_output(self.tool, string.format("Internal error with `%s` tool", self.tool.name))
+      self.tools.chat:add_tool_output({
+        tool = self.tool,
+        for_llm = string.format("Internal error with `%s` tool", self.tool.name),
+      })
     end
   end
 end

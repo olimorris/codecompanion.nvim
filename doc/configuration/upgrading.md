@@ -115,6 +115,25 @@ require("codecompanion").setup({
 
 - `interactions.chat.tools.opts.auto_submit_errors` and `interactions.chat.tools.opts.auto_submit_success` have been removed. A tool's output is now always sent back to the LLM, as part of the [agent loop](/usage/chat-buffer/agents-tools#how-they-work)
 
+### Chat
+
+Chat buffer methods that took several positional arguments now take a single table. If you call any of these from a custom tool, slash command or callback, you'll need to update them:
+
+| Method | Before | After |
+|--------|--------|-------|
+| `add_tool_output` | `(tool, for_llm, for_user)` | `({ tool, for_llm, for_user? })` |
+| `add_context` | `(data, source, id, opts)` | `(data, { source, id, bufnr?, path?, tag?, visible?, context_opts? })` |
+| `change_adapter` | `(adapter, callback)` | `({ adapter, model?, callback? })` |
+| `done` | `(output, reasoning, tools, meta, opts)` | `({ output?, reasoning?, tools?, meta?, status?, error? })` |
+| `update_buf_line` | `(line_number, content, opts)` | `({ line_number, content, status?, icon_id?, priority?, virt_text_pos? })` |
+
+For example, in a tool's output handler:
+
+```lua
+chat:add_tool_output(self, "The result is 42") -- [!code --]
+chat:add_tool_output({ tool = self, for_llm = "The result is 42" }) -- [!code ++]
+```
+
 ## v18.7.0 to v19.0.0
 
 - The Super Diff has now been removed from CodeCompanion ([#2600](https://github.com/olimorris/codecompanion.nvim/pull/2600))

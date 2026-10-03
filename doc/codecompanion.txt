@@ -1,4 +1,4 @@
-*codecompanion.txt*         For NVIM v0.11        Last change: 2026 October 02
+*codecompanion.txt*         For NVIM v0.11        Last change: 2026 October 03
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -10334,7 +10334,7 @@ Let's consider how me might implement this for our calculator tool:
       ---@param meta { tools: CodeCompanion.Tools, cmd: table }
       success = function(self, stdout, meta)
         local chat = meta.tools.chat
-        return chat:add_tool_output(self, tostring(stdout[1]))
+        return chat:add_tool_output({ tool = self, for_llm = tostring(stdout[1]) })
       end,
       ---@param self CodeCompanion.Tool.Calculator
       ---@param stderr table The error output from the command
@@ -10350,20 +10350,19 @@ tool authors to update the message history on the chat buffer:
 
 >lua
     ---Add the output from a tool to the message history and a message to the UI
-    ---@param tool table The Tool that was executed
-    ---@param for_llm string The output to share with the LLM
-    ---@param for_user? string The output to share with the user. If empty will use the LLM's output
+    ---@param args { tool: table, for_llm: string, for_user?: string }
     ---@return nil
-    function Chat:add_tool_output(tool, for_llm, for_user)
+    function Chat:add_tool_output(args)
       -- Omitted for brevity
     end
 <
 
-The `for_llm` parameter is the string message that will be shared with the LLM
-as part of the message history in the chat buffer, this is not made visible to
-the user. The `for_user` parameter allows tool authors to customize the visible
-output in the chat buffer, but if this is nil then the `for_llm` string is
-used.
+The `tool` field is the tool that was executed, which is `self` from within a
+tool's `cmds` or `output` functions. The `for_llm` field is the string message
+that will be shared with the LLM as part of the message history in the chat
+buffer, this is not made visible to the user. The `for_user` field allows tool
+authors to customize the visible output in the chat buffer, but if this is nil
+then the `for_llm` string is used.
 
 
 RUNNING THE CALCULATOR TOOL
@@ -10488,7 +10487,7 @@ If we put this all together in our config:
                 ---@param meta { tools: CodeCompanion.Tools, cmd: table }
                 success = function(self, stdout, meta)
                   local chat = meta.tools.chat
-                  return chat:add_tool_output(self, tostring(stdout[1]))
+                  return chat:add_tool_output({ tool = self, for_llm = tostring(stdout[1]) })
                 end,
                 ---@param self CodeCompanion.Tool.Calculator
                 ---@param stderr table The error output from the command
@@ -10582,7 +10581,7 @@ tool execution:
       ---@param meta { tools: CodeCompanion.Tools, cmd: table, opts: table }
       ---@return nil
       rejected = function(self, meta)
-        meta.tools.chat:add_tool_output(self, "The user declined to run the calculator tool")
+        meta.tools.chat:add_tool_output({ tool = self, for_llm = "The user declined to run the calculator tool" })
       end,
     
       ---Cancellation message back to the LLM
@@ -10590,7 +10589,7 @@ tool execution:
       ---@param meta { tools: CodeCompanion.Tools, cmd: table }
       ---@return nil
       cancelled = function(self, meta)
-        meta.tools.chat:add_tool_output(self, "The user cancelled the execution of the calculator tool")
+        meta.tools.chat:add_tool_output({ tool = self, for_llm = "The user cancelled the execution of the calculator tool" })
       end,
     },
 <
@@ -11751,6 +11750,33 @@ To keep the previous defaults:
 <
 
 - `interactions.chat.tools.opts.auto_submit_errors` and `interactions.chat.tools.opts.auto_submit_success` have been removed. A tool's output is now always sent back to the LLM, as part of the |codecompanion-usage-chat-buffer-agents-tools-how-they-work|
+
+
+CHAT
+
+Chat buffer methods that took several positional arguments now take a single
+table. If you call any of these from a custom tool, slash command or callback,
+you'll need to update them:
+
+  --------------------------------------------------------------------------------------------------------------------------------------------
+  Method                   Before                                   After
+  ------------------------ ---------------------------------------- --------------------------------------------------------------------------
+  add_tool_output          (tool, for_llm, for_user)                ({ tool, for_llm, for_user? })
+
+  add_context              (data, source, id, opts)                 (data, { source, id, bufnr?, path?, tag?, visible?, context_opts? })
+
+  change_adapter           (adapter, callback)                      ({ adapter, model?, callback? })
+
+  done                     (output, reasoning, tools, meta, opts)   ({ output?, reasoning?, tools?, meta?, status?, error? })
+
+  update_buf_line          (line_number, content, opts)             ({ line_number, content, status?, icon_id?, priority?, virt_text_pos? })
+  --------------------------------------------------------------------------------------------------------------------------------------------
+For example, in a tool's output handler:
+
+>lua
+    chat:add_tool_output(self, "The result is 42") -- [!code --]
+    chat:add_tool_output({ tool = self, for_llm = "The result is 42" }) -- [!code ++]
+<
 
 - The Super Diff has now been removed from CodeCompanion (#2600 <https://github.com/olimorris/codecompanion.nvim/pull/2600>)
 - CodeCompanion now only supports a built-in diff which is enabled by default (#2600 <https://github.com/olimorris/codecompanion.nvim/pull/2600>), dropping support for Mini.Diff

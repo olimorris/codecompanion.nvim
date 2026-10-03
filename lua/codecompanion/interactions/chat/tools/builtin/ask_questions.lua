@@ -153,7 +153,7 @@ return {
       local chat = meta.tools.chat
       local llm_output = vim.iter(stdout):flatten():join("\n")
       -- The question prompt already displays the user's answers in the chat buffer
-      chat:add_tool_output(self, llm_output, "")
+      chat:add_tool_output({ tool = self, for_llm = llm_output, for_user = "" })
     end,
 
     ---@param self CodeCompanion.Tool.AskQuestions
@@ -163,7 +163,7 @@ return {
       local chat = meta.tools.chat
       local errors = vim.iter(stderr):flatten():join("\n")
       log:debug("[Ask Questions Tool] Error: %s", stderr)
-      chat:add_tool_output(self, errors)
+      chat:add_tool_output({ tool = self, for_llm = errors })
     end,
   },
 }

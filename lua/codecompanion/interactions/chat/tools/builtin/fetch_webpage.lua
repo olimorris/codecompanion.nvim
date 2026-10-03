@@ -125,7 +125,7 @@ return {
 
       local llm_output = fmt([[<attachment url="%s">%s</attachment>]], args.url, content)
 
-      chat:add_tool_output(self, llm_output, "")
+      chat:add_tool_output({ tool = self, for_llm = llm_output, for_user = "" })
     end,
 
     ---@param self CodeCompanion.Tool.FetchWebpage
@@ -139,7 +139,7 @@ return {
 
       local error_output =
         fmt("Error fetching content from `%s`:\n%s", args.url, markdown.form_codeblock(errors, { ft = "txt" }))
-      chat:add_tool_output(self, error_output)
+      chat:add_tool_output({ tool = self, for_llm = error_output })
     end,
   },
 }
