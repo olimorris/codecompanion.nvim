@@ -864,9 +864,6 @@ The user is working on a %s machine. Please respond with system specific command
         name = "copilot",
         model = "gpt-5.4-mini",
       },
-      opts = {
-        max_context_tokens = nil, -- Defaults to 16000, or the model's input limit minus 3000 if that's smaller
-      },
       keymaps = {
         stop = {
           callback = "keymaps.stop",
@@ -890,6 +887,14 @@ The user is working on a %s machine. Please respond with system specific command
             contains_code = true,
           },
         },
+      },
+      display = {
+        input = {
+          height = 2,
+        },
+      },
+      opts = {
+        max_context_tokens = 16000,
       },
     },
     -- CMD INTERACTION --------------------------------------------------------

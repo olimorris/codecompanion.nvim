@@ -115,7 +115,7 @@ require("codecompanion").setup({
 
 ## Context Limit
 
-The inline interaction shares the whole buffer with the LLM, unless it's over a token limit. Then it shares the lines around your cursor, or your selection, up to the limit. By default, the limit is 16,000 tokens, or the model's input limit minus 3,000 if that's smaller. To set your own:
+The inline interaction shares the whole buffer with the LLM, unless it's over a token limit. Then it shares the lines around your cursor, or your selection, up to the limit. By default, the limit is 16,000 tokens. To change it:
 
 ```lua
 require("codecompanion").setup({
@@ -129,7 +129,7 @@ require("codecompanion").setup({
 })
 ```
 
-A value you set is used as-is, even if it's larger than the model's input limit.
+If the model's input limit minus 3,000 is smaller, that's used instead, leaving room for the prompt and the reply.
 
 ## Diff
 

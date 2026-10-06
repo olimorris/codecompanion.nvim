@@ -156,7 +156,7 @@ T["Inline"]["rejecting all hunks keeps the ones already accepted"] = function()
     table.insert(response.tool_calls, _G.edit({ old_string = "b\nc", new_string = "b\nC" }).tool_calls[1])
     table.insert(_G.responses, response)
 
-    _G.inline = _G.new_inline({ start_line = 1, end_line = 1, start_col = 0, end_col = 0 })
+    _G.inline = _G.new_inline({ bufnr = _G.edited_bufnr, start_line = 1, end_line = 1, start_col = 0, end_col = 0 })
     _G.inline:prompt("Capitalise the letters")
     _G.wait_for_requests()
 
@@ -176,7 +176,7 @@ T["Inline"]["accepting the diff takes ONE undo step, however many hunks were res
     table.insert(response.tool_calls, _G.edit({ old_string = "b\nc", new_string = "b\nC" }).tool_calls[1])
     table.insert(_G.responses, response)
 
-    _G.inline = _G.new_inline({ start_line = 1, end_line = 1, start_col = 0, end_col = 0 })
+    _G.inline = _G.new_inline({ bufnr = _G.edited_bufnr, start_line = 1, end_line = 1, start_col = 0, end_col = 0 })
     _G.inline:prompt("Capitalise the letters")
     _G.wait_for_requests()
 
@@ -229,6 +229,62 @@ T["Inline"]["retries a failed edit once, sending the error back"] = function()
   local retried = child.lua_get([[_G.requests[2].messages]])
   h.expect_starts_with("Edit failed:", retried[#retried].content)
   h.eq({ "local a = 10" }, child.lua_get([[vim.api.nvim_buf_get_lines(0, 0, -1, false)]]))
+end
+
+T["Inline"]["ACP"] = new_set({
+  hooks = {
+    pre_case = function()
+      child.lua([[
+        local connection = require("tests.mocks.acp").new({ adapter = require("codecompanion.adapters").resolve("test_acp") })
+        require("codecompanion.acp").new = function()
+          return connection
+        end
+
+        ---@return table handlers, string copy_path
+        function _G.prompt_agent()
+          local inline = _G.new_inline({ start_line = 1, end_line = 1, start_col = 0, end_col = 0 })
+          inline:set_adapter("test_acp")
+          inline:prompt("Change a")
+          return _G.last_prompt_request.handlers, inline.request.copy_path
+        end
+
+        ---@return string option_id
+        function _G.ask_to_edit(handlers, path)
+          local chosen
+          handlers.permission_request({
+            tool_call = { kind = "edit", locations = { { path = path } } },
+            options = { { kind = "allow_once", optionId = "allow" }, { kind = "reject_once", optionId = "reject" } },
+            respond = function(option_id)
+              chosen = option_id
+            end,
+          })
+          return chosen
+        end
+      ]])
+    end,
+  },
+})
+
+T["Inline"]["ACP"]["edits the agent makes to the copy reach the buffer"] = function()
+  child.lua([[
+    vim.api.nvim_buf_set_lines(0, 0, -1, false, { "local a = 1", "local b = 2" })
+    local handlers, copy_path = _G.prompt_agent()
+    vim.fn.writefile({ "local a = 10", "local b = 2" }, copy_path)
+    handlers.complete("end_turn")
+    vim.wait(100)
+  ]])
+
+  h.eq({ "local a = 10", "local b = 2" }, child.lua_get([[vim.api.nvim_buf_get_lines(0, 0, -1, false)]]))
+end
+
+T["Inline"]["ACP"]["DOES NOT allow the agent to edit any file but the copy"] = function()
+  child.lua([[
+    vim.api.nvim_buf_set_lines(0, 0, -1, false, { "local a = 1" })
+    local handlers, copy_path = _G.prompt_agent()
+    _G.decisions = { real = _G.ask_to_edit(handlers, "/project/inventory.lua"), copy = _G.ask_to_edit(handlers, copy_path) }
+  ]])
+
+  h.eq({ real = "reject", copy = "allow" }, child.lua_get([[_G.decisions]]))
 end
 
 return T

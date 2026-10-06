@@ -88,7 +88,7 @@ M.accept_hunk = {
   desc = "Accept the hunk under the cursor",
   hunk_action = true,
   callback = function(diff_ui)
-    local cursor = api.nvim_win_get_cursor(diff_ui.winnr)
+    local cursor = api.nvim_win_get_cursor(0)
     diff_ui:resolve_hunk(diff_ui:get_hunk_at(cursor[1]), { accept = true })
   end,
 }
@@ -97,7 +97,7 @@ M.reject_hunk = {
   desc = "Reject the hunk under the cursor",
   hunk_action = true,
   callback = function(diff_ui)
-    local cursor = api.nvim_win_get_cursor(diff_ui.winnr)
+    local cursor = api.nvim_win_get_cursor(0)
     diff_ui:resolve_hunk(diff_ui:get_hunk_at(cursor[1]), { accept = false })
   end,
 }
@@ -134,7 +134,7 @@ M.close_window = {
 M.next_hunk = {
   desc = "Next hunk",
   callback = function(diff_ui)
-    local cursor = api.nvim_win_get_cursor(diff_ui.winnr)
+    local cursor = api.nvim_win_get_cursor(0)
     diff_ui:next_hunk(cursor[1])
   end,
 }
@@ -142,7 +142,7 @@ M.next_hunk = {
 M.previous_hunk = {
   desc = "Previous hunk",
   callback = function(diff_ui)
-    local cursor = api.nvim_win_get_cursor(diff_ui.winnr)
+    local cursor = api.nvim_win_get_cursor(0)
     diff_ui:previous_hunk(cursor[1])
   end,
 }

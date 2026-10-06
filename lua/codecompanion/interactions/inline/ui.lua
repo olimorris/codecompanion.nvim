@@ -1,5 +1,6 @@
 local adapter_utils = require("codecompanion.adapters.utils")
 local adapters = require("codecompanion.adapters")
+local async = require("codecompanion.utils.async")
 local config = require("codecompanion.config")
 local input = require("codecompanion.interactions.shared.input")
 
@@ -10,11 +11,20 @@ local _adapters = {} ---@type table<number, table>
 
 local M = {}
 
+---@param adapter CodeCompanion.HTTPAdapter|CodeCompanion.ACPAdapter
+---@return string|nil
+local function get_model(adapter)
+  if adapter.type == "acp" then
+    return vim.tbl_get(adapter, "defaults", "session_config_options", "model")
+  end
+  return adapter_utils.model(adapter)
+end
+
 ---The adapter's name, with its model if it has one
----@param adapter CodeCompanion.HTTPAdapter
+---@param adapter CodeCompanion.HTTPAdapter|CodeCompanion.ACPAdapter
 ---@return string
 local function get_adapter_label(adapter)
-  local model = adapter_utils.model(adapter)
+  local model = get_model(adapter)
   return model and fmt("%s (%s)", adapter.formatted_name, model) or adapter.formatted_name
 end
 
@@ -32,7 +42,46 @@ local function remember_adapter(inline)
       end,
     })
   end
-  _adapters[bufnr] = { adapter = inline.adapter.name, model = adapter_utils.model(inline.adapter) }
+
+  _adapters[bufnr] = { adapter = inline.adapter.name, model = get_model(inline.adapter) }
+end
+
+---Pick one of the agent's models, which it only lists once the buffer's session is open
+---@param inline CodeCompanion.Inline
+---@param opts { on_done: fun() }
+---@return nil
+local function select_acp_model(inline, opts)
+  local inline_acp = require("codecompanion.interactions.inline.acp")
+  local args = { adapter = inline.adapter, bufnr = inline.bufnr }
+
+  async.sync(function()
+    local models = inline_acp.list_models(args)
+    if not models or #models.availableModels < 2 then
+      remember_adapter(inline)
+      return vim.schedule(opts.on_done)
+    end
+
+    vim.schedule(function()
+      vim.ui.select(models.availableModels, {
+        prompt = "Select Model",
+        kind = "codecompanion.nvim",
+        format_item = function(model)
+          return model.name or model.modelId
+        end,
+      }, function(model)
+        if not model then
+          remember_adapter(inline)
+          return opts.on_done()
+        end
+        async.sync(function()
+          inline_acp.set_model(vim.tbl_extend("force", args, { model = model.modelId }))
+          inline.adapter = adapters.resolve(inline.adapter.name, { model = model.modelId })
+          remember_adapter(inline)
+          vim.schedule(opts.on_done)
+        end)()
+      end)
+    end)
+  end)()
 end
 
 ---Pick an adapter and then a model, remembering both for the buffer
@@ -41,9 +90,7 @@ end
 ---@return nil
 local function select_adapter(inline, opts)
   local change_adapter = require("codecompanion.interactions.chat.keymaps.change_adapter")
-  local names = vim.tbl_filter(function(name)
-    return config.adapters.http[name] ~= nil
-  end, change_adapter.get_adapters_list(inline.adapter.name))
+  local names = change_adapter.get_adapters_list(inline.adapter.name)
 
   vim.ui.select(names, { prompt = "Select Adapter", kind = "codecompanion.nvim" }, function(name)
     if not name then
@@ -51,6 +98,10 @@ local function select_adapter(inline, opts)
     end
     if name ~= inline.adapter.name then
       inline.adapter = adapters.resolve(name)
+    end
+
+    if inline.adapter.type == "acp" then
+      return select_acp_model(inline, opts)
     end
 
     local models = change_adapter.list_http_models(inline.adapter)
@@ -82,6 +133,7 @@ end
 function M.open_input(inline, opts)
   input.open({
     title = fmt(" %s · %s ", config.display.input.title, get_adapter_label(inline.adapter)),
+    window = { height = config.interactions.inline.display.input.height },
     on_submit = opts.on_submit,
     callbacks = {
       change_adapter = function()
@@ -102,18 +154,21 @@ function M.get_picked_adapter(bufnr)
   return _adapters[bufnr]
 end
 
----Show the LLM's reply in a float that closes when the cursor moves
+---Show the LLM's reply in a float that stays open until `q` is pressed
 ---@param reply string
 ---@param opts { adapter: CodeCompanion.HTTPAdapter }
 ---@return nil
 function M.show_reply(reply, opts)
-  vim.lsp.util.open_floating_preview(vim.split(reply, "\n", { plain = true }), "markdown", {
+  local _, winnr = vim.lsp.util.open_floating_preview(vim.split(reply, "\n", { plain = true }), "markdown", {
     border = config.display.input.window.border,
+    close_events = {},
     focus_id = "codecompanion_inline_reply",
     max_height = math.floor(vim.o.lines * 0.4),
     max_width = math.floor(vim.o.columns * 0.6),
     title = fmt(" %s ", get_adapter_label(opts.adapter)),
   })
+  -- The float's own `q` mapping only works from inside it
+  api.nvim_set_current_win(winnr)
 end
 
 ---@return string

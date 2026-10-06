@@ -534,9 +534,9 @@ end
 
 ---Create and configure the diff window
 ---@param diff CC.Diff
----@param opts { cfg: CodeCompanion.WindowOpts, float: boolean, title?: string }
+---@param opts { cfg: CodeCompanion.WindowOpts, float: boolean, inline?: boolean, title?: string }
 ---@return number bufnr
----@return number winnr
+---@return number|nil winnr
 local function create_diff_display(diff, opts)
   local bufnr, winnr
 
@@ -549,7 +549,8 @@ local function create_diff_display(diff, opts)
   else
     bufnr = diff.bufnr
     winnr = ui_utils.buf_get_win(bufnr)
-    if not winnr or not api.nvim_win_is_valid(winnr) then
+    -- Otherwise a user who moved on while the LLM worked has the edited buffer swapped into their current window
+    if (not winnr or not api.nvim_win_is_valid(winnr)) and not opts.inline then
       winnr = api.nvim_get_current_win()
       api.nvim_win_set_buf(winnr, bufnr)
     end
@@ -714,7 +715,8 @@ function M.show(diff, opts)
   local is_float = opts.float ~= false and not is_inline
   local cfg = vim.tbl_deep_extend("force", config.display.chat.floating_window or {}, config.display.diff.window or {})
 
-  local bufnr, winnr = create_diff_display(diff, { float = is_float, title = opts.title, cfg = cfg })
+  local bufnr, winnr =
+    create_diff_display(diff, { float = is_float, inline = is_inline, title = opts.title, cfg = cfg })
 
   local diff_ui = create_diff_ui(
     diff,

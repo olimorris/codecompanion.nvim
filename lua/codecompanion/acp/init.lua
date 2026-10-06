@@ -316,6 +316,13 @@ function Connection:ensure_session()
   return self:_open_session()
 end
 
+---Prompt through a different session on this connection, or a new one when `session_id` is nil
+---@param session_id? string
+---@return nil
+function Connection:use_session(session_id)
+  self.session_id = session_id
+end
+
 ---Create or load the session, announcing it to listeners
 ---@return boolean success
 function Connection:_open_session()

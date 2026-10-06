@@ -6,7 +6,6 @@ local tokens = require("codecompanion.utils.tokens")
 local fmt = string.format
 
 local CONSTANTS = {
-  MAX_CONTEXT_TOKENS = 16000,
   RESERVED_TOKENS = 3000,
 
   TOOL_DESCRIPTION = [[Edit the user's buffer by replacing an exact string with new text.
@@ -19,6 +18,18 @@ local CONSTANTS = {
 }
 
 local M = {}
+
+---The configured limit, capped so the model has room for the prompt and its reply
+---@param adapter CodeCompanion.HTTPAdapter|CodeCompanion.ACPAdapter
+---@return number
+function M.get_max_tokens(adapter)
+  local configured = config.interactions.inline.opts.max_context_tokens
+  local input_limit = shared.input_limit(adapter)
+  if not input_limit then
+    return configured
+  end
+  return math.min(configured, input_limit - CONSTANTS.RESERVED_TOKENS)
+end
 
 ---The `edit_file` schema, scoped to the one buffer that inline edits
 ---@return table
@@ -70,22 +81,6 @@ function M.get_lines_to_send(lines, opts)
   end
 
   return { first = first, last = last }
-end
-
----@param adapter CodeCompanion.HTTPAdapter
----@return number
-function M.get_max_tokens(adapter)
-  local configured = config.interactions.inline.opts and config.interactions.inline.opts.max_context_tokens
-  if configured then
-    return configured
-  end
-
-  local input_limit = shared.input_limit(adapter)
-  if not input_limit then
-    return CONSTANTS.MAX_CONTEXT_TOKENS
-  end
-
-  return math.min(CONSTANTS.MAX_CONTEXT_TOKENS, input_limit - CONSTANTS.RESERVED_TOKENS)
 end
 
 ---Join the reasoning from a response so it can be sent back alongside its tool calls
