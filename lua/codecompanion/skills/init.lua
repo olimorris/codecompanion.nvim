@@ -52,6 +52,13 @@ local function parse_skill(path)
   return { name = parsed.name, description = parsed.description, path = path }
 end
 
+-- Stops a cloned repo's `.git` from being walked on every scan
+---@param path string
+---@return boolean
+local function is_visible_dir(path)
+  return not vim.startswith(vim.fs.basename(path), ".")
+end
+
 ---Scan the configured dirs for skills, sorted by name
 ---@return CodeCompanion.Skill[]
 function M.list()
@@ -60,15 +67,17 @@ function M.list()
     return {}
   end
 
+  -- One more level than `depth`, as `vim.fs.dir` counts the SKILL.md itself as a level
+  local search_opts = { depth = config.skills.opts.depth + 1, follow = true, skip = is_visible_dir }
+
   -- Later dirs take precedence, so a project skill overrides a personal one of the same name
   local by_name = {}
   for _, configured_dir in ipairs(config.skills.dirs or {}) do
     local dir = vim.fs.abspath(vim.fs.normalize(configured_dir))
     if files.is_dir(dir) then
-      for entry in vim.fs.dir(dir) do
-        local skill_file = vim.fs.joinpath(dir, entry, SKILL_FILE)
-        if files.exists(skill_file) then
-          local skill = parse_skill(skill_file)
+      for entry, entry_type in vim.fs.dir(dir, search_opts) do
+        if entry_type ~= "directory" and vim.fs.basename(entry) == SKILL_FILE then
+          local skill = parse_skill(vim.fs.joinpath(dir, entry))
           if skill then
             by_name[skill.name] = skill
           end
