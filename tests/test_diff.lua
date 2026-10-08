@@ -508,6 +508,43 @@ T["Diff"]["Hunks"]["DOES NOT show a banner WHEN show_banner is off"] = function(
   h.eq(vim.NIL, banner_ns)
 end
 
+---Show an inline diff and return the screen lines either side of its banner
+---@param from_lines string[]
+---@param to_lines string[]
+---@return { before?: string, after?: string }
+local function get_lines_around_banner(from_lines, to_lines)
+  child.lua(
+    [[
+    local from_lines, to_lines = ...
+    for _, winnr in ipairs(vim.api.nvim_list_wins()) do
+      if vim.api.nvim_win_get_config(winnr).relative ~= "" then
+        vim.api.nvim_win_close(winnr, true)
+      end
+    end
+    _G.show_inline_diff(from_lines, to_lines)
+  ]],
+    { from_lines, to_lines }
+  )
+
+  local lines = vim.tbl_map(function(line)
+    return vim.trim(table.concat(line))
+  end, child.get_screenshot().text)
+  for index, line in ipairs(lines) do
+    if line:find("[Hunk: ", 1, true) then
+      return { before = lines[index - 1], after = lines[index + 1] }
+    end
+  end
+  return {}
+end
+
+T["Diff"]["Hunks"]["shows the banner BELOW a hunk at the top of the buffer"] = function()
+  h.eq({ before = "x", after = "a" }, get_lines_around_banner({ "a", "b" }, { "x", "a", "b" }))
+end
+
+T["Diff"]["Hunks"]["shows the banner ABOVE the lines a hunk deletes"] = function()
+  h.eq({ before = "b", after = "c" }, get_lines_around_banner({ "a", "b", "c", "d" }, { "a", "b", "d" }))
+end
+
 T["Diff"]["Inline Integration Test"] = new_set()
 
 T["Diff"]["Inline Integration Test"]["Example 1"] = function()

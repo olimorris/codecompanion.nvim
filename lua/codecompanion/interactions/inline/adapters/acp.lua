@@ -206,7 +206,7 @@ function ACP:make_prompt(messages)
   }
 
   for _, message in ipairs(messages) do
-    if message.role == config.constants.USER_ROLE then
+    if message.role == config.constants.USER_ROLE or message.role == config.constants.SYSTEM_ROLE then
       table.insert(sections, message.content)
     end
   end

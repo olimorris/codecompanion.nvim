@@ -358,6 +358,20 @@ T["Inline"]["ACP"]["tells the agent to edit the copy"] = function()
   h.eq(true, child.lua_get([[_G.sent_prompt:find("Make changes by editing `" .. _G.copy_path .. "`", 1, true) ~= nil]]))
 end
 
+T["Inline"]["ACP"]["sends a prompt library system message to the agent"] = function()
+  child.lua([[
+    vim.api.nvim_buf_set_lines(0, 0, -1, false, { "local a = 1" })
+    local inline = require("codecompanion.interactions.inline").new({
+      buffer_context = { winnr = 0, bufnr = 0, filetype = "lua", start_line = 1, end_line = 1, start_col = 0, end_col = 0 },
+      prompts = { { role = "system", content = "Always use snake_case" } },
+    })
+    inline:set_adapter("test_acp")
+    inline:prompt("Change a")
+  ]])
+
+  h.eq(true, child.lua_get([[_G.sent_prompt:find("Always use snake_case", 1, true) ~= nil]]))
+end
+
 T["Inline"]["ACP"]["DOES NOT send rules to the agent"] = function()
   child.lua([[
     vim.api.nvim_buf_set_lines(0, 0, -1, false, { "local a = 1" })

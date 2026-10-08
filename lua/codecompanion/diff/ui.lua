@@ -87,7 +87,6 @@ local function banner_virt_text(bufnr, opts)
   if opts.inline then
     api.nvim_buf_set_extmark(bufnr, ns_id, line, 0, {
       virt_lines = { { { text, "CodeCompanionDiffBannerInline" } } },
-      virt_lines_above = true,
       priority = 125,
     })
   else
@@ -101,6 +100,25 @@ local function banner_virt_text(bufnr, opts)
   end
 
   return ns_id
+end
+
+---The row to show the banner below, so it sits just above the hunk or, at the top of the buffer, just below it
+---@param bufnr number
+---@param hunk CodeCompanion.diff.Hunk
+---@return number
+local function get_banner_row(bufnr, hunk)
+  -- Deleted lines are drawn above the line after them, or below the last line
+  local first_row = hunk.to_count == 0 and hunk.pos[1] + 1 or hunk.pos[1]
+  local line_count = api.nvim_buf_line_count(bufnr)
+  if first_row >= line_count then
+    return line_count - 1
+  end
+  -- Virtual lines above the first line are hidden while the window is at the top
+  if first_row == 0 then
+    return hunk.to_count - 1
+  end
+  -- Attached above the first row, the banner would show after any deleted lines, as Neovim draws the oldest mark first
+  return first_row - 1
 end
 
 ---Navigate to next hunk
@@ -591,7 +609,7 @@ local function setup_banner(diff_ui, opts)
     end
 
     local hunk = diff_ui.diff.hunks[diff_ui.current_hunk]
-    local target_line = opts.inline and hunk and hunk.pos[1] or nil
+    local target_line = opts.inline and hunk and get_banner_row(bufnr, hunk) or nil
 
     local ns_id = banner_virt_text(bufnr, {
       banner = opts.banner,
