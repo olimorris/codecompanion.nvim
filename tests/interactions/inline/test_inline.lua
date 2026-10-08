@@ -434,6 +434,20 @@ T["Inline"]["ACP"]["can prompt again after the agent cancels"] = function()
   h.not_eq(vim.NIL, child.lua_get([[_G.sent_prompt]]))
 end
 
+T["Inline"]["ACP"]["drops the agent's edits OUTSIDE the selection and keeps those INSIDE it"] = function()
+  child.lua([[
+    vim.api.nvim_buf_set_lines(0, 0, -1, false, { "local a = 1", "local b = 2", "local c = 3" })
+    local inline = _G.new_inline({ start_line = 2, end_line = 2, start_col = 0, end_col = 0, is_visual = true })
+    inline:set_adapter("test_acp")
+    inline:prompt("Change b")
+    vim.fn.writefile({ "local a = 10", "local b = 20", "local c = 30" }, inline.request.copy_path)
+    _G.last_prompt_request.handlers.complete("end_turn")
+    vim.wait(100)
+  ]])
+
+  h.eq({ "local a = 1", "local b = 20", "local c = 3" }, child.lua_get([[vim.api.nvim_buf_get_lines(0, 0, -1, false)]]))
+end
+
 T["Inline"]["ACP"]["DOES NOT allow the agent to edit any file but the copy"] = function()
   child.lua([[
     vim.api.nvim_buf_set_lines(0, 0, -1, false, { "local a = 1" })

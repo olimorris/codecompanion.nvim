@@ -9,12 +9,15 @@
 
 local async = require("codecompanion.utils.async")
 local config = require("codecompanion.config")
+local diff = require("codecompanion.diff")
 local file_utils = require("codecompanion.utils.files")
 local inline_prompt = require("codecompanion.interactions.inline.prompt")
 local log = require("codecompanion.utils.log")
 
 local api = vim.api
 local fmt = string.format
+---@diagnostic disable-next-line: deprecated
+local diff_fn = vim.text.diff or vim.diff
 
 local CONSTANTS = {
   ALLOWED_KINDS = { read = true, search = true, think = true, fetch = true },
@@ -278,7 +281,7 @@ function ACP:complete(stop_reason)
     return self:finish({ error = fmt("%s cancelled the prompt", self.adapter.formatted_name) })
   end
 
-  local lines = self:read_copy()
+  local lines = self:keep_editable_changes(self:read_copy())
   if not vim.deep_equal(lines, self.inline.target.lines) then
     return self:finish({ lines = lines })
   end
@@ -289,6 +292,63 @@ function ACP:complete(stop_reason)
   end
 
   return self:finish({ reply = reply })
+end
+
+---The line changes between the buffer and the copy, splitting a hunk that swaps lines one for one
+---@param original string[]
+---@param lines string[]
+---@return number[][]
+local function get_hunks(original, lines)
+  local hunks = {}
+  for _, hunk in
+    ipairs(diff_fn(table.concat(original, "\n") .. "\n", table.concat(lines, "\n") .. "\n", diff.LINE_OPTS))
+  do
+    local from_start, from_count, to_start, to_count = unpack(hunk)
+    if from_count == to_count then
+      for offset = 0, from_count - 1 do
+        table.insert(hunks, { from_start + offset, 1, to_start + offset, 1 })
+      end
+    else
+      table.insert(hunks, hunk)
+    end
+  end
+  return hunks
+end
+
+---The copy holds the whole buffer, so undo the agent's changes to lines it was told not to edit
+---@param lines string[]
+---@return string[]
+function ACP:keep_editable_changes(lines)
+  local original, editable = self.inline.target.lines, self.inline.target.editable
+  local kept, dropped, next_line = {}, 0, 1
+  for _, hunk in ipairs(get_hunks(original, lines)) do
+    local from_start, from_count, to_start, to_count = unpack(hunk)
+    -- An insertion's `from_start` is the line it follows
+    local last_before = from_count == 0 and from_start or from_start - 1
+    local last_replaced = last_before + from_count
+    local is_editable = last_before >= editable.first - 1 and last_replaced <= editable.last
+
+    vim.list_extend(kept, vim.list_slice(original, next_line, last_before))
+    if is_editable then
+      vim.list_extend(kept, vim.list_slice(lines, to_start, to_start + to_count - 1))
+    else
+      vim.list_extend(kept, vim.list_slice(original, last_before + 1, last_replaced))
+      dropped = dropped + 1
+    end
+    next_line = last_replaced + 1
+  end
+  vim.list_extend(kept, vim.list_slice(original, next_line))
+
+  if dropped > 0 then
+    log:warn(
+      "[Inline] Dropped %d change(s) %s made outside lines %d-%d",
+      dropped,
+      self.adapter.formatted_name,
+      editable.first,
+      editable.last
+    )
+  end
+  return kept
 end
 
 ---@param result CodeCompanion.Inline.Result
