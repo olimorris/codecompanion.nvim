@@ -5,6 +5,7 @@
 ---@field on_done fun(result: CodeCompanion.Inline.Result)
 ---@field prompt? table The prompt that's being processed
 ---@field reply string[] The agent's text reply
+---@field stopped? boolean
 
 local async = require("codecompanion.utils.async")
 local config = require("codecompanion.config")
@@ -111,6 +112,10 @@ function ACP:submit(messages, opts)
     if not connection then
       return self:finish({ error = fmt("Could not connect to %s", self.adapter.formatted_name) })
     end
+    -- Stopping while connecting deleted the copy, so a prompt sent now would offer to empty the buffer
+    if self.stopped then
+      return
+    end
 
     self.prompt = connection
       :session_prompt({
@@ -121,6 +126,9 @@ function ACP:submit(messages, opts)
       end)
       :on_permission_request(function(request)
         self:respond_to_permission(request)
+      end)
+      :on_write_text_file_request(function(request)
+        return self:is_copy(request.path)
       end)
       :on_complete(function(stop_reason)
         self:complete(stop_reason)
@@ -160,6 +168,7 @@ end
 
 ---@return nil
 function ACP:stop()
+  self.stopped = true
   if self.prompt then
     self.prompt.cancel()
   end
@@ -246,15 +255,19 @@ function ACP:is_editing_copy(tool_call)
     end
   end
 
-  -- macOS temp files live under /var, which agents may report through its /private/var target
-  local function resolve(path)
-    return vim.uv.fs_realpath(path) or vim.fs.normalize(path)
-  end
-
-  local copy_path = resolve(self.copy_path)
   return #paths > 0 and vim.iter(paths):all(function(path)
-    return resolve(path) == copy_path
+    return self:is_copy(path)
   end)
+end
+
+---@param path string
+---@return boolean
+function ACP:is_copy(path)
+  -- macOS temp files live under /var, which agents may report through its /private/var target
+  local function resolve(file_path)
+    return vim.uv.fs_realpath(file_path) or vim.fs.normalize(file_path)
+  end
+  return resolve(path) == resolve(self.copy_path)
 end
 
 ---Hand back the edited copy, or the agent's reply if it didn't edit
@@ -262,7 +275,7 @@ end
 ---@return nil
 function ACP:complete(stop_reason)
   if stop_reason == "canceled" then
-    return
+    return self:finish({ error = fmt("%s cancelled the prompt", self.adapter.formatted_name) })
   end
 
   local lines = self:read_copy()
@@ -281,6 +294,9 @@ end
 ---@param result CodeCompanion.Inline.Result
 ---@return nil
 function ACP:finish(result)
+  if self.stopped then
+    return
+  end
   self:clean_up()
   vim.schedule(function()
     self.on_done(result)

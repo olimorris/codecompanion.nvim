@@ -58,6 +58,10 @@ function PromptBuilder:on_write_text_file(fn)
   self.handlers.write_text_file = fn
   return self
 end
+function PromptBuilder:on_write_text_file_request(fn)
+  self.handlers.write_text_file_request = fn
+  return self
+end
 function PromptBuilder:on_plan(fn)
   self.handlers.plan = fn
   return self

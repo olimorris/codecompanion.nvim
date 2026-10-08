@@ -387,6 +387,53 @@ T["Inline"]["ACP"]["DOES NOT send rules to the agent"] = function()
   )
 end
 
+T["Inline"]["ACP"]["DOES NOT let the agent write any file but the copy"] = function()
+  child.lua([[
+    vim.api.nvim_buf_set_lines(0, 0, -1, false, { "local a = 1" })
+    local _, copy_path = _G.prompt_agent()
+    local connection = require("codecompanion.acp").new()
+    connection._active_prompt = _G.last_prompt_request
+    connection.send_result = function() end
+    connection.send_error = function() end
+
+    _G.real_path = vim.fn.tempname()
+    for id, path in ipairs({ _G.real_path, copy_path }) do
+      connection:handle_fs_write_file_request(id, { sessionId = connection.session_id, path = path, content = "edited" })
+    end
+    _G.written = { real = vim.uv.fs_stat(_G.real_path) ~= nil, copy = vim.fn.readfile(copy_path)[1] }
+  ]])
+
+  h.eq({ real = false, copy = "edited" }, child.lua_get([[_G.written]]))
+end
+
+T["Inline"]["ACP"]["DOES NOT send the prompt WHEN stopped while connecting"] = function()
+  child.lua([[
+    local connection = require("codecompanion.acp").new()
+    local inline = _G.new_inline({ start_line = 1, end_line = 1, start_col = 0, end_col = 0 })
+    local ensure_session = connection.ensure_session
+    connection.ensure_session = function(self)
+      inline:stop()
+      return ensure_session(self)
+    end
+    inline:set_adapter("test_acp")
+    inline:prompt("Change a")
+  ]])
+
+  h.eq(vim.NIL, child.lua_get([[_G.sent_prompt]]))
+end
+
+T["Inline"]["ACP"]["can prompt again after the agent cancels"] = function()
+  child.lua([[
+    vim.api.nvim_buf_set_lines(0, 0, -1, false, { "local a = 1" })
+    local handlers = _G.prompt_agent()
+    handlers.complete("canceled")
+    _G.sent_prompt = nil
+    _G.prompt_agent()
+  ]])
+
+  h.not_eq(vim.NIL, child.lua_get([[_G.sent_prompt]]))
+end
+
 T["Inline"]["ACP"]["DOES NOT allow the agent to edit any file but the copy"] = function()
   child.lua([[
     vim.api.nvim_buf_set_lines(0, 0, -1, false, { "local a = 1" })

@@ -855,6 +855,12 @@ function Connection:handle_fs_write_file_request(id, params)
     return self:send_error(id, "invalid params", jsonrpc.errors.INVALID_PARAMS)
   end
 
+  -- An agent can write without asking for permission first
+  local handlers = self._active_prompt and self._active_prompt.handlers
+  if handlers and handlers.write_text_file_request and not handlers.write_text_file_request({ path = path }) then
+    return self:send_error(id, ("fs/write_text_file rejected for %s"):format(path))
+  end
+
   local fs = require("codecompanion.interactions.chat.acp.fs")
   local ok, err = fs.write_text_file(path, content)
   if ok then
