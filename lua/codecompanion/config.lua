@@ -1294,6 +1294,7 @@ The user is working on a %s machine. Please respond with system specific command
       ".claude/skills",
     },
     opts = {
+      depth = 5, -- How many directories deep to search for a SKILL.md
       chat = {
         enabled = true, -- When false, skills are unavailable and their slash commands are hidden
 
