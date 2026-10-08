@@ -42,8 +42,7 @@ return {
     ---@param self CodeCompanion.ACPAdapter
     ---@return boolean
     setup = function(self)
-      -- An unset env var resolves to its own name, which the agent would send as the token
-      if self.env_replaced.CLAUDE_CODE_OAUTH_TOKEN == self.env.CLAUDE_CODE_OAUTH_TOKEN then
+      if self.env_replaced.CLAUDE_CODE_OAUTH_TOKEN == "CLAUDE_CODE_OAUTH_TOKEN" then
         self.env_replaced.CLAUDE_CODE_OAUTH_TOKEN = nil
       end
       return true
