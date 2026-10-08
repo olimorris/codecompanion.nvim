@@ -228,6 +228,7 @@ The inline interaction now edits the buffer with the [edit_file](/usage/chat-buf
 - The adapter's model must support tool calling. Inline prompts sent with an adapter that doesn't, such as `xai`, are refused with an error
 - The current buffer is always shared with the LLM, up to a [context limit](/configuration/inline#context-limit), so the inline `#{buffer}` editor context has been removed. Delete it from your inline prompts
 - With a visual selection, the LLM can only edit the selected lines
+- Your `default` rules group, including `AGENTS.md` and `CLAUDE.md`, is sent with every inline prompt to an HTTP adapter, on top of the context limit. Set `rules.opts.inline.autoload = {}` to stop it. See [Rules and Skills](/configuration/inline#rules-and-skills)
 - The `placement` prompt library option has been removed, along with the option to write code into a new buffer. Inline prompts that set `placement` can delete it
 - `pre_hook` no longer runs for inline prompts
 - A reply that doesn't edit the buffer, such as an answer to a question, opens in a float rather than a chat buffer

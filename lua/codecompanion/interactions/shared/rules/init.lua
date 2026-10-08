@@ -1,7 +1,11 @@
+local chat_helpers = require("codecompanion.interactions.chat.helpers")
+local config = require("codecompanion.config")
 local file = require("codecompanion.utils.files")
 local helpers = require("codecompanion.interactions.shared.rules.helpers")
 local log = require("codecompanion.utils.log")
 local parsers = require("codecompanion.interactions.shared.rules.parsers")
+
+local fmt = string.format
 
 ---@class CodeCompanion.Chat.Rules.ProcessedFile
 ---@field name string The name of the rules file
@@ -226,10 +230,15 @@ end
 ---@param args { chat: CodeCompanion.Chat }
 ---@return nil
 function Rules:make(args)
-  local paths = self:resolve_paths()
-  local files = self:read_files(paths)
-  self.processed = self:parse_files(files)
+  self:process()
   self:add_to_chat(args.chat)
+end
+
+---Find, read and parse the rules files
+---@return CodeCompanion.Chat.Rules.ProcessedFile[]
+function Rules:process()
+  self.processed = self:parse_files(self:read_files(self:resolve_paths()))
+  return self.processed
 end
 
 ---Add rules to the chat based on the provided options (external API)
@@ -239,6 +248,60 @@ end
 function Rules.add_to_chat_from_config(chat, args)
   local rules = Rules.new(args)
   return rules:make({ chat = chat })
+end
+
+---The processed files and the files they include as messages, skipping any already in `seen`
+---@param processed CodeCompanion.Chat.Rules.ProcessedFile[]
+---@param seen table<string, boolean>
+---@return { role: string, content: string }[]
+local function make_messages(processed, seen)
+  local messages = {}
+
+  for _, processed_file in ipairs(processed) do
+    if not seen[processed_file.path] then
+      seen[processed_file.path] = true
+      if processed_file.system_prompt and processed_file.system_prompt ~= "" then
+        table.insert(messages, { role = config.constants.SYSTEM_ROLE, content = processed_file.system_prompt })
+      end
+      table.insert(messages, {
+        role = config.constants.USER_ROLE,
+        content = fmt("Sharing `%s`:\n\n---\n%s\n---", processed_file.path, processed_file.content),
+      })
+    end
+
+    for _, included in ipairs(processed_file.meta and processed_file.meta.included_files or {}) do
+      local path = helpers.resolve_included_path(included)
+      local relative_path = path and vim.fn.fnamemodify(path, ":.")
+      if relative_path and not seen[relative_path] then
+        seen[relative_path] = true
+        local ok, formatted = pcall(chat_helpers.format_file_for_llm, path)
+        if ok then
+          table.insert(messages, { role = config.constants.USER_ROLE, content = formatted.content })
+        end
+      end
+    end
+  end
+
+  return messages
+end
+
+---The rules files in the named groups, and the files they include, as messages
+---@param autoload string|string[]|fun(): string|string[]
+---@return { role: string, content: string }[]
+function Rules.get_messages(autoload)
+  local messages, seen = {}, {}
+
+  for _, name in ipairs(helpers.get_group_names(autoload) or {}) do
+    local group = config.rules[name]
+    if group then
+      local rules = Rules.new({ name = name, opts = group.opts, parser = group.parser, files = group.files })
+      vim.list_extend(messages, make_messages(rules:process(), seen))
+    else
+      log:warn("[Rules] Could not find `%s` rules", name)
+    end
+  end
+
+  return messages
 end
 
 return Rules

@@ -40,7 +40,8 @@ T["Inline"] = new_set({
               table.insert(_G.requests, payload)
               local response = table.remove(_G.responses, 1)
               vim.schedule(function()
-                opts.on_done(response)
+                opts.on_chunk(response)
+                opts.on_done(nil)
               end)
               return { cancel = function() end }
             end,
@@ -71,6 +72,16 @@ T["Inline"] = new_set({
           return require("codecompanion.interactions.inline").new({
             buffer_context = vim.tbl_extend("force", { winnr = 0, bufnr = 0, filetype = "lua" }, buffer_context),
           })
+        end
+
+        ---@param text string
+        ---@return number|nil index of the first sent message containing the text
+        function _G.find_sent_message(text)
+          for index, message in ipairs(_G.requests[1].messages) do
+            if type(message.content) == "string" and message.content:find(text, 1, true) then
+              return index
+            end
+          end
         end
 
         function _G.wait_for_requests()
@@ -209,7 +220,7 @@ T["Inline"]["shares the lines around the cursor when the buffer is OUTSIDE the l
     _G.wait_for_requests()
   ]])
 
-  local shared = child.lua_get([[_G.requests[1].messages[2].content]])
+  local shared = child.lua_get([[_G.requests[1].messages[_G.find_sent_message("This is lines ")].content]])
   h.expect_starts_with("This is lines ", shared)
   h.expect_contains("local variable_50 = 50", shared)
   h.eq(nil, shared:find("local variable_1 = 1\n", 1, true))
@@ -231,6 +242,60 @@ T["Inline"]["retries a failed edit once, sending the error back"] = function()
   h.eq({ "local a = 10" }, child.lua_get([[vim.api.nvim_buf_get_lines(0, 0, -1, false)]]))
 end
 
+T["Inline"]["sends the autoloaded rules before the buffer"] = function()
+  child.lua([[
+    vim.api.nvim_buf_set_lines(0, 0, -1, false, { "local a = 1" })
+    table.insert(_G.responses, { content = "Okay" })
+
+    _G.new_inline({ start_line = 1, end_line = 1, start_col = 0, end_col = 0 }):prompt("Hello")
+    _G.wait_for_requests()
+    _G.positions = {
+      rules = _G.find_sent_message("This is the test CLAUDE.md"),
+      buffer = _G.find_sent_message("This is the whole buffer"),
+    }
+  ]])
+
+  local positions = child.lua_get([[_G.positions]])
+  h.eq(true, positions.rules < positions.buffer)
+end
+
+T["Inline"]["sends a file that is both listed and included by a rules file once"] = function()
+  child.lua([[
+    local agents_md = vim.fs.joinpath(vim.fn.tempname(), "AGENTS.md")
+    vim.fn.mkdir(vim.fs.dirname(agents_md), "p")
+    vim.fn.writefile({ "# Agents", "", "@tests/stubs/rules/.rules" }, agents_md)
+    require("codecompanion.config").rules.default = {
+      files = { { path = agents_md, parser = "claude" }, "tests/stubs/rules/.rules" },
+    }
+    table.insert(_G.responses, { content = "Okay" })
+
+    _G.new_inline({ start_line = 1, end_line = 1, start_col = 0, end_col = 0 }):prompt("Hello")
+    _G.wait_for_requests()
+    _G.count = 0
+    for _, message in ipairs(_G.requests[1].messages) do
+      if message.content:find("This is a test .rules file", 1, true) then
+        _G.count = _G.count + 1
+      end
+    end
+  ]])
+
+  h.eq(1, child.lua_get([[_G.count]]))
+end
+
+T["Inline"]["sends the full instructions of an autoloaded skill"] = function()
+  child.lua([[
+    local config = require("codecompanion.config")
+    config.skills.dirs = { "tests/stubs/skills/project" }
+    config.skills.opts.inline.autoload = { "house-style" }
+    table.insert(_G.responses, { content = "Okay" })
+
+    _G.new_inline({ start_line = 1, end_line = 1, start_col = 0, end_col = 0 }):prompt("Hello")
+    _G.wait_for_requests()
+  ]])
+
+  h.eq(true, child.lua_get([[_G.find_sent_message("The project's own take.") ~= nil]]))
+end
+
 T["Inline"]["ACP"] = new_set({
   hooks = {
     pre_case = function()
@@ -238,6 +303,12 @@ T["Inline"]["ACP"] = new_set({
         local connection = require("tests.mocks.acp").new({ adapter = require("codecompanion.adapters").resolve("test_acp") })
         require("codecompanion.acp").new = function()
           return connection
+        end
+
+        local session_prompt = connection.session_prompt
+        connection.session_prompt = function(self, messages)
+          _G.sent_prompt = messages[1].content
+          return session_prompt(self, messages)
         end
 
         ---@return table handlers, string copy_path
@@ -275,6 +346,31 @@ T["Inline"]["ACP"]["edits the agent makes to the copy reach the buffer"] = funct
   ]])
 
   h.eq({ "local a = 10", "local b = 2" }, child.lua_get([[vim.api.nvim_buf_get_lines(0, 0, -1, false)]]))
+end
+
+T["Inline"]["ACP"]["tells the agent to edit the copy"] = function()
+  child.lua([[
+    vim.api.nvim_buf_set_lines(0, 0, -1, false, { "local a = 1" })
+    local _, copy_path = _G.prompt_agent()
+    _G.copy_path = copy_path
+  ]])
+
+  h.eq(true, child.lua_get([[_G.sent_prompt:find("Make changes by editing `" .. _G.copy_path .. "`", 1, true) ~= nil]]))
+end
+
+T["Inline"]["ACP"]["DOES NOT send rules to the agent"] = function()
+  child.lua([[
+    vim.api.nvim_buf_set_lines(0, 0, -1, false, { "local a = 1" })
+    _G.prompt_agent()
+  ]])
+
+  h.eq(
+    { has_buffer = true, has_rules = false },
+    child.lua_get([[{
+      has_buffer = _G.sent_prompt:find("local a = 1", 1, true) ~= nil,
+      has_rules = _G.sent_prompt:find("This is the test CLAUDE.md", 1, true) ~= nil,
+    }]])
+  )
 end
 
 T["Inline"]["ACP"]["DOES NOT allow the agent to edit any file but the copy"] = function()

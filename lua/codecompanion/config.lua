@@ -1306,6 +1306,11 @@ The user is working on a %s machine. Please respond with system specific command
         ---The default parameters to use when loading buffer rules
         default_params = "diff", -- all|diff
       },
+      inline = {
+        ---The rule groups to send with every inline prompt to an HTTP adapter
+        ---@type string|string[]|fun(): string|string[]
+        autoload = "default",
+      },
 
       show_presets = true, -- Show the preset rules files?
     },
@@ -1325,6 +1330,11 @@ The user is working on a %s machine. Please respond with system specific command
         enabled = true, -- When false, skills are unavailable and their slash commands are hidden
 
         ---Group or skill names to add to every chat
+        ---@type string[]|fun(): string[]
+        autoload = {},
+      },
+      inline = {
+        ---Group or skill names whose full instructions go with every inline prompt to an HTTP adapter
         ---@type string[]|fun(): string[]
         autoload = {},
       },

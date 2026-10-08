@@ -131,6 +131,41 @@ require("codecompanion").setup({
 
 If the model's input limit minus 3,000 is smaller, that's used instead, leaving room for the prompt and the reply.
 
+## Rules and Skills
+
+Edits should follow your project's conventions, so the inline interaction sends your [rules](/configuration/rules) with every prompt. By default that's the `default` group, which includes `AGENTS.md` and `CLAUDE.md`. To choose the groups:
+
+```lua
+require("codecompanion").setup({
+  rules = {
+    opts = {
+      inline = {
+        autoload = { "default", "my_project_rules" }, -- Can be a string, a list or a function returning either
+      },
+    },
+  },
+})
+```
+
+Set `autoload = {}` to send no rules. Rules sent this way don't count towards the [context limit](#context-limit).
+
+[Skills](/configuration/skills) aren't sent by default. Inline makes a single request with no time to read a skill when it needs one, so the full instructions of each skill you name go with every prompt:
+
+```lua
+require("codecompanion").setup({
+  skills = {
+    opts = {
+      inline = {
+        autoload = { "lua-developer" },
+      },
+    },
+  },
+})
+```
+
+> [!NOTE]
+> Rules and skills are only sent to HTTP adapters. An ACP agent loads its own
+
 ## Diff
 
 Please see the [Diff section](chat-buffer#diff) on the Chat Buffer page for configuration options.

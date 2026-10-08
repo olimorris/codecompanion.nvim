@@ -5,8 +5,8 @@
 ---@field on_done fun(result: CodeCompanion.Inline.Result)
 ---@field retries number How many times a failed edit has been sent back to the LLM
 ---@field stopped? boolean
----@field streaming? boolean The adapter's stream setting before inline turned it off
 
+local Rules = require("codecompanion.interactions.shared.rules")
 local adapters = require("codecompanion.adapters")
 local client = require("codecompanion.http")
 local config = require("codecompanion.config")
@@ -14,6 +14,7 @@ local inline_prompt = require("codecompanion.interactions.inline.prompt")
 local inline_utils = require("codecompanion.interactions.inline.utils")
 local log = require("codecompanion.utils.log")
 local replace = require("codecompanion.interactions.chat.tools.builtin.edit_file.replace")
+local skills = require("codecompanion.skills")
 
 local fmt = string.format
 
@@ -37,39 +38,50 @@ function HTTP.new(args)
   }, { __index = HTTP })
 end
 
----Send the messages with the inline `edit_file` tool, calling `on_done` once the edits are applied
+---Send the messages with the system prompt, rules, skills and the `edit_file` tool, applying the edits
 ---@param messages table
 ---@param opts { on_done: fun(result: CodeCompanion.Inline.Result) }
 ---@return nil
 function HTTP:submit(messages, opts)
   self.on_done = opts.on_done
-  self.streaming = self.adapter.opts.stream
-  self.adapter.opts.stream = false
 
-  table.insert(messages, 1, {
-    role = config.constants.SYSTEM_ROLE,
-    content = inline_prompt.build({
-      filetype = self.inline.buffer_context.filetype,
-      edit_rule = CONSTANTS.EDIT_RULE,
-    }),
-    _meta = { tag = "system_tag" },
-    opts = { visible = false },
-  })
-  self:send(messages)
+  local preamble = {
+    {
+      role = config.constants.SYSTEM_ROLE,
+      content = inline_prompt.build({
+        filetype = self.inline.buffer_context.filetype,
+        edit_rule = CONSTANTS.EDIT_RULE,
+      }),
+      _meta = { tag = "system_tag" },
+      opts = { visible = false },
+    },
+  }
+  vim.list_extend(preamble, Rules.get_messages(config.rules.opts.inline.autoload))
+  vim.list_extend(preamble, skills.get_messages(config.skills.opts.inline.autoload))
+  self:send(vim.list_extend(preamble, messages))
 end
 
 ---@param messages table
 ---@return nil
 function HTTP:send(messages)
   local adapter = self.adapter
+  local response = { content = "", reasoning = {}, tool_calls = {} }
+
   self.current_request = client.new({ adapter = adapter:map_schema_to_params() }):send(
     { messages = adapter:map_roles(vim.deepcopy(messages)), tools = { { edit_file = inline_utils.get_tool_schema() } } },
     {
+      on_chunk = function(data)
+        self:parse_chunk(data, response)
+      end,
       on_done = function(data)
         if self.stopped then
           return
         end
-        self:done({ messages = messages, response = self:parse_response(data) })
+        if data then
+          self:parse_chunk(data, response)
+        end
+        response.content = vim.trim(response.content)
+        self:done({ messages = messages, response = response })
       end,
       on_error = function(err)
         -- Cancelling the request makes curl report an error
@@ -92,41 +104,37 @@ function HTTP:stop()
     self.current_request.cancel()
     adapters.call_handler(self.adapter, "on_exit")
   end
-  self:restore_stream()
-end
-
----@return nil
-function HTTP:restore_stream()
-  self.adapter.opts.stream = self.streaming
   self.current_request = nil
 end
 
 ---@param result CodeCompanion.Inline.Result
 ---@return nil
 function HTTP:finish(result)
-  self:restore_stream()
+  self.current_request = nil
   self.on_done(result)
 end
 
+---Add a streamed chunk, or the whole non-streamed response, to the response
 ---@param data table
----@return { content: string, reasoning: table, tool_calls: table, error?: string }
-function HTTP:parse_response(data)
-  local response = { content = "", reasoning = {}, tool_calls = {} }
-
+---@param response { content: string, reasoning: table, tool_calls: table, error?: string }
+---@return nil
+function HTTP:parse_chunk(data, response)
   local result = adapters.call_handler(self.adapter, "parse_chat", { data = data, tools = response.tool_calls })
   if result and result.extra and adapters.get_handler(self.adapter, "parse_meta") then
     result = adapters.call_handler(self.adapter, "parse_meta", { data = result })
   end
-  if not result or result.status ~= CONSTANTS.STATUS_SUCCESS then
-    response.error = result and result.output or "No response from the LLM"
-    return response
+  if not result then
+    return
+  end
+  if result.status ~= CONSTANTS.STATUS_SUCCESS then
+    response.error = response.error or result.output
+    return
   end
 
-  response.content = vim.trim(result.output.content or "")
+  response.content = response.content .. (result.output.content or "")
   if result.output.reasoning then
     table.insert(response.reasoning, result.output.reasoning)
   end
-  return response
 end
 
 ---Apply each tool call, in order, to the editable lines

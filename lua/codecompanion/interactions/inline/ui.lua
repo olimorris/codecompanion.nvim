@@ -51,7 +51,7 @@ end
 ---@param opts { on_done: fun() }
 ---@return nil
 local function select_acp_model(inline, opts)
-  local inline_acp = require("codecompanion.interactions.inline.acp")
+  local inline_acp = require("codecompanion.interactions.inline.adapters.acp")
   local args = { adapter = inline.adapter, bufnr = inline.bufnr }
 
   async.sync(function()

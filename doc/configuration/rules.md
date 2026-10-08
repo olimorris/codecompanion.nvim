@@ -250,6 +250,8 @@ require("codecompanion").setup({
 
 :::
 
+The inline interaction has its own `autoload`, covered in [Configuring the Inline Interaction](/configuration/inline#rules-and-skills).
+
 #### Rules in Prompt Library Prompts
 
 By default, prompt library prompts will never autoload rule groups. A prompt only gets rules if it names them itself, via its own rules field.

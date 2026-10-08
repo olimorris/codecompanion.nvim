@@ -221,4 +221,30 @@ function M.autoload(chat, names)
   M.add_to_chat(chat, M.resolve(names))
 end
 
+---The full instructions of the named skills and groups, as messages
+---@param names string[]|fun(): string[]
+---@return { role: string, content: string }[]
+function M.get_messages(names)
+  if type(names) == "function" then
+    names = names()
+  end
+  if not names or vim.tbl_isempty(names) then
+    return {}
+  end
+
+  return vim
+    .iter(M.resolve(names))
+    :map(function(skill)
+      local ok, content = pcall(files.read, skill.path)
+      if not ok then
+        return log:error("[Skills] Could not read the `%s` skill: %s", skill.name, content)
+      end
+      return {
+        role = config.constants.USER_ROLE,
+        content = fmt("Follow the `%s` skill:\n\n---\n%s\n---", skill.name, content),
+      }
+    end)
+    :totable()
+end
+
 return M

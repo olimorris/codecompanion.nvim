@@ -1,4 +1,4 @@
-*codecompanion.txt*         For NVIM v0.11        Last change: 2026 October 06
+*codecompanion.txt*         For NVIM v0.11        Last change: 2026 October 07
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -7773,6 +7773,48 @@ If the model's input limit minus 3,000 is smaller, that's used instead, leaving
 room for the prompt and the reply.
 
 
+RULES AND SKILLS ~
+
+Edits should follow your project's conventions, so the inline interaction sends
+your |codecompanion-configuration-rules| with every prompt. By default that's
+the `default` group, which includes `AGENTS.md` and `CLAUDE.md`. To choose the
+groups:
+
+>lua
+    require("codecompanion").setup({
+      rules = {
+        opts = {
+          inline = {
+            autoload = { "default", "my_project_rules" }, -- Can be a string, a list or a function returning either
+          },
+        },
+      },
+    })
+<
+
+Set `autoload = {}` to send no rules. Rules sent this way don't count towards
+the |codecompanion--context-limit|.
+
+|codecompanion-configuration-skills| aren't sent by default. Inline makes a
+single request with no time to read a skill when it needs one, so the full
+instructions of each skill you name go with every prompt:
+
+>lua
+    require("codecompanion").setup({
+      skills = {
+        opts = {
+          inline = {
+            autoload = { "lua-developer" },
+          },
+        },
+      },
+    })
+<
+
+
+  [!NOTE] Rules and skills are only sent to HTTP adapters. An ACP agent loads its
+  own
+
 DIFF ~
 
 Please see the |codecompanion-chat-buffer-diff| on the Chat Buffer page for
@@ -8140,6 +8182,9 @@ buffers. This is useful for ensuring that your preferred rules are always
 available.
 
 
+The inline interaction has its own `autoload`, covered in
+|codecompanion-configuration-inline-rules-and-skills|.
+
 
 RULES IN PROMPT LIBRARY PROMPTS
 
@@ -8271,6 +8316,9 @@ AUTOLOAD ~
 Skills and groups can be autoloaded into the chat buffer on startup. This is
 configured with:
 
+
+The inline interaction has its own `autoload`, covered in
+|codecompanion-configuration-inline-rules-and-skills|.
 
 
 CREATING SKILLS ~
@@ -11896,6 +11944,7 @@ asking the LLM where to place a block of code. See
 - The adapter's model must support tool calling. Inline prompts sent with an adapter that doesn't, such as `xai`, are refused with an error
 - The current buffer is always shared with the LLM, up to a |codecompanion-configuration-inline-context-limit|, so the inline `#{buffer}` editor context has been removed. Delete it from your inline prompts
 - With a visual selection, the LLM can only edit the selected lines
+- Your `default` rules group, including `AGENTS.md` and `CLAUDE.md`, is sent with every inline prompt to an HTTP adapter, on top of the context limit. Set `rules.opts.inline.autoload = {}` to stop it. See |codecompanion-configuration-inline-rules-and-skills|
 - The `placement` prompt library option has been removed, along with the option to write code into a new buffer. Inline prompts that set `placement` can delete it
 - `pre_hook` no longer runs for inline prompts
 - A reply that doesn't edit the buffer, such as an answer to a question, opens in a float rather than a chat buffer

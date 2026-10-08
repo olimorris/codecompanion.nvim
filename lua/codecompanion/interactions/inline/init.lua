@@ -32,12 +32,12 @@ The Inline Interaction - This is where code is applied directly to a Neovim buff
 ---@field reply? string The LLM's text reply, when it made no edits
 ---@field error? string
 
-local acp = require("codecompanion.interactions.inline.acp")
+local acp = require("codecompanion.interactions.inline.adapters.acp")
 local adapter_utils = require("codecompanion.adapters.utils")
 local adapters = require("codecompanion.adapters")
 local config = require("codecompanion.config")
 local editor_context = require("codecompanion.interactions.inline.editor_context")
-local http = require("codecompanion.interactions.inline.http")
+local http = require("codecompanion.interactions.inline.adapters.http")
 local inline_utils = require("codecompanion.interactions.inline.utils")
 local keymaps = require("codecompanion.utils.keymaps")
 local log = require("codecompanion.utils.log")

@@ -113,7 +113,9 @@ function ACP:submit(messages, opts)
     end
 
     self.prompt = connection
-      :session_prompt({ { role = config.constants.USER_ROLE, content = self:make_prompt(messages), _meta = {} } })
+      :session_prompt({
+        { role = config.constants.USER_ROLE, content = self:make_prompt(messages), _meta = {} },
+      })
       :on_message_chunk(function(text)
         table.insert(self.reply, text)
       end)
