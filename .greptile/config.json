@@ -14,7 +14,7 @@
       "scope": [
         "**/*.lua"
       ],
-      "severity": "medium"
+      "severity": "low"
     },
     {
       "id": "multi-line-rationale",
@@ -74,7 +74,7 @@
     },
     {
       "id": "table-argument",
-      "rule": "Functions take an `opts` table rather than a list of positional parameters. Default to `opts` alone. A leading positional is earned, not assumed: it must be the single subject the function acts on and stable enough that it will never be replaced or joined by a sibling (Chat:add_message(data, opts), Client:send(payload, opts), markdown.form_codeblock(content, opts)). Flag any new or modified function declaring more than one positional parameter, or declaring one that is not such a subject, and suggest the `opts` signature. An optional table is normalised on the first line with `opts = opts or {}`, or `vim.tbl_extend(\"force\", opts or {}, { ... })` when defaults are layered over it - flag an `opts` parameter that is read without being normalised. The shape is annotated inline on the @param, for example `---@param opts? { auto_submit?: boolean }`.",
+      "rule": "Functions take an `opts` table rather than a list of positional parameters. Default to `opts` alone. A leading positional is earned, not assumed: it must be the single subject the function acts on and stable enough that it will never be replaced or joined by a sibling (Chat:add_message(data, opts), Client:send(payload, opts), markdown.form_codeblock(content, opts)). Flag any new or modified function declaring more than one positional parameter, or declaring one that is not such a subject, and suggest the `opts` signature. An optional table is normalised on the first line with `opts = opts or {}`, or `vim.tbl_extend(\"force\", opts or {}, { ... })` when defaults are layered over it - flag an `opts` parameter that is read without being normalised. The shape is annotated inline on the @param, for example `---@param opts? { auto_submit?: boolean }`. Do not flag a function whose signature is fixed by its caller rather than by us: table.sort comparators, autocmd and keymap callbacks, vim.fs.dir's skip predicate, metamethods, and handlers passed to Neovim or libuv APIs.",
       "scope": [
         "lua/**/*.lua"
       ],
@@ -113,6 +113,22 @@
       "severity": "high"
     },
     {
+      "id": "adapter-model-access",
+      "rule": "Never read or assign `adapter.schema.model.default` directly - on Ollama and any `openai_compatible` adapter it holds a function. Read the model with `adapter_utils.model(adapter)`, or `adapter_utils.resolve_model(adapter)` where the HTTP round-trip it may cost is acceptable. Change it with `adapters.set_model({ adapter = adapter, model = ... })` or `adapters.resolve(name, { model = ... })`. An adapter reading its own `self.schema.model.default` inside its own definition file is fine.",
+      "scope": [
+        "lua/**/*.lua"
+      ],
+      "severity": "high"
+    },
+    {
+      "id": "docs-regenerated",
+      "rule": "The vimdoc in doc/codecompanion.txt is generated from the markdown pages with `make docs`. Flag a PR that changes any doc/**/*.md page without also changing doc/codecompanion.txt.",
+      "scope": [
+        "doc/**/*.md"
+      ],
+      "severity": "medium"
+    },
+    {
       "id": "test-file-location",
       "rule": "Test files mirror the source tree and are named test_<module>.lua: lua/codecompanion/interactions/chat/parser.lua is tested by tests/interactions/chat/test_parser.lua. Flag a new test file that adds a descriptive suffix for a subset of a module's behaviour (for example test_parser_resilience.lua) - those cases belong in the module's existing test file.",
       "scope": [
@@ -122,7 +138,7 @@
     },
     {
       "id": "test-naming",
-      "rule": "Test case names follow T[\"<Subject>\"][\"<what it does>\"], where Subject is the capitalised module or feature (\"Chat\", \"Context\", \"Keymaps\", \"Parser\") and the case name is a short behavioural phrase completing 'it ...' - for example \"can load default tools\", \"system prompt is added first\", \"Cannot be added twice with the same id\". Flag narrative or prose-style case names such as \"an unterminated fence does not eat the next prompt\" and suggest a name matching the existing suite.",
+      "rule": "Test case names follow T[\"<Subject>\"][\"<what it does>\"], where Subject is the capitalised module or feature (\"Chat\", \"Context\", \"Keymaps\", \"Parser\") and the case name is a short behavioural phrase completing 'it ...' - for example \"can load default tools\", \"system prompt is added first\", \"Cannot be added twice with the same id\". Flag narrative or prose-style case names such as \"an unterminated fence does not eat the next prompt\" and suggest a name matching the existing suite. A pair of cases that pins down both sides of a behaviour may capitalise the contrasting words so they read as a pair - \"DOES NOT truncate a tool that is INSIDE the limit\" / \"truncates a tool that is OUTSIDE the limit\". This is expected, not a deviation from the suite.",
       "scope": [
         "tests/**/*.lua"
       ],

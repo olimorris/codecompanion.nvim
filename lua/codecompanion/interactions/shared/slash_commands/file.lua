@@ -39,7 +39,7 @@ end
 local function scan_dirs(dirs)
   local files = {}
   for _, dir in ipairs(dirs) do
-    vim.list_extend(files, files_utils.scan_directory(dir, { max_depth = 10 }))
+    vim.list_extend(files, files_utils.scan_dir(dir, { max_depth = 10 }))
   end
 
   return files

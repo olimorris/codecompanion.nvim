@@ -319,4 +319,28 @@ T["Files utils"]["match_patterns"]["mixes literal and glob patterns"] = function
   h.eq(false, files.match_patterns("other.txt", patterns))
 end
 
+T["Files utils"]["scan_dir"] = new_set({
+  hooks = {
+    pre_case = function()
+      local target = vim.fs.joinpath(test_dir, "target")
+      vim.fn.mkdir(target, "p")
+      vim.fn.writefile({}, vim.fs.joinpath(target, "SKILL.md"))
+      vim.fn.mkdir(vim.fs.joinpath(test_dir, "root"), "p")
+      vim.uv.fs_symlink(target, vim.fs.joinpath(test_dir, "root", "linked"))
+    end,
+  },
+})
+
+T["Files utils"]["scan_dir"]["DOES NOT walk a symlinked directory by default"] = function()
+  local found = files.scan_dir(vim.fs.joinpath(test_dir, "root"), { patterns = "SKILL.md" })
+
+  h.eq({}, found)
+end
+
+T["Files utils"]["scan_dir"]["walks a symlinked directory with `follow`"] = function()
+  local found = files.scan_dir(vim.fs.joinpath(test_dir, "root"), { patterns = "SKILL.md", follow = true })
+
+  h.eq({ vim.fs.joinpath(test_dir, "root", "linked", "SKILL.md") }, found)
+end
+
 return T

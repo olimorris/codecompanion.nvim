@@ -117,6 +117,8 @@ Positional parameters don't scale. Adding one means touching the signature, ever
 
 If you are weighing whether an argument qualifies, it doesn't. Put it in `opts`.
 
+The exception is a function whose signature its caller fixes: a `table.sort` comparator, an autocmd or keymap callback, a metamethod, a handler passed to a Neovim or libuv API.
+
 ```lua
 -- ❌ Three positionals, and a fourth means editing every caller
 function add_header(name, start_from, contents)
@@ -175,6 +177,13 @@ T["Context"]["Cannot be added twice with the same id"] = function()
 -- ❌ Narrative prose that reads nothing like its neighbours
 T["Parser"]["an unterminated fence does not eat the next prompt"] = function()
 T["Parser"]["a balanced response leaves the prompt extractable"] = function()
+```
+
+When a pair of cases pins down both sides of a behaviour, capitalise the contrasting words so they read as a pair:
+
+```lua
+T["Tools"]["DOES NOT truncate a tool that is INSIDE the limit"] = function()
+T["Tools"]["truncates a tool that is OUTSIDE the limit"] = function()
 ```
 
 **Test what the change actually does.** Comprehensive-looking tests that never exercise the edge case are worse than no tests. Don't test a schema mirroring itself, and don't test that a shared utility passes its errors through.
