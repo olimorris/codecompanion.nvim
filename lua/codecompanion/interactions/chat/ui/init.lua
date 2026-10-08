@@ -684,7 +684,7 @@ function UI:move_cursor(was_following)
   end
   self.follow_move_pending = true
 
-  -- One move per event-loop drain: each move is costly in a markdown buffer (neovim/neovim#39699)
+  -- Only move the cursor once per event-loop drain to improve performance
   vim.schedule(function()
     self.follow_move_pending = false
     if not self:is_visible() then
