@@ -42,6 +42,9 @@ return {
     ---@param self CodeCompanion.ACPAdapter
     ---@return boolean
     setup = function(self)
+      if self.env_replaced.CLAUDE_CODE_OAUTH_TOKEN == "CLAUDE_CODE_OAUTH_TOKEN" then
+        self.env_replaced.CLAUDE_CODE_OAUTH_TOKEN = nil
+      end
       return true
     end,
 
