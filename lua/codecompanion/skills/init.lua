@@ -67,7 +67,7 @@ function M.list()
     return {}
   end
 
-  -- One more level than `depth`, as `vim.fs.dir` counts the SKILL.md itself as a level
+  -- `vim.fs.dir` counts the SKILL.md itself as a level so add one
   local search_opts = { depth = config.skills.opts.depth + 1, follow = true, skip = is_visible_dir }
 
   -- Later dirs take precedence, so a project skill overrides a personal one of the same name

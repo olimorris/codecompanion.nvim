@@ -68,10 +68,12 @@ T["Skills"]["discovers a skill INSIDE the depth limit and NOT one outside it or 
   h.expect_match(skills[1].path, "tests/stubs/skills/nested/a/b/c/d/within%-limit/SKILL%.md$")
 end
 
-T["Skills"]["DOES NOT discover a skill OUTSIDE a configured depth"] = function()
-  local skills = list_skills({ "tests/stubs/skills/nested" }, { depth = 4 })
+T["Skills"]["a configured depth discovers a skill OUTSIDE the default limit"] = function()
+  local skills = list_skills({ "tests/stubs/skills/nested" }, { depth = 6 })
 
-  h.eq(0, #skills)
+  h.eq(2, #skills)
+  h.eq("outside-limit", skills[1].name)
+  h.eq("within-limit", skills[2].name)
 end
 
 T["Skills"]["keeps discovering when a configured dir doesn't exist"] = function()

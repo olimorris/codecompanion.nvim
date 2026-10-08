@@ -78,7 +78,7 @@ local function capture_warnings()
 - `snake_case` for files, functions, locals, and table keys
 - `PascalCase` for classes and LuaCATS type names
 - `SCREAMING_SNAKE_CASE` only for module-level constant tables and values, never for a local inside a function
-- `_leading_underscore` for private functions
+- `_leading_underscore` for internal functions on a module or class table (`M._diff`, `Chat:_submit_http`). A `local function` is already private, so it takes no underscore
 
 **Names must be explicit and domain-specific.** Write `pattern` not `pat`, `should_include` not `include_ok`. Avoid generic placeholder names like `ctx`, `data`, `obj`, `tmp`, `res` - reach for the domain word instead: `permission`, `request`, `source`, `adapter`, `chat`.
 

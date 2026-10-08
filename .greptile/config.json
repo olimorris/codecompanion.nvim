@@ -42,7 +42,7 @@
     },
     {
       "id": "naming-case",
-      "rule": "Naming conventions: snake_case for files, functions, locals and table keys; PascalCase for classes and LuaCATS type names; a leading underscore for private functions; SCREAMING_SNAKE_CASE only for module-level constants, never for a local declared inside a function.",
+      "rule": "Naming conventions: snake_case for files, functions, locals and table keys; PascalCase for classes and LuaCATS type names; a leading underscore for internal functions on a module or class table (`M._diff`, `Chat:_submit_http`), but never on a `local function`, which is already private; SCREAMING_SNAKE_CASE only for module-level constants, never for a local declared inside a function.",
       "scope": [
         "**/*.lua"
       ],
