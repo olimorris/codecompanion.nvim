@@ -26,9 +26,15 @@ local CONSTANTS = {
   EDIT_RULE = "Make changes by editing `%s`, which holds the buffer. Never edit any other file, nor run commands",
 }
 
+local _connecting ---@type CodeCompanion.ACPAdapter|nil
 local _connection
 local _running
 local _sessions = {}
+
+---@return CodeCompanion.ACPAdapter|nil
+local function get_busy_adapter()
+  return _connecting or (_running and _running.adapter)
+end
 
 ---Connect to the agent, replacing a connection to a different agent
 ---@param adapter CodeCompanion.ACPAdapter
@@ -56,7 +62,7 @@ end
 ---Connect and switch to the buffer's own session, creating one the first time
 ---@param opts { adapter: CodeCompanion.ACPAdapter, bufnr: number }
 ---@return CodeCompanion.ACP.Connection|nil
-local function connect_to_buffer_session(opts)
+local function open_buffer_session(opts)
   local connection = connect(opts.adapter)
   if not connection then
     return nil
@@ -84,13 +90,25 @@ local function connect_to_buffer_session(opts)
   return connection
 end
 
----Connect to the buffer's session, unless a prompt is running
+---Open the buffer's session, holding the connection until it's ready
+---@param opts { adapter: CodeCompanion.ACPAdapter, bufnr: number }
+---@return CodeCompanion.ACP.Connection|nil
+local function connect_to_buffer_session(opts)
+  -- A second buffer arriving mid-setup would share the session being created
+  _connecting = opts.adapter
+  local connection = open_buffer_session(opts)
+  _connecting = nil
+  return connection
+end
+
+---Connect to the buffer's session, unless a prompt or another session's setup is running
 ---@param opts { adapter: CodeCompanion.ACPAdapter, bufnr: number }
 ---@return CodeCompanion.ACP.Connection|nil
 local function connect_when_idle(opts)
   -- Switching sessions mid-prompt would leave the agent's replies with nowhere to go
-  if _running then
-    return log:warn("[Inline] %s is still working on an inline prompt", _running.adapter.formatted_name)
+  local busy = get_busy_adapter()
+  if busy then
+    return log:warn("[Inline] %s is still working on an inline prompt", busy.formatted_name)
   end
   return connect_to_buffer_session(opts)
 end
@@ -115,8 +133,9 @@ end
 function ACP:submit(messages, opts)
   self.on_done = opts.on_done
 
-  if _running then
-    return self.on_done({ error = fmt("%s is still working on another inline prompt", _running.adapter.formatted_name) })
+  local busy = get_busy_adapter()
+  if busy then
+    return self.on_done({ error = fmt("%s is still working on another inline prompt", busy.formatted_name) })
   end
   _running = self
 

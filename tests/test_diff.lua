@@ -457,6 +457,35 @@ T["Diff"]["Hunks"]["undoing takes back the last hunk decision"] = function()
   h.eq(result.drawn, result.lines)
 end
 
+T["Diff"]["Hunks"]["DOES NOT resolve a hunk while the buffer holds the user's edits"] = function()
+  local result = child.lua([[
+    local diff_ui = _G.show_inline_diff(_G.from_lines, _G.to_lines)
+    vim.api.nvim_buf_set_lines(diff_ui.bufnr, -2, -1, false, { "edited" })
+    local edited = vim.api.nvim_buf_get_lines(diff_ui.bufnr, 0, -1, false)
+    diff_ui:resolve_hunk(1, { accept = true })
+    return { edited = edited, lines = vim.api.nvim_buf_get_lines(diff_ui.bufnr, 0, -1, false), hunks = diff_ui.hunks }
+  ]])
+
+  h.eq(result.edited, result.lines)
+  h.eq(2, result.hunks)
+end
+
+T["Diff"]["Hunks"]["resolves a hunk once the user's edits are undone"] = function()
+  local result = child.lua([[
+    local diff_ui = _G.show_inline_diff(_G.from_lines, _G.to_lines)
+    vim.api.nvim_buf_call(diff_ui.bufnr, function()
+      vim.go.undolevels = vim.go.undolevels
+      vim.api.nvim_buf_set_lines(diff_ui.bufnr, -2, -1, false, { "edited" })
+      vim.cmd("silent undo")
+    end)
+    diff_ui:resolve_hunk(1, { accept = true })
+    return { from = diff_ui.diff.from.lines, hunks = diff_ui.hunks }
+  ]])
+
+  h.eq({ "A", "b", "c" }, result.from)
+  h.eq(1, result.hunks)
+end
+
 T["Diff"]["Hunks"]["finds the hunk under the cursor"] = function()
   local index = child.lua([[
     local diff_ui = _G.show_inline_diff(_G.from_lines, _G.to_lines)

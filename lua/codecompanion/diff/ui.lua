@@ -18,6 +18,7 @@ local M = {}
 ---@field decisions { from_lines: string[], to_lines: string[], hunk: number }[] The diff before each hunk decision, for undo
 ---@field diff CC.Diff
 ---@field diff_id number
+---@field drawn_lines? string[] The buffer as the inline diff was last drawn, to spot the user's own edits
 ---@field hunk_actions? boolean Whether hunks can be accepted or rejected one at a time
 ---@field hunks number The total number of hunks in the diff
 ---@field inline? boolean Whether the diff is shown inline or in a floating window
@@ -195,7 +196,7 @@ end
 ---@return nil
 function DiffUI:resolve_hunk(index, opts)
   local hunk = self.diff.hunks[index]
-  if not hunk then
+  if not hunk or self:warn_if_edited() then
     return
   end
 
@@ -221,10 +222,26 @@ end
 ---Take back the last hunk decision
 ---@return nil
 function DiffUI:undo_hunk()
+  if self:warn_if_edited() then
+    return
+  end
   local decision = table.remove(self.decisions)
   if decision then
     self:redraw(decision)
   end
+end
+
+---Hunk decisions redraw the whole buffer, which would wipe out any edits the user has made since
+---@return boolean
+function DiffUI:warn_if_edited()
+  if vim.deep_equal(api.nvim_buf_get_lines(self.bufnr, 0, -1, false), self.drawn_lines) then
+    return false
+  end
+  utils.notify(
+    "The buffer has been edited. Undo your changes to keep reviewing hunks, or accept all to keep them",
+    vim.log.levels.WARN
+  )
+  return true
 end
 
 ---Redraw the inline diff between two sets of lines, moving to the given hunk
@@ -532,6 +549,7 @@ function DiffUI:apply_inline(diff, bufnr)
     end
     hunk.pos = { target_row, 0 }
   end
+  self.drawn_lines = api.nvim_buf_get_lines(bufnr, 0, -1, false)
 end
 
 ---Show a diff in a floating window

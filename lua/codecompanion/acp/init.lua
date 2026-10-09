@@ -55,6 +55,7 @@ local uv = vim.uv
 ---@field _loading_session boolean|nil
 ---@field _on_session_update function|nil
 ---@field _config_options table[] Raw configOptions from the agent
+---@field _session_config_options table<string, table[]> The configOptions of each session, restored when switching back to it
 ---@field _in_flight table<string, CodeCompanion.ACP.Connection.InFlight> Establishment steps currently underway
 ---@field _pending_callbacks table<number, function> Async callbacks keyed by request ID
 ---@field _rpc_log? { path: string, write: fun(data: string) } Per-connection log capturing raw JSON-RPC traffic
@@ -106,6 +107,7 @@ function Connection.new(args)
     _in_flight = {},
     _initialized = false,
     _pending_callbacks = {},
+    _session_config_options = {},
     _state = { handle = nil, id_gen = jsonrpc.IdGenerator.new(), line_buffer = jsonrpc.LineBuffer.new() },
   }, { __index = Connection }) ---@cast self CodeCompanion.ACP.Connection
 
@@ -321,6 +323,7 @@ end
 ---@return nil
 function Connection:use_session(session_id)
   self.session_id = session_id
+  self._config_options = self._session_config_options[session_id] or {}
 end
 
 ---Create or load the session, announcing it to listeners
@@ -897,6 +900,9 @@ end
 ---@param config_options table[] Array of SessionConfigOption
 function Connection:_apply_config_options(config_options)
   self._config_options = config_options
+  if self.session_id then
+    self._session_config_options[self.session_id] = config_options
+  end
 end
 
 ---Find a config option by category
