@@ -22,6 +22,7 @@ local TITLE_SCHEMA = {
 ---@param messages CodeCompanion.Chat.Messages
 function M.format_messages(messages)
   local exclude_tags = {
+    [tags.DOCUMENT] = "[Document content omitted]",
     [tags.IMAGE] = "[Image content omitted]",
     [tags.RULES] = "",
   }
