@@ -16,6 +16,7 @@ local log = require("codecompanion.utils.log")
 
 local api = vim.api
 local fmt = string.format
+
 ---@diagnostic disable-next-line: deprecated
 local diff_fn = vim.text.diff or vim.diff
 
@@ -295,13 +296,12 @@ function ACP:complete(stop_reason)
 end
 
 ---The line changes between the buffer and the copy, splitting a hunk that swaps lines one for one
----@param original string[]
----@param lines string[]
+---@param opts { from: string[], to: string[] }
 ---@return number[][]
-local function get_hunks(original, lines)
+local function get_hunks(opts)
   local hunks = {}
   for _, hunk in
-    ipairs(diff_fn(table.concat(original, "\n") .. "\n", table.concat(lines, "\n") .. "\n", diff.LINE_OPTS))
+    ipairs(diff_fn(table.concat(opts.from, "\n") .. "\n", table.concat(opts.to, "\n") .. "\n", diff.LINE_OPTS))
   do
     local from_start, from_count, to_start, to_count = unpack(hunk)
     if from_count == to_count then
@@ -321,7 +321,7 @@ end
 function ACP:keep_editable_changes(lines)
   local original, editable = self.inline.target.lines, self.inline.target.editable
   local kept, dropped, next_line = {}, 0, 1
-  for _, hunk in ipairs(get_hunks(original, lines)) do
+  for _, hunk in ipairs(get_hunks({ from = original, to = lines })) do
     local from_start, from_count, to_start, to_count = unpack(hunk)
     -- An insertion's `from_start` is the line it follows
     local last_before = from_count == 0 and from_start or from_start - 1
