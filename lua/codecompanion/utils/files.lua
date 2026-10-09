@@ -532,6 +532,13 @@ function M.normalize_content(content)
   return (content:gsub("\r\n", "\n"):gsub("\r", "\n"))
 end
 
+---Resolve symlinks, so macOS's /var and its /private/var target compare as the same path
+---@param path string
+---@return string
+function M.get_real_path(path)
+  return vim.uv.fs_realpath(path) or vim.fs.normalize(path)
+end
+
 ---Check if a path is within the current working directory
 ---@param path string The absolute path to check
 ---@return boolean

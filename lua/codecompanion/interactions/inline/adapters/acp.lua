@@ -271,11 +271,7 @@ end
 ---@param path string
 ---@return boolean
 function ACP:is_copy(path)
-  -- macOS temp files live under /var, which agents may report through its /private/var target
-  local function resolve(file_path)
-    return vim.uv.fs_realpath(file_path) or vim.fs.normalize(file_path)
-  end
-  return resolve(path) == resolve(self.copy_path)
+  return file_utils.get_real_path(path) == file_utils.get_real_path(self.copy_path)
 end
 
 ---Hand back the edited copy, or the agent's reply if it didn't edit

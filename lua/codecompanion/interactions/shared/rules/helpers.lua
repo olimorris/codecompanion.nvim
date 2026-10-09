@@ -248,9 +248,10 @@ function M.add_files_or_buffers(included_files, chat)
 
     -- Otherwise, add it as file context
     local ok, file = pcall(chat_helpers.format_file_for_llm, path, opts)
-    if ok then
-      chat:add_context({ content = file.content }, { source = "rules", id = id, path = path })
+    if not ok then
+      return log:error("[Rules] Could not share `%s`: %s", path, file)
     end
+    chat:add_context({ content = file.content }, { source = "rules", id = id, path = path })
   end)
 end
 

@@ -24,9 +24,9 @@ local function get_model_label(model, opts)
   return model.description or model.formatted_name or model.id
 end
 
----Get list of available adapters
----@param current_adapter string The currently selected adapter
----@return table List of adapter names with current adapter first
+---Adapter names, with the current adapter first
+---@param current_adapter string
+---@return string[]
 function M.get_adapters_list(current_adapter)
   local adapters =
     vim.tbl_deep_extend("force", {}, vim.deepcopy(config.adapters.acp), vim.deepcopy(config.adapters.http))
@@ -36,7 +36,6 @@ function M.get_adapters_list(current_adapter)
   local adapters_list = vim
     .iter(adapters)
     :filter(function(adapter)
-      -- Clear out the acp and http keys
       return adapter ~= "acp"
         and adapter ~= "http"
         and adapter ~= "extend"
@@ -55,77 +54,57 @@ function M.get_adapters_list(current_adapter)
   return adapters_list
 end
 
----Get list of available models for an adapter
+---Turn a list or map of model choices into a list, giving each table an `id`
+---@param choices table
+---@return (string|table)[]
+local function list_choices(choices)
+  local models = {}
+  for key, model in pairs(choices) do
+    if type(model) == "table" and not model.id then
+      model.id = key
+    end
+    table.insert(models, model)
+  end
+  return models
+end
+
+---The adapter's models, sorted with the current model first
 ---@param adapter CodeCompanion.HTTPAdapter
----@return table|nil
+---@return (string|table)[]|nil
 function M.list_http_models(adapter)
-  local models = adapter.schema.model.choices
-
-  -- Check if we should show model choices or just the default
-  local show_choices = config.adapters
-    and config.adapters.http
-    and config.adapters.http.opts
-    and config.adapters.http.opts.show_model_choices
-
-  if not show_choices then
-    models = { adapter.schema.model.default }
-  end
-  if type(models) == "function" then
-    -- When user explicitly wants to change models, force token creation
-    models = models(adapter, { async = false })
-  end
-  if not models or vim.tbl_count(models) < 2 then
+  if not config.adapters.http.opts.show_model_choices then
     return nil
   end
 
-  local current_model_id = adapter_utils.resolve_model(adapter)
+  local choices = adapter.schema.model.choices
+  if type(choices) == "function" then
+    -- When user explicitly wants to change models, force token creation
+    choices = choices(adapter, { async = false })
+  end
+  if not choices or vim.tbl_count(choices) < 2 then
+    return nil
+  end
 
-  local current_model = nil
-
-  for _, model_str in ipairs(models) do
-    if model_str == current_model_id then
-      current_model = model_str
-      break
+  local current_id = adapter_utils.resolve_model(adapter)
+  local current, others = nil, {}
+  for _, model in ipairs(list_choices(choices)) do
+    if get_model_id(model) == current_id then
+      current = model
+    else
+      table.insert(others, model)
     end
   end
 
-  if not current_model and models[current_model_id] then
-    current_model = models[current_model_id]
-    -- If it's a table without an id, create one
-    if type(current_model) == "table" and not current_model.id then
-      current_model.id = current_model_id
-    end
-  end
-
-  local models_list = vim
-    .iter(models)
-    :map(function(key, value)
-      if type(key) == "string" and value == nil then
-        -- `models` is already a list
-        return key
-      end
-      if type(value) == "table" and not value.id then
-        value.id = key
-      end
-      return value
-    end)
-    :filter(function(model)
-      local model_id = type(model) == "table" and model.id or model
-      return model_id ~= current_model_id
-    end)
-    :totable()
-
-  table.sort(models_list, function(a, b)
-    local id_a = type(a) == "table" and (a.formatted_name or a.id) or a
-    local id_b = type(b) == "table" and (b.formatted_name or b.id) or b
-    return id_a < id_b
+  table.sort(others, function(a, b)
+    local name_a = type(a) == "table" and (a.formatted_name or a.id) or a
+    local name_b = type(b) == "table" and (b.formatted_name or b.id) or b
+    return name_a < name_b
   end)
-
-  if current_model then
-    table.insert(models_list, 1, current_model)
+  if current then
+    table.insert(others, 1, current)
   end
 
-  return models_list
+  return others
 end
 
 ---Pick an adapter, with the current one first and marked

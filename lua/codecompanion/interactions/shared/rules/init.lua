@@ -277,6 +277,8 @@ local function make_messages(processed, seen)
         local ok, formatted = pcall(chat_helpers.format_file_for_llm, path)
         if ok then
           table.insert(messages, { role = config.constants.USER_ROLE, content = formatted.content })
+        else
+          log:error("[Rules] Could not share `%s`: %s", path, formatted)
         end
       end
     end

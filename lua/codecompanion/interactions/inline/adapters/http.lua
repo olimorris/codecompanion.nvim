@@ -71,15 +71,15 @@ function HTTP:send(messages)
   self.current_request = client.new({ adapter = adapter:map_schema_to_params() }):send(
     { messages = adapter:map_roles(vim.deepcopy(messages)), tools = { { edit_file = inline_utils.get_tool_schema() } } },
     {
-      on_chunk = function(data)
-        self:parse_chunk(data, response)
+      on_chunk = function(chunk)
+        self:parse_chunk(chunk, response)
       end,
-      on_done = function(data)
+      on_done = function(chunk)
         if self.stopped then
           return
         end
-        if data then
-          self:parse_chunk(data, response)
+        if chunk then
+          self:parse_chunk(chunk, response)
         end
         response.content = vim.trim(response.content)
         self:done({ messages = messages, response = response })
@@ -116,11 +116,11 @@ function HTTP:finish(result)
 end
 
 ---Add a streamed chunk, or the whole non-streamed response, to the response
----@param data table
+---@param chunk table
 ---@param response { content: string, reasoning: table, tool_calls: table, error?: string }
 ---@return nil
-function HTTP:parse_chunk(data, response)
-  local result = adapters.call_handler(self.adapter, "parse_chat", { data = data, tools = response.tool_calls })
+function HTTP:parse_chunk(chunk, response)
+  local result = adapters.call_handler(self.adapter, "parse_chat", { data = chunk, tools = response.tool_calls })
   if result and result.extra and adapters.get_handler(self.adapter, "parse_meta") then
     result = adapters.call_handler(self.adapter, "parse_meta", { data = result })
   end
