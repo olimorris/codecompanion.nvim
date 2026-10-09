@@ -6,7 +6,7 @@
       "scope": [
         "**/*.lua"
       ],
-      "severity": "high"
+      "severity": "medium"
     },
     {
       "id": "comment-density",
@@ -22,7 +22,7 @@
       "scope": [
         "**/*.lua"
       ],
-      "severity": "high"
+      "severity": "medium"
     },
     {
       "id": "empty-annotations",
@@ -30,7 +30,7 @@
       "scope": [
         "**/*.lua"
       ],
-      "severity": "medium"
+      "severity": "low"
     },
     {
       "id": "commented-out-code",
@@ -38,7 +38,7 @@
       "scope": [
         "**/*.lua"
       ],
-      "severity": "high"
+      "severity": "medium"
     },
     {
       "id": "naming-case",
@@ -46,7 +46,7 @@
       "scope": [
         "**/*.lua"
       ],
-      "severity": "high"
+      "severity": "medium"
     },
     {
       "id": "explicit-names",
@@ -54,7 +54,7 @@
       "scope": [
         "**/*.lua"
       ],
-      "severity": "high"
+      "severity": "medium"
     },
     {
       "id": "function-names-are-verbs",
@@ -62,7 +62,7 @@
       "scope": [
         "**/*.lua"
       ],
-      "severity": "high"
+      "severity": "medium"
     },
     {
       "id": "function-length",
@@ -78,7 +78,7 @@
       "scope": [
         "lua/**/*.lua"
       ],
-      "severity": "high"
+      "severity": "medium"
     },
     {
       "id": "no-globals",
@@ -134,15 +134,15 @@
       "scope": [
         "tests/**/*.lua"
       ],
-      "severity": "high"
+      "severity": "low"
     },
     {
       "id": "test-naming",
-      "rule": "Test case names follow T[\"<Subject>\"][\"<what it does>\"], where Subject is the capitalised module or feature (\"Chat\", \"Context\", \"Keymaps\", \"Parser\") and the case name is a short behavioural phrase completing 'it ...' - for example \"can load default tools\", \"system prompt is added first\", \"Cannot be added twice with the same id\". Flag narrative or prose-style case names such as \"an unterminated fence does not eat the next prompt\" and suggest a name matching the existing suite. A pair of cases that pins down both sides of a behaviour may capitalise the contrasting words so they read as a pair - \"DOES NOT truncate a tool that is INSIDE the limit\" / \"truncates a tool that is OUTSIDE the limit\". This is expected, not a deviation from the suite.",
+      "rule": "Test case names follow T[\"<Subject>\"][\"<what it does>\"], where the case name is a short behavioural phrase completing 'it ...' - for example \"can load default tools\", \"system prompt is added first\", \"Cannot be added twice with the same id\". Flag narrative or prose-style case names such as \"an unterminated fence does not eat the next prompt\" and suggest a name matching the existing suite. Do not flag the casing or format of the Subject: \"Chat\", \"chat_make_title\" and \"accept_word()\" are all used in the suite. A pair of cases that pins down both sides of a behaviour may capitalise the contrasting words so they read as a pair - \"DOES NOT truncate a tool that is INSIDE the limit\" / \"truncates a tool that is OUTSIDE the limit\". This is expected, not a deviation from the suite.",
       "scope": [
         "tests/**/*.lua"
       ],
-      "severity": "high"
+      "severity": "low"
     },
     {
       "id": "test-substance",
@@ -158,7 +158,7 @@
       "scope": [
         "tests/**/*.lua"
       ],
-      "severity": "medium"
+      "severity": "low"
     },
     {
       "id": "scope-creep",

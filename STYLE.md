@@ -166,7 +166,7 @@ Tests use [Mini.Test](https://github.com/nvim-mini/mini.nvim/blob/main/readmes/m
 
 **File layout mirrors the source tree.** `lua/codecompanion/interactions/chat/parser.lua` is tested by `tests/interactions/chat/test_parser.lua`. Don't invent a suffix like `test_parser_resilience.lua` for a subset of a module's behaviour - add cases to the module's existing test file.
 
-**Test names follow the existing suite.** The pattern is `T["<Subject>"]["<what it does>"]`, where the subject is the capitalised module or feature (`T["Chat"]`, `T["Context"]`, `T["Keymaps"]`) and the case name completes the sentence "it ...". Keep them short and behavioural.
+**Test names follow the existing suite.** The pattern is `T["<Subject>"]["<what it does>"]`, where the subject is the module or feature under test (`T["Chat"]`, `T["Context"]`, `T["Keymaps"]`) and the case name completes the sentence "it ...". Keep them short and behavioural.
 
 ```lua
 -- ✅ Matches the suite
