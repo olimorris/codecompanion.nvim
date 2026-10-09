@@ -57,7 +57,6 @@ local function select_acp_model(inline, opts)
   async.sync(function()
     local models = inline_acp.list_models(args)
     if not models or #models.availableModels < 2 then
-      remember_adapter(inline)
       return vim.schedule(opts.on_done)
     end
 
@@ -70,13 +69,11 @@ local function select_acp_model(inline, opts)
         end,
       }, function(model)
         if not model then
-          remember_adapter(inline)
           return opts.on_done()
         end
         async.sync(function()
           inline_acp.set_model(vim.tbl_extend("force", args, { model = model.modelId }))
           inline.adapter = adapters.resolve(inline.adapter.name, { model = model.modelId })
-          remember_adapter(inline)
           vim.schedule(opts.on_done)
         end)()
       end)
@@ -84,7 +81,7 @@ local function select_acp_model(inline, opts)
   end)()
 end
 
----Pick an adapter and then a model, remembering both for the buffer
+---Pick an adapter and then a model
 ---@param inline CodeCompanion.Inline
 ---@param opts { on_done: fun() }
 ---@return nil
@@ -106,7 +103,6 @@ local function select_adapter(inline, opts)
 
     local models = change_adapter.list_http_models(inline.adapter)
     if not models then
-      remember_adapter(inline)
       return opts.on_done()
     end
 
@@ -120,7 +116,6 @@ local function select_adapter(inline, opts)
       if model then
         adapters.set_model({ adapter = inline.adapter, model = type(model) == "table" and model.id or model })
       end
-      remember_adapter(inline)
       opts.on_done()
     end)
   end)
@@ -140,6 +135,7 @@ function M.open_input(inline, opts)
         input.hide()
         select_adapter(inline, {
           on_done = function()
+            remember_adapter(inline)
             M.open_input(inline, opts)
           end,
         })

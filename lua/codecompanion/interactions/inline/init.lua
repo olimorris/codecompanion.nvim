@@ -25,7 +25,6 @@ The Inline Interaction - This is where code is applied directly to a Neovim buff
 ---@field lines string[] Every line in the buffer when the prompt was made
 ---@field context { first: number, last: number } The lines shared with the LLM
 ---@field editable { first: number, last: number } The lines the LLM is allowed to edit
----@field edited string The editable lines with every successful edit applied
 
 ---@class CodeCompanion.Inline.Result
 ---@field lines? string[] The buffer with the LLM's edits applied
@@ -71,48 +70,22 @@ function Inline.new(args)
     buffer_context = args.buffer_context,
     bufnr = args.buffer_context.bufnr,
     opts = args.opts or {},
-    prompts = vim.deepcopy(args.prompts),
+    prompts = args.prompts,
   }, { __index = Inline })
 
-  self:set_adapter(args.adapter or config.interactions.inline.adapter)
+  local picked = ui.get_picked_adapter(self.bufnr)
+  if args.adapter then
+    self.adapter = adapters.resolve(args.adapter)
+  elseif picked then
+    self.adapter = adapters.resolve(picked.adapter, { model = picked.model })
+  else
+    self.adapter = adapters.resolve(vim.g.codecompanion_adapter or config.interactions.inline.adapter)
+  end
   if not self.adapter then
     return log:error("[Inline] No adapter found")
   end
-  -- Check if the user has manually overridden the adapter
-  if vim.g.codecompanion_adapter and self.adapter.name ~= vim.g.codecompanion_adapter then
-    self:set_adapter(config.adapters[vim.g.codecompanion_adapter])
-  end
-
-  local picked = ui.get_picked_adapter(self.bufnr)
-  if picked and not args.adapter then
-    self.adapter = adapters.resolve(picked.adapter, { model = picked.model })
-  end
 
   return self
-end
-
----Set the adapter for the inline prompt
----@param adapter CodeCompanion.HTTPAdapter|string|function
----@return nil
-function Inline:set_adapter(adapter)
-  if not self.adapter or not adapters.resolved(adapter) then
-    self.adapter = adapters.resolve(adapter)
-  end
-end
-
----Set keymaps for the inline interaction
----@param bufnr? number
----@param opts? table
----@return nil
-function Inline:set_keymaps(bufnr, opts)
-  keymaps
-    .new({
-      bufnr = bufnr,
-      callbacks = require("codecompanion.interactions.inline.keymaps"),
-      data = self,
-      keymaps = config.interactions.inline.keymaps,
-    })
-    :set(opts)
 end
 
 ---Parse special syntax from user prompt (adapters and maintain editor context)
@@ -120,25 +93,16 @@ end
 ---@return string The cleaned prompt
 function Inline:parse_special_syntax(prompt)
   local adapter_pattern = "adapter=([%w_]+)"
-  local adapter_match = prompt:match(adapter_pattern)
+  local name = prompt:match(adapter_pattern)
+  if not name then
+    return vim.trim(prompt)
+  end
 
-  local config_adapters = vim.tbl_deep_extend("force", {}, config.adapters.acp, config.adapters.http)
-  if adapter_match then
-    if config_adapters[adapter_match] then
-      self:set_adapter(adapter_match)
-      prompt = prompt:gsub(adapter_pattern, "", 1) -- Remove only the first occurrence
-    else
-      utils.notify("Adapter not found: " .. adapter_match, vim.log.levels.ERROR)
-    end
+  if config.adapters.http[name] or config.adapters.acp[name] then
+    self.adapter = adapters.resolve(name)
+    prompt = prompt:gsub(adapter_pattern, "", 1)
   else
-    -- Handle legacy first-word adapter detection for backward compatibility
-    local split = vim.split(prompt, " ")
-    local first_word = split[1]
-    if config_adapters[first_word] then
-      self:set_adapter(first_word)
-      table.remove(split, 1)
-      prompt = table.concat(split, " ")
-    end
+    utils.notify("Adapter not found: " .. name, vim.log.levels.ERROR)
   end
 
   return vim.trim(prompt)
@@ -195,8 +159,7 @@ function Inline:send_prompt(opts)
     )
   end
 
-  self.prompts = messages
-  return self:submit(vim.deepcopy(messages))
+  return self:submit(messages)
 end
 
 ---Work out which lines are shared with the LLM and which lines it can edit
@@ -216,14 +179,7 @@ function Inline:get_target()
   end
 
   local context = inline_utils.get_lines_to_send(lines, { around = selection, max_tokens = max_tokens })
-  local editable = self.buffer_context.is_visual and selection or context
-
-  return {
-    lines = lines,
-    context = context,
-    editable = editable,
-    edited = inline_utils.get_text(lines, editable),
-  }
+  return { lines = lines, context = context, editable = self.buffer_context.is_visual and selection or context }
 end
 
 ---Share the buffer with the LLM, and the lines it can edit if that isn't all of it
@@ -254,7 +210,7 @@ function Inline:format_target(target)
       target.editable.first,
       target.editable.last,
       filetype,
-      target.edited
+      inline_utils.get_text(target.lines, target.editable)
     )
 end
 
@@ -292,34 +248,35 @@ end
 ---The prompt library entry's messages, with conditions checked and functions expanded
 ---@return table
 function Inline:get_prompt_library_messages()
-  local prompts = {}
-
-  for _, prompt in ipairs(self.prompts or {}) do
-    if prompt.opts and prompt.opts.contains_code and not config.can_send_code() then
-      goto continue
-    end
-    if prompt.condition and not prompt.condition(self.buffer_context) then
-      goto continue
-    end
-    if type(prompt.content) == "function" then
-      prompt.content = prompt.content(self.buffer_context)
-    end
-    table.insert(prompts, {
-      role = prompt.role,
-      content = prompt.content,
-      opts = prompt.opts or {},
-    })
-    ::continue::
-  end
-
-  return prompts
+  return vim
+    .iter(self.prompts or {})
+    :filter(function(prompt)
+      local is_blocked = prompt.opts and prompt.opts.contains_code and not config.can_send_code()
+      return not is_blocked and (not prompt.condition or prompt.condition(self.buffer_context))
+    end)
+    :map(function(prompt)
+      local content = prompt.content
+      return {
+        role = prompt.role,
+        content = type(content) == "function" and content(self.buffer_context) or content,
+        opts = prompt.opts or {},
+      }
+    end)
+    :totable()
 end
 
 ---Submit the messages to the LLM to process
 ---@param messages table
 ---@return nil
 function Inline:submit(messages)
-  self:set_keymaps(self.bufnr, { keymaps = { "stop" } })
+  keymaps
+    .new({
+      bufnr = self.bufnr,
+      callbacks = require("codecompanion.interactions.inline.keymaps"),
+      data = self,
+      keymaps = config.interactions.inline.keymaps,
+    })
+    :set({ keymaps = { "stop" } })
 
   self.requesting = true
   utils.fire("InlineStarted", {
@@ -400,7 +357,6 @@ function Inline:on_diff_accepted(diff_ui)
   -- A formatter listening for the event would otherwise format the spacer line and the drawn hunks
   diff_ui:remove_inline_marks()
   self:fire_accepted()
-  self.diff_ui = nil
   self:reset()
 end
 
@@ -417,7 +373,6 @@ function Inline:on_diff_rejected(diff_ui)
     self:fire_accepted()
   end
 
-  self.diff_ui = nil
   self:reset()
 end
 
@@ -465,6 +420,7 @@ end
 ---@return nil
 function Inline:reset()
   self.request = nil
+  self.diff_ui = nil
   api.nvim_clear_autocmds({ group = self.aug })
   self:finish_request()
 end

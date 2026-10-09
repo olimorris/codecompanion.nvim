@@ -314,7 +314,7 @@ T["Inline"]["ACP"] = new_set({
         ---@return table handlers, string copy_path
         function _G.prompt_agent()
           local inline = _G.new_inline({ start_line = 1, end_line = 1, start_col = 0, end_col = 0 })
-          inline:set_adapter("test_acp")
+          inline.adapter = require("codecompanion.adapters").resolve("test_acp")
           inline:prompt("Change a")
           return _G.last_prompt_request.handlers, inline.request.copy_path
         end
@@ -365,7 +365,7 @@ T["Inline"]["ACP"]["sends a prompt library system message to the agent"] = funct
       buffer_context = { winnr = 0, bufnr = 0, filetype = "lua", start_line = 1, end_line = 1, start_col = 0, end_col = 0 },
       prompts = { { role = "system", content = "Always use snake_case" } },
     })
-    inline:set_adapter("test_acp")
+    inline.adapter = require("codecompanion.adapters").resolve("test_acp")
     inline:prompt("Change a")
   ]])
 
@@ -415,7 +415,7 @@ T["Inline"]["ACP"]["DOES NOT send the prompt WHEN stopped while connecting"] = f
       inline:stop()
       return ensure_session(self)
     end
-    inline:set_adapter("test_acp")
+    inline.adapter = require("codecompanion.adapters").resolve("test_acp")
     inline:prompt("Change a")
   ]])
 
@@ -438,7 +438,7 @@ T["Inline"]["ACP"]["drops the agent's edits OUTSIDE the selection and keeps thos
   child.lua([[
     vim.api.nvim_buf_set_lines(0, 0, -1, false, { "local a = 1", "local b = 2", "local c = 3" })
     local inline = _G.new_inline({ start_line = 2, end_line = 2, start_col = 0, end_col = 0, is_visual = true })
-    inline:set_adapter("test_acp")
+    inline.adapter = require("codecompanion.adapters").resolve("test_acp")
     inline:prompt("Change b")
     vim.fn.writefile({ "local a = 10", "local b = 20", "local c = 30" }, inline.request.copy_path)
     _G.last_prompt_request.handlers.complete("end_turn")

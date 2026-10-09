@@ -84,6 +84,17 @@ local function connect_to_buffer_session(opts)
   return connection
 end
 
+---Connect to the buffer's session, unless a prompt is running
+---@param opts { adapter: CodeCompanion.ACPAdapter, bufnr: number }
+---@return CodeCompanion.ACP.Connection|nil
+local function connect_when_idle(opts)
+  -- Switching sessions mid-prompt would leave the agent's replies with nowhere to go
+  if _running then
+    return log:warn("[Inline] %s is still working on an inline prompt", _running.adapter.formatted_name)
+  end
+  return connect_to_buffer_session(opts)
+end
+
 ---@class CodeCompanion.Inline.ACP
 local ACP = {}
 
@@ -149,11 +160,7 @@ end
 ---@param opts { adapter: CodeCompanion.ACPAdapter, bufnr: number }
 ---@return { availableModels: { modelId: string, name: string }[], currentModelId: string }|nil
 function ACP.list_models(opts)
-  -- Switching sessions mid-prompt would leave the agent's replies with nowhere to go
-  if _running then
-    return log:warn("[Inline] %s is still working on an inline prompt", _running.adapter.formatted_name)
-  end
-  local connection = connect_to_buffer_session(opts)
+  local connection = connect_when_idle(opts)
   return connection and connection:get_models()
 end
 
@@ -161,10 +168,7 @@ end
 ---@param opts { adapter: CodeCompanion.ACPAdapter, bufnr: number, model: string }
 ---@return nil
 function ACP.set_model(opts)
-  if _running then
-    return log:warn("[Inline] %s is still working on an inline prompt", _running.adapter.formatted_name)
-  end
-  local connection = connect_to_buffer_session(opts)
+  local connection = connect_when_idle(opts)
   if connection then
     connection:set_model(opts.model)
   end

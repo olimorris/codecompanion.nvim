@@ -133,17 +133,4 @@ function M.decode_args(tool_call)
   return { args = args }
 end
 
----The buffer's lines with the edited lines spliced back in
----@param target CodeCompanion.Inline.Target
----@return string[]
-function M.get_new_content(target)
-  local new_content = vim.list_slice(target.lines, 1, target.editable.first - 1)
-  -- Splitting an empty string gives one blank line, which deleting the whole selection would leave behind
-  if target.edited ~= "" then
-    vim.list_extend(new_content, vim.split(target.edited, "\n", { plain = true }))
-  end
-
-  return vim.list_extend(new_content, vim.list_slice(target.lines, target.editable.last + 1))
-end
-
 return M

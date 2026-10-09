@@ -1,6 +1,7 @@
 ---@class CodeCompanion.Inline.HTTP
 ---@field adapter CodeCompanion.HTTPAdapter
 ---@field current_request? table
+---@field edited string The editable lines with every successful edit applied
 ---@field inline CodeCompanion.Inline
 ---@field on_done fun(result: CodeCompanion.Inline.Result)
 ---@field retries number How many times a failed edit has been sent back to the LLM
@@ -21,8 +22,6 @@ local fmt = string.format
 local CONSTANTS = {
   EDIT_RULE = "Make changes to the buffer by calling the `edit_file` tool, once per change",
   MAX_RETRIES = 1,
-  STATUS_ERROR = "error",
-  STATUS_SUCCESS = "success",
 }
 
 ---@class CodeCompanion.Inline.HTTP
@@ -31,8 +30,10 @@ local HTTP = {}
 ---@param args { inline: CodeCompanion.Inline }
 ---@return CodeCompanion.Inline.HTTP
 function HTTP.new(args)
+  local target = args.inline.target
   return setmetatable({
     adapter = args.inline.adapter,
+    edited = inline_utils.get_text(target.lines, target.editable),
     inline = args.inline,
     retries = 0,
   }, { __index = HTTP })
@@ -126,7 +127,7 @@ function HTTP:parse_chunk(data, response)
   if not result then
     return
   end
-  if result.status ~= CONSTANTS.STATUS_SUCCESS then
+  if result.status ~= "success" then
     response.error = response.error or result.output
     return
   end
@@ -139,27 +140,22 @@ end
 
 ---Apply each tool call, in order, to the editable lines
 ---@param tool_calls table
----@return { tool_call: table, status: string, output: string }[]
+---@return { tool_call: table, error?: string }[]
 function HTTP:apply_edits(tool_calls)
-  local target = self.inline.target
   local results = {}
 
   for _, tool_call in ipairs(tool_calls) do
     local decoded = inline_utils.decode_args(tool_call)
     local edit = decoded.error and { error = decoded.error }
-      or replace.apply(target.edited, {
+      or replace.apply(self.edited, {
         old_string = decoded.args.old_string,
         new_string = decoded.args.new_string,
         -- Weaker models send booleans as strings when the provider doesn't enforce the schema
         replace_all = decoded.args.replace_all == true or decoded.args.replace_all == "true",
       })
 
-    if edit.error then
-      table.insert(results, { tool_call = tool_call, status = CONSTANTS.STATUS_ERROR, output = edit.error })
-    else
-      target.edited = edit.content
-      table.insert(results, { tool_call = tool_call, status = CONSTANTS.STATUS_SUCCESS, output = "Edit applied" })
-    end
+    self.edited = edit.content or self.edited
+    table.insert(results, { tool_call = tool_call, error = edit.error })
   end
 
   return results
@@ -184,16 +180,16 @@ function HTTP:done(args)
   response.tool_calls = adapters.call_handler(self.adapter, "format_calls", { tools = response.tool_calls })
   local results = self:apply_edits(response.tool_calls)
   local failed = vim.tbl_filter(function(result)
-    return result.status == CONSTANTS.STATUS_ERROR
+    return result.error ~= nil
   end, results)
 
   if vim.tbl_isempty(failed) then
-    return self:finish({ lines = inline_utils.get_new_content(self.inline.target) })
+    return self:finish({ lines = self:get_new_content() })
   end
 
   if self.retries >= CONSTANTS.MAX_RETRIES then
     return self:finish({
-      error = fmt("%s could not edit the buffer: %s", self.adapter.formatted_name, failed[1].output),
+      error = fmt("%s could not edit the buffer: %s", self.adapter.formatted_name, failed[1].error),
     })
   end
 
@@ -218,10 +214,9 @@ function HTTP:add_tool_results(messages, args)
   })
 
   for _, result in ipairs(args.results) do
-    local output = result.status == CONSTANTS.STATUS_ERROR and fmt("Edit failed: %s", result.output) or result.output
     local message = adapters.call_handler(self.adapter, "format_response", {
       tool_call = result.tool_call,
-      output = output,
+      output = result.error and fmt("Edit failed: %s", result.error) or "Edit applied",
     })
     if message then
       table.insert(messages, message)
@@ -229,6 +224,19 @@ function HTTP:add_tool_results(messages, args)
   end
 
   return messages
+end
+
+---The buffer's lines with the edited lines spliced back in
+---@return string[]
+function HTTP:get_new_content()
+  local target = self.inline.target
+  local new_content = vim.list_slice(target.lines, 1, target.editable.first - 1)
+  -- Splitting an empty string gives one blank line, which deleting the whole selection would leave behind
+  if self.edited ~= "" then
+    vim.list_extend(new_content, vim.split(self.edited, "\n", { plain = true }))
+  end
+
+  return vim.list_extend(new_content, vim.list_slice(target.lines, target.editable.last + 1))
 end
 
 return HTTP
