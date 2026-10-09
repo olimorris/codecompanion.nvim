@@ -639,10 +639,10 @@ T["test model selection dialog works with copilot adapter"] = function()
     }
 
     local copilot = require("codecompanion.adapters.http.copilot")
-    local change_adapter = require("codecompanion.interactions.chat.keymaps.change_adapter")
+    local adapter_ui = require("codecompanion.adapters.ui")
 
     -- Test that get_models_list returns models for selection dialog
-    local models_list = change_adapter.list_http_models(copilot)
+    local models_list = adapter_ui.list_http_models(copilot)
 
     -- Return test results
     return {

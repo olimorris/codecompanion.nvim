@@ -474,8 +474,8 @@ T["HTTP Adapter"]["extend doesn't overwrite opts defaults"] = function()
     require("codecompanion").setup({
       adapters = { http = { extend = { openai = { env = { api_key = "abc" } } } } },
     })
-    local change_adapter = require("codecompanion.interactions.chat.keymaps.change_adapter")
-    local models = change_adapter.list_http_models(require("codecompanion.adapters").resolve("openai"))
+    local adapter_ui = require("codecompanion.adapters.ui")
+    local models = adapter_ui.list_http_models(require("codecompanion.adapters").resolve("openai"))
     return {
       show_model_choices = require("codecompanion.config").adapters.http.opts.show_model_choices,
       models_listed = models and #models or 0,

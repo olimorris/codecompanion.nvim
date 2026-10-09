@@ -1,3 +1,4 @@
+local adapter_ui = require("codecompanion.adapters.ui")
 local adapter_utils = require("codecompanion.adapters.utils")
 local adapters = require("codecompanion.adapters")
 local async = require("codecompanion.utils.async")
@@ -52,31 +53,25 @@ end
 ---@return nil
 local function select_acp_model(inline, opts)
   local inline_acp = require("codecompanion.interactions.inline.adapters.acp")
-  local args = { adapter = inline.adapter, bufnr = inline.bufnr }
+  local session = { adapter = inline.adapter, bufnr = inline.bufnr }
 
   async.sync(function()
-    local models = inline_acp.list_models(args)
-    if not models or #models.availableModels < 2 then
-      return vim.schedule(opts.on_done)
-    end
-
+    local models = inline_acp.list_models(session)
     vim.schedule(function()
-      vim.ui.select(models.availableModels, {
-        prompt = "Select Model",
-        kind = "codecompanion.nvim",
-        format_item = function(model)
-          return model.name or model.modelId
+      adapter_ui.select_model({
+        adapter = inline.adapter,
+        acp_models = models,
+        on_choice = function(model_id)
+          if not model_id then
+            return opts.on_done()
+          end
+          async.sync(function()
+            inline_acp.set_model(vim.tbl_extend("force", session, { model = model_id }))
+            inline.adapter = adapters.resolve(inline.adapter.name, { model = model_id })
+            vim.schedule(opts.on_done)
+          end)()
         end,
-      }, function(model)
-        if not model then
-          return opts.on_done()
-        end
-        async.sync(function()
-          inline_acp.set_model(vim.tbl_extend("force", args, { model = model.modelId }))
-          inline.adapter = adapters.resolve(inline.adapter.name, { model = model.modelId })
-          vim.schedule(opts.on_done)
-        end)()
-      end)
+      })
     end)
   end)()
 end
@@ -86,39 +81,30 @@ end
 ---@param opts { on_done: fun() }
 ---@return nil
 local function select_adapter(inline, opts)
-  local change_adapter = require("codecompanion.interactions.chat.keymaps.change_adapter")
-  local names = change_adapter.get_adapters_list(inline.adapter.name)
-
-  vim.ui.select(names, { prompt = "Select Adapter", kind = "codecompanion.nvim" }, function(name)
-    if not name then
-      return opts.on_done()
-    end
-    if name ~= inline.adapter.name then
-      inline.adapter = adapters.resolve(name)
-    end
-
-    if inline.adapter.type == "acp" then
-      return select_acp_model(inline, opts)
-    end
-
-    local models = change_adapter.list_http_models(inline.adapter)
-    if not models then
-      return opts.on_done()
-    end
-
-    vim.ui.select(models, {
-      prompt = "Select Model",
-      kind = "codecompanion.nvim",
-      format_item = function(model)
-        return type(model) == "table" and (model.formatted_name or model.id) or model
-      end,
-    }, function(model)
-      if model then
-        adapters.set_model({ adapter = inline.adapter, model = type(model) == "table" and model.id or model })
+  adapter_ui.select_adapter({
+    current = inline.adapter.name,
+    on_choice = function(name)
+      if not name then
+        return opts.on_done()
       end
-      opts.on_done()
-    end)
-  end)
+      if name ~= inline.adapter.name then
+        inline.adapter = adapters.resolve(name)
+      end
+      if inline.adapter.type == "acp" then
+        return select_acp_model(inline, opts)
+      end
+
+      adapter_ui.select_model({
+        adapter = inline.adapter,
+        on_choice = function(model_id)
+          if model_id then
+            adapters.set_model({ adapter = inline.adapter, model = model_id })
+          end
+          opts.on_done()
+        end,
+      })
+    end,
+  })
 end
 
 ---Open the input box, where the adapter and model can be changed before sending

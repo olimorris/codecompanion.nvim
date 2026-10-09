@@ -4,55 +4,53 @@ local new_set = MiniTest.new_set
 local T = MiniTest.new_set()
 
 local child = MiniTest.new_child_neovim()
-T["Keymaps"] = new_set({
+T["Adapter UI"] = new_set({
   hooks = {
     pre_case = function()
       h.child_start(child)
       child.lua([[
         h = require('tests.helpers')
         config = require("codecompanion.config")
-        change_adapter = require("codecompanion.interactions.chat.keymaps.change_adapter")
+        adapter_ui = require("codecompanion.adapters.ui")
       ]])
     end,
     post_once = child.stop,
   },
 })
 
-T["Keymaps"]["change_adapter"] = new_set()
-
-T["Keymaps"]["change_adapter"]["get_adapters_list returns correct list"] = function()
+T["Adapter UI"]["get_adapters_list returns correct list"] = function()
   child.lua([[h.setup_plugin()]])
 
-  local list = child.lua([[return change_adapter.get_adapters_list("test_adapter")]])
+  local list = child.lua([[return adapter_ui.get_adapters_list("test_adapter")]])
 
   h.eq(list[1], "test_adapter")
   h.expect_tbl_contains("copilot", list)
   h.expect_tbl_contains("anthropic", list)
 end
 
-T["Keymaps"]["change_adapter"]["hidden adapters are excluded from the list"] = function()
+T["Adapter UI"]["hidden adapters are excluded from the list"] = function()
   child.lua([[h.setup_plugin()]])
 
-  local list = child.lua([[return change_adapter.get_adapters_list("test_adapter")]])
+  local list = child.lua([[return adapter_ui.get_adapters_list("test_adapter")]])
 
   h.expect_tbl_contains("anthropic", list)
   h.eq(false, vim.tbl_contains(list, "tavily"))
 end
 
-T["Keymaps"]["change_adapter"]["an adapter set to false in hidden is shown"] = function()
+T["Adapter UI"]["an adapter set to false in hidden is shown"] = function()
   child.lua([[
     h.setup_plugin()
     config.adapters.http.opts.hidden.tavily = false
   ]])
 
-  local list = child.lua([[return change_adapter.get_adapters_list("test_adapter")]])
+  local list = child.lua([[return adapter_ui.get_adapters_list("test_adapter")]])
 
   h.expect_tbl_contains("tavily", list)
 end
 
-T["Keymaps"]["change_adapter"]["current adapter appears once at front"] = function()
+T["Adapter UI"]["current adapter appears once at front"] = function()
   child.lua([[h.setup_plugin()]])
-  local list = child.lua([[return change_adapter.get_adapters_list("test_adapter")]])
+  local list = child.lua([[return adapter_ui.get_adapters_list("test_adapter")]])
 
   h.eq(list[1], "test_adapter")
 
@@ -65,7 +63,7 @@ T["Keymaps"]["change_adapter"]["current adapter appears once at front"] = functi
   h.eq(count, 1)
 end
 
-T["Keymaps"]["change_adapter"]["list_http_models returns correct list with object models"] = function()
+T["Adapter UI"]["list_http_models returns correct list with object models"] = function()
   local result = child.lua([[
     h.setup_plugin()
     config.adapters.http.opts.show_model_choices = true
@@ -84,7 +82,7 @@ T["Keymaps"]["change_adapter"]["list_http_models returns correct list with objec
       }
     }
 
-    local list = change_adapter.list_http_models(mock_adapter)
+    local list = adapter_ui.list_http_models(mock_adapter)
     if not list then return nil end
 
     local ids = {}
@@ -100,7 +98,7 @@ T["Keymaps"]["change_adapter"]["list_http_models returns correct list with objec
   h.expect_truthy(result.has_formatted_name)
 end
 
-T["Keymaps"]["change_adapter"]["list_http_models returns correct list with string models"] = function()
+T["Adapter UI"]["list_http_models returns correct list with string models"] = function()
   local result = child.lua([[
     h.setup_plugin()
     config.adapters.http.opts.show_model_choices = true
@@ -119,7 +117,7 @@ T["Keymaps"]["change_adapter"]["list_http_models returns correct list with strin
       }
     }
 
-    local list = change_adapter.list_http_models(mock_adapter)
+    local list = adapter_ui.list_http_models(mock_adapter)
     if not list then return nil end
 
     local names = {}
@@ -133,7 +131,7 @@ T["Keymaps"]["change_adapter"]["list_http_models returns correct list with strin
   h.eq(result.count, 4)
 end
 
-T["Keymaps"]["change_adapter"]["list_http_models returns nil when < 2 models"] = function()
+T["Adapter UI"]["list_http_models returns nil when < 2 models"] = function()
   local result = child.lua([[
     h.setup_plugin()
     local adapter = {
@@ -144,74 +142,62 @@ T["Keymaps"]["change_adapter"]["list_http_models returns nil when < 2 models"] =
         }
       }
     }
-    return change_adapter.list_http_models(adapter) == nil
+    return adapter_ui.list_http_models(adapter) == nil
   ]])
 
   h.expect_truthy(result)
 end
 
-T["Keymaps"]["change_adapter"]["list_acp_models returns correct structure"] = function()
+T["Adapter UI"]["select_model marks the current ACP model and returns the picked id"] = function()
   local result = child.lua([[
     h.setup_plugin()
 
-    -- Mock the models data
-    local models_data = {
-      availableModels = {
-        {
-          description = "Sonnet 4.5 · Best for everyday tasks",
-          modelId = "default",
-          name = "Default (recommended)"
+    local picked = {}
+    vim.ui.select = function(items, opts, on_choice)
+      picked.labels = vim.tbl_map(opts.format_item, items)
+      on_choice(items[2])
+    end
+
+    adapter_ui.select_model({
+      adapter = { type = "acp" },
+      acp_models = {
+        availableModels = {
+          { modelId = "default", name = "Default", description = "Sonnet" },
+          { modelId = "opus", name = "Opus" },
         },
-        {
-          description = "Opus 4.5 · Most capable for complex work",
-          modelId = "opus",
-          name = "Opus"
-        },
-        {
-          description = "Haiku 4.5 · Fastest for quick answers",
-          modelId = "haiku",
-          name = "Haiku"
-        }
+        currentModelId = "default",
       },
-      currentModelId = "default"
-    }
-
-    -- Create a mock connection object with get_models method
-    local acp_connection = {
-      get_models = function(self)
-        return models_data
-      end
-    }
-
-    local models = change_adapter.list_acp_models(acp_connection)
-    return {
-      has_available_models = models.availableModels ~= nil,
-      available_count = #models.availableModels,
-      current_model_id = models.currentModelId,
-      first_model_id = models.availableModels[1].modelId
-    }
+      on_choice = function(model_id)
+        picked.model_id = model_id
+      end,
+    })
+    return picked
   ]])
 
-  h.expect_truthy(result.has_available_models)
-  h.eq(result.available_count, 3)
-  h.eq(result.current_model_id, "default")
-  h.eq(result.first_model_id, "default")
+  h.eq({ "* Default - Sonnet", "  Opus" }, result.labels)
+  h.eq("opus", result.model_id)
 end
 
-T["Keymaps"]["change_adapter"]["list_acp_models returns nil when < 2 models"] = function()
+T["Adapter UI"]["select_model DOES NOT open the picker for a single ACP model"] = function()
   local result = child.lua([[
     h.setup_plugin()
 
-    local acp_connection = {
-      get_models = function(self)
-        return { availableModels = { "default" } }
-      end
-    }
+    local result = { opened = false, called = false }
+    vim.ui.select = function()
+      result.opened = true
+    end
 
-    return change_adapter.list_acp_models(acp_connection) == nil
+    adapter_ui.select_model({
+      adapter = { type = "acp" },
+      acp_models = { availableModels = { { modelId = "default", name = "Default" } }, currentModelId = "default" },
+      on_choice = function(model_id)
+        result.called = model_id == nil
+      end,
+    })
+    return result
   ]])
 
-  h.expect_truthy(result)
+  h.eq({ opened = false, called = true }, result)
 end
 
 return T
