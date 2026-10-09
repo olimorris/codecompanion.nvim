@@ -94,7 +94,7 @@ function Rules:resolve_paths()
           goto continue
         end
 
-        local files = file.scan_directory(normalized_dir, { patterns = file_spec.files })
+        local files = file.scan_dir(normalized_dir, { patterns = file_spec.files })
         add_paths(files)
         goto continue
       end
@@ -107,7 +107,7 @@ function Rules:resolve_paths()
         local normalized = vim.fs.normalize(match)
         if file.exists(normalized) then
           if file.is_dir(normalized) then
-            local files = file.scan_directory(normalized)
+            local files = file.scan_dir(normalized)
             add_paths(files)
           else
             add_path(normalized)
@@ -122,7 +122,7 @@ function Rules:resolve_paths()
 
     if file.exists(normalized) then
       if file.is_dir(normalized) then
-        local files = file.scan_directory(normalized)
+        local files = file.scan_dir(normalized)
         add_paths(files)
       else
         add_path(normalized)

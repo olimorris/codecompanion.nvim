@@ -24,7 +24,7 @@ function M.get_index()
   end
 
   local paths = vim
-    .iter(files.scan_directory(root))
+    .iter(files.scan_dir(root))
     :map(function(path)
       return M.PREFIX .. path:sub(#root + 1)
     end)

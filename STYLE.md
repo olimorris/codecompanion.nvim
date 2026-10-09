@@ -78,7 +78,7 @@ local function capture_warnings()
 - `snake_case` for files, functions, locals, and table keys
 - `PascalCase` for classes and LuaCATS type names
 - `SCREAMING_SNAKE_CASE` only for module-level constant tables and values, never for a local inside a function
-- `_leading_underscore` for private functions
+- `_leading_underscore` for internal functions on a module or class table (`M._diff`, `Chat:_submit_http`). A `local function` is already private, so it takes no underscore
 
 **Names must be explicit and domain-specific.** Write `pattern` not `pat`, `should_include` not `include_ok`. Avoid generic placeholder names like `ctx`, `data`, `obj`, `tmp`, `res` - reach for the domain word instead: `permission`, `request`, `source`, `adapter`, `chat`.
 
@@ -116,6 +116,8 @@ Positional parameters don't scale. Adding one means touching the signature, ever
 **Default to `opts` alone.** A leading positional is earned, not assumed. It has to be the single subject the function acts on, and it has to be stable enough that it will never be replaced or joined by a sibling - a `Chat`, a payload, the text being wrapped. Everything else goes in `opts`: `Chat:add_message(data, opts)`, `Client:send(payload, opts)`, `M.get_settings_key(chat, opts)`, `markdown.form_codeblock(content, opts)`.
 
 If you are weighing whether an argument qualifies, it doesn't. Put it in `opts`.
+
+The exception is a function whose signature its caller fixes: a `table.sort` comparator, an autocmd or keymap callback, a metamethod, a handler passed to a Neovim or libuv API.
 
 ```lua
 -- ❌ Three positionals, and a fourth means editing every caller
@@ -164,7 +166,7 @@ Tests use [Mini.Test](https://github.com/nvim-mini/mini.nvim/blob/main/readmes/m
 
 **File layout mirrors the source tree.** `lua/codecompanion/interactions/chat/parser.lua` is tested by `tests/interactions/chat/test_parser.lua`. Don't invent a suffix like `test_parser_resilience.lua` for a subset of a module's behaviour - add cases to the module's existing test file.
 
-**Test names follow the existing suite.** The pattern is `T["<Subject>"]["<what it does>"]`, where the subject is the capitalised module or feature (`T["Chat"]`, `T["Context"]`, `T["Keymaps"]`) and the case name completes the sentence "it ...". Keep them short and behavioural.
+**Test names follow the existing suite.** The pattern is `T["<Subject>"]["<what it does>"]`, where the subject is the module or feature under test (`T["Chat"]`, `T["Context"]`, `T["Keymaps"]`) and the case name completes the sentence "it ...". Keep them short and behavioural.
 
 ```lua
 -- ✅ Matches the suite
@@ -175,6 +177,13 @@ T["Context"]["Cannot be added twice with the same id"] = function()
 -- ❌ Narrative prose that reads nothing like its neighbours
 T["Parser"]["an unterminated fence does not eat the next prompt"] = function()
 T["Parser"]["a balanced response leaves the prompt extractable"] = function()
+```
+
+When a pair of cases pins down both sides of a behaviour, capitalise the contrasting words so they read as a pair:
+
+```lua
+T["Tools"]["DOES NOT truncate a tool that is INSIDE the limit"] = function()
+T["Tools"]["truncates a tool that is OUTSIDE the limit"] = function()
 ```
 
 **Test what the change actually does.** Comprehensive-looking tests that never exercise the edge case are worse than no tests. Don't test a schema mirroring itself, and don't test that a shared utility passes its errors through.

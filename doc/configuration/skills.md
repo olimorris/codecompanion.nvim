@@ -45,6 +45,18 @@ require("codecompanion").setup({
 
 The directories are searched in order and skills are keyed on the `name` in their YAML frontmatter. A directory further down the list takes precedence if skills of the same name clash. This also means that if you symlink one skills directory to another, the skills are not duplicated.
 
+A `SKILL.md` is found up to five directories deep, so you can clone a repository of skills straight into a skills directory. Hidden directories such as `.git` are skipped. You can change the depth with:
+
+```lua
+require("codecompanion").setup({
+  skills = {
+    opts = {
+      depth = 3,
+    },
+  },
+})
+```
+
 CodeCompanion never caches skills so they can be added without restarting Neovim.
 
 ## Groups
