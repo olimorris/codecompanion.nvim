@@ -11,6 +11,7 @@ local M = {}
 ---@field allow_empty boolean|nil
 ---@field aug number|nil
 ---@field bufnr number
+---@field caller_keymaps { mode: string, lhs: string }[] Keymaps bound for the caller that opened the input
 ---@field on_submit fun(text: string, submit_opts: { bang: boolean })|nil
 ---@field winnr number|nil
 
@@ -20,14 +21,14 @@ local _history_index = 0
 local _draft = ""
 
 ---Show the input window as a float
----@param opts { title?: string }
+---@param opts { title?: string, window?: table }
 ---@return number winnr
 local function _show(opts)
   if not _input then
     return 0
   end
 
-  local window = vim.deepcopy(config.display.input.window)
+  local window = vim.tbl_deep_extend("force", vim.deepcopy(config.display.input.window), opts.window or {})
   window.layout = "float"
 
   local winnr = ui.open(_input.bufnr, window, {
@@ -95,6 +96,25 @@ local function _get_content()
   return vim.trim(table.concat(lines, "\n"))
 end
 
+---Bind each input keymap that has a callback
+---@param callbacks table<string, function>
+---@return { mode: string, lhs: string }[]
+local function _set_keymaps(callbacks)
+  local bound = {}
+  for action, keymap in pairs(config.display.input.keymaps) do
+    local callback = keymap and callbacks[action]
+    if callback then
+      for mode, keys in pairs(keymap.modes) do
+        for _, key in ipairs(type(keys) == "string" and { keys } or keys) do
+          vim.keymap.set(mode, key, callback, { buffer = _input.bufnr, desc = "[Input] " .. keymap.description })
+          table.insert(bound, { mode = mode, lhs = key })
+        end
+      end
+    end
+  end
+  return bound
+end
+
 ---Navigate to the previous history entry
 local function _history_up()
   if #_history == 0 then
@@ -124,8 +144,16 @@ local function _history_down()
   end
 end
 
+---Bind the input's own keymaps and then the caller's, rebinding any key that hiding removed
+---@param callbacks table<string, function>
+---@return nil
+local function _bind_keymaps(callbacks)
+  _set_keymaps({ send = _buf_send, close = M.hide, history_up = _history_up, history_down = _history_down })
+  _input.caller_keymaps = _set_keymaps(callbacks)
+end
+
 ---Open an input buffer
----@param opts { title?: string, on_submit: fun(text: string, submit_opts: { bang: boolean }), on_open?: fun(bufnr: number, winnr: number), initial_content?: string, allow_empty?: boolean }
+---@param opts { title?: string, window?: table, on_submit: fun(text: string, submit_opts: { bang: boolean }), on_open?: fun(bufnr: number, winnr: number), initial_content?: string, allow_empty?: boolean, callbacks?: table<string, function> }
 ---@return nil
 function M.open(opts)
   -- Buffer already exists — re-show the window
@@ -139,7 +167,8 @@ function M.open(opts)
       return
     end
 
-    _show({ title = opts.title })
+    _show({ title = opts.title, window = opts.window })
+    _bind_keymaps(opts.callbacks or {})
 
     -- Set initial content if explicitly provided (overwrites draft)
     if opts.initial_content and opts.initial_content ~= "" then
@@ -170,11 +199,13 @@ function M.open(opts)
     allow_empty = opts.allow_empty,
     aug = nil,
     bufnr = bufnr,
+    caller_keymaps = {},
     on_submit = opts.on_submit,
     winnr = nil,
   }
 
-  _show({ title = opts.title })
+  _show({ title = opts.title, window = opts.window })
+  _bind_keymaps(opts.callbacks or {})
 
   local aug = api.nvim_create_augroup("codecompanion.input." .. bufnr, { clear = true })
   api.nvim_create_autocmd("BufWriteCmd", {
@@ -192,24 +223,6 @@ function M.open(opts)
     end,
   })
   _input.aug = aug
-
-  -- Keymaps (set once, persist with the buffer)
-  local callbacks = { send = _buf_send, close = M.hide, history_up = _history_up, history_down = _history_down }
-  for action, keymap in pairs(config.display.input.keymaps) do
-    if keymap and keymap ~= false then
-      local fn = callbacks[action]
-      if fn then
-        for mode, keys in pairs(keymap.modes) do
-          if type(keys) == "string" then
-            keys = { keys }
-          end
-          for _, key in ipairs(keys) do
-            vim.keymap.set(mode, key, fn, { buffer = bufnr, desc = "[Input] " .. keymap.description })
-          end
-        end
-      end
-    end
-  end
 
   -- Set initial content if provided
   if opts.initial_content and opts.initial_content ~= "" then
@@ -237,8 +250,12 @@ function M.hide()
 
   if _input.bufnr and api.nvim_buf_is_valid(_input.bufnr) then
     vim.bo[_input.bufnr].modified = false
+    for _, keymap in ipairs(_input.caller_keymaps) do
+      pcall(vim.keymap.del, keymap.mode, keymap.lhs, { buffer = _input.bufnr })
+    end
   end
 
+  _input.caller_keymaps = {}
   _input.winnr = nil
 end
 

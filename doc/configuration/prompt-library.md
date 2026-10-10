@@ -134,21 +134,19 @@ A prompt that generates unit tests in a new buffer:
 
 ```markdown [Markdown]
 ---
-name: Generate Tests
+name: Add Docstrings
 interaction: inline
-description: Generate unit tests
+description: Add docstrings to the selected code
 opts:
-  alias: tests
+  alias: docstrings
   auto_submit: true
   modes:
     - v
-  placement: new
-  stop_context_insertion: true
 ---
 
 ## system
 
-Generate comprehensive unit tests for the provided code.
+Write docstrings in the style the rest of the file uses.
 
 ## user
 

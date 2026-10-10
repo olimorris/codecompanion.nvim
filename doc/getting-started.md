@@ -148,7 +148,7 @@ You don't need a chat buffer for smaller changes. Select some code and run:
   <video controls muted title="Inline interaction demo" src="https://github.com/user-attachments/assets/ed3014be-11ff-4583-93da-efcb5d7ca0d6"></video>
 </p>
 
-The LLM rewrites the selection in place and shows you a diff. Keep it with `g2` or undo it with `g3`. See [Inline](/usage/inline) for more.
+The LLM edits the selection in place and shows you a diff. Keep it with `g2` or undo it with `g3`. See [Inline](/usage/inline) for more.
 
 The [prompt library](/usage/prompt-library) has prompts for common tasks, called by their alias:
 
@@ -157,7 +157,6 @@ The [prompt library](/usage/prompt-library) has prompts for common tasks, called
 | `:'<,'>CodeCompanion /explain` | Explain how the selected code works, in a chat buffer |
 | `:'<,'>CodeCompanion /fix` | Fix the selected code, in a chat buffer |
 | `:'<,'>CodeCompanion /lsp` | Explain the LSP diagnostics for the selected code, in a chat buffer |
-| `:'<,'>CodeCompanion /tests` | Write unit tests for the selected code, in a new buffer |
 | `:CodeCompanion /commit` | Write a commit message for your staged changes, in a chat buffer |
 
 Run `:CodeCompanionActions` to browse them, alongside any prompts you write yourself.

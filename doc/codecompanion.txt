@@ -512,8 +512,8 @@ You don't need a chat buffer for smaller changes. Select some code and run:
     :'<,'>CodeCompanion Use early returns
 <
 
-The LLM rewrites the selection in place and shows you a diff. Keep it with `g2`
-or undo it with `g3`. See |codecompanion-usage-inline| for more.
+The LLM edits the selection in place and shows you a diff. Keep it with `g2` or
+undo it with `g3`. See |codecompanion-usage-inline| for more.
 
 The |codecompanion-usage-prompt-library| has prompts for common tasks, called
 by their alias:
@@ -529,9 +529,6 @@ by their alias:
 
   :'<,'>CodeCompanion /lsp            Explain the LSP diagnostics for the
                                       selected code, in a chat buffer
-
-  :'<,'>CodeCompanion /tests          Write unit tests for the selected
-                                      code, in a new buffer
 
   :CodeCompanion /commit              Write a commit message for your
                                       staged changes, in a chat buffer
@@ -5777,8 +5774,26 @@ These are shared with tool approvals in the chat buffer and can be changed
 under `interactions.shared.keymaps`. To skip the diff and write changes
 straight to the buffer, see |codecompanion-configuration-diff|.
 
+DIFF MODE ~
 
-EDITOR CONTEXT ~
+By default, the LLM's edits are shown as a diff in the buffer, which you can
+review a hunk at a time. Press `?` in the diff to see these keymaps:
+
+  Keymap   Action
+  -------- ----------------------------------------------------------------------
+  } / {    Move to the next or previous hunk
+  ga       Accept the hunk under the cursor
+  gr       Reject the hunk under the cursor
+  u        Undo the last hunk you accepted or rejected
+  g2       Accept the hunks that are left
+  g3       Reject the hunks that are left
+  g1       Accept the hunks that are left, and every future edit to this buffer
+Once every hunk has been accepted or rejected, the diff closes. Pressing `u`
+afterwards undoes the whole edit in one step, however many hunks you resolved,
+and rejecting every hunk leaves nothing to undo. The diff can be turned off
+with `display.diff.enabled`, the banner above the current hunk hidden with
+`display.diff.show_banner`, and the keymaps changed in
+`interactions.shared.keymaps`.
 
 Editor context shares part of your Neovim session with the LLM. Add it to the
 prompt with `#{}`:
@@ -8967,6 +8982,51 @@ move away:
     })
 <
 
+If the model's input limit minus 3,000 is smaller, that's used instead, leaving
+room for the prompt and the reply.
+
+
+RULES AND SKILLS ~
+
+Edits should follow your project's conventions, so the inline interaction sends
+your |codecompanion-configuration-rules| with every prompt. By default that's
+the `default` group, which includes `AGENTS.md` and `CLAUDE.md`. To choose the
+groups:
+
+>lua
+    require("codecompanion").setup({
+      rules = {
+        opts = {
+          inline = {
+            autoload = { "default", "my_project_rules" }, -- Can be a string, a list or a function returning either
+          },
+        },
+      },
+    })
+<
+
+Set `autoload = {}` to send no rules. Rules sent this way don't count towards
+the |codecompanion--context-limit|.
+
+|codecompanion-configuration-skills| aren't sent by default. Inline makes a
+single request with no time to read a skill when it needs one, so the full
+instructions of each skill you name go with every prompt:
+
+>lua
+    require("codecompanion").setup({
+      skills = {
+        opts = {
+          inline = {
+            autoload = { "lua-developer" },
+          },
+        },
+      },
+    })
+<
+
+
+  [!NOTE] Rules and skills are only sent to HTTP adapters. An ACP agent loads its
+  own
 
 RELOADING BUFFERS ~
 
@@ -11239,6 +11299,9 @@ To add skills and groups to every new chat buffer:
     })
 <
 
+The inline interaction has its own `autoload`, covered in
+|codecompanion-configuration-inline-rules-and-skills|.
+
 
 CREATING SKILLS ~
 
@@ -12471,7 +12534,6 @@ To migrate, move each handler into its group and read its arguments from
       form_parameters = function(self, params, messages) end,
       form_messages = function(self, messages) end,
       chat_output = function(self, data, tools) end,
-      inline_output = function(self, data, context) end,
       on_exit = function(self, data) end,
       teardown = function(self) end,
       tools = {
@@ -12496,7 +12558,6 @@ To migrate, move each handler into its group and read its arguments from
       },
       response = {
         parse_chat = function(self, args) end,
-        parse_inline = function(self, args) end,
       },
       tools = {
         format_calls = function(self, args) end,
@@ -14895,7 +14956,6 @@ The fields in `args` match the old positional arguments:
   request.build_reasoning           data
   request.build_body                payload
   response.parse_chat               data, tools
-  response.parse_inline             data, context
   response.parse_tokens             data
   response.parse_meta               data
   tools.format_calls                tools

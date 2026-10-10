@@ -220,6 +220,30 @@ T["calls done then emits error callback for HTTP status >= 400"] = function()
   h.eq(result.err_received, "500 error: ")
 end
 
+T["send calls on_done ONCE for a non-streaming request, even if on_done turns streaming back on"] = function()
+  local result = child.lua([[
+    _G.Client.static.methods.post = {
+      default = function(opts)
+        opts.callback({ status = 200, body = "{}" })
+        return { args = "mocked args", shutdown = function() end }
+      end,
+    }
+
+    local adapter = __make_adapter({ opts = { method = "POST", stream = false } })
+    local responses = {}
+    Client.new({ adapter = adapter }):send({ messages = {} }, {
+      on_done = function(response)
+        table.insert(responses, response and "response" or "nil")
+        adapter.opts.stream = true
+      end,
+    })
+
+    return responses
+  ]])
+
+  h.eq({ "response" }, result)
+end
+
 T["send_sync returns response on success"] = function()
   local result = child.lua([[
     -- Override POST to return a synchronous success response

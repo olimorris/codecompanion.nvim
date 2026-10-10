@@ -366,14 +366,4 @@ T["DeepSeek adapter"]["No Streaming"]["can process tools"] = function()
   h.eq(tool_output, tools)
 end
 
-T["DeepSeek adapter"]["No Streaming"]["can output for the inline assistant"] = function()
-  local data = vim.fn.readfile("tests/adapters/http/stubs/deepseek_no_streaming.txt")
-  data = table.concat(data, "\n")
-
-  -- Match the format of the actual request
-  local json = { body = data }
-
-  h.eq("**Elegant syntax.**", adapter.handlers.response.parse_inline(adapter, { data = json }).output)
-end
-
 return T

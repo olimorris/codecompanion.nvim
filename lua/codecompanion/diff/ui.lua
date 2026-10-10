@@ -15,14 +15,18 @@ local M = {}
 ---@field bufnr number The buffer number of the diff window
 ---@field chat_bufnr? number If the diff has an associated chat buffer, pass in the chat buffer number
 ---@field current_hunk number The current hunk index (1-based)
+---@field decisions { from_lines: string[], to_lines: string[], hunk: number }[] The diff before each hunk decision, for undo
 ---@field diff CC.Diff
 ---@field diff_id number
+---@field drawn_lines? string[] The buffer as the inline diff was last drawn, to spot the user's own edits
+---@field hunk_actions? boolean Whether hunks can be accepted or rejected one at a time
 ---@field hunks number The total number of hunks in the diff
 ---@field inline? boolean Whether the diff is shown inline or in a floating window
 ---@field keymaps table<string, fun(diff_ui: CodeCompanion.DiffUI)> Custom keymap callbacks (on_accept, on_reject, on_always_accept)
 ---@field ns number The namespace ID for diff extmarks
 ---@field resolved boolean Whether the diff has been resolved (accepted/rejected)
 ---@field tool_name? string This is essential for approvals to work with tools
+---@field undo_seq? number The buffer's undo state before an inline diff was drawn into it
 ---@field winnr number
 local DiffUI = {}
 DiffUI.__index = DiffUI
@@ -64,7 +68,7 @@ end
 ---@param opts { banner?: string, current_hunk: number, hunks: number }
 ---@return string
 local function build_banner_text(opts)
-  return fmt(" [Hunk: %d/%d]  %s ", opts.current_hunk or 1, opts.hunks or 1, opts.banner or get_default_banner())
+  return fmt("[Hunk: %d/%d] · %s ", opts.current_hunk or 1, opts.hunks or 1, opts.banner or get_default_banner())
 end
 
 ---Show banner in the diff buffer
@@ -84,7 +88,6 @@ local function banner_virt_text(bufnr, opts)
   if opts.inline then
     api.nvim_buf_set_extmark(bufnr, ns_id, line, 0, {
       virt_lines = { { { text, "CodeCompanionDiffBannerInline" } } },
-      virt_lines_above = true,
       priority = 125,
     })
   else
@@ -98,6 +101,25 @@ local function banner_virt_text(bufnr, opts)
   end
 
   return ns_id
+end
+
+---The row to show the banner below, so it sits just above the hunk or, at the top of the buffer, just below it
+---@param bufnr number
+---@param hunk CodeCompanion.diff.Hunk
+---@return number
+local function get_banner_row(bufnr, hunk)
+  -- Deleted lines are drawn above the line after them, or below the last line
+  local first_row = hunk.to_count == 0 and hunk.pos[1] + 1 or hunk.pos[1]
+  local line_count = api.nvim_buf_line_count(bufnr)
+  if first_row >= line_count then
+    return line_count - 1
+  end
+  -- Virtual lines above the first line are hidden while the window is at the top
+  if first_row == 0 then
+    return hunk.to_count - 1
+  end
+  -- Attached above the first row, the banner would show after any deleted lines, as Neovim draws the oldest mark first
+  return first_row - 1
 end
 
 ---Navigate to next hunk
@@ -144,6 +166,107 @@ function DiffUI:previous_hunk(line)
   end
 end
 
+---Replace `count` lines from `start`, where a count of 0 inserts after `start` as in a unified diff
+---@param lines string[]
+---@param opts { start: number, count: number, replacement: string[] }
+---@return string[]
+local function splice(lines, opts)
+  local first = opts.count == 0 and opts.start + 1 or opts.start
+  local result = vim.list_slice(lines, 1, first - 1)
+  vim.list_extend(result, opts.replacement)
+  return vim.list_extend(result, vim.list_slice(lines, first + opts.count))
+end
+
+---The hunk under the cursor, or the one last navigated to
+---@param line number
+---@return number
+function DiffUI:get_hunk_at(line)
+  for index, hunk in ipairs(self.diff.hunks) do
+    local first = hunk.pos[1] + 1
+    if line >= first and line <= first + math.max(hunk.to_count, 1) - 1 then
+      return index
+    end
+  end
+  return self.current_hunk
+end
+
+---Accept or reject a single hunk, then redraw the hunks that are left
+---@param index number
+---@param opts { accept: boolean }
+---@return nil
+function DiffUI:resolve_hunk(index, opts)
+  local hunk = self.diff.hunks[index]
+  if not hunk or self:warn_if_edited() then
+    return
+  end
+
+  local from_lines, to_lines = self.diff.from.lines, self.diff.to.lines
+  if opts.accept then
+    local accepted = vim.list_slice(to_lines, hunk.to_start, hunk.to_start + hunk.to_count - 1)
+    from_lines = splice(from_lines, { start = hunk.from_start, count = hunk.from_count, replacement = accepted })
+  else
+    local original = vim.list_slice(from_lines, hunk.from_start, hunk.from_start + hunk.from_count - 1)
+    to_lines = splice(to_lines, { start = hunk.to_start, count = hunk.to_count, replacement = original })
+  end
+
+  if vim.deep_equal(from_lines, to_lines) then
+    self:remove_inline_marks()
+    api.nvim_buf_set_lines(self.bufnr, 0, -1, false, to_lines)
+    return require("codecompanion.diff.keymaps").accept_change.callback(self)
+  end
+
+  table.insert(self.decisions, { from_lines = self.diff.from.lines, to_lines = self.diff.to.lines, hunk = index })
+  self:redraw({ from_lines = from_lines, to_lines = to_lines, hunk = index })
+end
+
+---Take back the last hunk decision
+---@return nil
+function DiffUI:undo_hunk()
+  if self:warn_if_edited() then
+    return
+  end
+  local decision = table.remove(self.decisions)
+  if decision then
+    self:redraw(decision)
+  end
+end
+
+---Hunk decisions redraw the whole buffer, which would wipe out any edits the user has made since
+---@return boolean
+function DiffUI:warn_if_edited()
+  if vim.deep_equal(api.nvim_buf_get_lines(self.bufnr, 0, -1, false), self.drawn_lines) then
+    return false
+  end
+  utils.notify(
+    "The buffer has been edited. Undo your changes to keep reviewing hunks, or accept all to keep them",
+    vim.log.levels.WARN
+  )
+  return true
+end
+
+---Redraw the inline diff between two sets of lines, moving to the given hunk
+---@param opts { from_lines: string[], to_lines: string[], hunk: number }
+---@return nil
+function DiffUI:redraw(opts)
+  self:remove_inline_marks()
+  api.nvim_buf_set_lines(self.bufnr, 0, -1, false, opts.from_lines)
+  self.diff = require("codecompanion.diff").create({
+    bufnr = self.bufnr,
+    ft = self.diff.ft,
+    from_lines = opts.from_lines,
+    to_lines = opts.to_lines,
+    marker_add = self.diff.marker_add,
+    marker_delete = self.diff.marker_delete,
+    inline = true,
+  })
+  self.hunks = #self.diff.hunks
+  self:apply_inline(self.diff, self.bufnr)
+
+  self.current_hunk = math.min(opts.hunk, self.hunks)
+  ui_utils.scroll_to_line(self.bufnr, self.diff.hunks[self.current_hunk].pos[1] + 1)
+  utils.fire("DiffHunkChanged", { id = self.diff_id, bufnr = self.bufnr })
+end
+
 ---Close the diff window
 ---@return nil
 function DiffUI:close()
@@ -183,7 +306,7 @@ function DiffUI:setup_keymaps(opts)
   if not opts.skip_default_keymaps then
     for name, keymap in pairs(shared_keymaps) do
       local handler = keymaps[name]
-      if handler then
+      if handler and (self.hunk_actions or not handler.hunk_action) then
         for mode, lhs in pairs(keymap.modes) do
           self:_set_keymap(mode, lhs, handler)
         end
@@ -284,15 +407,44 @@ function DiffUI:clear()
   end
 
   if self.inline then
-    if self.inline_spacer_mark then
-      local pos = api.nvim_buf_get_extmark_by_id(self.bufnr, self.ns, self.inline_spacer_mark, {})
-      if pos and pos[1] then
-        pcall(api.nvim_buf_set_lines, self.bufnr, pos[1], pos[1] + 1, false, {})
-      end
-      self.inline_spacer_mark = nil
-    end
-    return pcall(api.nvim_buf_clear_namespace, self.bufnr, self.ns, 0, -1)
+    self:remove_inline_marks()
+    self:collapse_undo()
   end
+end
+
+---Start a new undo block and remember where it begins, so the diff can later be undone in one step
+---@return nil
+function DiffUI:start_undo_block()
+  self.undo_seq = api.nvim_buf_call(self.bufnr, function()
+    -- Breaks the undo block, or a change made just before the diff would be undone along with it
+    vim.go.undolevels = vim.go.undolevels
+    return vim.fn.undotree().seq_cur
+  end)
+end
+
+---Replace the undo history of drawing and redrawing the diff with a single change to the final lines
+---@return nil
+function DiffUI:collapse_undo()
+  local final_lines = api.nvim_buf_get_lines(self.bufnr, 0, -1, false)
+  api.nvim_buf_call(self.bufnr, function()
+    vim.cmd("silent undo " .. self.undo_seq)
+  end)
+  if not vim.deep_equal(api.nvim_buf_get_lines(self.bufnr, 0, -1, false), final_lines) then
+    api.nvim_buf_set_lines(self.bufnr, 0, -1, false, final_lines)
+  end
+end
+
+---Remove the inline diff's highlights, virtual lines and spacer line, leaving the proposed lines
+---@return nil
+function DiffUI:remove_inline_marks()
+  if self.inline_spacer_mark then
+    local pos = api.nvim_buf_get_extmark_by_id(self.bufnr, self.ns, self.inline_spacer_mark, {})
+    if pos and pos[1] then
+      pcall(api.nvim_buf_set_lines, self.bufnr, pos[1], pos[1] + 1, false, {})
+    end
+    self.inline_spacer_mark = nil
+  end
+  pcall(api.nvim_buf_clear_namespace, self.bufnr, self.ns, 0, -1)
 end
 
 ---Apply inline diff changes and virtual deletion lines
@@ -397,6 +549,7 @@ function DiffUI:apply_inline(diff, bufnr)
     end
     hunk.pos = { target_row, 0 }
   end
+  self.drawn_lines = api.nvim_buf_get_lines(bufnr, 0, -1, false)
 end
 
 ---Show a diff in a floating window
@@ -417,9 +570,9 @@ end
 
 ---Create and configure the diff window
 ---@param diff CC.Diff
----@param opts { cfg: CodeCompanion.WindowOpts, float: boolean, title?: string }
+---@param opts { cfg: CodeCompanion.WindowOpts, float: boolean, inline?: boolean, title?: string }
 ---@return number bufnr
----@return number winnr
+---@return number|nil winnr
 local function create_diff_display(diff, opts)
   local bufnr, winnr
 
@@ -432,7 +585,8 @@ local function create_diff_display(diff, opts)
   else
     bufnr = diff.bufnr
     winnr = ui_utils.buf_get_win(bufnr)
-    if not winnr or not api.nvim_win_is_valid(winnr) then
+    -- Otherwise a user who moved on while the LLM worked has the edited buffer swapped into their current window
+    if (not winnr or not api.nvim_win_is_valid(winnr)) and not opts.inline then
       winnr = api.nvim_get_current_win()
       api.nvim_win_set_buf(winnr, bufnr)
     end
@@ -454,12 +608,11 @@ end
 
 ---Set up banner display and tracking
 ---@param diff_ui CodeCompanion.DiffUI
----@param opts { banner?: string, is_float: boolean, inline: boolean }
----@return number group Autocommand group ID
+---@param opts { banner?: string, group: number, is_float: boolean, inline: boolean }
+---@return nil
 local function setup_banner(diff_ui, opts)
   local bufnr = diff_ui.bufnr
-  local group = api.nvim_create_augroup("codecompanion.diff_window_" .. bufnr, { clear = true })
-  diff_ui.aug_group = group
+  local group = opts.group
 
   local function show_banner(args)
     args = args or {}
@@ -474,7 +627,7 @@ local function setup_banner(diff_ui, opts)
     end
 
     local hunk = diff_ui.diff.hunks[diff_ui.current_hunk]
-    local target_line = opts.inline and hunk and hunk.pos[1] or nil
+    local target_line = opts.inline and hunk and get_banner_row(bufnr, hunk) or nil
 
     local ns_id = banner_virt_text(bufnr, {
       banner = opts.banner,
@@ -516,8 +669,6 @@ local function setup_banner(diff_ui, opts)
       end,
     })
   end
-
-  return group
 end
 
 ---Set up window close handler
@@ -550,11 +701,37 @@ local function setup_close_handler(diff_ui, group, skip_default_keymaps)
   end
 end
 
+---@param diff CC.Diff
+---@param opts CodeCompanion.DiffUIOptions|{ bufnr: number, winnr?: number }
+---@return CodeCompanion.DiffUI
+local function create_diff_ui(diff, opts)
+  local diff_id = opts.diff_id or math.random(10000000)
+
+  return setmetatable({
+    banner = opts.banner,
+    bufnr = opts.bufnr,
+    chat_bufnr = opts.chat_bufnr,
+    current_hunk = 1,
+    decisions = {},
+    diff = diff,
+    diff_id = diff_id,
+    hunk_actions = opts.hunk_actions,
+    hunks = #diff.hunks,
+    inline = opts.inline,
+    keymaps = opts.keymaps or {},
+    ns = api.nvim_create_namespace("codecompanion_diff_extmarks_" .. tostring(diff_id)),
+    resolved = false,
+    tool_name = opts.tool_name,
+    winnr = opts.winnr,
+  }, DiffUI)
+end
+
 ---@class CodeCompanion.DiffUIOptions
 ---@field chat_bufnr? number
 ---@field banner? string
 ---@field diff_id? number
 ---@field float? boolean
+---@field hunk_actions? boolean
 ---@field inline? boolean
 ---@field keymaps.on_always_accept? fun(diff_ui: CodeCompanion.DiffUI)
 ---@field keymaps.on_accept? fun(diff_ui: CodeCompanion.DiffUI)
@@ -574,52 +751,43 @@ function M.show(diff, opts)
   local is_float = opts.float ~= false and not is_inline
   local cfg = vim.tbl_deep_extend("force", config.display.chat.floating_window or {}, config.display.diff.window or {})
 
-  -- Create window or inline display
-  local bufnr, winnr = create_diff_display(diff, {
-    float = is_float,
-    title = opts.title,
-    cfg = cfg,
-  })
+  local bufnr, winnr =
+    create_diff_display(diff, { float = is_float, inline = is_inline, title = opts.title, cfg = cfg })
 
-  local diff_id = opts.diff_id or math.random(10000000)
-
-  -- Create diff UI object
-  ---@type CodeCompanion.DiffUI
-  local diff_ui = setmetatable({
-    banner = opts.banner,
-    bufnr = bufnr,
-    chat_bufnr = opts.chat_bufnr,
-    current_hunk = 1,
-    diff = diff,
-    diff_id = diff_id,
-    hunks = #diff.hunks,
-    inline = opts.inline or not is_float,
-    keymaps = opts.keymaps or {},
-    ns = api.nvim_create_namespace("codecompanion_diff_extmarks_" .. tostring(diff_id)),
-    resolved = false,
-    tool_name = opts.tool_name,
-    winnr = winnr,
-  }, DiffUI)
+  local diff_ui = create_diff_ui(
+    diff,
+    vim.tbl_extend("force", opts, {
+      bufnr = bufnr,
+      inline = opts.inline or not is_float,
+      winnr = winnr,
+    })
+  )
 
   if is_inline then
+    diff_ui:start_undo_block()
     diff_ui:apply_inline(diff, bufnr)
   else
     diff_ui:apply_extmarks(diff, bufnr)
   end
   diff_ui:setup_keymaps({ skip_default_keymaps = opts.skip_default_keymaps or false })
 
-  -- Scroll to first hunk
   if #diff.hunks > 0 then
     vim.schedule(function()
       ui_utils.scroll_to_line(bufnr, diff.hunks[1].pos[1] + 1)
     end)
   end
 
-  local group = setup_banner(diff_ui, {
-    banner = opts.banner,
-    is_float = is_float,
-    inline = is_inline,
-  })
+  local group = api.nvim_create_augroup("codecompanion.diff_window_" .. bufnr, { clear = true })
+  diff_ui.aug_group = group
+
+  if config.display.diff.show_banner then
+    setup_banner(diff_ui, {
+      banner = opts.banner,
+      group = group,
+      is_float = is_float,
+      inline = is_inline,
+    })
+  end
 
   setup_close_handler(diff_ui, group, opts.skip_default_keymaps or false)
 

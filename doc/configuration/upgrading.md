@@ -92,7 +92,6 @@ The fields in `args` match the old positional arguments:
 | `request.build_reasoning` | `data` |
 | `request.build_body` | `payload` |
 | `response.parse_chat` | `data`, `tools` |
-| `response.parse_inline` | `data`, `context` |
 | `response.parse_tokens` | `data` |
 | `response.parse_meta` | `data` |
 | `tools.format_calls` | `tools` |
@@ -221,6 +220,23 @@ For example, in a tool's output handler:
 chat:add_tool_output(self, "The result is 42") -- [!code --]
 chat:add_tool_output({ tool = self, for_llm = "The result is 42" }) -- [!code ++]
 ```
+
+### Inline
+
+The inline interaction now edits the buffer with the [edit_file](/usage/chat-buffer/agents-tools#edit-file) tool, rather than asking the LLM where to place a block of code. See [How Edits Work](/usage/inline#how-edits-work).
+
+- The adapter's model must support tool calling. Inline prompts sent with an adapter that doesn't, such as `xai`, are refused with an error
+- The current buffer is always shared with the LLM, up to a [context limit](/configuration/inline#context-limit), so the inline `#{buffer}` editor context has been removed. Delete it from your inline prompts
+- With a visual selection, the LLM can only edit the selected lines
+- Your `default` rules group, including `AGENTS.md` and `CLAUDE.md`, is sent with every inline prompt to an HTTP adapter, on top of the context limit. Set `rules.opts.inline.autoload = {}` to stop it. See [Rules and Skills](/configuration/inline#rules-and-skills)
+- The `placement` prompt library option has been removed, along with the option to write code into a new buffer. Inline prompts that set `placement` can delete it
+- `pre_hook` no longer runs for inline prompts
+- A reply that doesn't edit the buffer, such as an answer to a question, opens in a float rather than a chat buffer
+- `display.inline.layout` has been removed
+- `:CodeCompanion` with no prompt, and prompts with `user_prompt`, now open CodeCompanion's input box rather than `vim.ui.input`
+- The inline diff can be reviewed a hunk at a time with the new `accept_hunk` (`ga`), `reject_hunk` (`gr`) and `undo_hunk` (`u`) keymaps in `interactions.shared.keymaps`. `reject_change` now rejects only the hunks that are left
+- The `Unit tests` prompt (`/tests`) has been removed from the prompt library
+- The `response.parse_inline` and `inline_output` adapter handlers have been removed. If your adapter defines either, delete it. Inline now uses `response.parse_chat` (or `chat_output`) and the tool handlers, the same as the chat buffer
 
 ## v18.7.0 to v19.0.0
 

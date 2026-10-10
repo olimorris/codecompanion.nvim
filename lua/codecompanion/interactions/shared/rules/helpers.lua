@@ -109,6 +109,22 @@ local function is_enabled(chat)
   return enabled == true
 end
 
+---Turn an `autoload` setting into a list of rule group names
+---@param autoload string|string[]|fun(): string|string[]
+---@return string[]|nil
+function M.get_group_names(autoload)
+  if type(autoload) == "function" then
+    autoload = autoload()
+    assert(type(autoload) == "string" or type(autoload) == "table", "autoload must return a string or table of strings")
+  end
+  if type(autoload) == "string" then
+    return { autoload }
+  end
+  if type(autoload) == "table" then
+    return vim.deepcopy(autoload)
+  end
+end
+
 ---Add callbacks to a chat creation request
 ---@param args table
 ---@param rules_name? string The name of the rules instance to use (if any)
@@ -119,19 +135,8 @@ function M.add_callbacks(args, rules_name)
     return args.callbacks
   end
 
-  local autoload = rules_name or rules.autoload
-  local groups = {}
-  if type(autoload) == "string" then
-    groups = { autoload }
-  elseif type(autoload) == "table" then
-    groups = vim.deepcopy(autoload)
-  elseif type(autoload) == "function" then
-    groups = autoload()
-    assert(type(groups) == "string" or type(groups) == "table", "autoload must return a string or table of strings")
-    if type(groups) == "string" then
-      groups = { groups }
-    end
-  else
+  local groups = M.get_group_names(rules_name or rules.autoload)
+  if not groups then
     return args.callbacks
   end
 
@@ -182,6 +187,21 @@ function M.add_context(files, chat)
   end
 end
 
+---Find a file that a rules file includes, in the cwd first and then the wider filesystem
+---@param included_path string
+---@return string|nil
+function M.resolve_included_path(included_path)
+  local path = vim.fs.normalize(included_path)
+  local in_cwd = vim.fs.joinpath(vim.fn.getcwd(), path)
+  if file_utils.exists(in_cwd) then
+    return in_cwd
+  end
+  if file_utils.exists(path) then
+    return path
+  end
+  log:warn("Could not find the rules file `%s`", path)
+end
+
 ---Add a file or buffer as context to the chat
 ---@param included_files string[]
 ---@param chat CodeCompanion.Chat
@@ -190,16 +210,9 @@ function M.add_files_or_buffers(included_files, chat)
   vim.iter(included_files):each(function(f)
     local opts = {}
 
-    local path = vim.fs.normalize(f)
-
-    -- Check if the file exists in the current working directory
-    if file_utils.exists(vim.fs.joinpath(vim.fn.getcwd(), path)) then
-      path = vim.fs.joinpath(vim.fn.getcwd(), path)
-    else
-      -- Otherwise, check the wider filesystem
-      if not file_utils.exists(path) then
-        return log:warn("Could not find the rules file `%s`", path)
-      end
+    local path = M.resolve_included_path(f)
+    if not path then
+      return
     end
 
     -- Use <rules> ID format to match add_context() and prevent duplicates
@@ -235,9 +248,10 @@ function M.add_files_or_buffers(included_files, chat)
 
     -- Otherwise, add it as file context
     local ok, file = pcall(chat_helpers.format_file_for_llm, path, opts)
-    if ok then
-      chat:add_context({ content = file.content }, { source = "rules", id = id, path = path })
+    if not ok then
+      return log:error("[Rules] Could not share `%s`: %s", path, file)
     end
+    chat:add_context({ content = file.content }, { source = "rules", id = id, path = path })
   end)
 end
 

@@ -4,40 +4,44 @@ The Inline Interaction - This is where code is applied directly to a Neovim buff
 
 ---@class CodeCompanion.Inline
 ---@field id number The ID of the inline prompt
----@field adapter CodeCompanion.HTTPAdapter The adapter to use for the inline prompt
+---@field adapter CodeCompanion.HTTPAdapter|CodeCompanion.ACPAdapter The adapter to use for the inline prompt
 ---@field aug number The ID for the autocmd group
 ---@field buffer_context CodeCompanion.BufferContext
 ---@field bufnr number The buffer number to apply the inline edits to
----@field chat_context? table The content from the last opened chat buffer
----@field classification CodeCompanion.Inline.Classification Where to place the generated code in Neovim
----@field current_request? table The current request that's being processed
 ---@field diff_ui? CodeCompanion.DiffUI The diff UI instance
----@field lines table Lines in the buffer before the inline changes
 ---@field opts table
----@field original_content? string[] The original buffer content before LLM changes
 ---@field prompts table The prompts to send to the LLM
+---@field request? CodeCompanion.Inline.HTTP|CodeCompanion.Inline.ACP The request that's being processed
+---@field requesting? boolean Whether the LLM is working on the prompt, so the finish event fires once
+---@field target CodeCompanion.Inline.Target
 
 ---@class CodeCompanion.InlineArgs
 ---@field adapter? CodeCompanion.HTTPAdapter
 ---@field buffer_context? CodeCompanion.BufferContext
----@field chat_context? table Messages from a chat buffer
----@field lines? table The lines in the buffer before the inline changes
 ---@field opts? table
----@field placement? string The placement of the code in Neovim
----@field pre_hook? fun():number Function to run before the inline prompt is started
 ---@field prompts? table The prompts to send to the LLM
 
----@class CodeCompanion.Inline.Classification
----@field placement string The placement of the code in Neovim
----@field pos {line: number, col: number, bufnr: number} The data for where the prompt should be placed
+---@class CodeCompanion.Inline.Target
+---@field lines string[] Every line in the buffer when the prompt was made
+---@field context { first: number, last: number } The lines shared with the LLM
+---@field editable { first: number, last: number } The lines the LLM is allowed to edit
 
+---@class CodeCompanion.Inline.Result
+---@field lines? string[] The buffer with the LLM's edits applied
+---@field reply? string The LLM's text reply, when it made no edits
+---@field error? string
+
+local acp = require("codecompanion.interactions.inline.adapters.acp")
+local adapter_utils = require("codecompanion.adapters.utils")
 local adapters = require("codecompanion.adapters")
-local client = require("codecompanion.http")
 local config = require("codecompanion.config")
 local editor_context = require("codecompanion.interactions.inline.editor_context")
+local http = require("codecompanion.interactions.inline.adapters.http")
+local inline_utils = require("codecompanion.interactions.inline.utils")
 local keymaps = require("codecompanion.utils.keymaps")
 local log = require("codecompanion.utils.log")
-local markdown = require("codecompanion.utils.markdown")
+local tokens = require("codecompanion.utils.tokens")
+local ui = require("codecompanion.interactions.inline.ui")
 local utils = require("codecompanion.utils")
 
 local api = vim.api
@@ -47,131 +51,7 @@ local user_role = config.constants.USER_ROLE
 
 local CONSTANTS = {
   AUTOCMD_GROUP = "codecompanion.inline",
-  STATUS_ERROR = "error",
-  STATUS_SUCCESS = "success",
-
-  SYSTEM_PROMPT = [[You are a knowledgeable developer working in the Neovim text editor. You write %s code on behalf of a user, directly into their active Neovim buffer.
-
-Your task:
-- Carefully follow the user's prompt (enclosed in <prompt></prompt> tags).
-- Use any provided code context to inform your response.
-- Output only valid JSON as specified below.
-
-Response schema:
-%s
-
-If you cannot answer, respond with a single-sentence reason in %s, enclosed in error tags:
-{
-  "error": "Reason for not being able to answer the prompt"
 }
-
-Rules:
-- **CRITICAL**: ENSURE YOU PRESERVE THE EXACT INDENTATION (TABS/SPACES) as it appears in the provided code.
-- Validate all code carefully.
-- Adhere strictly to the JSON schema.
-- Do not include markdown, code fences, or explanations.
-- Include comments if appropriate for the language.
-- Do not output anything except the JSON response]],
-
-  RESPONSE_WITHOUT_PLACEMENT = [[Return your code in valid JSON matching this schema:
-
-{
-  "type": "object",
-  "required": ["code", "language"],
-  "properties": {
-    "code": { "type": "string" },
-    "language": { "type": "string" }
-  },
-  "additionalProperties": false
-}
-
-Example:
-{
-  "code": "print('Hello World')",
-  "language": "python"
-}
-]],
-
-  RESPONSE_WITH_PLACEMENT = [[Return your code and placement in valid JSON matching this schema:
-
-{
-  "type": "object",
-  "required": ["placement"],
-  "properties": {
-    "code": { "type": "string" },
-    "language": { "type": "string" },
-    "placement": {
-      "type": "string",
-      "enum": ["replace", "add", "before", "new", "chat"],
-      "description": "Where to place the code in Neovim."
-    }
-  },
-  "additionalProperties": false
-}
-
-Placement options:
-- "replace": Replace the user's current visual selection in the buffer with your code.
-- "add": Insert your code after the user's current cursor position in the buffer.
-- "before": Insert your code before the user's current cursor position in the buffer.
-- "new": Create a new Neovim buffer and insert your code there.
-- "chat": The prompt is conversational, informational, or otherwise not suitable for direct code insertion; respond as a message in the chat buffer instead.
-
-Example:
-
-{
-  "code": "print('Hello World')",
-  "language": "python",
-  "placement": "replace"
-}
-
-If placement is "chat", omit the "code" and "language" fields:
-
-{
-  "placement": "chat"
-}]],
-}
-
----Format code into a code block alongside a message
----@param message string
----@param filetype string
----@param code table
----@return string
-local function code_block(message, filetype, code)
-  return fmt(
-    [[%s
-<code>
-%s
-</code>]],
-    message,
-    markdown.form_codeblock(table.concat(code, "\n"), { ft = filetype })
-  )
-end
-
----Overwrite the given selection in the buffer with an empty string
----@param context table The buffer context in the inline class
-local function overwrite_selection(context)
-  log:trace("[Inline] Overwriting selection: %s", context)
-  if context.start_col > 0 then
-    context.start_col = context.start_col - 1
-  end
-
-  local line_length = #vim.api.nvim_buf_get_lines(context.bufnr, context.end_line - 1, context.end_line, true)[1]
-  if context.end_col > line_length then
-    context.end_col = line_length
-  end
-
-  -- NOTE: Ensure that focus is set to the correct buffer in case the user has navigated away
-  api.nvim_set_current_buf(context.bufnr)
-  api.nvim_buf_set_text(
-    context.bufnr,
-    context.start_line - 1,
-    context.start_col,
-    context.end_line - 1,
-    context.end_col,
-    { "" }
-  )
-  api.nvim_win_set_cursor(context.winnr, { context.start_line, context.start_col })
-end
 
 ---@class CodeCompanion.Inline
 local Inline = {}
@@ -189,43 +69,23 @@ function Inline.new(args)
     }),
     buffer_context = args.buffer_context,
     bufnr = args.buffer_context.bufnr,
-    classification = {
-      placement = args and args.placement,
-      pos = {},
-    },
-    chat_context = args.chat_context or {},
-    lines = {},
     opts = args.opts or {},
-    prompts = vim.deepcopy(args.prompts),
+    prompts = args.prompts,
   }, { __index = Inline })
 
-  self:set_adapter(args.adapter or config.interactions.inline.adapter)
+  local picked = ui.get_picked_adapter(self.bufnr)
+  if args.adapter then
+    self.adapter = adapters.resolve(args.adapter)
+  elseif picked then
+    self.adapter = adapters.resolve(picked.adapter, { model = picked.model })
+  else
+    self.adapter = adapters.resolve(vim.g.codecompanion_adapter or config.interactions.inline.adapter)
+  end
   if not self.adapter then
     return log:error("[Inline] No adapter found")
   end
-  if self.adapter.type ~= "http" then
-    return log:warn("Only HTTP adapters are supported for inline interactions")
-  end
-
-  -- Check if the user has manually overridden the adapter
-  if vim.g.codecompanion_adapter and self.adapter.name ~= vim.g.codecompanion_adapter then
-    self:set_adapter(config.adapters[vim.g.codecompanion_adapter])
-  end
-
-  if self.opts and self.opts.placement then
-    self.classification.placement = self.opts.placement
-  end
 
   return self
-end
-
----Set the adapter for the inline prompt
----@param adapter CodeCompanion.HTTPAdapter|string|function
----@return nil
-function Inline:set_adapter(adapter)
-  if not self.adapter or not adapters.resolved(adapter) then
-    self.adapter = adapters.resolve(adapter)
-  end
 end
 
 ---Parse special syntax from user prompt (adapters and maintain editor context)
@@ -233,619 +93,336 @@ end
 ---@return string The cleaned prompt
 function Inline:parse_special_syntax(prompt)
   local adapter_pattern = "adapter=([%w_]+)"
-  local adapter_match = prompt:match(adapter_pattern)
+  local name = prompt:match(adapter_pattern)
+  if not name then
+    return vim.trim(prompt)
+  end
 
-  local config_adapters = vim.tbl_deep_extend("force", {}, config.adapters.acp, config.adapters.http)
-  if adapter_match then
-    if config_adapters[adapter_match] then
-      self:set_adapter(adapter_match)
-      prompt = prompt:gsub(adapter_pattern, "", 1) -- Remove only the first occurrence
-    else
-      utils.notify("Adapter not found: " .. adapter_match, vim.log.levels.ERROR)
-    end
+  if config.adapters.http[name] or config.adapters.acp[name] then
+    self.adapter = adapters.resolve(name)
+    prompt = prompt:gsub(adapter_pattern, "", 1)
   else
-    -- Handle legacy first-word adapter detection for backward compatibility
-    local split = vim.split(prompt, " ")
-    local first_word = split[1]
-    if config_adapters[first_word] then
-      self:set_adapter(first_word)
-      table.remove(split, 1)
-      prompt = table.concat(split, " ")
-    end
+    utils.notify("Adapter not found: " .. name, vim.log.levels.ERROR)
   end
 
   return vim.trim(prompt)
 end
 
----Set keymaps for the inline interaction
----@param bufnr? number
----@param opts? table
----@return nil
-function Inline:set_keymaps(bufnr, opts)
-  keymaps
-    .new({
-      bufnr = bufnr,
-      callbacks = require("codecompanion.interactions.inline.keymaps"),
-      data = self,
-      keymaps = config.interactions.inline.keymaps,
-    })
-    :set(opts)
-end
-
 ---Prompt the LLM
----@param user_prompt? string The prompt supplied by the user
+---@param user_prompt? string
 ---@return nil
 function Inline:prompt(user_prompt)
   log:trace("[Inline] Starting")
 
-  local prompts = {}
-
-  local function add_prompt(content, role, opts)
-    table.insert(prompts, {
-      content = content,
-      role = role or user_role,
-      opts = opts or { visible = true },
-    })
-  end
-
-  -- Add system prompt first
-  table.insert(prompts, {
-    role = config.constants.SYSTEM_ROLE,
-    content = fmt(
-      CONSTANTS.SYSTEM_PROMPT,
-      self.buffer_context.filetype,
-      (self.classification.placement and CONSTANTS.RESPONSE_WITHOUT_PLACEMENT or CONSTANTS.RESPONSE_WITH_PLACEMENT),
-      config.opts.language
-    ),
-    _meta = {
-      tag = "system_tag",
-    },
-    opts = {
-      visible = false,
-    },
-  })
-
-  -- Followed by prompts from external sources
-  local ext_prompts = self:make_ext_prompts()
-  if ext_prompts then
-    for i = 1, #ext_prompts do
-      prompts[#prompts + 1] = ext_prompts[i]
-    end
-  end
-
   if user_prompt then
-    -- Parse adapters and editor context from the entire prompt
     user_prompt = self:parse_special_syntax(user_prompt)
-
-    -- Check for any editor context
-    local ec = editor_context.new({ inline = self, prompt = user_prompt })
-    local found = ec:find():replace():output()
-    if found then
-      for _, item in ipairs(found) do
-        add_prompt(item, user_role, { visible = false })
-      end
-      user_prompt = ec.prompt
-    end
-
-    -- Add the user's prompt
-    add_prompt("<prompt>" .. user_prompt .. "</prompt>")
   end
 
   -- From the prompt library, user's can explicitly ask to be prompted for input
-  if self.opts and self.opts.user_prompt then
-    local title = string.gsub(self.buffer_context.filetype, "^%l", string.upper)
-    vim.schedule(function()
-      vim.ui.input({ prompt = title .. " " .. config.display.action_palette.prompt }, function(input)
-        if not input then
-          return
-        end
-
+  if self.opts.user_prompt then
+    return ui.open_input(self, {
+      on_submit = function(input)
         log:info("[Inline] User input received: %s", input)
-        add_prompt("<prompt>" .. input .. "</prompt>", user_role)
-        self.prompts = prompts
-        return self:submit(vim.deepcopy(prompts))
-      end)
-    end)
-  else
-    self.prompts = prompts
-    return self:submit(vim.deepcopy(prompts))
+        self:send_prompt({ user_prompt = user_prompt, input = input })
+      end,
+    })
   end
+
+  return self:send_prompt({ user_prompt = user_prompt })
 end
 
----Prompts can enter the inline class from numerous external sources such as the
----cmd line and the action palette. We begin to form the payload to send to
----the LLM in this method, checking conditions and expanding functions.
----@return table|nil
-function Inline:make_ext_prompts()
-  local prompts = {}
+---Build the messages for the prompt and send them, once the adapter is settled
+---@param opts { user_prompt?: string, input?: string }
+---@return nil
+function Inline:send_prompt(opts)
+  if self.adapter.type == "http" and not self.adapter.opts.tools then
+    return log:error(
+      "[Inline] The %s adapter can't call tools, which inline needs to edit the buffer",
+      self.adapter.formatted_name
+    )
+  end
+  if not config.can_send_code() then
+    return log:error("[Inline] Sending code is disabled, so inline can't share the buffer it needs to edit")
+  end
 
-  if self.prompts then
-    for _, prompt in ipairs(self.prompts) do
-      if prompt.opts and prompt.opts.contains_code and not config.can_send_code() then
-        goto continue
-      end
-      if prompt.condition and not prompt.condition(self.buffer_context) then
-        goto continue
-      end
-      if type(prompt.content) == "function" then
-        prompt.content = prompt.content(self.buffer_context)
-      end
-      table.insert(prompts, {
+  local target = self:get_target()
+  if not target then
+    return
+  end
+  self.target = target
+
+  local messages = self:make_messages(target, opts.user_prompt)
+  if opts.input then
+    table.insert(
+      messages,
+      { role = user_role, content = "<prompt>" .. opts.input .. "</prompt>", opts = { visible = true } }
+    )
+  end
+
+  return self:submit(messages)
+end
+
+---Work out which lines are shared with the LLM and which lines it can edit
+---@return CodeCompanion.Inline.Target|nil
+function Inline:get_target()
+  local lines = api.nvim_buf_get_lines(self.bufnr, 0, -1, false)
+  local max_tokens = inline_utils.get_max_tokens(self.adapter)
+
+  local selection = { first = self.buffer_context.start_line, last = self.buffer_context.end_line }
+  local selection_tokens = tokens.calculate(inline_utils.get_text(lines, selection))
+  if selection_tokens > max_tokens then
+    return log:error(
+      "[Inline] The selection is around %d tokens, which is over the %d token limit for inline. Select less code",
+      selection_tokens,
+      max_tokens
+    )
+  end
+
+  local context = inline_utils.get_lines_to_send(lines, { around = selection, max_tokens = max_tokens })
+  return { lines = lines, context = context, editable = self.buffer_context.is_visual and selection or context }
+end
+
+---Share the buffer with the LLM, and the lines it can edit if that isn't all of it
+---@param target CodeCompanion.Inline.Target
+---@return string
+function Inline:format_target(target)
+  local filetype = self.buffer_context.filetype
+  local name = vim.fn.fnamemodify(api.nvim_buf_get_name(self.bufnr), ":.")
+
+  local shared_lines = (target.context.first == 1 and target.context.last == #target.lines) and "the whole buffer"
+    or fmt("lines %d-%d of %d", target.context.first, target.context.last, #target.lines)
+
+  local content = fmt(
+    "This is %s from `%s`:\n\n````%s\n%s\n````",
+    shared_lines,
+    name ~= "" and name or "[No Name]",
+    filetype,
+    inline_utils.get_text(target.lines, target.context)
+  )
+
+  if vim.deep_equal(target.editable, target.context) then
+    return content .. "\n\nYou can edit any of this code."
+  end
+
+  return content
+    .. fmt(
+      "\n\nYou can only edit lines %d-%d, shown below. Edits to any other code will fail:\n\n````%s\n%s\n````",
+      target.editable.first,
+      target.editable.last,
+      filetype,
+      inline_utils.get_text(target.lines, target.editable)
+    )
+end
+
+---Form the messages for the request, starting with the buffer
+---@param target CodeCompanion.Inline.Target
+---@param user_prompt? string
+---@return table
+function Inline:make_messages(target, user_prompt)
+  local messages = {
+    {
+      role = user_role,
+      content = self:format_target(target),
+      _meta = { tag = "buffer" },
+      opts = { visible = false },
+    },
+  }
+
+  vim.list_extend(messages, self:get_prompt_library_messages())
+
+  if user_prompt then
+    local ec = editor_context.new({ inline = self, prompt = user_prompt })
+    local found = ec:find():replace():output()
+    for _, item in ipairs(found or {}) do
+      table.insert(messages, { role = user_role, content = item, opts = { visible = false } })
+    end
+    table.insert(
+      messages,
+      { role = user_role, content = "<prompt>" .. ec.prompt .. "</prompt>", opts = { visible = true } }
+    )
+  end
+
+  return messages
+end
+
+---The prompt library entry's messages, with conditions checked and functions expanded
+---@return table
+function Inline:get_prompt_library_messages()
+  return vim
+    .iter(self.prompts or {})
+    :filter(function(prompt)
+      local is_blocked = prompt.opts and prompt.opts.contains_code and not config.can_send_code()
+      return not is_blocked and (not prompt.condition or prompt.condition(self.buffer_context))
+    end)
+    :map(function(prompt)
+      local content = prompt.content
+      return {
         role = prompt.role,
-        content = prompt.content,
+        content = type(content) == "function" and content(self.buffer_context) or content,
         opts = prompt.opts or {},
-      })
-      ::continue::
-    end
-  end
+      }
+    end)
+    :totable()
+end
 
-  -- Add any visual selections to the prompt
-  if config.can_send_code() then
-    if self.buffer_context.is_visual and not self.opts.stop_context_insertion then
-      log:trace("[Inline] Sending visual selection")
-      table.insert(prompts, {
-        role = user_role,
-        content = code_block(
-          "For context, this is the code that I've visually selected in the buffer, which is relevant to my prompt:",
-          self.buffer_context.filetype,
-          self.buffer_context.lines
-        ),
-        _meta = { tag = "visual" },
-        opts = {
-          visible = false,
-        },
-      })
-    end
-  end
+---Submit the messages to the LLM to process
+---@param messages table
+---@return nil
+function Inline:submit(messages)
+  keymaps
+    .new({
+      bufnr = self.bufnr,
+      callbacks = require("codecompanion.interactions.inline.keymaps"),
+      data = self,
+      keymaps = config.interactions.inline.keymaps,
+    })
+    :set({ keymaps = { "stop" } })
 
-  return prompts
+  self.requesting = true
+  utils.fire("InlineStarted", {
+    id = self.id,
+    bufnr = self.bufnr,
+    adapter = {
+      name = self.adapter.name,
+      formatted_name = self.adapter.formatted_name,
+      model = adapter_utils.model(self.adapter),
+    },
+    range = { editable = self.target.editable, sent = self.target.context },
+  })
+
+  self.request = (self.adapter.type == "acp" and acp or http).new({ inline = self })
+  self.request:submit(messages, {
+    on_done = function(result)
+      self:done(result)
+    end,
+  })
 end
 
 ---Stop the current request
 ---@return nil
 function Inline:stop()
-  if self.current_request then
-    self.current_request.cancel()
-    self.current_request = nil
-    adapters.call_handler(self.adapter, "on_exit")
-  end
-end
-
-local _streaming = true
-
----Submit the prompts to the LLM to process
----@param prompt table The prompts to send to the LLM
----@return nil
-function Inline:submit(prompt)
-  -- Inline editing only works with streaming off - We should remember the current status
-  _streaming = self.adapter.opts.stream
-  self.adapter.opts.stream = false
-
-  self:set_keymaps(self.buffer_context.bufnr, { keymaps = { "stop" } })
-
-  self.current_request = client
-    .new({ adapter = self.adapter:map_schema_to_params(), user_args = { event = "InlineStarted" } })
-    :request({ messages = self.adapter:map_roles(prompt) }, {
-      ---@param err string
-      ---@param data table
-      ---@param adapter CodeCompanion.HTTPAdapter The modified adapter from the http client
-      callback = function(err, data, adapter)
-        require("codecompanion.interactions.inline.keymaps").clear_map(config.interactions.inline.keymaps, self.bufnr)
-
-        local function error(msg)
-          log:error("[Inline] Request failed with error %s", msg)
-        end
-
-        if err then
-          local msg = type(err) == "table" and err.message or err
-          return error(msg)
-        end
-
-        if data then
-          data = adapters.call_handler(adapter, "parse_inline", { data = data, context = self.buffer_context })
-          if data and data.status == CONSTANTS.STATUS_SUCCESS then
-            return self:done(data.output)
-          elseif data then
-            return error(data.output)
-          end
-        end
-      end,
-    }, {
-      bufnr = self.bufnr,
-      buffer_context = self.buffer_context or {},
-      interaction = "inline",
-    })
-end
-
----Once the request has been completed, we can process the output
----@param output string The output from the LLM
----@return nil
-function Inline:done(output)
-  utils.fire("InlineFinished")
-
-  local adapter_name = self.adapter.formatted_name
-
-  if not output then
-    log:error("[%s] No output received", adapter_name)
-    return self:reset()
-  end
-
-  local json = self:parse_output(output)
-  if not json then
-    -- Logging is done in parse_output
-    return self:reset()
-  end
-  if json and json.error then
-    log:error("[%s] %s", adapter_name, json.error)
-    return self:reset()
-  end
-
-  -- There should always be a placement whether that's from the LLM or the user's prompt
-  local placement = json and json.placement or self.classification.placement
-  if not placement then
-    log:error("[%s] No placement returned", adapter_name)
-    return self:reset()
-  end
-  placement = string.lower(placement)
-
-  -- An LLM won't send a code response if it deems the placement should go to a chat buffer
-  if json and not json.code and placement ~= "chat" then
-    log:error("[%s] Returned no code", adapter_name)
-    return self:reset()
-  end
-
-  if placement == "chat" then
+  if self.request then
+    self.request:stop()
     self:reset()
-    return self:to_chat()
   end
-
-  vim.schedule(function()
-    if not config.display.diff.enabled or placement == "new" then
-      self:place(placement)
-      pcall(vim.cmd.undojoin)
-      self:output(json.code)
-      return self:reset()
-    end
-
-    local original_content = api.nvim_buf_get_lines(self.buffer_context.bufnr, 0, -1, true)
-    local new_content = self:get_new_content(original_content, json.code, placement)
-
-    self:start_diff({
-      original_content = original_content,
-      new_content = new_content,
-      placement = placement,
-      code = json.code,
-    })
-  end)
 end
 
----Reset the inline prompt class
+---Show the edits in a diff, or write them straight to the buffer if the user always accepts them
+---@param new_content string[]
 ---@return nil
-function Inline:reset()
-  self.adapter.opts.stream = _streaming
-  self.current_request = nil
-  api.nvim_clear_autocmds({ group = self.aug })
-end
-
----Compute what the buffer content would look like after applying the LLM output
----@param original string[] The original buffer lines
----@param code string The code from the LLM
----@param placement string The placement type
----@return string[]
-function Inline:get_new_content(original, code, placement)
-  local new_lines = vim.split(code, "\n")
-  local result = vim.deepcopy(original)
-  local ctx = self.buffer_context
-
-  if placement == "replace" then
-    -- Replace the visual selection with the new code
-    local before = vim.list_slice(result, 1, ctx.start_line - 1)
-    local after = vim.list_slice(result, ctx.end_line + 1)
-
-    -- Handle partial line replacement
-    local start_prefix = ""
-    local end_suffix = ""
-    if ctx.start_col > 0 and result[ctx.start_line] then
-      start_prefix = result[ctx.start_line]:sub(1, ctx.start_col - 1)
-    end
-    if result[ctx.end_line] then
-      end_suffix = result[ctx.end_line]:sub(ctx.end_col + 1)
-    end
-
-    -- Combine prefix with first line and suffix with last line
-    if #new_lines > 0 then
-      new_lines[1] = start_prefix .. new_lines[1]
-      new_lines[#new_lines] = new_lines[#new_lines] .. end_suffix
-    else
-      new_lines = { start_prefix .. end_suffix }
-    end
-
-    result = vim.list_extend(vim.list_extend(before, new_lines), after)
-  elseif placement == "add" then
-    -- Insert after the end line
-    local before = vim.list_slice(result, 1, ctx.end_line)
-    local after = vim.list_slice(result, ctx.end_line + 1)
-    result = vim.list_extend(vim.list_extend(before, new_lines), after)
-  elseif placement == "before" then
-    -- Insert before the start line
-    local before = vim.list_slice(result, 1, ctx.start_line - 1)
-    local after = vim.list_slice(result, ctx.start_line)
-    result = vim.list_extend(vim.list_extend(before, new_lines), after)
-  end
-
-  return result
-end
-
----Extract a code block from markdown text
----@param content string
----@return string|nil
-local function parse_with_treesitter(content)
-  local parser = vim.treesitter.get_string_parser(content, "markdown")
-  local syntax_tree = parser:parse()
-  local root = syntax_tree[1]:root()
-
-  local query = vim.treesitter.query.parse("markdown", [[(code_fence_content) @code]])
-
-  local code = {}
-  for id, node in query:iter_captures(root, content, 0, -1) do
-    if query.captures[id] == "code" then
-      local node_text = vim.treesitter.get_node_text(node, content)
-      -- Deepseek protection!!
-      node_text = node_text:gsub("```json", "")
-      node_text = node_text:gsub("```", "")
-
-      table.insert(code, node_text)
-    end
-  end
-
-  return vim.tbl_count(code) > 0 and table.concat(code, "") or nil
-end
-
----@param output string
----@return table|nil
-function Inline:parse_output(output)
-  -- Try parsing as plain JSON first
-  output = output:gsub("^```json", ""):gsub("```$", "")
-  local ok, json = pcall(vim.json.decode, output)
-  if ok then
-    return json
-  end
-
-  -- Fall back to Tree-sitter parsing
-  local markdown_code = parse_with_treesitter(output)
-  if markdown_code then
-    ok, json = pcall(vim.json.decode, markdown_code)
-    if ok then
-      return json
-    end
-  end
-
-  return log:error("[Inline] Failed to parse the response")
-end
-
----Write the output from the LLM to the buffer
----@param output string
----@return nil
-function Inline:output(output)
-  local line = self.classification.pos.line - 1
-  local col = self.classification.pos.col
-  local bufnr = self.classification.pos.bufnr
-
-  local lines = vim.split(output, "\n")
-
-  -- If there's only one line, use buf_set_text
-  if #lines == 1 then
-    api.nvim_buf_set_text(bufnr, line, col, line, col, { output })
-    self.classification.pos.line = line + 1
-    self.classification.pos.col = col + #output
-    return
-  end
-
-  -- For multiple lines:
-  -- 1. Handle first line
-  api.nvim_buf_set_text(bufnr, line, col, line, col, { lines[1] })
-
-  -- 2. Add remaining lines
-  api.nvim_buf_set_lines(bufnr, line + 1, line + 1, false, vim.list_slice(lines, 2))
-end
-
----With the placement determined, we can now place the output from the inline prompt
----@param placement string
----@return CodeCompanion.Inline
-function Inline:place(placement)
-  local pos = { line = self.buffer_context.start_line, col = 0, bufnr = 0 }
-
-  if placement == "replace" then
-    self.lines = api.nvim_buf_get_lines(self.buffer_context.bufnr, 0, -1, true)
-    overwrite_selection(self.buffer_context)
-    local cursor_pos = api.nvim_win_get_cursor(self.buffer_context.winnr)
-    pos.line = cursor_pos[1]
-    pos.col = cursor_pos[2]
-    pos.bufnr = self.buffer_context.bufnr
-  elseif placement == "add" then
-    self.lines = api.nvim_buf_get_lines(self.buffer_context.bufnr, 0, -1, true)
-    api.nvim_buf_set_lines(
-      self.buffer_context.bufnr,
-      self.buffer_context.end_line,
-      self.buffer_context.end_line,
-      false,
-      { "" }
-    )
-    pos.line = self.buffer_context.end_line + 1
-    pos.col = 0
-    pos.bufnr = self.buffer_context.bufnr
-  elseif placement == "before" then
-    self.lines = api.nvim_buf_get_lines(self.buffer_context.bufnr, 0, -1, true)
-    api.nvim_buf_set_lines(
-      self.buffer_context.bufnr,
-      self.buffer_context.start_line - 1,
-      self.buffer_context.start_line - 1,
-      false,
-      { "" }
-    )
-    self.buffer_context.start_line = self.buffer_context.start_line + 1
-    pos.line = self.buffer_context.start_line - 1
-    pos.col = math.max(0, self.buffer_context.start_col - 1)
-    pos.bufnr = self.buffer_context.bufnr
-  elseif placement == "new" then
-    local bufnr
-    if self.opts and type(self.opts.pre_hook) == "function" then
-      -- This is only for prompts coming from the prompt library
-      bufnr = self.opts.pre_hook()
-      assert(type(bufnr) == "number", "No buffer number returned from the pre_hook function")
-    else
-      bufnr = api.nvim_create_buf(true, false)
-      local ft = utils.safe_filetype(self.buffer_context.filetype)
-      utils.set_option(bufnr, "filetype", ft)
-    end
-
-    -- TODO: This is duplicated from the chat interaction
-    if config.display.inline.layout == "vertical" then
-      local cmd = "vsplit"
-      local window_width = config.display.chat.window.width
-      local width = window_width > 1 and window_width or math.floor(vim.o.columns * window_width)
-      if width ~= 0 then
-        cmd = width .. cmd
-      end
-      vim.cmd(cmd)
-    elseif config.display.inline.layout == "horizontal" then
-      local cmd = "split"
-      local window_height = config.display.chat.window.height
-      local height = window_height > 1 and window_height or math.floor(vim.o.lines * window_height)
-      if height ~= 0 then
-        cmd = height .. cmd
-      end
-      vim.cmd(cmd)
-    elseif config.display.inline.layout == "tab" then
-      vim.cmd("tabnew")
-    end
-
-    api.nvim_win_set_buf(api.nvim_get_current_win(), bufnr)
-    pos.line = 1
-    pos.col = 0
-    pos.bufnr = bufnr
-  end
-
-  self.classification.pos = {
-    line = pos.line,
-    col = pos.col,
-    bufnr = pos.bufnr,
-  }
-
-  return self
-end
-
----Send a prompt to the chat if the placement is chat
----@return CodeCompanion.Chat|nil
-function Inline:to_chat()
-  local prompt = self.prompts
-
-  for i = #prompt, 1, -1 do
-    -- Remove all of the system prompts
-    if prompt[i]._meta and prompt[i]._meta.tag == "system_tag" then
-      table.remove(prompt, i)
-    end
-    -- Remove any visual selections as the chat buffer adds these from the context
-    if self.buffer_context.is_visual and (prompt[i]._meta and prompt[i]._meta.tag == "visual") then
-      table.remove(prompt, i)
-    end
-  end
-
-  -- Turn streaming back on
-  self.adapter.opts.stream = _streaming
-
-  local chat_opts = {
-    adapter = self.adapter,
-    auto_submit = true,
-    buffer_context = self.buffer_context,
-    messages = prompt,
-  }
-
-  -- Add rules to the chat buffer
-  local rules_cb = require("codecompanion.interactions.shared.rules.helpers").add_callbacks(chat_opts)
-  if rules_cb then
-    chat_opts.callbacks = rules_cb
-  end
-
-  return require("codecompanion.interactions.chat").new(chat_opts)
-end
-
----Build the banner text for the inline diff
----@return string
-function Inline:build_diff_banner()
-  local keys = config.interactions.shared.keymaps
-  return fmt(
-    "%s Always Accept | %s Accept | %s Reject",
-    keys.always_accept.modes.n,
-    keys.accept_change.modes.n,
-    keys.reject_change.modes.n
-  )
-end
-
----Start the diff process
----@param args { original_content: string[], new_content: string[], placement: string, code: string }
----@return nil
-function Inline:start_diff(args)
+function Inline:review(new_content)
   log:debug("[Inline] Starting diff")
+
+  if not vim.deep_equal(api.nvim_buf_get_lines(self.bufnr, 0, -1, false), self.target.lines) then
+    log:error("[Inline] The buffer changed while waiting for the LLM, so its edits were not applied")
+    return self:reset()
+  end
 
   local approvals = require("codecompanion.interactions.chat.tools.approvals")
 
-  -- If the buffer has been added to the auto approval list, skip the diff
-  if approvals:is_approved(self.bufnr, { tool_name = "inline" }) then
-    self:place(args.placement)
-    pcall(vim.cmd.undojoin)
-    self:output(args.code)
+  if not config.display.diff.enabled or approvals:is_approved(self.bufnr, { tool_name = "inline" }) then
+    api.nvim_buf_set_lines(self.bufnr, 0, -1, false, new_content)
+    self:fire_accepted()
     return self:reset()
   end
 
-  -- Store original content for potential restoration on reject
-  self.original_content = args.original_content
-
-  -- Show the inline diff - this will transform the buffer from original to new
   local helpers = require("codecompanion.helpers")
   self.diff_ui = helpers.show_diff({
-    bufnr = self.buffer_context.bufnr,
-    from_lines = args.original_content,
-    to_lines = args.new_content,
+    bufnr = self.bufnr,
+    from_lines = self.target.lines,
+    to_lines = new_content,
     diff_id = self.id,
     ft = self.buffer_context.filetype,
     inline = true,
-    banner = self:build_diff_banner(),
+    hunk_actions = true,
+    banner = ui.build_diff_banner(),
     keymaps = {
-      on_accept = function()
-        self:on_diff_accepted()
+      on_accept = function(diff_ui)
+        self:on_diff_accepted(diff_ui)
       end,
-      on_reject = function()
-        self:on_diff_rejected()
+      on_reject = function(diff_ui)
+        self:on_diff_rejected(diff_ui)
       end,
       on_always_accept = function()
-        approvals:always(self.buffer_context.bufnr, { tool_name = "inline" })
+        approvals:always(self.bufnr, { tool_name = "inline" })
       end,
     },
   })
 end
 
----Handle diff accepted event
+---@param diff_ui CodeCompanion.DiffUI
 ---@return nil
-function Inline:on_diff_accepted()
+function Inline:on_diff_accepted(diff_ui)
   log:trace("[Inline] Diff accepted for id=%s", self.id)
-  self.original_content = nil
-  self.diff_ui = nil
+  -- A formatter listening for the event would otherwise format the spacer line and the drawn hunks
+  diff_ui:remove_inline_marks()
+  self:fire_accepted()
   self:reset()
 end
 
----Handle diff rejected event
+---Reject the hunks that are left, keeping any the user has already accepted
+---@param diff_ui CodeCompanion.DiffUI
 ---@return nil
-function Inline:on_diff_rejected()
-  log:trace("[Inline] Diff rejected for id=%s, restoring original content", self.id)
+function Inline:on_diff_rejected(diff_ui)
+  log:trace("[Inline] Diff rejected for id=%s", self.id)
 
-  if self.original_content and api.nvim_buf_is_valid(self.buffer_context.bufnr) then
-    api.nvim_buf_set_lines(self.buffer_context.bufnr, 0, -1, false, self.original_content)
+  if api.nvim_buf_is_valid(self.bufnr) then
+    -- The spacer line is found by extmark, which replacing every line would move
+    diff_ui:remove_inline_marks()
+    api.nvim_buf_set_lines(self.bufnr, 0, -1, false, diff_ui.diff.from.lines)
+    self:fire_accepted()
   end
 
-  self.original_content = nil
-  self.diff_ui = nil
   self:reset()
+end
+
+---Fire `InlineAccepted` if the user kept any of the LLM's edits
+---@return nil
+function Inline:fire_accepted()
+  if not vim.deep_equal(api.nvim_buf_get_lines(self.bufnr, 0, -1, false), self.target.lines) then
+    utils.fire("InlineAccepted", { id = self.id, bufnr = self.bufnr })
+  end
+end
+
+---Review the LLM's edits, or show its text reply
+---@param result CodeCompanion.Inline.Result
+---@return nil
+function Inline:done(result)
+  require("codecompanion.interactions.inline.keymaps").clear_map(config.interactions.inline.keymaps, self.bufnr)
+
+  if result.error then
+    log:error("[Inline] %s", result.error)
+    return self:reset()
+  end
+
+  if result.reply then
+    self:reset()
+    return ui.show_reply(result.reply, { adapter = self.adapter })
+  end
+
+  self:finish_request()
+  return vim.schedule(function()
+    self:review(result.lines)
+  end)
+end
+
+---Fire `InlineFinished` once the LLM is done with the prompt, however it ended
+---@return nil
+function Inline:finish_request()
+  if not self.requesting then
+    return
+  end
+  self.requesting = false
+  utils.fire("InlineFinished", { id = self.id, bufnr = self.bufnr })
+end
+
+---Reset the inline prompt class
+---@return nil
+function Inline:reset()
+  self.request = nil
+  self.diff_ui = nil
+  api.nvim_clear_autocmds({ group = self.aug })
+  self:finish_request()
 end
 
 return Inline

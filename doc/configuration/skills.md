@@ -125,6 +125,8 @@ require("codecompanion").setup({
 
 :::
 
+The inline interaction has its own `autoload`, covered in [Configuring the Inline Interaction](/configuration/inline#rules-and-skills).
+
 ## Creating Skills
 
 A skill is a directory containing a `SKILL.md`, in one of your [directories](#directories):

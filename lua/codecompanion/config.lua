@@ -860,7 +860,10 @@ The user is working on a %s machine. Please respond with system specific command
     },
     -- INLINE INTERACTION -----------------------------------------------------
     inline = {
-      adapter = "copilot",
+      adapter = {
+        name = "copilot",
+        model = "gpt-5.4-mini",
+      },
       keymaps = {
         stop = {
           callback = "keymaps.stop",
@@ -870,13 +873,6 @@ The user is working on a %s machine. Please respond with system specific command
         },
       },
       editor_context = {
-        ["buffer"] = {
-          path = "interactions.inline.editor_context.buffer",
-          description = "Share the current buffer with the LLM",
-          opts = {
-            contains_code = true,
-          },
-        },
         ["chat"] = {
           path = "interactions.inline.editor_context.chat",
           description = "Share the currently open chat buffer with the LLM",
@@ -891,6 +887,14 @@ The user is working on a %s machine. Please respond with system specific command
             contains_code = true,
           },
         },
+      },
+      display = {
+        input = {
+          height = 2,
+        },
+      },
+      opts = {
+        max_context_tokens = 16000,
       },
     },
     -- CMD INTERACTION --------------------------------------------------------
@@ -1109,14 +1113,14 @@ The user is working on a %s machine. Please respond with system specific command
         },
         accept_change = {
           callback = "keymaps.accept_change",
-          description = "Accept change",
+          description = "Accept all changes",
           index = 2,
           modes = { n = "g2" },
           opts = { nowait = true, noremap = true },
         },
         reject_change = {
           callback = "keymaps.reject_change",
-          description = "Reject change",
+          description = "Reject all changes",
           index = 3,
           modes = { n = "g3" },
           opts = { nowait = true, noremap = true },
@@ -1125,6 +1129,23 @@ The user is working on a %s machine. Please respond with system specific command
           description = "Cancel all pending tool calls",
           modes = { n = "g4" },
           opts = { nowait = true },
+        },
+        accept_hunk = {
+          callback = "keymaps.accept_hunk",
+          description = "Accept the hunk under the cursor (inline only)",
+          modes = { n = "ga" },
+          opts = { nowait = true },
+        },
+        reject_hunk = {
+          callback = "keymaps.reject_hunk",
+          description = "Reject the hunk under the cursor (inline only)",
+          modes = { n = "gr" },
+          opts = { nowait = true },
+        },
+        undo_hunk = {
+          callback = "keymaps.undo_hunk",
+          description = "Undo the last hunk decision (inline only)",
+          modes = { n = "u" },
         },
         next_hunk = {
           callback = "keymaps.next_hunk",
@@ -1135,6 +1156,12 @@ The user is working on a %s machine. Please respond with system specific command
           callback = "keymaps.previous_hunk",
           description = "Go to previous hunk",
           modes = { n = "{" },
+        },
+        show_keymaps = {
+          callback = "keymaps.show_keymaps",
+          description = "Show these keymaps",
+          modes = { n = "?" },
+          visible = false, -- The banner already says it
         },
       },
     },
@@ -1279,6 +1306,11 @@ The user is working on a %s machine. Please respond with system specific command
         ---The default parameters to use when loading buffer rules
         default_params = "diff", -- all|diff
       },
+      inline = {
+        ---The rule groups to send with every inline prompt to an HTTP adapter
+        ---@type string|string[]|fun(): string|string[]
+        autoload = "default",
+      },
 
       show_presets = true, -- Show the preset rules files?
     },
@@ -1299,6 +1331,11 @@ The user is working on a %s machine. Please respond with system specific command
         enabled = true, -- When false, skills are unavailable and their slash commands are hidden
 
         ---Group or skill names to add to every chat
+        ---@type string[]|fun(): string[]
+        autoload = {},
+      },
+      inline = {
+        ---Group or skill names whose full instructions go with every inline prompt to an HTTP adapter
         ---@type string[]|fun(): string[]
         autoload = {},
       },
@@ -1398,6 +1435,7 @@ The user is working on a %s machine. Please respond with system specific command
 
     diff = {
       enabled = true,
+      show_banner = true, -- Show the hunk count and keymaps above the current hunk, or in a float's winbar
       threshold_for_chat = 6, -- At or below this, always display the diff in the chat buffer
 
       -- Options for any diff windows (extends from floating_window)
@@ -1412,11 +1450,6 @@ The user is working on a %s machine. Please respond with system specific command
 
     icons = {
       warning = " ",
-    },
-
-    inline = {
-      -- If the inline prompt creates a new buffer, how should we display this?
-      layout = "vertical", -- vertical|horizontal|tab|buffer
     },
 
     -- Display options for the input buffer
@@ -1467,6 +1500,10 @@ The user is working on a %s machine. Please respond with system specific command
             n = "<Down>",
           },
           description = "Next prompt",
+        },
+        change_adapter = {
+          modes = { n = "ga" },
+          description = "Change adapter (inline only)",
         },
       },
     },

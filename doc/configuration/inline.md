@@ -4,14 +4,14 @@ description: "Choose the adapter, keymaps, editor context and layout for the inl
 
 # Configuring the Inline Interaction
 
+> [!IMPORTANT]
+> Only **http** adapters whose model supports tool calling can be used for the inline interaction
+
 <p align="center">
   <img src="https://github.com/user-attachments/assets/21568a7f-aea8-4928-b3d4-f39c6566a23c" alt="Inline Interaction">
 </p>
 
-The _inline interaction_ writes an LLM's response straight into the current buffer, adding or replacing code rather than opening a chat. See [Using the Inline Interaction](/usage/inline) for the workflow.
-
-> [!IMPORTANT]
-> The inline interaction only works with HTTP adapters
+CodeCompanion provides an _inline_ interaction for quick, direct editing of your code. Unlike the chat buffer, the LLM edits the current buffer directly, using the same `edit_file` tool as the chat buffer.
 
 ## Changing Adapter
 
@@ -34,7 +34,44 @@ See [Configuring HTTP Adapters](/configuration/adapters-http) for more.
 
 ## Keymaps
 
-Press `q` to stop a running request. The default is:
+The keymaps for reviewing an inline diff are shared with the chat buffer's diff. `accept_hunk`, `reject_hunk` and `undo_hunk` only apply to the inline interaction:
+
+```lua
+require("codecompanion").setup({
+  interactions = {
+    shared = {
+      keymaps = {
+        accept_change = {
+          modes = { n = "g2" },
+        },
+        reject_change = {
+          modes = { n = "g3" },
+        },
+        accept_hunk = {
+          modes = { n = "ga" },
+        },
+        reject_hunk = {
+          modes = { n = "gr" },
+        },
+        undo_hunk = {
+          modes = { n = "u" },
+        },
+        next_hunk = {
+          modes = { n = "}" },
+        },
+        previous_hunk = {
+          modes = { n = "{" },
+        },
+        show_keymaps = {
+          modes = { n = "?" },
+        },
+      },
+    },
+  },
+})
+```
+
+You can also cancel an inline request with:
 
 ```lua
 require("codecompanion").setup({
@@ -77,25 +114,58 @@ require("codecompanion").setup({
 })
 ```
 
-`path` can be a Lua module or a file path, and must return a table with a `new(args)` constructor and an `output()` method that returns the text to send. For something smaller, set `callback` to a function that returns the text instead.
+## Context Limit
 
-A `path` item with `contains_code = true` is skipped when [`send_code`](/configuration/others#sending-code) is `false`.
-
-## Layout
-
-When a response goes into a new buffer, it opens in a vertical split by default. To change that:
+The inline interaction shares the whole buffer with the LLM, unless it's over a token limit. Then it shares the lines around your cursor, or your selection, up to the limit. By default, the limit is 16,000 tokens. To change it:
 
 ```lua
 require("codecompanion").setup({
-  display = {
+  interactions = {
     inline = {
-      layout = "vertical", -- Can be "vertical", "horizontal", "tab" or "buffer"
+      opts = {
+        max_context_tokens = 8000,
+      },
     },
   },
 })
 ```
 
-`buffer` opens it in the current window.
+If the model's input limit minus 3,000 is smaller, that's used instead, leaving room for the prompt and the reply.
+
+## Rules and Skills
+
+Edits should follow your project's conventions, so the inline interaction sends your [rules](/configuration/rules) with every prompt. By default that's the `default` group, which includes `AGENTS.md` and `CLAUDE.md`. To choose the groups:
+
+```lua
+require("codecompanion").setup({
+  rules = {
+    opts = {
+      inline = {
+        autoload = { "default", "my_project_rules" }, -- Can be a string, a list or a function returning either
+      },
+    },
+  },
+})
+```
+
+Set `autoload = {}` to send no rules. Rules sent this way don't count towards the [context limit](#context-limit).
+
+[Skills](/configuration/skills) aren't sent by default. Inline makes a single request with no time to read a skill when it needs one, so the full instructions of each skill you name go with every prompt:
+
+```lua
+require("codecompanion").setup({
+  skills = {
+    opts = {
+      inline = {
+        autoload = { "lua-developer" },
+      },
+    },
+  },
+})
+```
+
+> [!NOTE]
+> Rules and skills are only sent to HTTP adapters. An ACP agent loads its own
 
 ## Diff
 
