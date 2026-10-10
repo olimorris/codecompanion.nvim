@@ -5,17 +5,15 @@ description: "Leave comments on an agent's changes where the code is, send them 
 # Using Code Reviews
 
 > [!IMPORTANT]
-> Code reviews are still in **beta**. As such, the workflow below is subject to change.
+> Code reviews are in **beta**, so the workflow below may change
 
 <img src="https://github.com/user-attachments/assets/d50bd196-0612-4297-9a39-375d599018e5" width="100%" alt="Code review checklist">
 
-Code reviews let you step through an agent's changes, accept or revert them, and comment on anything you want it to address - a pull request review, in Neovim.
-
-_Why?_ Reviewing an agent's work usually means hunting through the codebase for its changes, then copying snippets and comments back into the chat. It works, but it's slow and tedious.
+Reviewing an agent's work usually means hunting through the codebase for its changes, then copying snippets and comments back into the chat. _Code reviews_ let you step through an agent's changes, accept or revert them, and comment on anything you want it to address - a pull request review, in Neovim.
 
 You don't need the review window to leave a comment. Flag a line from **any buffer** as you read your code, and it's sent to the agent with the rest of your review.
 
-Code reviews work with CodeCompanion's own tools, ACP agents, and CLI agents like Claude Code running outside of Neovim.
+Code reviews work with CodeCompanion's own tools, ACP agents and CLI agents like Claude Code running outside of Neovim.
 
 ## How It Works
 
@@ -98,7 +96,7 @@ To review everything the current branch has changed, including uncommitted work:
 :CodeCompanionCodeReview Branch
 ```
 
-_Why?_ A round only shows what the agent changed since your last review. Before you open a pull request, you'll want to read the whole branch in one pass, including anything that was changed before a snapshot was taken.
+A round only shows what the agent changed since your last review. A branch review shows the whole branch in one pass, such as before you open a pull request, including anything changed before a snapshot was taken.
 
 Pending comments are kept. Once you've cleared the last row, reviews go back to following the agent's rounds.
 

@@ -1,106 +1,91 @@
 ---
-description: "CodeCompanion's Agent Client Protocol (ACP) support — covers session management, tool execution, permissions, and which capabilities are currently implemented."
+description: "Check which parts of the Agent Client Protocol (ACP) CodeCompanion implements, and how it talks to agents."
 ---
 
-# Agent Client Protocol (ACP) Support
+# Agent Client Protocol (ACP)
 
-CodeCompanion implements the [Agent Client Protocol (ACP)](https://agentclientprotocol.com/) to enable you to work with coding agents from within Neovim. ACP is an open standard that enables structured interaction between clients (like CodeCompanion) and AI agents, providing capabilities such as session management, file system operations, tool execution, and permission handling.
-
-This page provides a technical reference for what's supported in CodeCompanion and how it's been implemented.
+The [Agent Client Protocol (ACP)](https://agentclientprotocol.com/) is an open standard for connecting editors to coding agents. CodeCompanion implements it so you can work with agents like Claude Code and Codex from the chat buffer. This page lists what's supported and how it's implemented. To set up an agent, see [Configuring ACP Adapters](/configuration/adapters-acp).
 
 ## Implementation
 
-CodeCompanion provides comprehensive support for the ACP specification:
-
-| Feature Category | Supported | Details |
-|------------------|---------------|---------|
+| Feature | Supported | Details |
+|---|---|---|
 | **Core Protocol** | ✅ | JSON-RPC 2.0, streaming responses, message buffering |
 | **Authentication** | ✅ | Multiple auth methods, adapter-level hooks |
-| **Content Types** | ✅ | Text, images, embedded resources |
-| **File System** | ✅ | Read/write text files with line ranges |
-| **MCP Integration** | ✅ | Stdio, HTTP, and SSE transports |
-| **Permissions** | ✅ | Interactive UI with diff preview for tool approval |
-| **Session Management** | ✅ | Create, list, load, and restore sessions with state tracking |
-| **Session Modes** | ✅ | Mode switching  |
-| **Session Models** | ✅ | Select specific models |
+| **Content Types** | ✅ | Text and images |
+| **File System** | ✅ | Read and write text files, with line ranges |
+| **MCP Integration** | ✅ | Passes your [MCP servers](/configuration/adapters-acp#configuring-mcp-servers) to the agent |
+| **Permissions** | ✅ | Approve tool calls, with a diff preview for edits |
+| **Session Management** | ✅ | Create, list and load sessions |
+| **Session Config Options** | ✅ | Switch the agent's mode, model and other options |
 | **Tool Calls** | ✅ | Content blocks, file diffs, status updates |
-| **Agent Plans** | ❌ | Visual display of an agent's execution plan |
-| **Terminal Operations** | ❌        | Agent has access to a Neovim terminal |
-
-
-### Supported Adapters
-
-Please see the [Configuring ACP Adapters](/configuration/adapters-acp) page.
+| **Agent Plans** | ❌ | Show an agent's execution plan |
+| **Terminal Operations** | ❌ | Give the agent a Neovim terminal |
 
 ### Client Capabilities
 
-CodeCompanion advertises the following capabilities to ACP agents:
+CodeCompanion advertises these capabilities to agents:
 
 ```lua
 {
   fs = {
-    readTextFile = true,   -- Read files with optional line ranges
-    writeTextFile = true   -- Write/create files
+    readTextFile = true,
+    writeTextFile = true,
   },
-  terminal = false         -- Terminal operations not supported
 }
 ```
 
 ### Content Types
 
-
 | Content Type | Send to Agent | Receive from Agent |
-|--------------|---------------|-------------------|
+|---|---|---|
 | Text | ✅ | ✅ |
 | File Diffs | N/A | ✅ |
 | Images | ✅ | ❌ |
 | Audio | ❌ | ❌ |
-| Embedded Resources | ❌ | ❌ |
+| Embedded Resources | ❌ | ✅ |
 
+An embedded resource from an agent is shown as its text, or its URI if it has no text. Images and audio from an agent are shown as `[image]` and `[audio]`.
 
 ### State Management
 
-Unlike HTTP adapters which are stateless (sending the full conversation history with each request), ACP adapters are stateful. The agent maintains the conversation context, so CodeCompanion only sends new messages with each prompt. Session IDs are tracked throughout the conversation lifecycle.
+HTTP adapters are stateless and send the full conversation with every request. ACP agents are stateful: the agent holds the conversation, so CodeCompanion only sends new messages with each prompt and tracks the session ID throughout.
 
-### File Context Handling
+### Files and Buffers
 
-When sending files as embedded resources to agents, CodeCompanion re-reads the file content rather than using the chat buffer representation. This avoids HTTP-style `<attachment>` tags that are used for LLM adapters but don't make sense for ACP agents.
+A file or buffer shared with an agent is sent as its path, not its content, and the agent reads it itself. This avoids the `<attachment>` tags that CodeCompanion uses for HTTP adapters.
 
 ### Slash Commands
 
-ACP agents can advertise their own slash commands dynamically. You can access them with `\command` in the chat buffer. CodeCompanion transforms this to `/command` before sending your prompt to the agent.
+Agents can advertise their own slash commands. Type `\` in the chat buffer to complete them, and CodeCompanion turns `\command` into `/command` before sending your prompt.
+
+### Session Config Options
+
+Agents expose their modes, models and other settings as [session config options](https://agentclientprotocol.com/protocol/session-config-options). CodeCompanion changes them with `session/set_config_option`. Change models with `ga` in the chat buffer, and anything else with the [/acp_session_options](/usage/chat-buffer/slash-commands#acp-session-options) slash command.
 
 ### Session Resume
 
-If an agent supports the `session/list` capability, you can resume a previous session using the `/resume` slash command in a fresh chat buffer. This calls `session/list` to discover previous sessions, then `session/load` to restore the selected session's conversation history into the chat buffer. See [Slash Commands](/usage/chat-buffer/slash-commands#resume) for usage details.
+If an agent supports `session/list` and `session/load`, the [/resume](/usage/chat-buffer/slash-commands#resume) slash command lists its previous sessions and restores the one you pick into the chat buffer.
 
-### Model Selection
+### Cleanup
 
-CodeCompanion implements a `session/set_model` method that allows you to select a model for the current session. This feature is not part of the [official ACP specification](https://agentclientprotocol.com/protocol/draft/schema#session-set_model) and is subject to change in future versions.
-
-### Cleanup and Lifecycle
-
-CodeCompanion ensures clean disconnection from ACP agents by hooking into Neovim's `VimLeavePre` autocmd. This guarantees that agent processes are properly terminated even if Neovim exits unexpectedly.
+CodeCompanion disconnects from agents on Neovim's `VimLeavePre` autocmd, so their processes are stopped when Neovim exits.
 
 ## Protocol Version
 
-CodeCompanion currently implements **ACP Protocol Version 1**.
+CodeCompanion implements **ACP protocol version 1**.
 
-The protocol version is negotiated during initialization. If an agent selects a different version, CodeCompanion will log a warning but continue to operate, following the agent's selected version.
+The version is negotiated during initialisation. If an agent selects a different version, CodeCompanion logs a warning and carries on with the agent's version.
 
-## Current Limitations
+## Limitations
 
-- **System Prompts**: The ACP protocol does not currently support the sending of specific system prompts to agents. To that end, CodeCompanion does not merge any system prompts with user messages, so as to ensure that the end user experiences the same behaviour as if they were interacting with the agent directly.
-
-- **Terminal Operations**: The `terminal/*` family of methods (`terminal/create`, `terminal/output`, `terminal/release`, etc.) are not implemented. CodeCompanion doesn't advertise terminal capabilities to agents.
-
-- **Agent Plan Rendering**: [Plan](https://agentclientprotocol.com/protocol/agent-plan) updates from agents are received and logged, but they're not currently rendered in the chat buffer UI.
-
-- **Audio Content**: Audio can't be sent or received
+- **System prompts** - ACP has no way to send a system prompt. CodeCompanion doesn't merge its own into your messages either, so an agent behaves as it would if you used it directly
+- **Terminal operations** - The `terminal/*` methods aren't implemented, and CodeCompanion doesn't advertise a terminal capability
+- **Agent plans** - [Plan](https://agentclientprotocol.com/protocol/agent-plan) updates from agents aren't shown in the chat buffer
+- **Audio** - Audio can't be sent or received
 
 ## See Also
 
-- [Agent Client Protocol Specification](https://agentclientprotocol.com/) - Official ACP documentation
-- [Configuring ACP Adapters](/configuration/adapters-acp) - Setup instructions for specific agents
-- [Using Agents and Tools](/usage/chat-buffer/agents-tools) - How to interact with agents in chat
-
+- [Agent Client Protocol Specification](https://agentclientprotocol.com/) - The official ACP documentation
+- [Configuring ACP Adapters](/configuration/adapters-acp) - Setup instructions for each agent
+- [Using Agents and Tools](/usage/chat-buffer/agents-tools) - Working with agents in the chat buffer

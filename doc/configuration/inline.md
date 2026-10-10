@@ -1,5 +1,5 @@
 ---
-description: "Configure CodeCompanion's inline interaction for writing and refactoring code directly into Neovim buffers via LLM prompts, without opening a chat buffer."
+description: "Choose the adapter, keymaps, editor context and layout for the inline interaction, which writes an LLM's response straight into a Neovim buffer."
 ---
 
 # Configuring the Inline Interaction
@@ -15,7 +15,7 @@ CodeCompanion provides an _inline_ interaction for quick, direct editing of your
 
 ## Changing Adapter
 
-By default, CodeCompanion sets the _copilot_ adapter for the inline interaction. You can change this to any other HTTP adapter:
+The inline interaction uses the `copilot` adapter by default. To change it:
 
 ```lua
 require("codecompanion").setup({
@@ -23,14 +23,14 @@ require("codecompanion").setup({
     inline = {
       adapter = {
         name = "anthropic",
-        model = "claude-haiku-4-5-20251001"
+        model = "claude-haiku-4-5-20251001",
       },
     },
   },
 })
 ```
 
-See the section on [HTTP Adapters](/configuration/adapters-http) for more information.
+See [Configuring HTTP Adapters](/configuration/adapters-http) for more.
 
 ## Keymaps
 
@@ -90,26 +90,27 @@ require("codecompanion").setup({
 })
 ```
 
+The keymaps for accepting and rejecting a change, `g1`, `g2` and `g3`, are shared with the chat buffer and live under `interactions.shared.keymaps`. See [Configuring the Diff](/configuration/diff).
+
 ## Editor Context
 
-The plugin comes with a number of [editor context](/usage/inline#editor-context) items that can be used alongside your prompt using the `#{}` syntax (e.g., `#{my_new_context_item}`). You can also add your own:
+_Editor context_ shares part of your Neovim session with the LLM, using the `#{}` syntax in a prompt. Alongside the [built-in items](/usage/inline#editor-context), you can add your own:
 
 ```lua
 require("codecompanion").setup({
   interactions = {
     inline = {
       editor_context = {
-        ["my_new_context_item"] = {
-          ---@return string
-          callback = "/Users/Oli/Code/my_context_item.lua",
-          description = "My shiny new context item",
+        ["my_context_item"] = {
+          path = "/Users/Oli/Code/my_context_item.lua",
+          description = "My context item",
           opts = {
             contains_code = true,
           },
         },
-      }
-    }
-  }
+      },
+    },
+  },
 })
 ```
 
@@ -168,4 +169,4 @@ require("codecompanion").setup({
 
 ## Diff
 
-Please see the [Diff section](chat-buffer#diff) on the Chat Buffer page for configuration options.
+Changes to an existing buffer are shown as a diff before they're kept. To write them straight to the buffer instead, turn off `display.diff.enabled`. See [Configuring the Diff](/configuration/diff).

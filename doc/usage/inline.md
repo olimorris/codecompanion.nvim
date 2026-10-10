@@ -31,7 +31,7 @@ If an edit fails, for example because the text it targets isn't in the buffer, t
 
 If you ask a question rather than for a change, such as _"what does this function do?"_, the LLM replies without editing and the reply opens in a float. Moving the cursor or pressing `q` closes it, and `<C-w>w` moves into it to scroll a long reply.
 
-## Diff Mode
+So _"create a table of five common text editors"_ lands at the cursor, while _"refactor this function"_ replaces your selection.
 
 By default, the LLM's edits are shown as a diff in the buffer, which you can review a hunk at a time. Press `?` in the diff to see these keymaps:
 
@@ -62,3 +62,4 @@ Include them in your prompt, for example `:CodeCompanion #{clipboard} use this f
 - A selection is limited by whole lines, so selecting part of a line lets the LLM edit all of it
 - If the buffer changes while the LLM is responding, its edits are discarded
 
+To add your own, see [Editor Context](/configuration/inline#editor-context).

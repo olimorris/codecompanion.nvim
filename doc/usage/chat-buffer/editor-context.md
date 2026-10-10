@@ -1,5 +1,5 @@
 ---
-description: "Share Neovim state with your LLM using CodeCompanion editor context — reference buffers, selections, diagnostics, and more with the #{context} syntax in chat."
+description: "Share buffers, diagnostics, git diffs, terminal output and other Neovim state with an LLM from the chat buffer."
 ---
 
 # Using Editor Context
@@ -8,90 +8,104 @@ description: "Share Neovim state with your LLM using CodeCompanion editor contex
   <img src="https://github.com/user-attachments/assets/642ef2df-f1c4-41c4-93e2-baa66d7f0801" alt="Using editor context" />
 </p>
 
-Editor context allows you to dynamically insert Neovim context into your chat messages using the `#{context}` syntax. They're processed when you send your message to the LLM, automatically including relevant content like buffer contents, LSP diagnostics, or your current viewport. Type `#` in the chat buffer to see available context through code completion, or type them manually.
+Editor context shares the state of Neovim with an LLM. Add `#{name}` to a message in the chat buffer, such as `#{buffer}`, and CodeCompanion adds the content when you send it. Type `#` to list everything available through completion.
 
-Custom context can be shared in the chat buffer by adding them to the `interactions.shared.editor_context` table in your configuration.
-
-## Basic Usage
-
-Editor context uses the `#{context}` syntax to dynamically insert content into your chat, such as `#{buffer}`. Editor context is processed when you send your message to the LLM.
+| Editor context | Shares |
+| --- | --- |
+| `#{buffer}` | A buffer, kept in sync with the chat |
+| `#{buffers}` | Every open buffer, kept in sync with the chat |
+| `#{code_review}` | Your pending code review comments |
+| `#{diagnostics}` | The diagnostics in a buffer, with the code they point at |
+| `#{diff}` | The staged and unstaged git diff |
+| `#{messages}` | Neovim's message history |
+| `#{quickfix}` | The files in the quickfix list |
+| `#{selection}` | Your current or most recent visual selection |
+| `#{terminal}` | The latest output from a terminal buffer |
+| `#{viewport}` | The code visible in your windows |
 
 > [!IMPORTANT]
-> With the exception of `#{buffer}` and `#{buffers}`, editor context captures a point-in-time snapshot when your message is sent. If the underlying data changes (e.g. new diagnostics, a different quickfix list), simply use the context again in a new message to share the latest state.
+> Apart from `#{buffer}` and `#{buffers}`, editor context is a snapshot taken when you send the message. To share the latest state, use it again in a new message
+
+To add your own, see [Editor Context](/configuration/chat-buffer#editor-context).
 
 ## #buffer
 
-> [!NOTE]
-> By default, CodeCompanion automatically applies the `{diff}` parameter to all buffers
+`#{buffer}` shares the last buffer you were in. To share a different open buffer, add its name after a colon:
 
-The `#{buffer}` context shares buffer contents with the LLM. It has two special parameters which control how content is shared, or _synced_, with the LLM, on each turn:
+| Syntax | Shares |
+| --- | --- |
+| `#{buffer}` | The last buffer you were in |
+| `#{buffer:init.lua}` | The open buffer with this file name |
+| `#{buffer:src/main.rs}` | The open buffer at this path |
 
-### Basic Usage
+A path can be absolute, relative to the current working directory, or the file's parent directory and name. Only open buffers are matched. If none match, nothing is shared and a warning is logged.
 
-- `#{buffer}` - Shares the current buffer (last one you were in)
-
-### Target Specific Buffers
-
-- `#{buffer:init.lua}` - Shares a specific file by name
-- `#{buffer:src/main.rs}` - Shares a file by path
-- `#{buffer:utils}` - Shares a file containing "utils" in the path
-
-### With Parameters
-
-**`{diff}`** - Sends only the changed portions of the buffer to the LLM. Use this for large files where you only want to share incremental changes to reduce token usage. This is the default option in CodeCompanion.
-
-**`{all}`** - Sends all of the buffer content to the LLM whenever the buffer changes. Use this when you want the LLM to always have the complete, up-to-date file context.
-
-Can be used in combination with targeting a specific buffer:
-
-- `#{buffer}{diff}` - Sends only changed portions of the buffer
-- `#{buffer}{all}` - Sends entire buffer on any change
-- `#{buffer:config.lua}{all}` - Combines targeting with parameters
-
-### Multiple Buffers
-
-> [!NOTE]
-> For selecting multiple buffers with more control, use the `/buffer` slash command.
+To compare two buffers:
 
 ```md
 Compare #{buffer:old_file.js} with #{buffer:new_file.js} and explain the differences.
 ```
 
+> [!TIP]
+> To pick several buffers at once, use the [/buffer](/usage/chat-buffer/slash-commands#buffer) slash command
+
+### Syncing
+
+A shared buffer is _synced_ with the chat, so the LLM sees your edits on later turns. A parameter after the editor context sets what's sent:
+
+| Parameter | Sends |
+| --- | --- |
+| `{diff}` | Only what's changed since the last turn. The default |
+| `{all}` | The whole buffer on every turn |
+
+`{diff}` uses fewer tokens on large files. `{all}` always gives the LLM a complete, up-to-date copy. Parameters work with a named buffer too:
+
+```md
+#{buffer}{all}
+#{buffer:config.lua}{all}
+```
+
+Use `gba` and `gbd` on an item in the [Context](/usage/chat-buffer/#context) blockquote to toggle syncing after it's shared. To change the default parameter, see [Syncing](/configuration/chat-buffer#syncing).
+
 ## #buffers
 
-The _buffers_ context shares all currently open buffers with the LLM. Buffers with excluded buftypes (such as `nofile`, `quickfix`, `prompt`, `popup`) and filetypes (such as `codecompanion`, `help`, `terminal`) are automatically filtered out.
+`#{buffers}` shares every open buffer, synced in the same way as [#buffer](#syncing) and with the same `{diff}` and `{all}` parameters:
 
 ```md
 #{buffers} can you explain what's going on in these files?
 ```
 
+Buffers with the `nofile`, `quickfix`, `prompt` or `popup` buftype, and the `codecompanion`, `help` or `terminal` filetype, are skipped. These lists live in `interactions.shared.editor_context.opts.excluded`.
+
 ## #code_review
 
-The _code_review_ context shares your [code reviews](/usage/code-review) with an LLM. Every pending comment you've left with `:CodeCompanionCodeReview Comment` is sent when you submit the chat buffer, and the round closes off so the next review only shows what changes in the next iteration.
+`#{code_review}` shares your [code review](/usage/code-review). Every pending comment you've left with `:CodeCompanionCodeReview Comment` is sent, and the round closes off so the next review only shows what changes next:
 
 ```md
 Please action #{code_review}
 ```
 
-Each comment reaches the LLM with the file, the line range and the code you commented on. Your chat buffer shows a shorter version of the same thing, without the code, so you can scroll back through earlier rounds and see what you asked for.
+Each comment reaches the LLM with the file, the line range and the code you commented on. The chat buffer shows a shorter version without the code, so you can scroll back through earlier rounds and see what you asked for.
 
 > [!NOTE]
-> Sharing your review clears the pending comments and the virtual text that marks them. Like a PR review, submitting it also approves everything you didn't comment on.
+> Sharing your review clears the pending comments and their virtual text. Like a pull request review, it also approves everything you didn't comment on
 
 ## #diagnostics
 
-> [!TIP]
-> The [Action Palette](/usage/action-palette) has a pre-built prompt which asks an LLM to explain LSP diagnostics in a visual selection.
-
-The _diagnostics_ context shares any diagnostic information from LSP servers active in the current buffer. This can serve as useful context should you wish to troubleshoot any errors with an LLM.
+`#{diagnostics}` shares every diagnostic in the last buffer you were in, from LSP servers or any other source, along with the lines of code each one points at:
 
 ```md
 #{diagnostics} can you explain the LSP errors in this file and how to fix them?
 ```
 
+To share another open buffer's diagnostics, name it in the same way as [#buffer](#buffer): `#{diagnostics:init.lua}`. If no buffer matches, the last buffer you were in is used.
+
+> [!TIP]
+> The [Action Palette](/usage/action-palette) has a prompt that asks an LLM to explain the diagnostics in a visual selection
+
 ## #diff
 
-The _diff_ context shares the current git diff with the LLM, including both staged and unstaged changes. This is useful for code review, generating commit messages, or asking for feedback on your recent changes.
+`#{diff}` shares the git diff of the current working directory, including staged and unstaged changes. Use it to ask for a commit message or feedback on your recent changes:
 
 ```md
 Sharing the latest git diff with you #{diff}
@@ -99,7 +113,7 @@ Sharing the latest git diff with you #{diff}
 
 ## #messages
 
-The _messages_ context shares Neovim's message history (`:messages`) with the LLM. This is useful when an error has been written to the message history and you want to share it with the LLM for troubleshooting.
+`#{messages}` shares Neovim's message history, as shown by `:messages`. Use it when an error has been written there:
 
 ```md
 Can you explain the error I've just observed in Neovim? #{messages}
@@ -107,15 +121,17 @@ Can you explain the error I've just observed in Neovim? #{messages}
 
 ## #quickfix
 
-The _quickfix_ context shares the contents of the quickfix list with the LLM. Files with diagnostics are formatted with smart grouping by Tree-sitter symbols, while file-only entries show the full content. This is useful for sharing compiler errors, search results, or LSP diagnostics across multiple files.
+`#{quickfix}` shares the files in the quickfix list, such as compiler errors, search results or diagnostics across several files:
 
 ```md
 The relevant output from my quickfix list has now been shared with you #{quickfix}
 ```
 
+Files under 100 lines are shared in full, with their entries listed above. In larger files, entries are grouped by the Tree-sitter symbol they sit in, and only that code is shared. An entry that points at a file rather than a line shares the whole file.
+
 ## #selection
 
-The _selection_ context shares your current or most recent visual selection with the LLM. This is useful for asking about a specific piece of code without sharing the entire buffer. The selection is updated when you open or toggle a CodeCompanion chat buffer.
+`#{selection}` shares your current or most recent visual selection, so you can ask about a piece of code without sharing the whole buffer. The selection is captured when you open or toggle a chat buffer:
 
 ```md
 Sharing the relevant code with you #{selection}
@@ -123,7 +139,7 @@ Sharing the relevant code with you #{selection}
 
 ## #terminal
 
-The _terminal_ context shares the latest output from the last terminal buffer you entered. Subsequent uses capture only new output since the last time it was shared. This is useful for sharing test results, build output, or command-line errors.
+`#{terminal}` shares the output from the last terminal buffer you entered Terminal mode in. Later uses only share the output added since the last time. Use it for test results, build output or command-line errors:
 
 ```md
 This was the output in my terminal #{terminal}
@@ -131,9 +147,8 @@ This was the output in my terminal #{terminal}
 
 ## #viewport
 
-The _viewport_ context shares with the LLM, exactly what you see on your screen at the point a response is sent (excluding the chat buffer of course).
+`#{viewport}` shares the code visible in your windows when you send the message. The chat buffer, and any buffer [#buffers](#buffers) skips, is left out:
 
 ```md
 Sharing what I can see in Neovim #{viewport}
 ```
-

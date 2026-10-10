@@ -314,7 +314,7 @@ The user is working on a %s machine. Please respond with system specific command
           path = "interactions.chat.tools.builtin.web_search",
           description = "Search the web for information",
           opts = {
-            adapter = "duckduckgo", -- tavily, duckduckgo, jina, serply
+            adapter = "duckduckgo", -- tavily, duckduckgo, serply
             opts = {
               -- Tavily options
               search_depth = "advanced",
@@ -1512,7 +1512,7 @@ The user is working on a %s machine. Please respond with system specific command
   extensions = {},
   -- GENERAL OPTIONS ----------------------------------------------------------
   opts = {
-    log_level = "ERROR", -- TRACE|DEBUG|ERROR|INFO
+    log_level = "ERROR", -- TRACE|DEBUG|ERROR|WARN|INFO
     language = "English", -- The language used for LLM responses
 
     per_project_config = {

@@ -1,69 +1,50 @@
 ---
-description: "Customize CodeCompanion's system prompt for chat and inline interactions — replace the default, add dynamic context, or tune language and tone for your LLM."
+description: "Replace or extend the system prompts CodeCompanion sends with every chat and tool request."
 ---
 
 # Configuring System Prompts
 
+A _system prompt_ sets how the LLM behaves before it sees your first message. CodeCompanion sends one with every request from a chat buffer, and a second one when [tools](/usage/chat-buffer/agents-tools) are in use.
+
+> [!NOTE]
+> System prompts only apply to HTTP adapters. ACP agents bring their own
+
 ## Chat System Prompt
 
-The default system prompt has been carefully curated to deliver terse and professional responses that relate to development and Neovim. It is sent with every request in the chat buffer.
-
-The plugin comes with the following system prompt:
+The default system prompt keeps responses short and focused on development and Neovim:
 
 `````txt
 You are an AI programming assistant named "CodeCompanion", working within the Neovim text editor.
 
-You can answer general programming questions and perform the following tasks:
-* Answer general programming questions.
-* Explain how the code in a Neovim buffer works.
-* Review the selected code from a Neovim buffer.
-* Generate unit tests for the selected code.
-* Propose fixes for problems in the selected code.
-* Scaffold code for a new workspace.
-* Find relevant code to the user's query.
-* Propose fixes for test failures.
-* Answer questions about Neovim.
-
 Follow the user's requirements carefully and to the letter.
 Use the context and attachments the user provides.
-Keep your answers short and impersonal, especially if the user's context is outside your core tasks.
-Use Markdown formatting in your answers.
-Do not use H1 or H2 markdown headers.
-When suggesting code changes or new content, use Markdown code blocks.
-To start a code block, use 4 backticks.
-After the backticks, add the programming language name as the language ID.
-To close a code block, use 4 backticks on a new line.
-If the code modifies an existing file or should be placed at a specific location, add a line comment with 'filepath:' and the file path.
-If you want the user to decide where to place the code, do not add the file path comment.
-In the code block, use a line comment with '...existing code...' to indicate code that is already present in the file.
-Code block example:
-````languageId
-// filepath: /path/to/file
-// ...existing code...
-{ changed code }
+Keep your answers short and impersonal.
+Use Markdown formatting in your answers. DO NOT use H1 or H2 headers.
+
+When suggesting code changes, use Markdown code blocks with four backticks. Add the language ID and file path (in curly braces) after the opening backticks. Omit the file path if you want the user to decide where to place the code. Use a line comment with '...existing code...' to indicate unchanged code, using the correct comment syntax for the language.
+Example:
+````languageId {path/to/file}
 // ...existing code...
 { changed code }
 // ...existing code...
 ````
-Ensure line comments use the correct syntax for the programming language (e.g. "#" for Python, "--" for Lua).
-For code blocks use four backticks to start and end.
-Avoid wrapping the whole response in triple backticks.
-Do not include diff formatting unless explicitly asked.
-Do not include line numbers in code blocks.
+DO NOT include diff formatting or line numbers unless asked.
+DO NOT wrap the whole response in triple backticks.
 
 When given a task:
-1. Think step-by-step and, unless the user requests otherwise or the task is very simple, describe your plan in pseudocode.
-2. When outputting code blocks, ensure only relevant code is included, avoiding any repeating or unrelated code.
-3. End your response with a short suggestion for the next user turn that directly supports continuing the conversation.
+1. Think step-by-step. For complex architectural changes, describe your plan first.
+2. Only include relevant code in code blocks — avoid repeating unchanged code.
+3. End with a short suggestion for the next user turn.
 
 Additional context:
 All non-code text responses must be written in the ${language} language.
+The user's current working directory is ${cwd}.
 The current date is ${date}.
-The user's Neovim version is ${version}.
+The user's Neovim version is ${nvim_version}.
 The user is working on a ${os} machine. Please respond with system specific commands if applicable.
 `````
 
-The format of the date can be changed in your config by altering the `date_format` option:
+The language comes from `opts.language`, which defaults to `English`. To change the date format:
 
 ```lua
 require("codecompanion").setup({
@@ -75,9 +56,11 @@ require("codecompanion").setup({
 })
 ```
 
+Press `gs` in a chat buffer to toggle the system prompt on and off.
+
 ## Tool System Prompt
 
-CodeCompanion also ships with a separate system prompt when [tools](/usage/chat-buffer/agents-tools) are used in the chat buffer:
+When tools are in use, CodeCompanion adds a second system prompt after the first:
 
 `````txt
 <instructions>
@@ -100,7 +83,7 @@ If a tool exists to do a task, use the tool instead of asking the user to manual
 If you say that you will take an action, then go ahead and use the tool to do it. No need to ask permission.
 Never use a tool that does not exist. Use tools using the proper procedure, DO NOT write out a json codeblock with the tool inputs.
 Never say the name of a tool to a user. For example, instead of saying that you'll use the edit_file tool, say "I'll edit the file".
-If you think running multiple tools can answer the user's question, prefer calling them in parallel whenever possible.
+For maximum efficiency, whenever you need to perform multiple independent operations, invoke all relevant tools simultaneously rather than sequentially.
 When invoking a tool that takes a file path, always use the file path you have been given by the user or by the output of a tool.
 </toolUseInstructions>
 <outputFormatting>
@@ -120,36 +103,23 @@ If you are providing code changes, use the edit_file tool (if available to you) 
 
 ### Chat
 
-The chat system prompt can be changed with:
+To replace the chat system prompt:
 
 ```lua
 require("codecompanion").setup({
   interactions = {
     chat = {
       opts = {
-        system_prompt = "My new system prompt",
+        system_prompt = "You are a senior Lua developer. Answer in British English.",
       },
     },
   },
 })
 ```
 
-Alternatively, the system prompt can be a function. The `opts` parameter contains several pieces of information related to the chat, which you can use to build the system prompt:
-```lua
----@class CodeCompanion.SystemPrompt.Context
----@field language string
----@field adapter CodeCompanion.HTTPAdapter|CodeCompanion.ACPAdapter
----@field date string
----@field nvim_version string
----@field os string the operating system that the user is using
----@field default_system_prompt string
----@field cwd string current working directory
----The closest parent directory that contains one of the following VCS markers:
---- - `.git`
---- - `.svn`
---- - `.hg`
----@field project_root? string the closest parent directory that contains a `.git` subdirectory.
+`system_prompt` can also be a function that receives a context table and returns a string. To extend the default rather than replace it:
 
+```lua
 require("codecompanion").setup({
   interactions = {
     chat = {
@@ -158,7 +128,7 @@ require("codecompanion").setup({
         ---@return string
         system_prompt = function(ctx)
           return ctx.default_system_prompt
-            .. fmt(
+            .. string.format(
               [[Additional context:
 All non-code text responses must be written in the %s language.
 The current date is %s.
@@ -177,9 +147,22 @@ The user is working on a %s machine. Please respond with system specific command
 })
 ```
 
+The context table contains:
+
+| Field | Description |
+| --- | --- |
+| `adapter` | The chat's adapter |
+| `cwd` | The current working directory |
+| `date` | The date, formatted with `date_format` |
+| `default_system_prompt` | The default system prompt, without the additional context |
+| `language` | The value of `opts.language` |
+| `nvim_version` | The Neovim version, such as `0.11.2` |
+| `os` | The operating system, such as `Mac`, `Linux` or `Windows` |
+| `project_root` | The closest parent directory containing `.git` or `.svn`, if there is one |
+
 ### Tools
 
-There are additional options available when working with tool system prompts:
+The tool system prompt is configured under `interactions.chat.tools.opts.system_prompt`:
 
 ```lua
 require("codecompanion").setup({
@@ -188,14 +171,12 @@ require("codecompanion").setup({
       tools = {
         opts = {
           system_prompt = {
-            enabled = true, -- Enable the tools system prompt?
-            replace_main_system_prompt = false, -- Replace the main system prompt with the tools system prompt?
-
-            ---The tool system prompt
-            ---@param args { ctx: CodeCompanion.SystemPrompt.Context, tools: string[]} The tools available
+            enabled = true,
+            replace_main_system_prompt = false,
+            ---@param args { ctx: CodeCompanion.SystemPrompt.Context, tools: string[] }
             ---@return string
             prompt = function(args)
-              return "My custom tools prompt"
+              return "Use the tools you have to finish the task before replying."
             end,
           },
         },
@@ -205,14 +186,19 @@ require("codecompanion").setup({
 })
 ```
 
+Set `enabled = false` to stop sending it, or `replace_main_system_prompt = true` to send it in place of the chat system prompt. `prompt` can be a string, or a function that receives the context table and the names of the tools in use.
+
 ## When System Prompts Change
 
-There are various scenarios for when the system prompt may change in the chat buffer:
+CodeCompanion rebuilds the system prompt when you:
 
-- When a user changes adapter
-- When a user changes the model on an adapter
-- When a rule is added
-- When a tool (with a defined system prompt) is added to the chat buffer
+- Change adapter
+- Change model on an HTTP adapter
+- Clear the chat
+- Add a tool, which updates the tool system prompt
 
-CodeCompanion will always resolve a system prompt change asynchronously, as many adapters make a HTTP request to a server in order to obtain the available models.
+Adding [rules](/configuration/rules) doesn't change the system prompt. They're shared as context, along with any system message their parser adds.
 
+## Limitations
+
+- The inline interaction uses its own system prompt, which can't be changed

@@ -1,66 +1,37 @@
 ---
-description: "Configure rules files in CodeCompanion — including CLAUDE.md, AGENTS.md, and Cursor rules — to provide persistent LLM instructions and project context in Neovim."
+description: "Create rule groups from files such as AGENTS.md, CLAUDE.md and Cursor rules, choose which load with every chat and set how they're parsed."
 ---
 
 # Configuring Rules
 
-Within CodeCompanion, rules fulfil two main purposes within a chat buffer:
-
-1. To provide system-level instructions to your LLM
-2. To provide persistent context via files in your project
-
-Similar to Cursor's [Rules](https://cursor.com/docs/context/rules), they provide a way to guide the behavior of your LLM within a chat. Why? LLMs don't retain memory between sessions so preferences and context need to be re-applied each time a new chat is started.
+LLMs don't remember anything between chats, so your instructions and project context have to be shared again each time. _Rules_ are the files that hold them, such as `AGENTS.md` or `CLAUDE.md`, and CodeCompanion collects them into _rule groups_ that are added to the chat buffer. To use them in a chat and write your own, see [Using Rules](/usage/chat-buffer/rules).
 
 ## Enabling Rules
 
+Rules are enabled by default, and the `default` group is added to every new chat buffer. To turn them off, or only add them to some chats:
+
 ::: code-group
 
-```lua [Enable]
+```lua [Disable]
 require("codecompanion").setup({
   rules = {
-    default = {
-      description = "Collection of common files for all projects",
-      files = {
-        ".clinerules",
-        ".cursorrules",
-        ".goosehints",
-        ".rules",
-        ".windsurfrules",
-        ".github/copilot-instructions.md",
-        "AGENT.md",
-        "AGENTS.md",
-        { path = "CLAUDE.md", parser = "claude" },
-        { path = "CLAUDE.local.md", parser = "claude" },
-        { path = "~/.claude/CLAUDE.md", parser = "claude" },
-      },
-      is_preset = true,
-    },
     opts = {
       chat = {
-        autoload = "default", -- The rule groups to load
-        enabled = true,
+        enabled = false,
       },
     },
   },
 })
 ```
 
-```lua [With Conditions]
+```lua [Conditional]
 require("codecompanion").setup({
   rules = {
-    default = {
-      description = "Collection of common files for all projects",
-      files = {
-        -- Omitted for brevity
-      },
-    },
     opts = {
       chat = {
         ---@param chat CodeCompanion.Chat
         ---@return boolean
         enabled = function(chat)
-          -- In this example, only enable rules for chats
-          -- that are using http adapters
           return chat.adapter.type == "http"
         end,
       },
@@ -71,45 +42,72 @@ require("codecompanion").setup({
 
 :::
 
-Once enabled, the plugin will look to load a common, or default, set of rules every time a chat buffer is created.
+### Default Group
 
-> [!INFO]
-> Refer to the [config.lua](https://github.com/olimorris/codecompanion.nvim/blob/5807e0457111f0de267fc9a6543b41fae0f5c2b1/lua/codecompanion/config.lua#L1167-L1179) file for the full set of files included in the default group.
+The `default` group looks for these files, and skips any that don't exist:
+
+| File | Used By | Parser |
+| --- | --- | --- |
+| `.clinerules` | Cline | |
+| `.cursorrules` | Cursor | |
+| `.goosehints` | Goose | |
+| `.rules` | Zed | |
+| `.windsurfrules` | Windsurf | |
+| `.github/copilot-instructions.md` | Copilot | |
+| `AGENT.md` | Agents | `claude` |
+| `AGENTS.md` | Agents | `claude` |
+| `CLAUDE.md` | Claude Code | `claude` |
+| `CLAUDE.local.md` | Claude Code | `claude` |
+| `~/.claude/CLAUDE.md` | Claude Code | `claude` |
+
+Relative paths are looked up from the current working directory. To replace the group, define your own `default` in `rules`.
 
 ## Rule Groups
 
-In the plugin, rule groups are a collection of files and/or directories that can be loaded into the chat buffer. Groups give you flexibility to create different sets of rules for different use-cases. For example, you may want a set of rules specifically for working with Claude Code or another for working with a specific project.
+A _rule group_ is a named list of files and directories:
 
-::: code-group
-
-```lua [Basic Group]
+```lua
 require("codecompanion").setup({
   rules = {
-    my_project_rules = { -- [!code focus:9]
+    my_project_rules = {
       description = "Rule files for My Project",
       files = {
-        -- Literal file paths (absolute or relative to cwd)
-        "~/.claude/CLAUDE.md",
         "CLAUDE.md",
-        "CLAUDE.local.md",
+        "~/.claude/CLAUDE.md",
+        "docs/**/*.md",
+        { path = "CLAUDE.local.md", parser = "claude" },
+        { path = "~/.config/rules", files = "*.md" },
       },
     },
   },
 })
 ```
 
-```lua [Conditionals]
+Each entry in `files` can be:
+
+| Entry | Example | Adds |
+| --- | --- | --- |
+| A path | `"CLAUDE.md"` | The file, or every file in it if it's a directory |
+| A glob | `"docs/**/*.md"` | Every matching file |
+| A path with a parser | `{ path = "CLAUDE.local.md", parser = "claude" }` | The file, read with that [parser](#parsers) |
+| A directory with patterns | `{ path = ".", files = { ".clinerules", "*.md" } }` | Files in the directory matching a pattern |
+
+Paths can be absolute or relative to the current working directory. A directory with patterns can take a `parser` too, which applies to every file it matches.
+
+### Conditional Groups
+
+`enabled` hides a group from the [/rules](/usage/chat-buffer/slash-commands#rules) slash command and the _Chat with rules ..._ action when it returns `false`:
+
+```lua
 require("codecompanion").setup({
   rules = {
-    my_project_rules = { -- [!code focus:13]
+    my_project_rules = {
       description = "Rule files for My Project",
       ---@return boolean
       enabled = function()
-        -- Don't show this group unless in a specific dir
         return vim.fn.getcwd():find("my_project", 1, true) ~= nil
       end,
       files = {
-        "~/.claude/CLAUDE.md",
         "CLAUDE.md",
         "CLAUDE.local.md",
       },
@@ -118,72 +116,27 @@ require("codecompanion").setup({
 })
 ```
 
+### Nested Groups
 
-```lua [Directories]
+A group's `files` can hold other groups instead of a list, so one `enabled` condition and `parser` apply to all of them:
+
+```lua
 require("codecompanion").setup({
   rules = {
-    my_project_rules = { -- [!code focus:19]
-      description = "Rule files for My Project",
-      files = {
-        -- Specify dirs to search in (supports glob patterns and literals)
-        {
-          path = vim.fn.getcwd(),
-          files = { ".clinerules", ".cursorrules", "*.md" }
-        },
-        {
-          path = "~/.config/rules",
-          files = "*.md"
-        },
-
-        -- Mix with literal file paths
-        "~/.claude/CLAUDE.md",
-        "CLAUDE.md",
-        "CLAUDE.local.md",
-      },
-    },
-  },
-})
-```
-
-```lua [File Patterns]
-require("codecompanion").setup({
-  rules = {
-    my_project_rules = { -- [!code focus:21]
-      description = "Rule files for My Project",
-      files = {
-        -- 1. Literal file paths
-        "CLAUDE.md",
-        "~/.claude/CLAUDE.md",
-
-        -- 2. File path with parser
-        { path = "CLAUDE.local.md", parser = "claude" },
-
-        -- 3. Directory with file patterns
-        { path = ".", files = { ".clinerules", "*.md" } },
-
-        -- 4. Directory with parser
-        { path = "~/.config/rules", files = "*.md", parser = "claude" },
-
-        -- 5. Glob patterns (searches filesystem)
-        "docs/**/*.md",
-        ".github/*.md",
-      },
-    },
-  },
-})
-```
-
-```lua [Nested Groups]
-require("codecompanion").setup({
-  rules = {
-    my_project_rules = { -- [!code focus:12]
+    my_project_rules = {
       description = "Rule files for My Project",
       parser = "claude",
       files = {
         ["mcp"] = {
-          description = "The MCP implementation in My project",
+          description = "The MCP implementation in My Project",
           files = {
             ".rules/mcp/mcp.md",
+          },
+        },
+        ["tests"] = {
+          description = "How tests are written in My Project",
+          files = {
+            ".rules/tests.md",
           },
         },
       },
@@ -192,21 +145,27 @@ require("codecompanion").setup({
 })
 ```
 
-:::
+The slash command and the action list each nested group separately, as `my_project_rules/mcp` and `my_project_rules/tests`. CodeCompanion's own `CodeCompanion` group does this, with a group for each part of the plugin, and only appears when the current working directory has a `.codecompanion` directory.
 
-Nested groups allow you to apply the same conditional to multiple groups alongside keeping your config clean. Infact, the plugin uses this itself. There is a `CodeCompanion` group with sub-groups for different parts of the plugin, allowing contributors to easily share context with an LLM when they're working on specific parts of the codebase.
+To hide the preset `default` and `CodeCompanion` groups from the list:
 
-When using the _Action Palette_ or the slash command, the plugin will extract these nested groups and display them in the `Chat with rules ...` menu.
+```lua
+require("codecompanion").setup({
+  rules = {
+    opts = {
+      show_presets = false,
+    },
+  },
+})
+```
 
-You can also set default groups that are automatically applied to all chat buffers. This is useful for ensuring that your preferred rules are always available.
+## Autoload
 
-### Autoload
-
-You can set specific rule groups that will be automatically added to chat buffers. This is useful for ensuring that your preferred rules are always available.
+Groups in `autoload` are added to every new chat buffer. It defaults to `"default"`:
 
 ::: code-group
 
-```lua{5} [Single Group]
+```lua [Single Group]
 require("codecompanion").setup({
   rules = {
     opts = {
@@ -218,19 +177,19 @@ require("codecompanion").setup({
 })
 ```
 
-```lua{5} [Multiple Groups]
+```lua [Multiple Groups]
 require("codecompanion").setup({
   rules = {
     opts = {
       chat = {
-        autoload = { "my_project_rules", "another_project" },
+        autoload = { "default", "my_project_rules" },
       },
     },
   },
 })
 ```
 
-```lua{6-11} [Conditional Groups]
+```lua [Conditional]
 require("codecompanion").setup({
   rules = {
     opts = {
@@ -250,46 +209,44 @@ require("codecompanion").setup({
 
 :::
 
-The inline interaction has its own `autoload`, covered in [Configuring the Inline Interaction](/configuration/inline#rules-and-skills).
+### Prompt Library
 
-#### Rules in Prompt Library Prompts
+A [prompt library](/configuration/prompt-library) item only gets rules if it names them in its own `rules` field. To give the items that name none your `autoload` groups:
 
-By default, prompt library prompts will never autoload rule groups. A prompt only gets rules if it names them itself, via its own rules field.
-
-To have prompts leverage the autoload groups when they don't name any rules:
-
-```lua{6} [Autoload for prompt library prompts]
+```lua
 require("codecompanion").setup({
   rules = {
     opts = {
       chat = {
-        autoload = "default",
-        autoload_groups_in_prompt_library  = true,
+        autoload_groups_in_prompt_library = true,
       },
     },
   },
 })
 ```
 
-With this enabled, a prompt that names no rules will have the autoload groups (`rules.opts.chat.autoload`) loaded in the chat buffer. However, a prompt that names its own rules will use those instead.
+An item that names its own rules still uses those instead, and `rules = "none"` loads none.
 
 ## Parsers
 
-Parsers allow CodeCompanion to transform rules, affecting how they are shared in the chat buffer. This is particularly useful if you reference files in your rules. Currently, the plugin has two in-built parsers:
+A _parser_ changes how a rules file is shared with the LLM. Without one, the file is shared as it is. The built-in parsers are:
 
-- `claude` - which will import files into the chat buffer in the same way Claude Code [does](https://code.claude.com/docs/en/memory#claude-md-imports). Note, this requires rules to be `markdown` files
-- `CodeCompanion` - parses rules in the same ways as `claude` but allows for a system prompts to be extracted via a H2 "System Prompt" header
-- `none` - a blank parser which can be used to overwrite parsers that have been set on the default rules groups
+| Parser | Description |
+| --- | --- |
+| `claude` | Share the whole file, plus any file it references on an `@` line, like Claude Code [does](https://code.claude.com/docs/en/memory#claude-md-imports) |
+| `codecompanion` | Share the content under `##` headings and any `@` files, and use a `## System Prompt` section as the system prompt |
+| `cli` | Share only the paths of `@` files. Used by the `/rules` slash command in the [CLI interaction](/usage/cli) |
+| `none` | Share the file unchanged |
 
-Please see the guide on [Creating Rules Parsers](/extending/parsers) to understand how you can create and apply your own.
+The `claude` and `codecompanion` parsers need markdown files. How `@` paths are resolved is covered in [Resolving `@` Paths](/usage/chat-buffer/rules#resolving-paths). To write your own, see [Creating Rules Parsers](/extending/parsers).
 
 ### Applying Parsers
 
-You can apply parsers at a group level, to ensure that all files in the group are parsed in the same way. Alternatively, you can apply them at a file level to have more granular control.
+A parser can be set on a group, to apply to every file in it, or on a single file. A file's parser takes precedence over its group's:
 
 ::: code-group
 
-```lua{5} [Group Level]
+```lua [Group Level]
 require("codecompanion").setup({
   rules = {
     claude = {
@@ -305,7 +262,7 @@ require("codecompanion").setup({
 })
 ```
 
-```lua{6-8} [File Level]
+```lua [File Level]
 require("codecompanion").setup({
   rules = {
     claude = {
@@ -320,12 +277,12 @@ require("codecompanion").setup({
 })
 ```
 
-```lua{5} [Disable]
+```lua [Disable]
 require("codecompanion").setup({
   rules = {
     claude = {
       description = "Rules for Claude Code users",
-      parser = "none", -- Disable parsing for the entire group
+      parser = "none",
       files = {
         "CLAUDE.md",
         "CLAUDE.local.md",
@@ -338,3 +295,18 @@ require("codecompanion").setup({
 
 :::
 
+## Syncing Referenced Files
+
+A file referenced on an `@` line that's open in a buffer is [synced](/usage/chat-buffer/#context) to the chat buffer, sending only what's changed on each turn. To send its entire content instead:
+
+```lua
+require("codecompanion").setup({
+  rules = {
+    opts = {
+      chat = {
+        default_params = "all", -- Can be "all" or "diff"
+      },
+    },
+  },
+})
+```

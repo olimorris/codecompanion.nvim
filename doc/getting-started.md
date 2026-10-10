@@ -4,7 +4,7 @@ description: "Go from a fresh install of CodeCompanion to an LLM editing code in
 
 # Getting Started
 
-This page takes you from a fresh [installation](/installation) to an LLM editing a file in your project, and you reviewing what it changed. Each step links to the page that covers it in full.
+Go from a fresh [installation](/installation) to an LLM editing a file in your project, then review what it changed. Each step links to the page that covers it in full.
 
 > [!TIP]
 > Every example in these docs is wrapped in `require("codecompanion").setup({ ... })` so it can be pasted as-is. With [lazy.nvim](https://github.com/folke/lazy.nvim), put the contents of `setup()` in `opts` instead
@@ -13,7 +13,7 @@ This page takes you from a fresh [installation](/installation) to an LLM editing
 
 An _adapter_ connects CodeCompanion to an LLM or an agent. The default is GitHub Copilot, so if you've signed in with [copilot.vim](https://github.com/github/copilot.vim) or [copilot.lua](https://github.com/zbirenbaum/copilot.lua) there's nothing to configure.
 
-Otherwise, pick one. Adapters are set per _interaction_, which is one of the ways you work with an LLM: `chat` is the chat buffer and `inline` is `:CodeCompanion`, which edits a buffer in place:
+Otherwise, pick one. Adapters are set per _interaction_, one of the ways you work with an LLM. `chat` is the chat buffer and `inline` is `:CodeCompanion`, which edits a buffer in place:
 
 ::: code-group
 
@@ -22,7 +22,7 @@ Otherwise, pick one. Adapters are set per _interaction_, which is one of the way
 require("codecompanion").setup({
   interactions = {
     chat = {
-      adapter = "anthropic", -- Or "openai", "gemini", "deepseek", "mistral", "openrouter"...
+      adapter = "anthropic", -- Or "openai", "gemini", "deepseek", "mistral", "openrouter" and more
     },
     inline = {
       adapter = "anthropic",
@@ -56,7 +56,7 @@ require("codecompanion").setup({
 require("codecompanion").setup({
   interactions = {
     chat = {
-      adapter = "claude_code", -- Or "codex", "gemini_cli", "opencode"...
+      adapter = "claude_code", -- Or "codex", "gemini_cli", "opencode" and more
     },
   },
 })
@@ -66,9 +66,9 @@ require("codecompanion").setup({
 
 HTTP adapters look for an API key in an environment variable named after the provider, such as `OPENAI_API_KEY` or `GEMINI_API_KEY`. To read it from somewhere else, like a password manager, see [environment variables](/configuration/adapters-http#environment-variables).
 
-An agent, such as Claude Code, runs its own tools and connects over the [Agent Client Protocol](/agent-client-protocol). Each one needs a little setup first. For Claude Code, that's [installing it and adding a token](/configuration/adapters-acp#setup-claude-code). Agents only work in the chat buffer.
+An agent, such as Claude Code, runs its own tools and connects over the [Agent Client Protocol](/agent-client-protocol). Each one needs some setup first. For Claude Code, that's [installing it and adding a token](/configuration/adapters-acp#setup-claude-code). Agents only work in the chat buffer.
 
-Run `:checkhealth codecompanion` to confirm everything is in place. If you're not sure which adapter suits you, see [Choosing an Adapter](/guides/choosing-an-adapter).
+Run `:checkhealth codecompanion` to confirm everything is in place. To compare adapters, see [Choosing an Adapter](/guides/choosing-an-adapter).
 
 ## Starting a Chat
 
@@ -86,7 +86,7 @@ What does the code in #{buffer} do?
 
 `#{buffer}` is _editor context_. Other editor context includes `#{diagnostics}` for LSP errors, `#{selection}` for a visual selection and `#{terminal}` for your latest terminal output. Typing `#` shows everything that's available. See [Editor Context](/usage/chat-buffer/editor-context) for the full list.
 
-Run `:CodeCompanionChat Toggle` to hide the chat and bring it back. The chat keeps its history while it's hidden.
+Run `:CodeCompanionChat Toggle` to hide the chat and bring it back. It keeps its history while it's hidden.
 
 ## Letting the LLM Edit Code
 
@@ -102,14 +102,14 @@ An LLM can't touch your files until you give it _tools_. Add `@{files}` to your 
 
 Some tools, like reading a file, ask for your approval before they run. The chat buffer lists your options:
 
-| Keymap | Action |
+| Keymap | Description |
 |---|---|
 | `g1` | Always accept this tool in this chat |
 | `g2` | Accept this time |
 | `g3` | Reject, and tell the LLM why |
 | `g4` | Cancel this and every other pending tool call |
 
-Before an edit is written to the file, you're shown it as a diff. Small diffs appear in the chat buffer and larger ones open in a floating window. Press `gv` to open it yourself. Accept the change with `g2` or reject it with `g3`.
+Before an edit is written to the file, it's shown as a diff. Small diffs appear in the chat buffer and larger ones open in a floating window. Press `gv` to open it yourself. Accept the change with `g2` or reject it with `g3`.
 
 Once you're happy with the tools, press `gty` to stop being asked each time. See [approval modes](/usage/chat-buffer/agents-tools#approval-modes) for what each mode allows.
 
@@ -152,7 +152,7 @@ The LLM edits the selection in place and shows you a diff. Keep it with `g2` or 
 
 The [prompt library](/usage/prompt-library) has prompts for common tasks, called by their alias:
 
-| Command | Action |
+| Command | Description |
 |---|---|
 | `:'<,'>CodeCompanion /explain` | Explain how the selected code works, in a chat buffer |
 | `:'<,'>CodeCompanion /fix` | Fix the selected code, in a chat buffer |
@@ -182,4 +182,4 @@ vim.cmd([[cab cc CodeCompanion]])
 - [Controlling Tool Approvals](/guides/tool-approvals) - Decide what an LLM can do without asking
 - [Sharing Rules and Skills Across Projects](/guides/sharing-rules-and-skills) - Give the LLM your project's conventions, like `AGENTS.md`
 - [Setting Up Web Search](/guides/web-search) - Let the LLM look things up
-- [Using a Cheaper Model for Background Tasks](/guides/background-model) - Keep costs down on chat titles and compaction
+- [Running Background Tasks on a Cheaper Model](/guides/background-model) - Keep costs down on chat titles and compaction

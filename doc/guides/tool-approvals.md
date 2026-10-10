@@ -18,7 +18,7 @@ Out of the box, every chat buffer starts in _Ask_ mode and the built-in tools be
 | `run_command` | Asks, for each command | - |
 | `delete_file` | Asks, for each file | - |
 | `create_file`, `edit_file` | Runs | Asks you to confirm the change |
-| `file_search`, `get_changed_files`, `get_diagnostics`, `fetch_webpage`, `web_search` | Runs | - |
+| `file_search`, `get_changed_files`, `get_diagnostics`, `fetch_webpage`, `search_help`, `web_search` | Runs | - |
 
 Approvals are remembered per chat buffer. Approving a tool in one chat doesn't approve it anywhere else.
 
@@ -51,7 +51,7 @@ Press `gty` in the chat buffer to choose a mode for that chat:
 | Auto | Everything except `run_command`, which asks unless the command is on its safe list, and protected tools such as `delete_file` |
 | YOLO | Everything |
 
-Auto mode also skips the confirmation after an edit, so changes are written straight to disk. [Code Review](/usage/code-review) is the way to check them afterwards. In Auto and YOLO, tool results are always sent back to the LLM, whatever [auto submit](/configuration/tools#auto-submit-recursion) is set to.
+Auto mode also skips the confirmation after an edit, so changes are written straight to disk. Use [Code Review](/usage/code-review) to check them afterwards.
 
 <img src="https://github.com/user-attachments/assets/d43aedaa-797e-4e45-928b-6dd44063a8a5" alt="Approval modes" />
 
@@ -214,7 +214,7 @@ require("codecompanion").setup({
 })
 ```
 
-A command judged safe is remembered for the rest of the chat, as if you'd pressed `g1`. The judge only runs in Auto mode, and never for a protected tool. It's worth it when you want Auto mode for long tasks but can't predict which commands the LLM will need. See [LLM Judge](/configuration/tools#llm-judge) to choose its adapter and system prompt, and [Background Model](/guides/background-model) for the background interaction it uses.
+A command judged safe is remembered for the rest of the chat, as if you'd pressed `g1`. The judge only runs in Auto mode, and never for a protected tool. Use it when you want Auto mode for long tasks but can't predict which commands the LLM needs. See [LLM Judge](/configuration/tools#llm-judge) to choose its adapter and system prompt, and [Background Model](/guides/background-model) for the background interaction it uses.
 
 ### Running a Prompt Unattended
 
@@ -268,7 +268,7 @@ require("codecompanion").setup({
 
 ### Resetting a Chat
 
-Press `gtx` in the chat buffer to forget everything you've approved in it. This also returns the chat to the mode set by `approval_mode`.
+Press `gtx` in the chat buffer to forget everything you've approved in it. This also returns the chat to the default mode in `interactions.chat.tools.opts.approval_mode`.
 
 ## Notifications
 
