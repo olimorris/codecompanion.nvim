@@ -1,44 +1,43 @@
 ---
-description: "Overview of CodeCompanion's Model Context Protocol (MCP) support — which capabilities are implemented and how MCP tools appear in the chat buffer in Neovim."
+description: "Check which parts of the Model Context Protocol (MCP) CodeCompanion implements, and how MCP servers reach the chat buffer."
 ---
 
-# Model Context Protocol (MCP) Support
+# Model Context Protocol (MCP)
 
-CodeCompanion implements the [Model Context Protocol (MCP)](https://modelcontextprotocol.io) to enable you to connect the plugin to external systems and applications. The plugin only implements a subset of the full MCP specification, focusing on the features that enable developers to enhance their coding experience.
+The [Model Context Protocol (MCP)](https://modelcontextprotocol.io) is an open standard for connecting LLMs to external systems. CodeCompanion implements the parts of it that help you code: running servers and using their tools and prompts.
 
 ## Usage
 
-To use MCP servers within CodeCompanion, refer to the [tools](/usage/chat-buffer/agents-tools#mcp) section in the chat buffer usage section of the documentation.
+[Default servers](/configuration/mcp#default-servers) start when you open your first chat buffer, and their tools are added to it. Start or stop any server with the [/mcp](/usage/chat-buffer/slash-commands#mcp) slash command.
 
-If [enabled](/configuration/mcp#enabling-servers), the servers will be started when you open a chat buffer for the first time. However, you can use the [MCP slash command](/usage/chat-buffer/slash-commands#mcp) to start or stop servers manually.
+Once a server is running, its [tools](/usage/chat-buffer/agents-tools#mcp) are available in the chat buffer, and its prompts can be added with the [/mcp-prompts](/usage/chat-buffer/slash-commands#mcp-prompts) slash command.
 
-Prompts from running servers can be added to the chat buffer with the [MCP prompts slash command](/usage/chat-buffer/slash-commands#mcp-prompts).
+ACP agents don't use CodeCompanion's MCP client. Instead, your servers can be [passed to the agent](/configuration/adapters-acp#configuring-mcp-servers).
 
 ## Implementation
 
-
-| Feature Category                       | Supported | Details                                                     |
-|----------------------------------------|-----------|-------------------------------------------------------------|
-| Transport: Stdio                       | ✅        |                                                             |
-| Transport: Streamable HTTP             | ❌        |                                |
-| Basic: Cancellation                    | ✅        | Timeout and user can cancel manually                        |
-| Basic: Progress                        | ❌        |                                |
-| Basic: Task                            | ❌        | |
-| Client: Roots                          | ✅        | Disabled by default                                         |
-| Client: Sampling                       | ❌        | |
-| Client: Elicitation                    | ❌        | |
-| Server: Completion                     | ❌        | |
-| Server: Pagination                     | ✅        |                                                             |
-| Server: Prompts                        | ✅        | Currently only supports Text Content from user messages     |
-| Server: Resources                      | ❌        | |
-| Server: Tools                          | ✅        | Currently only supports Text Content                        |
-| Server: Tool list changed notification | ❌        | |
-
+| Feature | Supported | Details |
+|---|---|---|
+| Transport: Stdio | ✅ | |
+| Transport: Streamable HTTP | ❌ | |
+| Basic: Cancellation | ✅ | On timeout, or when you cancel |
+| Basic: Progress | ❌ | |
+| Basic: Task | ❌ | |
+| Client: Roots | ✅ | Disabled by default |
+| Client: Sampling | ❌ | |
+| Client: Elicitation | ❌ | |
+| Server: Completion | ❌ | |
+| Server: Pagination | ✅ | |
+| Server: Prompts | ✅ | Text content from user messages only |
+| Server: Resources | ❌ | |
+| Server: Tools | ✅ | Text content only |
+| Server: Tool list changed notification | ❌ | |
 
 ## Protocol Version
 
-CodeCompanion currently supports MCP version **2025-11-25**.
+CodeCompanion implements MCP version **2025-11-25**.
 
 ## See Also
 
-- [Model Context Protocol Specification](https://modelcontextprotocol.io/specification/2025-11-25) - Official MCP documentation
+- [Model Context Protocol Specification](https://modelcontextprotocol.io/specification/2025-11-25) - The official MCP documentation
+- [Configuring MCP Servers](/configuration/mcp) - Adding servers and overriding their tools

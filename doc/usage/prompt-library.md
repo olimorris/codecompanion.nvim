@@ -1,14 +1,14 @@
 ---
-description: "Use CodeCompanion's prompt library via keymaps, Action Palette, or chat slash commands — includes built-in prompts for explaining, fixing, and testing code."
+description: "Run prompts from your prompt library with a keymap, the command line or a slash command in the chat buffer."
 ---
 
 # Using the Prompt Library
 
-There are numerous ways that the prompts defined in your prompt library can be used in CodeCompanion. You can invoke them via keymaps, the Action Palette, or slash commands in the chat buffer.
+The _prompt library_ holds reusable prompts, both the ones CodeCompanion ships with and any you [write yourself](/configuration/prompt-library). Run them from the [Action Palette](/usage/action-palette), a keymap, the command line or the chat buffer.
 
 ## Keymaps
 
-You can assign prompts from the prompt library to a keymap via the `prompt` function:
+To map a prompt to a key, pass its `alias` to `prompt()`:
 
 ```lua
 vim.keymap.set("n", "<LocalLeader>d", function()
@@ -16,11 +16,16 @@ vim.keymap.set("n", "<LocalLeader>d", function()
 end, { noremap = true, silent = true })
 ```
 
-Where `docs` is the `alias` of the prompt.
+## Command Line
+
+Any prompt with an `alias` can be run from the command line:
+
+```
+:CodeCompanion /docs
+```
 
 ## Slash Commands
 
-If your prompt library entries have an `alias` defined then you can invoke them using a slash command. In the cmd line `:CodeCompanion /<alias>` or `/<alias>` if you're in the chat buffer.
+In the chat buffer, type `/` followed by the alias. Only chat prompts with `is_slash_cmd = true` in their `opts` appear here.
 
-When invoked this way, any tools declared on the prompt are added to the current chat buffer before the prompt content is inserted.
-
+Any tools the prompt declares are added to the chat buffer before its content is inserted.

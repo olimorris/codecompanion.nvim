@@ -33,33 +33,25 @@ return {
     },
   },
   handlers = {
-    ---@param self CodeCompanion.ACPAdapter
-    ---@return boolean
-    setup = function(self)
-      return true
-    end,
+    lifecycle = {
+      ---@param self CodeCompanion.ACPAdapter
+      ---@return boolean
+      setup = function(self)
+        return true
+      end,
 
-    ---Manually handle authentication
-    ---@param self CodeCompanion.ACPAdapter
-    ---@return boolean
-    auth = function(self)
-      -- opencode emits "opencode-login" as an authMethod which seems to be an
-      -- invalid command. So work around this by declaring auth a success
-      return true
-    end,
+      ---Manually handle authentication
+      ---@param self CodeCompanion.ACPAdapter
+      ---@return boolean
+      auth = function(self)
+        -- opencode emits "opencode-login" as an authMethod which seems to be an
+        -- invalid command. So work around this by declaring auth a success
+        return true
+      end,
+    },
 
-    ---@param self CodeCompanion.ACPAdapter
-    ---@param messages table
-    ---@param capabilities table
-    ---@return table
-    form_messages = function(self, messages, capabilities)
-      return helpers.form_messages(self, messages, capabilities)
-    end,
-
-    ---Function to run when the request has completed. Useful to catch errors
-    ---@param self CodeCompanion.ACPAdapter
-    ---@param code number
-    ---@return nil
-    on_exit = function(self, code) end,
+    request = {
+      build_messages = helpers.build_messages,
+    },
   },
 }

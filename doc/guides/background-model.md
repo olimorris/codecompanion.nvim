@@ -2,7 +2,7 @@
 description: "Run chat titles, compaction and the tool judge on a cheaper model than your main chat."
 ---
 
-# Using a Cheaper Model for Background Tasks
+# Running Background Tasks on a Cheaper Model
 
 Some requests CodeCompanion makes don't need your best model. Naming a chat, summarising a long conversation or judging whether a command is safe to run are short, well-defined tasks that a small, fast model handles well, at a fraction of the cost.
 
@@ -91,7 +91,7 @@ require("codecompanion").setup({
 :::
 
 > [!IMPORTANT]
-> The background adapter doesn't follow your chat adapter. If you've switched your chat to another provider and aren't signed in to Copilot, set this too, or your background tasks will fail without telling you
+> The background adapter doesn't follow your chat adapter. If you've switched your chat to another provider and aren't signed in to Copilot, set this too, or your background tasks fail without telling you
 
 ## Chat Titles
 
@@ -147,7 +147,7 @@ See [Background Callbacks](/configuration/callbacks#background-callbacks) to att
 
 ## Tool Judge
 
-The judge vets a tool call in [Auto mode](/usage/chat-buffer/agents-tools#approval-modes) and only asks you when it thinks the call is unsafe. It uses the background adapter unless you give it one:
+The judge vets a tool call in [Auto mode](/usage/chat-buffer/agents-tools#approval-modes) and only asks you when it judges the call unsafe. It uses the background adapter unless you give it one:
 
 ```lua
 require("codecompanion").setup({
@@ -157,7 +157,7 @@ require("codecompanion").setup({
         judge = {
           adapter = {
             name = "openai",
-            model = "gpt-5-mini",
+            model = "gpt-5.4-mini",
           },
         },
       },
@@ -206,7 +206,7 @@ require("codecompanion").setup({
 
 Pick a model with a context window at least as large as your chat model's, as it has to read the conversation it's summarising. See [Compaction](/configuration/context-management#compaction) for the triggers.
 
-Compaction never runs for agents, as they manage their own context. It also doesn't run for models that compact on the provider's side, such as some `anthropic` and `openai_responses` models, unless you [disable server-side compaction](/configuration/adapters-http#disabling-compaction).
+Compaction never runs for agents, as they manage their own context. It also doesn't run for models that compact on the provider's side, such as some `anthropic` and `openai` models, unless you [disable server-side compaction](/configuration/adapters-http#disabling-compaction).
 
 ## Other Interactions
 
@@ -237,5 +237,5 @@ A [prompt library](/configuration/prompt-library) item can also set `opts.adapte
 
 - Only HTTP adapters can be background adapters. Setting an agent, such as `claude_code`, logs a warning and the task doesn't run
 - Background failures are only written to the [log](/troubleshooting). If titles stop appearing, check the log first
-- Chat titles and the judge ask for a structured response. A model that can't return one still produces titles, but the judge will ask you every time
+- Chat titles and the judge ask for a structured response. A model that can't return one still produces titles, but the judge asks you every time
 - The `/compact` slash command always uses the chat's adapter, ignoring `compaction.adapter`

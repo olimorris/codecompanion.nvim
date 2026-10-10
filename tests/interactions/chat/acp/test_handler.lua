@@ -212,8 +212,8 @@ T["ACPHandler"]["coordinates completion flow"] = function()
 
     -- Track completion calls
     local completion_data = {}
-    chat.done = function(self, output, reasoning, tools)
-      completion_data = { output = output, reasoning = reasoning, tools = tools }
+    chat.done = function(self, args)
+      completion_data = args
     end
 
     -- Simulate full interaction
@@ -258,7 +258,7 @@ T["ACPHandler"]["handles connection errors"] = function()
     }
 
     local completion_called = false
-    chat.done = function(self, output)
+    chat.done = function()
       completion_called = true
     end
 

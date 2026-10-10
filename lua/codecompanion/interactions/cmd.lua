@@ -65,7 +65,7 @@ function Cmd:start()
         end
 
         if data then
-          local result = adapters.call_handler(adapter, "parse_chat", data)
+          local result = adapters.call_handler(adapter, "parse_chat", { data = data })
           if result and result.output and result.output.content then
             local content = result.output.content
             content:gsub("^%s*(.-)%s*$", "%1")

@@ -1,10 +1,10 @@
 ---
-description: "Connect CodeCompanion.nvim to other applications via its Neovim events catalog, including built-in herdr support that reports agent state as idle, working, or blocked."
+description: "Connect CodeCompanion to other applications, including herdr, which shows whether CodeCompanion is idle, working or blocked."
 ---
 
 # Integrations
 
-CodeCompanion enables integrations with many applications based on its rich [events](/usage/events) catalog.
+CodeCompanion fires [events](/usage/events) as it works, so other applications can follow what it's doing. Some integrations are built in.
 
 ## herdr
 
@@ -12,9 +12,17 @@ CodeCompanion enables integrations with many applications based on its rich [eve
 <video controls muted title="Integration with herdr" src="https://github.com/user-attachments/assets/f58738a2-c0ff-4a3f-9ffa-c8a51efd23be"></video>
 </p>
 
-CodeCompanion supports [herdr](https://github.com/herdrdev/herdr) out of the box with a direct integration allowing it to appear as an agent. CodeCompanion fully supports herdr's lifecycle for [reporting semantic state](https://herdr.dev/docs/integrations/#integrate-your-own-agent).
+[herdr](https://github.com/herdrdev/herdr) supervises terminal panes and shows which agent is running in each one. When Neovim runs in a herdr pane, CodeCompanion [reports its state](https://herdr.dev/docs/integrations/#integrate-your-own-agent) to herdr, so the pane sits alongside panes running Claude Code or Codex:
 
-It's enabled by default but can be disabled with:
+| State | Description |
+|---|---|
+| `working` | A chat buffer or CLI interaction is waiting on a response, compacting or running tools |
+| `blocked` | A tool approval or a question from the LLM is waiting on you |
+| `idle` | Nothing is in progress |
+
+Every chat buffer and CLI interaction in the Neovim instance counts towards the pane's state, and a `blocked` interaction takes priority.
+
+The integration is enabled by default, and does nothing outside of herdr. To disable it:
 
 ```lua
 require("codecompanion").setup({

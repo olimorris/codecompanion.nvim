@@ -31,6 +31,17 @@ T["chat_make_title"]["can format messages"] = function()
   h.eq(messages, "## user\nHello, how are you?\n## assistant\nI am fine, thank you!")
 end
 
+T["chat_make_title"]["omits document content"] = function()
+  local messages = child.lua([[
+    return builtin.format_messages({
+      { role = "user", content = "Summarise this PDF" },
+      { role = "user", content = "JVBERi0xLjQK", _meta = { tag = "document" } },
+    })
+  ]])
+
+  h.eq(messages, "## user\nSummarise this PDF\n## user\n[Document content omitted]")
+end
+
 T["chat_make_title"]["formats a title on_done"] = function()
   local title = child.lua([[
     return builtin.on_done({

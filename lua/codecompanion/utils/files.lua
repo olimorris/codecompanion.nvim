@@ -272,6 +272,46 @@ function M.get_mimetype(path)
   return map[extension]
 end
 
+---@param headers? string[]
+---@return string|nil
+local function get_content_type(headers)
+  local content_type
+  -- Curl follows redirects and keeps every response's headers, so the final response's type comes last
+  for _, header in ipairs(headers or {}) do
+    local key, value = header:match("^([^:]+):%s*(.+)$")
+    if key and key:lower() == "content-type" then
+      content_type = vim.trim(value:match("^([^;]+)"))
+    end
+  end
+  return content_type
+end
+
+---Download a URL to a temporary file, which Neovim deletes when it exits
+---@param url string
+---@param opts { callback: fun(err?: string, file?: { path: string, mimetype?: string }) }
+---@return nil
+function M.download(url, opts)
+  local http_opts = require("codecompanion.config").adapters.http.opts
+  -- Keeping the extension lets the file's type be detected from its path, as with any local file
+  local extension = url:gsub("[?#].*$", ""):match("/[^/]+%.(%w+)$")
+  local path = fn.tempname() .. (extension and ("." .. extension) or "")
+
+  require("plenary.curl").get(url, {
+    insecure = http_opts.allow_insecure,
+    proxy = http_opts.proxy,
+    output = path,
+    callback = vim.schedule_wrap(function(response)
+      if response.status ~= 200 then
+        return opts.callback(fmt("Could not download %s (HTTP status %d)", url, response.status))
+      end
+      opts.callback(nil, { path = path, mimetype = get_content_type(response.headers) })
+    end),
+    on_error = vim.schedule_wrap(function(err)
+      opts.callback(err.message)
+    end),
+  })
+end
+
 ---Convert a glob pattern to a Lua pattern
 ---Based on lua-glob-pattern by David Manura
 ---@param glob string The glob pattern to convert
@@ -441,10 +481,10 @@ function M.match_patterns(filename, patterns)
 end
 
 ---Recursively scan a directory and return all file paths
----@param dir_path string The directory path to scan
----@param opts? { patterns?: string|string[], max_depth?: number } Optional patterns to filter files and max recursion depth
+---@param dir_path string
+---@param opts? { patterns?: string|string[], max_depth?: number, follow?: boolean, skip_hidden?: boolean }
 ---@return string[] files List of absolute file paths
-function M.scan_directory(dir_path, opts)
+function M.scan_dir(dir_path, opts)
   opts = opts or {}
   local files = {}
   local max_depth = opts.max_depth
@@ -465,7 +505,14 @@ function M.scan_directory(dir_path, opts)
         break
       end
 
+      if opts.skip_hidden and vim.startswith(name, ".") then
+        goto continue
+      end
+
       local full_path = vim.fs.joinpath(path, name)
+      if type == "link" and opts.follow and M.is_dir(full_path) then
+        type = "directory"
+      end
 
       if type == "directory" then
         scan_recursively(full_path, depth + 1)
@@ -478,6 +525,8 @@ function M.scan_directory(dir_path, opts)
           table.insert(files, full_path)
         end
       end
+
+      ::continue::
     end
   end
 

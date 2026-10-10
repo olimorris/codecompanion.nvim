@@ -1,6 +1,5 @@
 ---@class CodeCompanion.Tools
 ---@field adapter CodeCompanion.HTTPAdapter The adapter in use for the chat
----@field aug number The augroup for the tool
 ---@field bufnr number The buffer of the chat buffer
 ---@field constants table<string, string> The constants for the tool
 ---@field chat CodeCompanion.Chat The chat buffer that initiated the tool
@@ -13,7 +12,7 @@
 ---@field tools_config table The available tools for the tool system
 
 local Orchestrator = require("codecompanion.interactions.chat.tools.orchestrator")
-local approvals = require("codecompanion.interactions.chat.tools.approvals")
+local agent_loop = require("codecompanion.interactions.chat.agent_loop")
 local config = require("codecompanion.config")
 local tool_filter = require("codecompanion.interactions.chat.tools.filter")
 local triggers = require("codecompanion.triggers")
@@ -81,7 +80,11 @@ function Tools:_handle_tool_error(tool, error_message)
   end
 
   self.status = CONSTANTS.STATUS_ERROR
-  self.chat:add_tool_output(tool_call, string.format("Tool `%s` not found. %s", name, available_tools_msg), "")
+  self.chat:add_tool_output({
+    tool = tool_call,
+    for_llm = string.format("Tool `%s` not found. %s", name, available_tools_msg),
+    for_user = "",
+  })
 end
 
 ---Resolve and prepare a tool for execution
@@ -128,11 +131,11 @@ function Tools:_resolve_and_prepare_tool(tool)
       local ok, decoded = pcall(vim.json.decode, args)
       if not ok then
         log:error("Couldn't decode the tool arguments: %s", args)
-        self.chat:add_tool_output(
-          prepared_tool,
-          string.format('You made an error in calling the %s tool: "%s"', name, decoded),
-          ""
-        )
+        self.chat:add_tool_output({
+          tool = prepared_tool,
+          for_llm = string.format('You made an error in calling the %s tool: "%s"', name, decoded),
+          for_user = "",
+        })
         self.status = CONSTANTS.STATUS_ERROR
         return nil, "JSON parsing failed", true -- Special flag to indicate this was handled
       end
@@ -160,7 +163,6 @@ end
 function Tools.new(args)
   local self = setmetatable({
     adapter = args.adapter,
-    aug = api.nvim_create_augroup(CONSTANTS.AUTOCMD_GROUP .. ":" .. args.bufnr, { clear = true }),
     bufnr = args.bufnr,
     chat = {},
     constants = CONSTANTS,
@@ -197,48 +199,6 @@ function Tools:refresh(opts)
   return self
 end
 
----Set the autocmds for the tool
----@return nil
-function Tools:set_autocmds()
-  api.nvim_create_autocmd("User", {
-    desc = "Handle responses from the Tool system",
-    group = self.aug,
-    pattern = "CodeCompanionTools*",
-    callback = function(request)
-      if request.data.bufnr ~= self.bufnr then
-        return
-      end
-
-      if request.match == "CodeCompanionToolsStarted" then
-        log:info("[Tool System] Initiated")
-      elseif request.match == "CodeCompanionToolsFinished" then
-        return vim.schedule(function()
-          local auto_submit = function()
-            return self.chat:submit({
-              auto_submit = true,
-              callback = function()
-                self:reset({ auto_submit = true })
-              end,
-            })
-          end
-
-          if approvals:get_mode(self.bufnr) ~= "ask" then
-            return auto_submit()
-          end
-          if self.status == CONSTANTS.STATUS_ERROR and self.tools_config.opts.auto_submit_errors then
-            return auto_submit()
-          end
-          if self.status == CONSTANTS.STATUS_SUCCESS and self.tools_config.opts.auto_submit_success then
-            return auto_submit()
-          end
-
-          self:reset({ auto_submit = false })
-        end)
-      end
-    end,
-  })
-end
-
 ---Execute the tool in the chat buffer based on the LLM's response
 ---@param chat CodeCompanion.Chat
 ---@param tools table The tools requested by the LLM
@@ -249,9 +209,6 @@ function Tools:execute(chat, tools)
 
   -- Wrap the entire tool execution in error handling
   local function safe_execute()
-    -- NOTE: Set autocmds early so that errors can be handled properly
-    self:set_autocmds()
-
     local orchestrator = Orchestrator.new(self, id)
 
     for _, tool in ipairs(tools) do
@@ -270,7 +227,8 @@ function Tools:execute(chat, tools)
 
     -- If no tools were resolved, finalize with error status
     if orchestrator.queue:is_empty() then
-      return utils.fire("ToolsFinished", { id = id, bufnr = self.bufnr })
+      utils.fire("ToolsFinished", { id = id, bufnr = self.bufnr })
+      return agent_loop.after_tools(self)
     end
 
     utils.fire("ToolsStarted", { id = id, bufnr = self.bufnr })
@@ -285,6 +243,7 @@ function Tools:execute(chat, tools)
     vim.schedule(function()
       utils.fire("ToolsFinished", { id = id, bufnr = self.bufnr })
     end)
+    agent_loop.after_tools(self)
   end
 end
 
@@ -389,8 +348,6 @@ end
 function Tools:reset(opts)
   opts = opts or {}
 
-  api.nvim_clear_autocmds({ group = self.aug })
-
   self.extracted = {}
   self.status = CONSTANTS.STATUS_SUCCESS
   self.stderr = {}
@@ -398,28 +355,6 @@ function Tools:reset(opts)
 
   self.chat:tools_done(opts)
   log:info("[Tools] Completed")
-end
-
----Add an error message to the chat buffer
----@param error string
----@return CodeCompanion.Tools
-function Tools:add_error_to_chat(error)
-  self.chat:add_message({
-    role = config.constants.USER_ROLE,
-    content = error,
-  }, { visible = false })
-
-  --- Alert the user that the error message has been shared
-  self.chat:add_buf_message({
-    role = config.constants.USER_ROLE,
-    content = "Please correct for the error message I've shared",
-  })
-
-  if self.tools_config.opts and self.tools_config.opts.auto_submit_errors then
-    self.chat:submit()
-  end
-
-  return self
 end
 
 ---Load a factory and pass the tool table through it

@@ -137,9 +137,9 @@ M.set_virtual_text = function(bufnr, ns_id, message, opts)
 end
 
 ---Show a notification with virtual lines in a buffer
----@param bufnr number The buffer number to display the notification in
----@param opts table Options for the notification
----@return number The extmark ID
+---@param bufnr number
+---@param opts table
+---@return number extmark id
 function M.show_buffer_notification(bufnr, opts)
   opts = opts or {}
 

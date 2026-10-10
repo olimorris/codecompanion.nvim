@@ -131,7 +131,7 @@ return {
 
       local llm_output = fmt("Created file `%s` successfully", display_path)
 
-      chat:add_tool_output(self, llm_output, "")
+      chat:add_tool_output({ tool = self, for_llm = llm_output, for_user = "" })
     end,
 
     ---@param self CodeCompanion.Tool.CreateFile
@@ -143,7 +143,7 @@ return {
       log:debug("[Create File Tool] Error output: %s", stderr)
 
       local error_output = fmt([[%s]], errors)
-      chat:add_tool_output(self, error_output)
+      chat:add_tool_output({ tool = self, for_llm = error_output })
     end,
 
     ---Rejection message back to the LLM

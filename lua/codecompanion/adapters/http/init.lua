@@ -70,28 +70,70 @@ local function get_handler(adapter, name)
   return adapter.handlers[old_name]
 end
 
+---The order that flat handlers take their arguments in
+local LEGACY_ARGUMENTS = {
+  on_exit = { "data" },
+  build_parameters = { "params", "messages" },
+  build_messages = { "messages" },
+  build_tools = { "tools" },
+  build_structured_output = { "schema" },
+  build_reasoning = { "data" },
+  build_body = { "payload" },
+  parse_chat = { "data", "tools" },
+  parse_inline = { "data", "context" },
+  parse_tokens = { "data" },
+  parse_meta = { "data" },
+  format_calls = { "tools" },
+  format_response = { "tool_call", "output" },
+}
+
+---Call a handler, unpacking the args into positional arguments for flat handlers
+---@param adapter CodeCompanion.HTTPAdapter
+---@param name string
+---@param args? table
+---@return any|nil
+local function call_handler(adapter, name, args)
+  args = args or {}
+
+  local handler = get_handler(adapter, name)
+  if not handler then
+    return nil
+  end
+
+  if uses_new_handlers(adapter) then
+    return handler(adapter, args)
+  end
+
+  local order = LEGACY_ARGUMENTS[name] or {}
+  local positional = {}
+  for i, key in ipairs(order) do
+    positional[i] = args[key]
+  end
+  return handler(adapter, unpack(positional, 1, #order))
+end
+
 ---@class CodeCompanion.HTTPAdapter.Handlers.Lifecycle
 ---@field setup? fun(self: CodeCompanion.HTTPAdapter): boolean
----@field on_exit? fun(self: CodeCompanion.HTTPAdapter, data: table): nil
+---@field on_exit? fun(self: CodeCompanion.HTTPAdapter, args: { data?: table }): nil
 ---@field teardown? fun(self: CodeCompanion.HTTPAdapter): nil
 
 ---@class CodeCompanion.HTTPAdapter.Handlers.Request
----@field build_parameters? fun(self: CodeCompanion.HTTPAdapter, params: table, messages: table): table
----@field build_messages? fun(self: CodeCompanion.HTTPAdapter, messages: table): table
----@field build_tools? fun(self: CodeCompanion.HTTPAdapter, tools: table): table|nil
----@field build_structured_output? fun(self: CodeCompanion.HTTPAdapter, schema: CodeCompanion.StructuredOutput.Schema): table|nil
----@field build_reasoning? fun(self: CodeCompanion.HTTPAdapter, messages: table): nil|{ content: string, _data: table }
----@field build_body? fun(self: CodeCompanion.HTTPAdapter, data: table): table|nil
+---@field build_parameters? fun(self: CodeCompanion.HTTPAdapter, args: { params: table, messages: table }): table
+---@field build_messages? fun(self: CodeCompanion.HTTPAdapter, args: { messages: table }): table
+---@field build_tools? fun(self: CodeCompanion.HTTPAdapter, args: { tools?: table }): table|nil
+---@field build_structured_output? fun(self: CodeCompanion.HTTPAdapter, args: { schema?: CodeCompanion.StructuredOutput.Schema }): table|nil
+---@field build_reasoning? fun(self: CodeCompanion.HTTPAdapter, args: { data: table }): nil|{ content: string, _data: table }
+---@field build_body? fun(self: CodeCompanion.HTTPAdapter, args: { payload: CodeCompanion.HTTPPayload }): table|nil
 
 ---@class CodeCompanion.HTTPAdapter.Handlers.Response
----@field parse_chat? fun(self: CodeCompanion.HTTPAdapter, data: string|table, tools?: table): { status: string, output: table }|nil
----@field parse_inline? fun(self: CodeCompanion.HTTPAdapter, data: string|table, context?: table): { status: string, output: string }|nil
----@field parse_tokens? fun(self: CodeCompanion.HTTPAdapter, data: table): number|nil
----@field parse_message_meta? fun(self: CodeCompanion.HTTPAdapter, data: {status: string, output: {role: string?, content: string?}, extra: table}):{status: string, output: {role: string?, content: string?, reasoning:{content: string?}|table|nil}}
+---@field parse_chat? fun(self: CodeCompanion.HTTPAdapter, args: { data: string|table, tools?: table }): { status: string, output: table }|nil
+---@field parse_inline? fun(self: CodeCompanion.HTTPAdapter, args: { data: string|table, context?: table }): { status: string, output: string }|nil
+---@field parse_tokens? fun(self: CodeCompanion.HTTPAdapter, args: { data: table }): number|nil
+---@field parse_meta? fun(self: CodeCompanion.HTTPAdapter, args: { data: {status: string, output: {role: string?, content: string?}, extra: table} }):{status: string, output: {role: string?, content: string?, reasoning:{content: string?}|table|nil}}
 
 ---@class CodeCompanion.HTTPAdapter.Handlers.Tools
----@field format_calls? fun(self: CodeCompanion.HTTPAdapter, tools: table): table
----@field format_response? fun(self: CodeCompanion.HTTPAdapter, tool_call: table, output: string): table
+---@field format_calls? fun(self: CodeCompanion.HTTPAdapter, args: { tools: table }): table
+---@field format_response? fun(self: CodeCompanion.HTTPAdapter, args: { tool_call: table, output: string }): table
 
 ---@class CodeCompanion.HTTPAdapter.Handlers
 ---@field lifecycle? CodeCompanion.HTTPAdapter.Handlers.Lifecycle
@@ -156,6 +198,7 @@ end
 ---@class CodeCompanion.HTTPAdapter
 local Adapter = {}
 
+Adapter.call_handler = call_handler
 Adapter.get_handler = get_handler
 Adapter.uses_new_handlers = uses_new_handlers
 

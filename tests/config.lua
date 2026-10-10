@@ -98,7 +98,7 @@ return {
           path = vim.fn.getcwd() .. "/tests/interactions/chat/tools/builtin/stubs/func.lua",
           description = "Some function tool to test",
         },
-        ["insert_edit_into_file"] = {
+        ["edit_file"] = {
           opts = {
             require_approval_before = {
               buffer = false,
@@ -280,9 +280,6 @@ return {
           },
         },
         opts = {
-          -- Keep tool output in the chat buffer; auto-submitting would fire a request to the adapter
-          auto_submit_errors = false,
-          auto_submit_success = false,
           system_prompt = "My tool system prompt",
           folds = {
             enabled = false,

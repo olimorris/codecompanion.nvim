@@ -204,7 +204,7 @@ function M.list()
     return cache.sessions
   end
 
-  local meta_files = files.scan_directory(dir, { patterns = "*_meta.json", max_depth = 0 })
+  local meta_files = files.scan_dir(dir, { patterns = "*_meta.json", max_depth = 0 })
   table.sort(meta_files, function(a, b)
     return a > b
   end)

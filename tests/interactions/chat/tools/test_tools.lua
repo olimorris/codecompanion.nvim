@@ -293,12 +293,12 @@ end
 
 T["Tools"][":replace"]["should be in sync with finding logic"] = function()
   child.lua([[
-    local message = "run @{insert_edit_into_file} and pre@{files} and @{tool_group_tool} and @{files}! and handle newlines @{insert_edit_into_file}\n"
+    local message = "run @{edit_file} and pre@{files} and @{tool_group_tool} and @{files}! and handle newlines @{edit_file}\n"
     _G.result = _G.tools:replace(message)
   ]])
 
   h.eq(
-    "run the insert_edit_into_file tool and prethe files tool and the tool_group_tool tool and the files tool! and handle newlines the insert_edit_into_file tool",
+    "run the edit_file tool and prethe files tool and the tool_group_tool tool and the files tool! and handle newlines the edit_file tool",
     child.lua_get("_G.result")
   )
 end

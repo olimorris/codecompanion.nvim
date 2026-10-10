@@ -26,7 +26,7 @@ function M.load_from_dir(dir, context)
   end
 
   -- Scan directory for .md files
-  local md_files = file_utils.scan_directory(dir, { patterns = "*.md", max_depth = 5 })
+  local md_files = file_utils.scan_dir(dir, { patterns = "*.md", max_depth = 5 })
 
   for _, path in ipairs(md_files) do
     local ok, prompt = pcall(M.parse_file, path, context)

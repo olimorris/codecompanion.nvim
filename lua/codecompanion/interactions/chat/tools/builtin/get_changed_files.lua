@@ -141,7 +141,7 @@ return {
     success = function(self, stdout, meta)
       local chat = meta.tools.chat
       local output = vim.iter(stdout):flatten():join("\n")
-      chat:add_tool_output(self, output, "")
+      chat:add_tool_output({ tool = self, for_llm = output, for_user = "" })
     end,
 
     ---@param self CodeCompanion.Tool.GetChangedFiles
@@ -150,7 +150,7 @@ return {
     error = function(self, stderr, meta)
       local chat = meta.tools.chat
       local errors = vim.iter(stderr):flatten():join("\n")
-      chat:add_tool_output(self, errors)
+      chat:add_tool_output({ tool = self, for_llm = errors })
     end,
 
     ---Rejection message back to the LLM

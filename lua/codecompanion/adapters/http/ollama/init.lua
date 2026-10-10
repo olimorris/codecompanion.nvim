@@ -1,7 +1,7 @@
 local adapter_utils = require("codecompanion.adapters.utils")
 local get_models = require("codecompanion.adapters.http.ollama.get_models")
 local log = require("codecompanion.utils.log")
-local openai = require("codecompanion.adapters.http.openai")
+local openai = require("codecompanion.adapters.http.openai_legacy")
 local tags = require("codecompanion.interactions.shared.tags")
 
 ---@class CodeCompanion.HTTPAdapter.Ollama: CodeCompanion.HTTPAdapter
@@ -198,6 +198,9 @@ return {
         return {
           role = self.roles.tool or "tool",
           tool_name = tool_call["function"]["name"],
+          tools = {
+            call_id = adapter_utils.pairing_id(tool_call),
+          },
           content = output,
           opts = { visible = false },
         }

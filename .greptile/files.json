@@ -16,6 +16,11 @@
       "path": ".codecompanion/tests/mini_test_testing.md",
       "description": "How Mini.Test is used here, with the child Neovim process setup",
       "scope": ["tests/**"]
+    },
+    {
+      "path": ".codecompanion/skills/writing-docs/SKILL.md",
+      "description": "How the docs are written: tone, page structure, code-first lead-ins, tables, callouts, punctuation and numbers. Cite the relevant section when raising a docs comment.",
+      "scope": ["doc/**"]
     }
   ]
 }

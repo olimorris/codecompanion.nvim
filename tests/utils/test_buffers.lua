@@ -52,4 +52,17 @@ T["Utils->Buffers"]["add_line_numbers works"] = function()
   h.expect_match(result, "3 |test")
 end
 
+T["Utils->Buffers"]["get_bufnr_from_path finds a buffer opened through a symlink"] = function()
+  local result = child.lua([[
+    local dir = vim.fn.tempname()
+    vim.fn.mkdir(dir .. "/real", "p")
+    vim.uv.fs_symlink(dir .. "/real", dir .. "/link")
+    vim.fn.writefile({ "local x = 1" }, dir .. "/real/file.lua")
+
+    vim.cmd("edit " .. dir .. "/real/file.lua")
+    return { expected = vim.api.nvim_get_current_buf(), found = _G.buf_utils.get_bufnr_from_path(dir .. "/link/file.lua") }
+  ]])
+  h.eq(result.expected, result.found)
+end
+
 return T

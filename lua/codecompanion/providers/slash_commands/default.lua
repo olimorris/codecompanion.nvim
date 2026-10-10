@@ -25,7 +25,7 @@ function Default:find_files(opts)
 
   local files = {}
   for _, dir in ipairs(opts.dirs or { vim.fn.getcwd() }) do
-    vim.list_extend(files, files_utils.scan_directory(dir, { max_depth = 10 }))
+    vim.list_extend(files, files_utils.scan_dir(dir, { max_depth = 10 }))
   end
 
   self.to_display = vim
@@ -76,39 +76,6 @@ function Default:urls(urls)
   self.to_format = function(item)
     return item.display or item.url
   end
-  return self
-end
-
----Find images in a set of paths
----@param paths table
----@param filetypes table
-function Default:images(paths, filetypes)
-  local patterns
-  if filetypes and next(filetypes) then
-    patterns = vim
-      .iter(filetypes)
-      :map(function(filetype)
-        return "*." .. filetype
-      end)
-      :totable()
-  end
-
-  local files = {}
-  for _, path in ipairs(paths) do
-    vim.list_extend(files, files_utils.scan_directory(path, { max_depth = 5, patterns = patterns }))
-  end
-
-  self.to_display = vim
-    .iter(files)
-    :map(function(file)
-      return { relative_path = vim.fn.fnamemodify(file, ":."), path = file }
-    end)
-    :totable()
-
-  self.to_format = function(item)
-    return item.relative_path
-  end
-
   return self
 end
 

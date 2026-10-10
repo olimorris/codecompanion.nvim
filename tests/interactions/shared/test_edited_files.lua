@@ -28,26 +28,26 @@ T["Edited files"]["starts empty"] = function()
 end
 
 T["Edited files"]["records an edited file from the FileEdited event"] = function()
-  child.lua([[fire({ path = "/project/lua/foo.lua", tool = "insert_edit_into_file", line = 40 })]])
+  child.lua([[fire({ path = "/project/lua/foo.lua", tool = "edit_file", line = 40 })]])
 
   local edits = child.lua_get("edited_files.all()")
   h.eq(1, #edits)
   h.eq("/project/lua/foo.lua", edits[1].path)
-  h.eq("insert_edit_into_file", edits[1].tool)
+  h.eq("edit_file", edits[1].tool)
   h.eq(40, edits[1].line)
 end
 
 T["Edited files"]["ignores edits without a path"] = function()
-  child.lua([[fire({ tool = "insert_edit_into_file" })]])
+  child.lua([[fire({ tool = "edit_file" })]])
 
   h.eq(0, child.lua_get("#edited_files.all()"))
 end
 
 T["Edited files"]["refreshes the entry when a file is edited again"] = function()
   child.lua([[
-    fire({ path = "/project/lua/foo.lua", tool = "insert_edit_into_file", line = 40 })
+    fire({ path = "/project/lua/foo.lua", tool = "edit_file", line = 40 })
     fire({ path = "/project/lua/bar.lua", tool = "create_file" })
-    fire({ path = "/project/lua/foo.lua", tool = "insert_edit_into_file", line = 88 })
+    fire({ path = "/project/lua/foo.lua", tool = "edit_file", line = 88 })
   ]])
 
   local edits = child.lua_get("edited_files.all()")
@@ -72,7 +72,7 @@ end
 
 T["Edited files"]["to_quickfix lists the edited files"] = function()
   child.lua([[
-    fire({ path = "/project/lua/foo.lua", tool = "insert_edit_into_file", line = 40 })
+    fire({ path = "/project/lua/foo.lua", tool = "edit_file", line = 40 })
     fire({ path = "/project/lua/bar.lua", tool = "create_file" })
 
     edited_files.to_quickfix()
@@ -82,7 +82,7 @@ T["Edited files"]["to_quickfix lists the edited files"] = function()
   h.eq("Files edited by the LLM", qf.title)
   h.eq(2, #qf.items)
   h.eq(40, qf.items[1].lnum)
-  h.eq("edited by insert_edit_into_file", qf.items[1].text)
+  h.eq("edited by edit_file", qf.items[1].text)
   h.eq("created by create_file", qf.items[2].text)
 end
 

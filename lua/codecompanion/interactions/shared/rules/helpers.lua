@@ -177,9 +177,7 @@ function M.add_context(files, chat)
       end
 
       local content = fmt("Sharing `%s`:\n\n---\n%s\n---", file.path, file.content)
-      chat:add_context({ content = content }, "rules", id, {
-        path = file.path,
-      })
+      chat:add_context({ content = content }, { source = "rules", id = id, path = file.path })
     end
   end
 end
@@ -229,19 +227,16 @@ function M.add_files_or_buffers(included_files, chat)
         end
       end
 
-      return chat:add_context({ content = buffer.content }, "rules", id, {
-        bufnr = bufnr,
-        path = path,
-        context_opts = opts,
-      })
+      return chat:add_context(
+        { content = buffer.content },
+        { source = "rules", id = id, bufnr = bufnr, path = path, context_opts = opts }
+      )
     end
 
     -- Otherwise, add it as file context
     local ok, file = pcall(chat_helpers.format_file_for_llm, path, opts)
     if ok then
-      chat:add_context({ content = file.content }, "rules", id, {
-        path = path,
-      })
+      chat:add_context({ content = file.content }, { source = "rules", id = id, path = path })
     end
   end)
 end

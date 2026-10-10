@@ -40,7 +40,7 @@ require("codecompanion").setup({
 })
 ```
 
-A glob matches nothing in a project without the directory, so this is safe to leave on everywhere. Cursor's frontmatter, such as `globs` and `alwaysApply`, isn't interpreted - every matching file is shared in full.
+A glob matches nothing in a project without the directory, so this is safe to leave on everywhere. Cursor's frontmatter, such as `globs` and `alwaysApply`, isn't interpreted, so every matching file is shared in full.
 
 <img src="https://github.com/user-attachments/assets/25102b7c-38f9-4802-8fc9-78010bf08b6e" alt="Rules in the chat buffer" />
 
@@ -66,7 +66,7 @@ require("codecompanion").setup({
 })
 ```
 
-Groups are loaded in the order they're listed, and a file that appears in more than one group is only added once. `~/.config/codecompanion/rules` isn't a location CodeCompanion knows about - it's just a directory you create. Any path works.
+Groups are loaded in the order they're listed, and a file that appears in more than one group is only added once. `~/.config/codecompanion/rules` has no special meaning to CodeCompanion. It's a directory you create, and any path works.
 
 To load a group only in certain projects, make `autoload` a function:
 
@@ -129,7 +129,7 @@ CodeCompanion looks for skills in these directories, and a later one wins if two
 | `~/.claude/skills` | Personal, shared with Claude Code |
 | `.claude/skills` | Project, shared with Claude Code |
 
-So a skill in `~/.claude/skills` is already available, and a project's `.claude/skills` overrides a personal skill of the same name. Skills sit one level down, as `<dir>/<skill-name>/SKILL.md`.
+So a skill in `~/.claude/skills` is already available, and a project's `.claude/skills` overrides a personal skill of the same name. Each skill is a `SKILL.md` up to five directories below one of these, set by `skills.opts.depth`. Hidden directories are skipped.
 
 **The LLM only knows about the skills you add to the chat.** Add them with the [/skills](/usage/chat-buffer/slash-commands#skills) slash command, or have some added to every chat:
 
@@ -173,7 +173,7 @@ If your agent already reads `CLAUDE.md` or `AGENTS.md`, turn rules off for agent
 |---|---|---|
 | Rules | The LLM should always know it, like coding style or project layout | Every chat, or the chats you add it to |
 | Skills | The LLM needs it for certain tasks, like writing a migration or a release | Chats you add it to, read only when relevant |
-| [System prompt](/configuration/system-prompt#changing-system-prompts) | You want to change how the LLM behaves in every chat, whatever the project | Every chat with an http adapter |
+| [System prompt](/configuration/system-prompt#changing-system-prompts) | You want to change how the LLM behaves in every chat, whatever the project | Every chat with an HTTP adapter |
 | [Prompt library](/usage/prompt-library) | You repeat the same request, like writing a commit message | The chat you start from the prompt |
 
 A prompt library item can name its own rules and skills, so a prompt like "Review this PR" can always bring your `code-review` skill with it. See [rules in prompts](/configuration/prompt-library) and [skills in prompts](/configuration/skills#prompt-library).
@@ -181,5 +181,5 @@ A prompt library item can name its own rules and skills, so a prompt like "Revie
 ## Limitations
 
 - Skills need the Tree-sitter `yaml` parser. Run `:TSInstall yaml` if `/skills` shows nothing
-- Skills need an http adapter with tool use. They're not added for a model that has tools turned off
+- Skills need an HTTP adapter with tool use. They're not added for a model that has tools turned off
 - A group's own `enabled` function only hides it from `/rules` and the Action Palette. It doesn't stop the group being autoloaded, so use an `autoload` function for that

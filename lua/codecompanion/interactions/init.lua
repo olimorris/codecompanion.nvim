@@ -289,7 +289,7 @@ function Interactions:workflow()
             end
             chat:add_buf_message(val)
             if val.opts and val.opts.adapter and val.opts.adapter.name then
-              chat:change_adapter(val.opts.adapter.name, val.opts.adapter.model)
+              chat:change_adapter({ adapter = val.opts.adapter.name, model = val.opts.adapter.model })
             end
           end,
           data = event_data,

@@ -8,13 +8,13 @@ An LLM only knows what it was trained on, so it can't tell you about a library r
 
 ## Choosing a Search Provider
 
-The default provider is Tavily, which needs an API key. If you haven't set one, every search fails.
+The default provider is DuckDuckGo, which works without an API key. Tavily and Serply need one, and if it isn't set, every search fails.
 
 | Adapter | API key | Notes |
 |---|---|---|
-| `tavily` | `TAVILY_API_KEY` | The default. Returns relevant chunks from each result |
+| `duckduckgo` | None | The default. Reads DuckDuckGo's HTML results page. Ignores every search option |
+| `tavily` | `TAVILY_API_KEY` | Returns relevant chunks from each result |
 | `serply` | `SERPLY_API_KEY` | Google results. Returns at most 10 per search |
-| `duckduckgo` | None | Reads DuckDuckGo's HTML results page. Ignores every search option |
 
 To pick one:
 
@@ -74,7 +74,7 @@ require("codecompanion").setup({
 :::
 
 > [!IMPORTANT]
-> Don't put `strategies` and `interactions` in the same config. `strategies` is the old name, and when it's present your `interactions` table is replaced, so the tool falls back to Tavily
+> Don't put `strategies` and `interactions` in the same config. `strategies` is the old name, and when it's present your `interactions` table is replaced, so the tool falls back to DuckDuckGo
 
 To read the API key from somewhere else, such as a password manager:
 
@@ -117,7 +117,7 @@ The search runs without asking for your approval. The results go back to the LLM
 
 ### Search Options
 
-The tool passes the options in `opts.opts` to the adapter. The defaults are:
+The tool passes the options in `opts.opts` to the adapter. The defaults are below, and only apply to Tavily and Serply:
 
 ```lua
 require("codecompanion").setup({
@@ -159,8 +159,8 @@ Some providers run web search on their own servers. With these adapters, `@{web_
 | Adapter | Provider tools |
 |---|---|
 | `anthropic` | `web_search`, and `web_fetch` for fetching a page |
-| `openai_responses` | `web_search` |
-| `gemini_interactions` | `web_search`, using Google Search |
+| `openai` | `web_search` |
+| `gemini` | `web_search`, using Google Search |
 | `openrouter` | `web_search`, and `fetch_webpage` in place of the [built-in tool](#fetching-a-page) |
 
 Anything the provider charges for search is added to your bill with them. To use the built-in tool instead, turn the provider's tool off:
@@ -187,7 +187,7 @@ See [adapter tools](/usage/chat-buffer/agents-tools#adapter-tools) for more.
 
 ## Fetching a Page
 
-When you already know the page you want, you don't need a search. There are two ways to add a page to the chat:
+When you already know the page you want, there are two ways to add it to the chat:
 
 - **`@{fetch_webpage}`** - A tool. The LLM decides which URL to fetch and reads the result straight away
 - **`/fetch`** - A [slash command](/usage/chat-buffer/slash-commands#fetch). You enter the URL, and can cache the page to add it again later without fetching it
@@ -196,7 +196,7 @@ When you already know the page you want, you don't need a search. There are two 
 Use @{fetch_webpage} to read https://neovim.io/doc/user/lsp.html and tell me how to disable semantic tokens
 ```
 
-Both use [Jina](https://jina.ai) by default, which works without an API key and converts the page into plain text. [MarkItDown](https://github.com/microsoft/markitdown) is the alternative. It runs the `markitdown` CLI on your machine, so it must be installed. Each one has its own adapter setting:
+Both use [MarkItDown](https://github.com/microsoft/markitdown) by default. It runs the `markitdown` CLI on your machine, so it must be installed. [Jina](https://jina.ai) is the alternative, which works without an API key and converts the page into plain text. Each one has its own adapter setting:
 
 ```lua
 require("codecompanion").setup({
@@ -205,14 +205,14 @@ require("codecompanion").setup({
       tools = {
         ["fetch_webpage"] = {
           opts = {
-            adapter = "markitdown", -- Can be "jina" or "markitdown"
+            adapter = "jina", -- Can be "jina" or "markitdown"
           },
         },
       },
       slash_commands = {
         ["fetch"] = {
           opts = {
-            adapter = "markitdown", -- Can be "jina" or "markitdown"
+            adapter = "jina", -- Can be "jina" or "markitdown"
           },
         },
       },

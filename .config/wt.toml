@@ -1,3 +1,8 @@
 [[post-start]]
-install = "cd doc && npm install"
-copy_memories = "ln -s {{ primary_worktree_path }}/memories {{ worktree_path }}/memories"
+deps = "make deps"
+docs = "cd doc && npm install"
+links = """
+for path in memories tests/scripts/tool_testing/config.local.lua tests/scripts/tool_testing/.env; do
+  ln -sfn {{ primary_worktree_path }}/$path {{ worktree_path }}/$path
+done
+"""

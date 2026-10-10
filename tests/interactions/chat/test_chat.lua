@@ -350,7 +350,7 @@ local function stub_fetch(attached)
         return false
       end
       opts.chat:add_context({ content = "<attachment url=\"" .. opts.url .. "\">stub</attachment>" },
-        "slash_command", "<url>" .. opts.url .. "</url>")
+        { source = "slash_command", id = "<url>" .. opts.url .. "</url>" })
       return true
     end
   ]],
@@ -740,7 +740,7 @@ T["Chat"]["done with stopped status completes orphaned tool calls"] = function()
       },
     })
     _G.chat.status = "cancelling"
-    _G.chat:done(nil, nil, nil, nil, { status = "stopped" })
+    _G.chat:done({ status = "stopped" })
     return _G.chat:has_orphaned_tool_calls()
   ]])
   h.eq(false, result)
@@ -880,7 +880,7 @@ T["Chat"]["on_tool_output callback receives correct args"] = function()
         type = "function",
       },
     }
-    chat:add_tool_output(tool, "LLM output", "User output")
+    chat:add_tool_output({ tool = tool, for_llm = "LLM output", for_user = "User output" })
 
     return {
       callback_args = callback_args,

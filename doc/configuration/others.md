@@ -1,45 +1,40 @@
 ---
-description: "Configure miscellaneous CodeCompanion options: response language, log level, per-project config files, and restricting code from being sent to LLMs."
+description: "Set the language LLMs respond in, the log level, per-project config and whether code can be sent to an LLM."
 ---
 
-# Other Configuration Options
+# Configuring Other Options
 
 ## Language
 
-If you use the default system prompt, you can specify which language an LLM should respond in by changing the `opts.language` option:
+The default system prompt asks the LLM to respond in English. To change the language:
 
 ```lua
 require("codecompanion").setup({
   opts = {
-    language = "English",
+    language = "French",
   },
-}),
+})
 ```
 
-Of course, if you have your own system prompt you can specify your own language for the LLM to respond in.
+If you've written your own system prompt, set the language in it instead.
 
 ## Log Level
 
-> [!IMPORTANT]
-> By default, logs are stored at `~/.local/state/nvim/codecompanion.log`
-
-When it comes to debugging, you can change the level of logging which takes place in the plugin as follows:
+Logs are written to `codecompanion.log` in `stdpath("log")`, which is `~/.local/state/nvim` on most systems. To log more detail when debugging:
 
 ```lua
 require("codecompanion").setup({
   opts = {
-    log_level = "ERROR", -- TRACE|DEBUG|ERROR|INFO
+    log_level = "DEBUG", -- Can be "TRACE", "DEBUG", "INFO", "WARN" or "ERROR"
   },
-}),
+})
 ```
+
+The default is `ERROR`.
 
 ## Per-Project Configuration
 
-Working across multiple projects, it can be useful to set different CodeCompanion configurations.
-
-The plugin allows you to specify a list of files which it will look for in the current working directory. If any of the files are found, they will be loaded and merged with the default configuration.
-
-Alternatively, you can specify a directory as a key and the configuration as the value.
+When you work across several projects, each can have its own CodeCompanion config. List files to look for in the current working directory, or key a config by directory:
 
 ::: code-group
 
@@ -79,7 +74,7 @@ require("codecompanion").setup({
 
 :::
 
-File-based configuration must return a valid Lua table. For example:
+A directory only matches when it's the working directory itself, not a parent of it. A matching config is merged over your own, and a file takes precedence over a directory if both match. A file must return a Lua table:
 
 ```lua
 return {
@@ -101,18 +96,24 @@ return {
 }
 ```
 
+To turn per-project config off, set `opts.per_project_config.enabled = false`.
+
+> [!NOTE]
+> Per-project config is read once, when `setup()` runs, so changing directory afterwards doesn't load another project's config
+
 ## Sending Code
 
-> [!IMPORTANT]
-> Whilst the plugin makes every attempt to prevent code from being sent to the LLM, use this option at your own risk
+> [!WARNING]
+> CodeCompanion makes every attempt to stop code reaching the LLM, but use this option at your own risk
 
-You can prevent any code from being sent to the LLM with:
+To stop editor context, slash commands and prompts marked as containing code from being sent to the LLM:
 
 ```lua
 require("codecompanion").setup({
   opts = {
     send_code = false,
   },
-}),
+})
 ```
 
+`send_code` can also be a function that returns a boolean, so you can decide per request.

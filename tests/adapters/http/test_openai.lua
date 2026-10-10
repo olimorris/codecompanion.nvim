@@ -5,7 +5,7 @@ local adapter
 local new_set = MiniTest.new_set
 T = new_set()
 
-T["OpenAI adapter"] = new_set({
+T["Responses"] = new_set({
   hooks = {
     pre_case = function()
       adapter = require("codecompanion.adapters").resolve("openai")
@@ -13,37 +13,111 @@ T["OpenAI adapter"] = new_set({
   },
 })
 
-T["OpenAI adapter"]["it can form messages"] = function()
-  local messages = { {
-    content = "Explain Ruby in two words",
-    role = "user",
-  } }
+T["Responses"]["can form reasoning output"] = function()
+  local input = {
+    {
+      content = "Ruby ",
+    },
+    {
+      content = "is a ",
+    },
+    {
+      content = "dynamic, expressive programming language",
+    },
+    {
+      id = "rs_123",
+      encrypted_content = "somefakebase64encoding",
+    },
+  }
 
-  h.eq({ messages = messages }, adapter.handlers.form_messages(adapter, messages))
+  local expected = {
+    content = "Ruby is a dynamic, expressive programming language",
+    id = "rs_123",
+    encrypted_content = "somefakebase64encoding",
+  }
+
+  h.eq(expected, adapter.handlers.request.build_reasoning(adapter, { data = input }))
 end
 
-T["OpenAI adapter"]["it can form messages with images"] = function()
+T["Responses"]["can output tool calls"] = function()
+  local output = "The weather in London is 15 degrees"
+  local tool_call = {
+    ["function"] = {
+      arguments = '{"location": "London", "units": "celsius"}',
+      name = "weather",
+    },
+    id = "fc_0cf9af0f913994140068e27139a1948193bbf214a9664ec92c",
+    call_id = "call_a9oyUMlFhnX8HvqzlfIx5Uek",
+    type = "function",
+  }
+
+  h.eq({
+    content = output,
+    opts = {
+      visible = false,
+    },
+    role = "tool",
+    tools = {
+      call_id = "call_a9oyUMlFhnX8HvqzlfIx5Uek",
+      id = "fc_0cf9af0f913994140068e27139a1948193bbf214a9664ec92c",
+      name = "weather",
+    },
+  }, adapter.handlers.tools.format_response(adapter, { tool_call = tool_call, output = output }))
+end
+
+T["Responses"]["build_messages"] = new_set()
+
+T["Responses"]["build_messages"]["messages only"] = function()
   local messages = {
     {
+      content = "You are a helpful assistant.",
+      role = "system",
+    },
+    {
+      content = "Who knows about Ruby",
+      role = "system",
+    },
+    {
+      content = "Explain Ruby in two words",
+      role = "user",
+    },
+  }
+
+  h.eq({
+    instructions = messages[1].content .. "\n" .. messages[2].content,
+    input = {
+      {
+        role = messages[3].role,
+        content = messages[3].content,
+      },
+    },
+  }, adapter.handlers.request.build_messages(adapter, { messages = messages }))
+end
+
+T["Responses"]["build_messages"]["images"] = function()
+  local messages = {
+    {
+      _meta = { sent = true },
       content = "How are you?",
       role = "user",
     },
     {
+      _meta = { sent = true },
       content = "I am fine, thanks. How can I help?",
       role = "assistant",
     },
     {
       content = "somefakebase64encoding",
       role = "user",
+      opts = {
+        visible = false,
+      },
       context = {
         id = "<image>https://upload.wikimedia.org/wikipedia/commons/thumb/d/dd/Gfp-wisconsin-madison-the-nature-boardwalk.jpg/2560px-Gfp-wisconsin-madison-the-nature-boardwalk.jpg</image>",
         mimetype = "image/jpg",
       },
       _meta = {
         tag = tags.IMAGE,
-      },
-      opts = {
-        visible = false,
       },
     },
     {
@@ -53,39 +127,110 @@ T["OpenAI adapter"]["it can form messages with images"] = function()
   }
 
   local expected = {
-    {
-      content = "How are you?",
-      role = "user",
-    },
-    {
-      content = "I am fine, thanks. How can I help?",
-      role = "assistant",
-    },
-    {
-      content = {
-        {
-          type = "image_url",
-          image_url = {
-            url = "data:image/jpg;base64,somefakebase64encoding",
+    input = {
+      {
+        content = "How are you?",
+        role = "user",
+      },
+      {
+        content = "I am fine, thanks. How can I help?",
+        role = "assistant",
+      },
+      {
+        content = {
+          {
+            type = "input_image",
+            image_url = "data:image/jpg;base64,somefakebase64encoding",
+          },
+          {
+            type = "input_text",
+            text = "What is this an image of?",
           },
         },
+        role = "user",
       },
+    },
+  }
+
+  h.eq(expected, adapter.handlers.request.build_messages(adapter, { messages = messages }))
+end
+
+T["Responses"]["build_messages"]["multiple consecutive images are not merged as text"] = function()
+  local messages = {
+    {
+      content = "img1_base64",
       role = "user",
+      opts = { visible = false },
+      context = { mimetype = "image/png" },
+      _meta = { tag = tags.IMAGE },
     },
     {
-      content = "What is this an image of?",
+      content = "img2_base64",
+      role = "user",
+      opts = { visible = false },
+      context = { mimetype = "image/png" },
+      _meta = { tag = tags.IMAGE },
+    },
+    {
+      content = "img3_base64",
+      role = "user",
+      opts = { visible = false },
+      context = { mimetype = "image/png" },
+      _meta = { tag = tags.IMAGE },
+    },
+    {
+      content = "How many images do you see?",
       role = "user",
     },
   }
 
-  h.eq(expected, adapter.handlers.form_messages(adapter, messages).messages)
+  local expected = {
+    input = {
+      {
+        role = "user",
+        content = {
+          {
+            type = "input_image",
+            image_url = "data:image/png;base64,img1_base64",
+          },
+        },
+      },
+      {
+        role = "user",
+        content = {
+          {
+            type = "input_image",
+            image_url = "data:image/png;base64,img2_base64",
+          },
+        },
+      },
+      {
+        role = "user",
+        content = {
+          {
+            type = "input_image",
+            image_url = "data:image/png;base64,img3_base64",
+          },
+          {
+            type = "input_text",
+            text = "How many images do you see?",
+          },
+        },
+      },
+    },
+  }
+
+  h.eq(expected, adapter.handlers.request.build_messages(adapter, { messages = messages }))
 end
 
-T["OpenAI adapter"]["it can form messages with documents"] = function()
+T["Responses"]["build_messages"]["documents"] = function()
   local messages = {
     {
       content = "somefakebase64encoding",
       role = "user",
+      opts = {
+        visible = false,
+      },
       context = {
         id = "<file>report.pdf</file>",
         mimetype = "application/pdf",
@@ -95,9 +240,6 @@ T["OpenAI adapter"]["it can form messages with documents"] = function()
         tag = tags.DOCUMENT,
         filetype = "pdf",
       },
-      opts = {
-        visible = false,
-      },
     },
     {
       content = "What does this PDF say?",
@@ -106,32 +248,35 @@ T["OpenAI adapter"]["it can form messages with documents"] = function()
   }
 
   local expected = {
-    {
-      content = {
-        {
-          type = "file",
-          file = {
+    input = {
+      {
+        content = {
+          {
+            type = "input_file",
             filename = "report.pdf",
             file_data = "data:application/pdf;base64,somefakebase64encoding",
           },
+          {
+            type = "input_text",
+            text = "What does this PDF say?",
+          },
         },
+        role = "user",
       },
-      role = "user",
-    },
-    {
-      content = "What does this PDF say?",
-      role = "user",
     },
   }
 
-  h.eq(expected, adapter.handlers.form_messages(adapter, messages).messages)
+  h.eq(expected, adapter.handlers.request.build_messages(adapter, { messages = messages }))
 end
 
-T["OpenAI adapter"]["only PDFs are converted into document blocks"] = function()
+T["Responses"]["build_messages"]["only PDFs are converted into document blocks"] = function()
   local messages = {
     {
       content = "somefakebase64encoding",
       role = "user",
+      opts = {
+        visible = false,
+      },
       context = {
         id = "<file>report.docx</file>",
         mimetype = "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
@@ -141,32 +286,33 @@ T["OpenAI adapter"]["only PDFs are converted into document blocks"] = function()
         tag = tags.DOCUMENT,
         filetype = "docx",
       },
-      opts = {
-        visible = false,
-      },
     },
   }
 
-  local output = adapter.handlers.form_messages(adapter, messages).messages
+  local result = adapter.handlers.request.build_messages(adapter, { messages = messages })
 
-  h.eq("somefakebase64encoding", output[1].content)
+  h.eq("somefakebase64encoding", result.input[1].content)
 end
 
-T["OpenAI adapter"]["it can form messages with tools"] = function()
+T["Responses"]["build_messages"]["format tool calls"] = function()
   local messages = {
     {
       role = "assistant",
       tools = {
         calls = {
           {
-            id = "call_RJU6xfk0OzQF3Gg9cOFS5RY7",
+            _index = 0,
+            id = "fc_0cf9af0f913994140068e2713964448193a723d7191832a56f",
+            call_id = "call_RJU6xfk0OzQF3Gg9cOFS5RY7",
             ["function"] = {
               name = "weather",
               arguments = '{"location": "London", "units": "celsius"}',
             },
           },
           {
-            id = "call_a9oyUMlFhnX8HvqzlfIx5Uek",
+            _index = 1,
+            id = "fc_0cf9af0f913994140068e27139a1948193bbf214a9664ec92c",
+            call_id = "call_a9oyUMlFhnX8HvqzlfIx5Uek",
             ["function"] = {
               name = "weather",
               arguments = '{"location": "Paris", "units": "celsius"}',
@@ -179,38 +325,34 @@ T["OpenAI adapter"]["it can form messages with tools"] = function()
 
   local expected = {
     {
-      role = "assistant",
-      tool_calls = {
-        {
-          id = "call_RJU6xfk0OzQF3Gg9cOFS5RY7",
-          ["function"] = {
-            name = "weather",
-            arguments = '{"location": "London", "units": "celsius"}',
-          },
-        },
-        {
-          id = "call_a9oyUMlFhnX8HvqzlfIx5Uek",
-          ["function"] = {
-            name = "weather",
-            arguments = '{"location": "Paris", "units": "celsius"}',
-          },
-        },
-      },
+      type = "function_call",
+      id = "fc_0cf9af0f913994140068e2713964448193a723d7191832a56f",
+      call_id = "call_RJU6xfk0OzQF3Gg9cOFS5RY7",
+      name = "weather",
+      arguments = '{"location": "London", "units": "celsius"}',
+    },
+    {
+      type = "function_call",
+      id = "fc_0cf9af0f913994140068e27139a1948193bbf214a9664ec92c",
+      call_id = "call_a9oyUMlFhnX8HvqzlfIx5Uek",
+      name = "weather",
+      arguments = '{"location": "Paris", "units": "celsius"}',
     },
   }
 
-  h.eq({ messages = expected }, adapter.handlers.form_messages(adapter, messages))
+  h.eq({ input = expected }, adapter.handlers.request.build_messages(adapter, { messages = messages }))
 end
 
-T["OpenAI adapter"]["sends the call id of a tool call recorded by the responses endpoint"] = function()
+T["Responses"]["build_messages"]["pairs a tool call recorded by another endpoint on its own id"] = function()
   local messages = {
     {
       role = "assistant",
       tools = {
         calls = {
           {
-            id = "fc_0cf9af0f913994140068e2713964448193a723d7191832a56f",
-            call_id = "call_RJU6xfk0OzQF3Gg9cOFS5RY7",
+            _index = 0,
+            id = "toolu_01QaKj2erSQMiJHXP5h7V6H9",
+            type = "function",
             ["function"] = {
               name = "weather",
               arguments = '{"location": "London", "units": "celsius"}',
@@ -223,100 +365,220 @@ T["OpenAI adapter"]["sends the call id of a tool call recorded by the responses 
 
   local expected = {
     {
+      type = "function_call",
+      call_id = "toolu_01QaKj2erSQMiJHXP5h7V6H9",
+      name = "weather",
+      arguments = '{"location": "London", "units": "celsius"}',
+    },
+  }
+
+  h.eq({ input = expected }, adapter.handlers.request.build_messages(adapter, { messages = messages }))
+end
+
+T["Responses"]["build_messages"]["drops reasoning recorded by another endpoint"] = function()
+  local messages = {
+    {
       role = "assistant",
-      tool_calls = {
-        {
-          id = "call_RJU6xfk0OzQF3Gg9cOFS5RY7",
-          ["function"] = {
-            name = "weather",
-            arguments = '{"location": "London", "units": "celsius"}',
+      content = "Sorted",
+      reasoning = { content = "Thinking about it", opaque = "znZxYvkXY73ngc8" },
+    },
+  }
+
+  h.eq({
+    input = { { role = "assistant", content = "Sorted" } },
+  }, adapter.handlers.request.build_messages(adapter, { messages = messages }))
+end
+
+T["Responses"]["build_messages"]["format tool output"] = function()
+  local messages = {
+    {
+      role = "tool",
+      content = "The weather in London is 15 degrees",
+      tools = {
+        call_id = "call_RJU6xfk0OzQF3Gg9cOFS5RY7",
+        id = "fc_0cf9af0f913994140068e2713964448193a723d7191832a56f",
+      },
+    },
+    {
+      role = "tool",
+      content = "The weather in Paris is 15 degrees",
+      tools = {
+        call_id = "call_a9oyUMlFhnX8HvqzlfIx5Uek",
+        id = "fc_0cf9af0f913994140068e27139a1948193bbf214a9664ec92c",
+      },
+    },
+  }
+
+  local expected = {
+    {
+      type = "function_call_output",
+      call_id = "call_RJU6xfk0OzQF3Gg9cOFS5RY7",
+      output = "The weather in London is 15 degrees",
+    },
+    {
+      type = "function_call_output",
+      call_id = "call_a9oyUMlFhnX8HvqzlfIx5Uek",
+      output = "The weather in Paris is 15 degrees",
+    },
+  }
+
+  h.eq({ input = expected }, adapter.handlers.request.build_messages(adapter, { messages = messages }))
+end
+
+T["Responses"]["build_messages"]["can handle reasoning"] = function()
+  local messages = {
+    {
+      _meta = {
+        sent = true,
+        cycle = 1,
+      },
+      content = "Can you tell me what the the weather tool is for London and Paris?",
+      id = 449094129,
+      opts = {
+        visible = true,
+      },
+      role = "user",
+    },
+    {
+      _meta = { cycle = 1 },
+      id = 486936684,
+      opts = {
+        visible = false,
+      },
+      reasoning = {
+        encrypted_content = "somefakebase64encoding",
+        reasoning_id = "rs_123",
+        content = "I need to workout the weather",
+      },
+      role = "llm",
+      tools = {
+        calls = {
+          {
+            call_id = "call_balVirseGsQYwrVoigfUfF5G",
+            ["function"] = {
+              arguments = '{"location":"London, United Kingdom","units":"celsius"}',
+              name = "weather",
+            },
+            id = "fc_08b1c96172854ff00168e8340c67c8819387d953e1ce970203",
+            type = "function",
+          },
+          {
+            call_id = "call_zktz1zuc65awPKojbwCKMLOD",
+            ["function"] = {
+              arguments = '{"location":"Paris, France","units":"celsius"}',
+              name = "weather",
+            },
+            id = "fc_08b1c96172854ff00168e8340c7dec8193a11f0eedd9a85af5",
+            type = "function",
           },
         },
       },
     },
+    {
+      content = "Ran the weather tool The weather in London, United Kingdom is 15° celsius",
+      _meta = { cycle = 1 },
+      id = 1997051449,
+      opts = {
+        visible = true,
+      },
+      role = "tool",
+      tools = {
+        call_id = "call_balVirseGsQYwrVoigfUfF5G",
+        id = "fc_08b1c96172854ff00168e8340c67c8819387d953e1ce970203",
+      },
+    },
+    {
+      content = "Ran the weather tool The weather in Paris, France is 15° celsius",
+      _meta = {
+        cycle = 1,
+      },
+      id = 210818266,
+      opts = {
+        visible = true,
+      },
+      role = "tool",
+      tools = {
+        call_id = "call_zktz1zuc65awPKojbwCKMLOD",
+        id = "fc_08b1c96172854ff00168e8340c7dec8193a11f0eedd9a85af5",
+      },
+    },
+    {
+      _meta = {
+        response_id = "resp_123",
+        cycle = 1,
+      },
+      content = "- London: 15°C\n- Paris: 15°C\n\nNeed anything else, like Fahrenheit or a weekly forecast?",
+      id = 933614700,
+      opts = {
+        visible = true,
+      },
+      role = "llm",
+    },
   }
 
-  h.eq({ messages = expected }, adapter.handlers.form_messages(adapter, messages))
+  local result = adapter.handlers.request.build_messages(adapter, { messages = messages })
+
+  h.eq({
+    summary = { {
+      text = "I need to workout the weather",
+      type = "summary_text",
+    } },
+    encrypted_content = "somefakebase64encoding",
+    type = "reasoning",
+  }, result.input[2])
 end
 
-T["OpenAI adapter"]["it can form tools to be sent to the API"] = function()
+T["Responses"]["build_tools"] = new_set()
+
+T["Responses"]["build_tools"]["format available tools to call"] = function()
   local weather = require("tests.interactions.chat.tools.builtin.stubs.weather").schema
   local tools = { weather = { weather } }
 
-  h.eq({ tools = { weather } }, adapter.handlers.form_tools(adapter, tools))
-end
-
-T["OpenAI adapter"]["can output tool call"] = function()
-  local output = "The weather in London is 15 degrees"
-  local tool_call = {
-    ["function"] = {
-      arguments = '{"location": "London", "units": "celsius"}',
-      name = "weather",
+  local expected = {
+    description = "Retrieves current weather for the given location.",
+    name = "weather",
+    parameters = {
+      additionalProperties = false,
+      properties = {
+        location = {
+          description = "City and country e.g. Bogotá, Colombia",
+          type = { "string", "null" },
+        },
+        units = {
+          description = "Units the temperature will be returned in.",
+          enum = { "celsius", "fahrenheit" },
+          type = { "string", "null" },
+        },
+      },
+      required = { "location", "units" },
+      type = "object",
     },
-    id = "call_RJU6xfk0OzQF3Gg9cOFS5RY7",
+    strict = true,
     type = "function",
   }
 
-  h.eq({
-    content = output,
-    opts = {
-      visible = false,
-    },
-    role = "tool",
-    tools = {
-      call_id = "call_RJU6xfk0OzQF3Gg9cOFS5RY7",
-      name = "weather",
-    },
-  }, adapter.handlers.tools.output_response(adapter, tool_call, output))
+  -- We need to adjust the tools format slightly with Responses
+  -- https://platform.openai.com/docs/api-reference/responses
+  h.eq({ tools = { expected } }, adapter.handlers.request.build_tools(adapter, { tools = tools }))
 end
 
-T["OpenAI adapter"]["Streaming"] = new_set()
-
-T["OpenAI adapter"]["Streaming"]["can output streamed data into the chat buffer"] = function()
-  local output = ""
-  local lines = vim.fn.readfile("tests/adapters/http/stubs/openai_streaming.txt")
-  for _, line in ipairs(lines) do
-    local chat_output = adapter.handlers.chat_output(adapter, line)
-    if chat_output and chat_output.output.content then
-      output = output .. chat_output.output.content
-    end
-  end
-
-  h.expect_starts_with("Dynamic, Flexible", output)
-end
-
-T["OpenAI adapter"]["Streaming"]["can process tools"] = function()
-  local tools = {}
-  local lines = vim.fn.readfile("tests/adapters/http/stubs/openai_tools_streaming.txt")
-  for _, line in ipairs(lines) do
-    adapter.handlers.chat_output(adapter, line, tools)
-  end
-
-  local tool_output = {
+T["Responses"]["build_tools"]["can format for an adapter's remote tools"] = function()
+  local tools = {
     {
-      _index = 0,
-      ["function"] = {
-        arguments = '{"location": "London", "units": "celsius"}',
-        name = "weather",
+      ["<tool>web_search</tool>"] = {
+        _meta = {
+          adapter_tool = true,
+        },
+        description = "Allow models to search the web for the latest information before generating a response.",
+        name = "web_search",
       },
-      id = "call_RJU6xfk0OzQF3Gg9cOFS5RY7",
-      type = "function",
-    },
-    {
-      _index = 1,
-      ["function"] = {
-        arguments = '{"location": "Paris", "units": "celsius"}',
-        name = "weather",
-      },
-      id = "call_a9oyUMlFhnX8HvqzlfIx5Uek",
-      type = "function",
     },
   }
 
-  h.eq(tool_output, tools)
+  h.eq({ tools = { { type = "web_search" } } }, adapter.handlers.request.build_tools(adapter, { tools = tools }))
 end
 
-T["OpenAI adapter"]["No Streaming"] = new_set({
+T["Responses"]["No Streaming"] = new_set({
   hooks = {
     pre_case = function()
       adapter = require("codecompanion.adapters").extend("openai", {
@@ -328,137 +590,296 @@ T["OpenAI adapter"]["No Streaming"] = new_set({
   },
 })
 
-T["OpenAI adapter"]["No Streaming"]["can output for the chat buffer"] = function()
-  local data = vim.fn.readfile("tests/adapters/http/stubs/openai_no_streaming.txt")
+T["Responses"]["No Streaming"]["chat_output"] = function()
+  local data = vim.fn.readfile("tests/adapters/http/stubs/openai_responses_no_streaming.txt")
   data = table.concat(data, "\n")
 
   -- Match the format of the actual request
   local json = { body = data }
 
-  h.eq("Elegant simplicity.", adapter.handlers.chat_output(adapter, json).output.content)
+  h.eq("Dynamic, expressive", adapter.handlers.response.parse_chat(adapter, { data = json }).output.content)
 end
 
-T["OpenAI adapter"]["No Streaming"]["can process tools"] = function()
-  local data = vim.fn.readfile("tests/adapters/http/stubs/openai_tools_no_streaming.txt")
+T["Responses"]["No Streaming"]["can process tools"] = function()
+  local data = vim.fn.readfile("tests/adapters/http/stubs/openai_responses_tools_no_streaming.txt")
   data = table.concat(data, "\n")
 
   local tools = {}
 
   -- Match the format of the actual request
   local json = { body = data }
-  adapter.handlers.chat_output(adapter, json, tools)
+  adapter.handlers.response.parse_chat(adapter, { data = json, tools = tools })
 
   local tool_output = {
     {
       _index = 1,
       ["function"] = {
-        arguments = '{"location": "London, United Kingdom", "units": "celsius"}',
+        arguments = '{"location":"London, UK","units":"celsius"}',
         name = "weather",
       },
-      id = "call_VGkXa0hqNLEe2HSgMO1EpOe6",
+      call_id = "call_tgWgQU4IzqjLCPTdsbODFoOh",
+      id = "fc_07f118f077c91f1a0068e4319f231481969324b4a9180f3bda",
       type = "function",
     },
     {
       _index = 2,
       ["function"] = {
-        arguments = '{"location": "Paris, France", "units": "celsius"}',
+        arguments = '{"location":"Paris, France","units":"celsius"}',
         name = "weather",
       },
-      id = "call_HVrmLOHM2Ybd6K7vQj4x8NdQ",
+      call_id = "call_kGgpknBihLExIymnhL9421wC",
+      id = "fc_07f118f077c91f1a0068e4319f6ac481969fde8ab4fb4e0f50",
       type = "function",
     },
   }
   h.eq(tool_output, tools)
 end
 
-T["OpenAI adapter"]["No Streaming"]["can output for the inline assistant"] = function()
-  local data = vim.fn.readfile("tests/adapters/http/stubs/openai_no_streaming.txt")
+T["Responses"]["No Streaming"]["can output for the inline assistant"] = function()
+  local data = vim.fn.readfile("tests/adapters/http/stubs/openai_responses_inline.txt")
   data = table.concat(data, "\n")
 
   -- Match the format of the actual request
   local json = { body = data }
 
-  h.eq("Elegant simplicity.", adapter.handlers.inline_output(adapter, json).output)
+  h.eq(
+    '{"code": "print(\'Hello World\')","language": "lua","placement": "add"}',
+    adapter.handlers.response.parse_inline(adapter, { data = json }).output
+  )
 end
 
-T["OpenAI adapter"]["reasoning_effort enabled"] = function()
-  -- Test when choices is a function and model supports reasoning
-  local adapter_with_reasoning = require("codecompanion.adapters").extend("openai", {
-    schema = {
-      model = {
-        default = "o1-2024-12-17",
-        choices = function(self)
-          return {
-            ["o1-2024-12-17"] = { opts = { has_vision = true, can_reason = true } },
-            ["gpt-4o"] = { opts = { has_vision = true } },
-          }
-        end,
-      },
-    },
-  })
-  local enabled_result = adapter_with_reasoning.schema.reasoning_effort.enabled(adapter_with_reasoning)
-  h.eq(true, enabled_result)
+T["Responses"]["No Streaming"]["can process reasoning output"] = function()
+  local data = vim.fn.readfile("tests/adapters/http/stubs/openai_responses_reasoning_no_streaming.txt")
+  data = table.concat(data, "\n")
 
-  -- Test when choices is a function but model doesn't support reasoning
-  local adapter_without_reasoning = require("codecompanion.adapters").extend("openai", {
-    schema = {
-      model = {
-        default = "gpt-4o",
-        choices = function(self)
-          return {
-            ["o1-2024-12-17"] = { opts = { has_vision = true, can_reason = true } },
-            ["gpt-4o"] = { opts = { has_vision = true } },
-          }
-        end,
-      },
-    },
-  })
-  local enabled_result_false = adapter_without_reasoning.schema.reasoning_effort.enabled(adapter_without_reasoning)
-  h.eq(false, enabled_result_false)
+  -- Match the format of the actual request
+  local json = { body = data }
 
-  -- Test when model doesn't exist in choices
-  local adapter_missing_model = require("codecompanion.adapters").extend("openai", {
-    schema = {
-      model = {
-        default = "nonexistent-model",
-        choices = function(self)
-          return {
-            ["o1-2024-12-17"] = { opts = { has_vision = true, can_reason = true } },
-          }
-        end,
-      },
-    },
-  })
-  local enabled_result_missing = adapter_missing_model.schema.reasoning_effort.enabled(adapter_missing_model)
-  h.eq(false, enabled_result_missing)
+  h.expect_contains(
+    "**Choosing descriptive terms**",
+    adapter.handlers.response.parse_chat(adapter, { data = json }).output.reasoning.content
+  )
+
+  h.eq(
+    "rs_0a10a8c968d594670168e91d0204ac8195b26b3e4de997f65c",
+    adapter.handlers.response.parse_chat(adapter, { data = json }).output.reasoning.id
+  )
+  h.eq("gAAAAABo6", adapter.handlers.response.parse_chat(adapter, { data = json }).output.reasoning.encrypted_content)
 end
 
-T["OpenAI adapter"]["it can form a structured output"] = function()
-  local schema = {
-    name = "weather",
-    strict = true,
-    schema = {
-      type = "object",
-      properties = {
-        location = { type = "string" },
+T["Responses"]["Streaming"] = new_set()
+
+T["Responses"]["Streaming"]["can output streamed data into the chat buffer"] = function()
+  local output = ""
+  local lines = vim.fn.readfile("tests/adapters/http/stubs/openai_responses_streaming.txt")
+  for _, line in ipairs(lines) do
+    local chat_output = adapter.handlers.response.parse_chat(adapter, { data = line })
+    if chat_output and chat_output.output.content then
+      output = output .. chat_output.output.content
+    end
+  end
+
+  h.expect_starts_with("Elegant language", output)
+end
+
+T["Responses"]["Streaming"]["can process reasoning output"] = function()
+  local output = ""
+  local lines = vim.fn.readfile("tests/adapters/http/stubs/openai_responses_reasoning_streaming.txt")
+  for _, line in ipairs(lines) do
+    local chat_output = adapter.handlers.response.parse_chat(adapter, { data = line })
+    if chat_output and chat_output.output and chat_output.output.reasoning and chat_output.output.reasoning.content then
+      output = output .. chat_output.output.reasoning.content
+    end
+  end
+
+  h.expect_starts_with("**Deciding on Ruby's description**", output)
+end
+
+T["Responses"]["Streaming"]["can process tools"] = function()
+  -- Adds tool calls to the tools table
+  local tools = {}
+  local lines = vim.fn.readfile("tests/adapters/http/stubs/openai_responses_tools_streaming.txt")
+  for _, line in ipairs(lines) do
+    adapter.handlers.response.parse_chat(adapter, { data = line, tools = tools })
+  end
+
+  local expected = {
+    {
+      call_id = "call_hvKk3FjuupQx8xeHeVbQNZkM",
+      ["function"] = {
+        arguments = '{"units":"celsius","location":"London, United Kingdom"}',
+        name = "weather",
       },
-      required = { "location" },
-      additionalProperties = false,
+      id = "fc_0cebe04c7f5006bd0068e827962aa8819592a7e51f7fa0d0b3",
+      type = "function",
+    },
+    {
+      call_id = "call_lzBOVwzUEAuTss7Gifvp1Rwi",
+      ["function"] = {
+        arguments = '{"units":"celsius","location":"Paris, France"}',
+        name = "weather",
+      },
+      id = "fc_0cebe04c7f5006bd0068e827963dfc81958741d3a9f70c8a94",
+      type = "function",
     },
   }
 
-  adapter.opts.can_form_structured_outputs = true
-  local output = adapter.handlers.form_structured_output(adapter, schema)
-
-  h.eq("json_schema", output.response_format.type)
-  h.eq("weather", output.response_format.json_schema.name)
-  h.eq(true, output.response_format.json_schema.strict)
-  h.eq(schema.schema, output.response_format.json_schema.schema)
+  h.eq(expected, tools)
 end
 
-T["OpenAI adapter"]["form_structured_output returns nil when no schema"] = function()
-  adapter.opts.can_form_structured_outputs = true
-  h.eq(nil, adapter.handlers.form_structured_output(adapter, nil))
+T["Responses"]["Compaction"] = new_set()
+
+T["Responses"]["Compaction"]["build_messages includes context_management when enabled"] = function()
+  adapter.opts.can_manage_context = true
+
+  local messages = {
+    { role = "system", content = "You are helpful" },
+    { role = "user", content = "Hello" },
+  }
+
+  local result = adapter.handlers.request.build_messages(adapter, { messages = messages })
+
+  h.not_eq(nil, result.context_management)
+  h.eq("compaction", result.context_management[1].type)
+  h.eq(true, result.context_management[1].compact_threshold >= 50000)
+
+  adapter.opts.can_manage_context = nil
+end
+
+T["Responses"]["Compaction"]["build_messages omits context_management when disabled"] = function()
+  adapter.opts.can_manage_context = false
+
+  local messages = {
+    { role = "user", content = "Hello" },
+  }
+
+  local result = adapter.handlers.request.build_messages(adapter, { messages = messages })
+
+  h.eq(nil, result.context_management)
+
+  adapter.opts.can_manage_context = nil
+end
+
+T["Responses"]["Compaction"]["build_messages replays compaction items from _meta"] = function()
+  local compaction_item = {
+    encrypted_content = "gAAAABopaqueblobencrypted",
+    id = "compaction_001",
+    type = "compaction",
+  }
+
+  local messages = {
+    {
+      role = "user",
+      content = "Hello",
+    },
+    {
+      role = "assistant",
+      content = "Hi there!",
+      _meta = {
+        compaction = compaction_item,
+      },
+    },
+    {
+      role = "user",
+      content = "Tell me more",
+    },
+  }
+
+  local result = adapter.handlers.request.build_messages(adapter, { messages = messages })
+
+  -- The compaction item should appear before the assistant message
+  h.eq(compaction_item, result.input[2])
+  h.eq({ role = "assistant", content = "Hi there!" }, result.input[3])
+  h.eq({ role = "user", content = "Tell me more" }, result.input[4])
+end
+
+T["Responses"]["Compaction"]["No Streaming"] = new_set({
+  hooks = {
+    pre_case = function()
+      adapter = require("codecompanion.adapters").extend("openai", {
+        opts = {
+          stream = false,
+        },
+      })
+    end,
+  },
+})
+
+T["Responses"]["Compaction"]["No Streaming"]["extracts compaction items from response"] = function()
+  local data = vim.fn.readfile("tests/adapters/http/stubs/openai_responses_compaction_no_streaming.txt")
+  data = table.concat(data, "\n")
+
+  local json = { body = data }
+  local result = adapter.handlers.response.parse_chat(adapter, { data = json })
+
+  h.eq("Here is the compacted response", result.output.content)
+  h.not_eq(nil, result.output.meta.compaction)
+  h.eq("compaction", result.output.meta.compaction.type)
+  h.eq("compaction_001", result.output.meta.compaction.id)
+  h.eq("gAAAABcompactiontestdataopaqueblobencrypted", result.output.meta.compaction.encrypted_content)
+end
+
+T["Responses"]["Compaction"]["Streaming"] = new_set()
+
+T["Responses"]["Compaction"]["Streaming"]["extracts compaction items from response.completed"] = function()
+  local compaction_items = nil
+  local output = ""
+  local lines = vim.fn.readfile("tests/adapters/http/stubs/openai_responses_compaction_streaming.txt")
+  for _, line in ipairs(lines) do
+    local chat_output = adapter.handlers.response.parse_chat(adapter, { data = line })
+    if chat_output and chat_output.output then
+      if chat_output.output.content then
+        output = output .. chat_output.output.content
+      end
+      if chat_output.output.meta and chat_output.output.meta.compaction then
+        compaction_items = chat_output.output.meta.compaction
+      end
+    end
+  end
+
+  h.expect_starts_with("Compacted response", output)
+  h.not_eq(nil, compaction_items)
+  h.eq("compaction", compaction_items.type)
+  h.eq("compaction_stream_001", compaction_items.id)
+end
+
+T["Responses"]["Compaction"]["Streaming"]["captures compaction from output_item.added without response.completed"] = function()
+  local compaction_items = nil
+  local lines = vim.fn.readfile("tests/adapters/http/stubs/openai_responses_compaction_cancelled_streaming.txt")
+  for _, line in ipairs(lines) do
+    local chat_output = adapter.handlers.response.parse_chat(adapter, { data = line })
+    if chat_output and chat_output.output then
+      if chat_output.output.meta and chat_output.output.meta.compaction then
+        compaction_items = chat_output.output.meta.compaction
+      end
+    end
+  end
+
+  h.not_eq(nil, compaction_items)
+  h.eq("compaction", compaction_items.type)
+  h.eq("compaction_cancelled_001", compaction_items.id)
+  h.eq("gAAAABcancelledcompactiondata", compaction_items.encrypted_content)
+end
+
+T["Responses"]["resolves model capabilities on the first request"] = function()
+  local adapters = require("codecompanion.adapters")
+
+  adapter.schema.model.default = "gpt-5.4"
+  adapter.schema.model.choices = function(_, opts)
+    if not (opts and opts.async == false) then
+      return {}
+    end
+    return { ["gpt-5.4"] = { opts = { can_form_structured_outputs = true, can_use_tools = true } } }
+  end
+
+  adapter.parameters = {}
+  adapters.call_handler(adapter, "setup")
+
+  h.eq(true, adapter.opts.can_form_structured_outputs)
+  h.not_eq(
+    nil,
+    adapters.call_handler(adapter, "build_structured_output", { schema = { name = "verdict", schema = {} } })
+  )
 end
 
 return T

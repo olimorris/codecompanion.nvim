@@ -38,48 +38,48 @@ local function handlers(adapter)
   if model_opts.endpoint == "responses" then
     adapter.url = "https://api.githubcopilot.com/responses"
 
-    local responses = require("codecompanion.adapters.http.openai_responses")
+    local responses = require("codecompanion.adapters.http.openai")
 
-    -- Backwards compatibility for handlers
+    -- Copilot calls its backend with flat handler names and positional arguments
     responses.handlers.setup = function(self)
       return responses.handlers.lifecycle.setup(self)
     end
     responses.handlers.on_exit = function(self, data)
-      return responses.handlers.lifecycle.on_exit(self, data)
+      return responses.handlers.lifecycle.on_exit(self, { data = data })
     end
     responses.handlers.form_parameters = function(self, params, messages)
-      return responses.handlers.request.build_parameters(self, params, messages)
+      return responses.handlers.request.build_parameters(self, { params = params, messages = messages })
     end
     responses.handlers.form_messages = function(self, messages)
-      return responses.handlers.request.build_messages(self, messages)
+      return responses.handlers.request.build_messages(self, { messages = messages })
     end
     responses.handlers.form_tools = function(self, tools)
-      return responses.handlers.request.build_tools(self, tools)
+      return responses.handlers.request.build_tools(self, { tools = tools })
     end
     responses.handlers.chat_output = function(self, data, tools)
-      return responses.handlers.response.parse_chat(self, data, tools)
+      return responses.handlers.response.parse_chat(self, { data = data, tools = tools })
     end
     responses.handlers.inline_output = function(self, data, context)
-      return responses.handlers.response.parse_inline(self, data, context)
+      return responses.handlers.response.parse_inline(self, { data = data, context = context })
     end
     responses.handlers.tokens = function(self, data)
-      return responses.handlers.response.parse_tokens(self, data)
+      return responses.handlers.response.parse_tokens(self, { data = data })
     end
     responses.handlers.tools.format_tool_calls = function(self, tools)
-      return responses.handlers.tools.format_calls(self, tools)
+      return responses.handlers.tools.format_calls(self, { tools = tools })
     end
     responses.handlers.tools.output_response = function(self, tool_call, output)
-      return responses.handlers.tools.format_response(self, tool_call, output)
+      return responses.handlers.tools.format_response(self, { tool_call = tool_call, output = output })
     end
     responses.handlers.form_structured_output = function(self, schema)
-      return responses.handlers.request.build_structured_output(self, schema)
+      return responses.handlers.request.build_structured_output(self, { schema = schema })
     end
 
     return responses.handlers
   end
 
   adapter.url = "https://api.githubcopilot.com/chat/completions"
-  return require("codecompanion.adapters.http.openai").handlers
+  return require("codecompanion.adapters.http.openai_legacy").handlers
 end
 
 ---@class CodeCompanion.HTTPAdapter.Copilot: CodeCompanion.HTTPAdapter

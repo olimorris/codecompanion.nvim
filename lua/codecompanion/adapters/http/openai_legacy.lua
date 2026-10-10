@@ -1,0 +1,671 @@
+local adapter_utils = require("codecompanion.adapters.utils")
+local log = require("codecompanion.utils.log")
+local tags = require("codecompanion.interactions.shared.tags")
+
+local CONSTANTS = {
+  STANDARD_MESSAGE_FIELDS = {
+    "annotations",
+    "audio",
+    "content",
+    "function_call",
+    "refusal",
+    "role",
+    "tool_calls",
+  },
+}
+
+---Find the non-standard fields in the `message` or `delta` that are not in the standard OpenAI chat-completion specs.
+---@param delta table?
+---@return table|nil
+local function find_extra_fields(delta)
+  if delta == nil then
+    return nil
+  end
+  local extra = {}
+  vim.iter(delta):each(function(k, v)
+    if not vim.list_contains(CONSTANTS.STANDARD_MESSAGE_FIELDS, k) then
+      extra[k] = v
+    end
+  end)
+  if not vim.tbl_isempty(extra) then
+    return extra
+  end
+end
+
+---@class CodeCompanion.HTTPAdapter.OpenAI: CodeCompanion.HTTPAdapter
+return {
+  name = "openai_legacy",
+  vendor = "openai",
+  formatted_name = "OpenAI (Legacy)",
+  roles = {
+    llm = "assistant",
+    user = "user",
+    tool = "tool",
+  },
+  opts = {
+    documents = true,
+    stream = true,
+    tools = true,
+    vision = true,
+  },
+  features = {
+    text = true,
+    tokens = true,
+  },
+  url = "https://api.openai.com/v1/chat/completions",
+  env = {
+    api_key = "OPENAI_API_KEY",
+  },
+  headers = {
+    ["Content-Type"] = "application/json",
+    Authorization = "Bearer ${api_key}",
+  },
+  handlers = {
+    ---@param self CodeCompanion.HTTPAdapter
+    ---@return boolean
+    setup = function(self)
+      local model = self.schema.model.default
+      if type(model) == "function" then
+        model = model(self)
+      end
+      local model_opts = self.schema.model.choices
+      if type(model_opts) == "function" then
+        model_opts = model_opts(self)
+      end
+
+      self.opts.vision = true
+
+      if model_opts and model_opts[model] and model_opts[model].opts then
+        self.opts = vim.tbl_deep_extend("force", self.opts, model_opts[model].opts)
+
+        if not model_opts[model].opts.has_vision then
+          self.opts.vision = false
+        end
+      end
+
+      if self.opts and self.opts.stream then
+        self.parameters.stream = true
+        self.parameters.stream_options = { include_usage = true }
+      end
+
+      return true
+    end,
+
+    ---Set the parameters
+    ---@param self CodeCompanion.HTTPAdapter
+    ---@param params table
+    ---@param messages table
+    ---@return table
+    form_parameters = function(self, params, messages)
+      return params
+    end,
+
+    ---Set the format of the role and content for the messages from the chat buffer
+    ---@param self CodeCompanion.HTTPAdapter
+    ---@param messages table Format is: { { role = "user", content = "Your prompt here" } }
+    ---@return table
+    form_messages = function(self, messages)
+      local model = self.schema.model.default
+      if type(model) == "function" then
+        model = model(self)
+      end
+
+      messages = vim
+        .iter(messages)
+        :map(function(m)
+          if vim.startswith(model, "o1") and m.role == "system" then
+            m.role = self.roles.user
+          end
+
+          -- Ensure tool_calls are clean
+          local tool_calls = nil
+          if m.tools and m.tools.calls then
+            tool_calls = vim
+              .iter(m.tools.calls)
+              :map(function(tool_call)
+                return {
+                  id = adapter_utils.pairing_id(tool_call),
+                  ["function"] = tool_call["function"],
+                  type = tool_call.type,
+                  -- Include a _meta field to hold everything else
+                }
+              end)
+              :totable()
+          end
+
+          -- Process any images
+          if m._meta and m._meta.tag == tags.IMAGE and m.context and m.context.mimetype then
+            if self.opts and self.opts.vision then
+              m.content = {
+                {
+                  type = "image_url",
+                  image_url = {
+                    url = string.format("data:%s;base64,%s", m.context.mimetype, m.content),
+                  },
+                },
+              }
+            else
+              -- Remove the message if vision is not supported
+              return nil
+            end
+          end
+
+          -- Process any documents
+          -- NOTE: Only support PDFs for now
+          if
+            m._meta
+            and m._meta.tag == tags.DOCUMENT
+            and m._meta.filetype == "pdf"
+            and m.context
+            and m.context.mimetype
+          then
+            if self.opts and self.opts.documents then
+              m.content = {
+                {
+                  type = "file",
+                  file = {
+                    filename = vim.fn.fnamemodify(m.context.path, ":t"),
+                    file_data = string.format("data:%s;base64,%s", m.context.mimetype, m.content),
+                  },
+                },
+              }
+            else
+              return log:warn(
+                "The `%s` model does not support documents so has been removed from the request",
+                self.formatted_name
+              )
+            end
+          end
+
+          local result = {
+            role = m.role,
+            content = m.content,
+            tool_calls = tool_calls,
+            tool_call_id = m.tools and m.tools.call_id or nil,
+          }
+
+          -- Adapter's like Copilot have reasoning fields that must be preserved
+          if m.reasoning then
+            result.reasoning = m.reasoning
+          end
+
+          return result
+        end)
+        :totable()
+
+      return { messages = messages }
+    end,
+
+    ---Provides the schemas of the tools that are available to the LLM to call
+    ---@param self CodeCompanion.HTTPAdapter
+    ---@param tools table<string, table>
+    ---@return table|nil
+    form_tools = function(self, tools)
+      if not self.opts.tools or not tools then
+        return nil
+      end
+      if vim.tbl_count(tools) == 0 then
+        return nil
+      end
+
+      local transformed = {}
+      for _, tool in pairs(tools) do
+        for _, schema in pairs(tool) do
+          table.insert(transformed, schema)
+        end
+      end
+
+      return { tools = transformed }
+    end,
+
+    ---Form the structured output schema for the request body
+    ---@param self CodeCompanion.HTTPAdapter
+    ---@param schema CodeCompanion.StructuredOutput.Schema
+    ---@return table|nil
+    form_structured_output = function(self, schema)
+      if not schema or not self.opts.can_form_structured_outputs then
+        return nil
+      end
+      return require("codecompanion.adapters.utils.structured_outputs").to_openai(schema)
+    end,
+
+    ---Returns the number of tokens generated from the LLM
+    ---@param self CodeCompanion.HTTPAdapter
+    ---@param data table The data from the LLM
+    ---@return number|nil
+    tokens = function(self, data)
+      if data and data ~= "" then
+        local data_mod = adapter_utils.clean_streamed_data(data)
+        local ok, json = pcall(vim.json.decode, data_mod, { luanil = { object = true } })
+
+        if ok then
+          if json.usage then
+            local tokens = json.usage.total_tokens
+            log:trace("Tokens: %s", tokens)
+            return tokens
+          end
+        end
+      end
+    end,
+
+    ---Output the data from the API ready for insertion into the chat buffer
+    ---@param self CodeCompanion.HTTPAdapter
+    ---@param data table The streamed JSON data from the API, also formatted by the format_data handler
+    ---@param tools? table The table to write any tool output to
+    ---@return table|nil [status: string, output: table]
+    chat_output = function(self, data, tools)
+      if not data or data == "" then
+        return nil
+      end
+
+      -- Handle both streamed data and structured response
+      local data_mod = type(data) == "table" and data.body or adapter_utils.clean_streamed_data(data)
+      local ok, json = pcall(vim.json.decode, data_mod, { luanil = { object = true } })
+
+      if not ok or not json.choices or #json.choices == 0 then
+        return nil
+      end
+
+      -- Define standard tool_call fields
+      local STANDARD_TOOL_CALL_FIELDS = {
+        "id",
+        "type",
+        "function",
+        "index",
+      }
+
+      ---Helper to create any tool data
+      ---@param tool table
+      ---@param index number
+      ---@param id string
+      ---@return table
+      local function create_tool_data(tool, index, id)
+        local tool_data = {
+          _index = index,
+          id = id,
+          type = tool.type,
+          ["function"] = {
+            name = tool["function"]["name"],
+            arguments = tool["function"]["arguments"] or "",
+          },
+        }
+
+        -- Preserve any non-standard fields as-is
+        for key, value in pairs(tool) do
+          if not vim.tbl_contains(STANDARD_TOOL_CALL_FIELDS, key) then
+            tool_data[key] = value
+          end
+        end
+
+        return tool_data
+      end
+
+      -- Process tool calls from all choices
+      if self.opts.tools and tools then
+        for _, choice in ipairs(json.choices) do
+          local delta = self.opts.stream and choice.delta or choice.message
+
+          if delta and delta.tool_calls and #delta.tool_calls > 0 then
+            for i, tool in ipairs(delta.tool_calls) do
+              local tool_index = tool.index and tonumber(tool.index) or i
+
+              -- Some endpoints like Gemini do not set this (why?!)
+              local id = tool.id
+              if not id or id == "" then
+                id = string.format("call_%s_%s", json.created, i)
+              end
+
+              if self.opts.stream then
+                local found = false
+                for _, existing_tool in ipairs(tools) do
+                  if existing_tool._index == tool_index then
+                    -- Append to arguments if this is a continuation of a stream
+                    if tool["function"] and tool["function"]["arguments"] then
+                      existing_tool["function"]["arguments"] = (existing_tool["function"]["arguments"] or "")
+                        .. tool["function"]["arguments"]
+                    end
+                    found = true
+                    break
+                  end
+                end
+
+                if not found then
+                  table.insert(tools, create_tool_data(tool, tool_index, id))
+                end
+              else
+                table.insert(tools, create_tool_data(tool, i, id))
+              end
+            end
+          end
+        end
+      end
+
+      -- Process message content from the first choice
+      local choice = json.choices[1]
+      local delta = self.opts.stream and choice.delta or choice.message
+
+      if not delta then
+        return nil
+      end
+
+      return {
+        status = "success",
+        output = {
+          role = delta.role,
+          content = delta.content,
+        },
+        extra = find_extra_fields(delta),
+      }
+    end,
+
+    ---Output the data from the API ready for inlining into the current buffer
+    ---@param self CodeCompanion.HTTPAdapter
+    ---@param data string|table The streamed JSON data from the API, also formatted by the format_data handler
+    ---@param context? table Useful context about the buffer to inline to
+    ---@return {status: string, output: table}|nil
+    inline_output = function(self, data, context)
+      if self.opts.stream then
+        return log:error("Inline output is not supported for non-streaming models")
+      end
+
+      if data and data ~= "" then
+        local ok, json = pcall(vim.json.decode, data.body, { luanil = { object = true } })
+
+        if not ok then
+          log:error("Error decoding JSON: %s", data.body)
+          return { status = "error", output = json }
+        end
+
+        local choice = json.choices[1]
+        if choice.message.content then
+          return { status = "success", output = choice.message.content }
+        end
+      end
+    end,
+    tools = {
+      ---Format the LLM's tool calls for inclusion back in the request
+      ---@param self CodeCompanion.HTTPAdapter
+      ---@param tools table The raw tools collected by chat_output
+      ---@return table
+      format_tool_calls = function(self, tools)
+        -- Source: https://platform.openai.com/docs/guides/function-calling?api-mode=chat#handling-function-calls
+        return tools
+      end,
+
+      ---Output the LLM's tool call so we can include it in the messages
+      ---@param self CodeCompanion.HTTPAdapter
+      ---@param tool_call {id: string, function: table, name: string}
+      ---@param output string
+      ---@return table
+      output_response = function(self, tool_call, output)
+        -- Source: https://platform.openai.com/docs/guides/function-calling?api-mode=chat#handling-function-calls
+        return {
+          role = self.roles.tool or "tool",
+          tools = {
+            call_id = adapter_utils.pairing_id(tool_call),
+            name = tool_call["function"].name,
+          },
+          content = output,
+          opts = { visible = false },
+        }
+      end,
+    },
+
+    ---Function to run when the request has completed. Useful to catch errors
+    ---@param self CodeCompanion.HTTPAdapter
+    ---@param data? table
+    ---@return nil
+    on_exit = function(self, data)
+      if data and data.status >= 400 then
+        log:error("Error: %s", data.body)
+      end
+    end,
+  },
+  schema = {
+    model = {
+      order = 1,
+      mapping = "parameters",
+      type = "enum",
+      desc = "ID of the model to use. See the model endpoint compatibility table for details on which models work with the Chat API.",
+      ---@type string|fun(): string
+      default = "gpt-4.1",
+      choices = {
+        -- Frontier models
+        ["gpt-5.6-sol"] = {
+          formatted_name = "GPT 5.6 Sol",
+          meta = { context_window = 1050000 },
+          opts = {
+            can_form_structured_outputs = true,
+            can_use_tools = true,
+            can_reason = true,
+            has_vision = true,
+          },
+        },
+        ["gpt-5.6-terra"] = {
+          formatted_name = "GPT 5.6 Terra",
+          meta = { context_window = 1050000 },
+          opts = {
+            can_form_structured_outputs = true,
+            can_use_tools = true,
+            has_vision = true,
+            can_reason = true,
+          },
+        },
+        ["gpt-5.6-luna"] = {
+          formatted_name = "GPT 5.6 Luna",
+          meta = { context_window = 1050000 },
+          opts = {
+            can_form_structured_outputs = true,
+            can_use_tools = true,
+            has_vision = true,
+            can_reason = true,
+          },
+        },
+
+        -- Older models
+        ["gpt-5.5"] = {
+          formatted_name = "GPT 5.5",
+          meta = { context_window = 1050000 },
+          opts = {
+            can_form_structured_outputs = true,
+            can_use_tools = true,
+            has_vision = true,
+            can_reason = true,
+          },
+        },
+        ["gpt-5.4"] = {
+          formatted_name = "GPT 5.4",
+          meta = { context_window = 1050000 },
+          opts = { has_vision = true, can_reason = true, can_form_structured_outputs = true },
+        },
+        ["gpt-5.4-mini"] = {
+          formatted_name = "GPT 5.4 Mini",
+          meta = { context_window = 400000 },
+          opts = { has_vision = true, can_reason = true, can_form_structured_outputs = true },
+        },
+        ["gpt-5.4-nano"] = {
+          formatted_name = "GPT 5.4 Nano",
+          meta = { context_window = 400000 },
+          opts = { has_vision = true, can_reason = true, can_form_structured_outputs = true },
+        },
+        ["gpt-5"] = {
+          formatted_name = "GPT 5",
+          meta = { context_window = 400000 },
+          opts = { has_vision = true, can_reason = true, can_form_structured_outputs = true },
+        },
+        ["gpt-5-mini"] = {
+          formatted_name = "GPT 5 Mini",
+          meta = { context_window = 400000 },
+          opts = { has_vision = true, can_reason = true, can_form_structured_outputs = true },
+        },
+        ["gpt-5-nano"] = {
+          formatted_name = "GPT 5 Nano",
+          meta = { context_window = 400000 },
+          opts = { has_vision = true, can_reason = true, can_form_structured_outputs = true },
+        },
+        ["gpt-4.1"] = {
+          formatted_name = "GPT 4.1",
+          meta = { context_window = 1047576 },
+          opts = { has_vision = true, can_form_structured_outputs = true },
+        },
+        --
+        ["o4-mini-2025-04-16"] = {
+          formatted_name = "o4 Mini",
+          opts = { has_vision = true, can_reason = true, can_form_structured_outputs = true },
+        },
+        ["o3-mini-2025-01-31"] = {
+          formatted_name = "o3 Mini",
+          opts = { can_reason = true, can_form_structured_outputs = true },
+        },
+        ["o3-2025-04-16"] = {
+          formatted_name = "o3",
+          opts = { has_vision = true, can_reason = true, can_form_structured_outputs = true },
+        },
+        ["o1-2024-12-17"] = {
+          formatted_name = "o1",
+          opts = { has_vision = true, can_reason = true, can_form_structured_outputs = true },
+        },
+        ["gpt-4o"] = {
+          formatted_name = "GPT-4o",
+          opts = { has_vision = true, can_form_structured_outputs = true },
+        },
+        ["gpt-4o-mini"] = {
+          formatted_name = "GPT-4o Mini",
+          opts = { has_vision = true, can_form_structured_outputs = true },
+        },
+        ["gpt-4-turbo-preview"] = {
+          formatted_name = "GPT-4 Turbo Preview",
+          opts = { has_vision = true },
+        },
+        "gpt-4",
+        "gpt-3.5-turbo",
+      },
+    },
+    reasoning_effort = {
+      order = 2,
+      mapping = "parameters",
+      type = "string",
+      optional = true,
+      ---@type fun(self: CodeCompanion.HTTPAdapter): boolean
+      enabled = function(self)
+        local model = self.schema.model.default
+        if type(model) == "function" then
+          model = model()
+        end
+        local choices = self.schema.model.choices
+        if type(choices) == "function" then
+          choices = choices(self)
+        end
+        if choices and choices[model] and choices[model].opts and choices[model].opts.can_reason then
+          return true
+        end
+        return false
+      end,
+      default = "medium",
+      desc = "Constrains effort on reasoning for reasoning models. Reducing reasoning effort can result in faster responses and fewer tokens used on reasoning in a response.",
+      choices = {
+        "high",
+        "medium",
+        "low",
+        "minimal",
+      },
+    },
+    temperature = {
+      order = 3,
+      mapping = "parameters",
+      type = "number",
+      optional = true,
+      default = 1,
+      desc = "What sampling temperature to use, between 0 and 2. Higher values like 0.8 will make the output more random, while lower values like 0.2 will make it more focused and deterministic. We generally recommend altering this or top_p but not both.",
+      validate = function(n)
+        return n >= 0 and n <= 2, "Must be between 0 and 2"
+      end,
+    },
+    top_p = {
+      order = 4,
+      mapping = "parameters",
+      type = "number",
+      optional = true,
+      default = 1,
+      desc = "An alternative to sampling with temperature, called nucleus sampling, where the model considers the results of the tokens with top_p probability mass. So 0.1 means only the tokens comprising the top 10% probability mass are considered. We generally recommend altering this or temperature but not both.",
+      validate = function(n)
+        return n >= 0 and n <= 1, "Must be between 0 and 1"
+      end,
+    },
+    stop = {
+      order = 5,
+      mapping = "parameters",
+      type = "list",
+      optional = true,
+      default = nil,
+      subtype = {
+        type = "string",
+      },
+      desc = "Up to 4 sequences where the API will stop generating further tokens.",
+      validate = function(l)
+        return #l >= 1 and #l <= 4, "Must have between 1 and 4 elements"
+      end,
+    },
+    max_tokens = {
+      order = 6,
+      mapping = "parameters",
+      type = "integer",
+      optional = true,
+      default = nil,
+      desc = "The maximum number of tokens to generate in the chat completion. The total length of input tokens and generated tokens is limited by the model's context length.",
+      validate = function(n)
+        return n > 0, "Must be greater than 0"
+      end,
+    },
+    presence_penalty = {
+      order = 7,
+      mapping = "parameters",
+      type = "number",
+      optional = true,
+      default = 0,
+      desc = "Number between -2.0 and 2.0. Positive values penalize new tokens based on whether they appear in the text so far, increasing the model's likelihood to talk about new topics.",
+      validate = function(n)
+        return n >= -2 and n <= 2, "Must be between -2 and 2"
+      end,
+    },
+    frequency_penalty = {
+      order = 8,
+      mapping = "parameters",
+      type = "number",
+      optional = true,
+      default = 0,
+      desc = "Number between -2.0 and 2.0. Positive values penalize new tokens based on their existing frequency in the text so far, decreasing the model's likelihood to repeat the same line verbatim.",
+      validate = function(n)
+        return n >= -2 and n <= 2, "Must be between -2 and 2"
+      end,
+    },
+    logit_bias = {
+      order = 9,
+      mapping = "parameters",
+      type = "map",
+      optional = true,
+      default = nil,
+      desc = "Modify the likelihood of specified tokens appearing in the completion. Maps tokens (specified by their token ID) to an associated bias value from -100 to 100. Use https://platform.openai.com/tokenizer to find token IDs.",
+      subtype_key = {
+        type = "integer",
+      },
+      subtype = {
+        type = "integer",
+        validate = function(n)
+          return n >= -100 and n <= 100, "Must be between -100 and 100"
+        end,
+      },
+    },
+    user = {
+      order = 10,
+      mapping = "parameters",
+      type = "string",
+      optional = true,
+      default = nil,
+      desc = "A unique identifier representing your end-user, which can help OpenAI to monitor and detect abuse. Learn more.",
+      validate = function(u)
+        return u:len() < 100, "Cannot be longer than 100 characters"
+      end,
+    },
+  },
+}
