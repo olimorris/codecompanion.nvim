@@ -200,6 +200,10 @@ description: Review the changes on this branch
 skills:
   - code-review
 ---
+
+## user
+
+Review the changes in #{diff}.
 ```
 
 ```lua [Lua]
@@ -210,7 +214,10 @@ require("codecompanion").setup({
       description = "Review the changes on this branch",
       skills = { "code-review" },
       prompts = {
-        -- Omitted for brevity
+        {
+          role = "user",
+          content = "Review the changes in #{diff}.",
+        },
       },
     },
   },
@@ -230,6 +237,10 @@ interaction: chat
 description: Explain the selected code
 skills: none
 ---
+
+## user
+
+Explain how the selected code works.
 ```
 
 ```lua [Lua]
@@ -240,7 +251,10 @@ require("codecompanion").setup({
       description = "Explain the selected code",
       skills = "none",
       prompts = {
-        -- Omitted for brevity
+        {
+          role = "user",
+          content = "Explain how the selected code works.",
+        },
       },
     },
   },

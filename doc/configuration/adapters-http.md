@@ -154,7 +154,7 @@ require("codecompanion").setup({
 })
 ```
 
-A parameter's `enabled` field, a boolean or a function that takes the adapter, decides whether it's sent. To leave `temperature` out for Codex models:
+A parameter's `enabled` function takes the adapter and decides whether the parameter is sent. To leave `temperature` out for Codex models:
 
 ```lua
 require("codecompanion").setup({
@@ -165,7 +165,8 @@ require("codecompanion").setup({
           schema = {
             temperature = {
               enabled = function(self)
-                return not self.schema.model.default:find("codex")
+                local model = require("codecompanion.adapters.utils").model(self)
+                return not (model and model:find("codex"))
               end,
             },
           },

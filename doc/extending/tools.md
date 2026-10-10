@@ -346,9 +346,11 @@ output = {
 `add_tool_output` adds the tool's output to the chat's message history:
 
 ```lua
----@param args { tool: table, for_llm: string, for_user?: string }
----@return nil
-function Chat:add_tool_output(args)
+meta.tools.chat:add_tool_output({
+  tool = self,
+  for_llm = "The result of 6 * 7 is 42",
+  for_user = "Calculated 6 * 7",
+})
 ```
 
 `tool` is the tool that ran, `self` in an output function. `for_llm` is sent to the LLM. `for_user` is shown in the chat buffer, `for_llm` is shown when it's `nil`, and an empty string shows nothing.
@@ -613,9 +615,7 @@ Most custom tools run a command on your machine, and the handlers and output fun
 
 This wraps the [beads](https://github.com/steveyegge/beads) CLI:
 
-::: code-group
-
-```lua [Inline]
+```lua
 require("codecompanion").setup({
   interactions = {
     chat = {
@@ -670,7 +670,9 @@ Output is JSON. Always use `bd ready` first to see what's available before takin
 })
 ```
 
-```lua [External File]
+To keep the tool in its own file, point `path` at it in your config:
+
+```lua
 require("codecompanion").setup({
   interactions = {
     chat = {
@@ -684,7 +686,11 @@ require("codecompanion").setup({
     },
   },
 })
+```
 
+Then return the tool from that file:
+
+```lua
 -- ~/.dotfiles/.config/tools/beads.lua
 return {
   extends = "cmd_tool",
@@ -704,8 +710,6 @@ return {
   end,
 }
 ```
-
-:::
 
 The `schema` limits what the LLM can pass to `build_cmd`, and the `system_prompt` tells it what each beads command does so it can choose the right action.
 

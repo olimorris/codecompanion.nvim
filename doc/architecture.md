@@ -52,7 +52,8 @@ Compaction makes one LLM request to summarise the conversation so far, then repl
 
 - The system prompt
 - [Rules](/usage/chat-buffer/rules)
-- The summary from any earlier compaction
+
+A summary from an earlier compaction isn't kept. The new summary replaces it.
 
 Files, buffers and images are replaced with a placeholder that names the source, so the LLM knows what to re-read or ask for:
 

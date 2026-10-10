@@ -165,6 +165,49 @@ INSTALLING                             *codecompanion-installation-installing*
 nvim-treesitter <https://github.com/nvim-treesitter/nvim-treesitter> is the
 easiest way to install the `yaml` parser:
 
+**vim.pack**
+
+>lua
+    vim.pack.add({ "https://www.github.com/nvim-lua/plenary.nvim" })
+    vim.pack.add({ "https://github.com/nvim-treesitter/nvim-treesitter" })
+    vim.pack.add({ {
+      src = "https://www.github.com/olimorris/codecompanion.nvim",
+      version = vim.version.range("^19.0.0")
+    } })
+    
+    -- Somewhere in your config
+    require("codecompanion").setup()
+<
+
+**Lazy.nvim**
+
+>lua
+    {
+      "olimorris/codecompanion.nvim",
+      version = "^19.0.0",
+      opts = {},
+      dependencies = {
+        "nvim-lua/plenary.nvim",
+        "nvim-treesitter/nvim-treesitter",
+      },
+    },
+<
+
+**Packer.nvim**
+
+>lua
+    use({
+      "olimorris/codecompanion.nvim",
+      tag = "^19.0.0",
+      config = function()
+        require("codecompanion").setup()
+      end,
+      requires = {
+        "nvim-lua/plenary.nvim",
+        "nvim-treesitter/nvim-treesitter",
+      },
+    }),
+<
 
 
   [!WARNING] If you pin your plugins to their latest releases, keep plenary.nvim
@@ -176,6 +219,34 @@ EXTENSIONS                             *codecompanion-installation-extensions*
 Extensions add features to CodeCompanion. To install and configure mcphub.nvim
 <https://github.com/ravitemer/mcphub.nvim>:
 
+**1. Install**
+
+>lua
+    -- Lazy.nvim
+    {
+      "olimorris/codecompanion.nvim",
+      dependencies = {
+        "ravitemer/mcphub.nvim"
+      }
+    }
+<
+
+**2. Configure**
+
+>lua
+    require("codecompanion").setup({
+      extensions = {
+        mcphub = {
+          callback = "mcphub.extensions.codecompanion",
+          opts = {
+            make_vars = true,
+            make_slash_commands = true,
+            show_result_in_chat = true
+          }
+        }
+      }
+    })
+<
 
 See |codecompanion-extending-extensions| for the extensions available and how
 to write your own.
@@ -193,6 +264,29 @@ render-markdown.nvim
 markview.nvim <https://github.com/OXY2DEV/markview.nvim> render the markdown in
 the chat buffer:
 
+**render-markdown.nvim**
+
+>lua
+    {
+      "MeanderingProgrammer/render-markdown.nvim",
+      ft = { "markdown", "codecompanion" }
+    },
+<
+
+**markview.nvim**
+
+>lua
+    {
+      "OXY2DEV/markview.nvim",
+      lazy = false,
+      opts = {
+        preview = {
+          filetypes = { "markdown", "codecompanion" },
+          ignore_buftypes = {},
+        },
+      },
+    },
+<
 
 
 IMG-CLIP.NVIM ~
@@ -262,6 +356,56 @@ Otherwise, pick one. Adapters are set per `interaction`, one of the ways you
 work with an LLM. `chat` is the chat buffer and `inline` is `:CodeCompanion`,
 which edits a buffer in place:
 
+**API Key**
+
+>lua
+    -- Reads the ANTHROPIC_API_KEY environment variable
+    require("codecompanion").setup({
+      interactions = {
+        chat = {
+          adapter = "anthropic", -- Or "openai", "gemini", "deepseek", "mistral", "openrouter" and more
+        },
+        inline = {
+          adapter = "anthropic",
+        },
+      },
+    })
+<
+
+**Local Model**
+
+>lua
+    -- Requires Ollama to be running
+    require("codecompanion").setup({
+      interactions = {
+        chat = {
+          adapter = {
+            name = "ollama",
+            model = "qwen3:8b",
+          },
+        },
+        inline = {
+          adapter = {
+            name = "ollama",
+            model = "qwen3:8b",
+          },
+        },
+      },
+    })
+<
+
+**Agent**
+
+>lua
+    -- Requires Claude Code and claude-agent-acp to be installed
+    require("codecompanion").setup({
+      interactions = {
+        chat = {
+          adapter = "claude_code", -- Or "codex", "gemini_cli", "opencode" and more
+        },
+      },
+    })
+<
 
 HTTP adapters look for an API key in an environment variable named after the
 provider, such as `OPENAI_API_KEY` or `GEMINI_API_KEY`. To read it from
@@ -693,6 +837,42 @@ INSTALLING CLAUDE CODE ~
 
 1. Authenticate with your Claude subscription or an API key:
 
+**Subscription**
+
+>lua
+    -- Run `claude setup-token` in your terminal to get the token
+    require("codecompanion").setup({
+      adapters = {
+        acp = {
+          extend = {
+            claude_code = {
+              env = {
+                CLAUDE_CODE_OAUTH_TOKEN = "cmd:op read op://personal/Claude/token --no-newline",
+              },
+            },
+          },
+        },
+      },
+    })
+<
+
+**API Key**
+
+>lua
+    require("codecompanion").setup({
+      adapters = {
+        acp = {
+          extend = {
+            claude_code = {
+              env = {
+                ANTHROPIC_API_KEY = "cmd:op read op://personal/Anthropic/credential --no-newline",
+              },
+            },
+          },
+        },
+      },
+    })
+<
 
 If `CLAUDE_CODE_OAUTH_TOKEN` is already exported in your shell, skip step 3.
 See |codecompanion-configuration-adapters-acp-setup-claude-code| for
@@ -881,6 +1061,58 @@ PASSING MCP SERVERS TO THE AGENT ~
 To give the agent the |codecompanion-configuration-mcp| you've configured for
 CodeCompanion, or a separate list of its own:
 
+**Inherit**
+
+>lua
+    require("codecompanion").setup({
+      adapters = {
+        acp = {
+          extend = {
+            claude_code = {
+              defaults = {
+                mcpServers = "inherit_from_config",
+              },
+            },
+          },
+        },
+      },
+      mcp = {
+        servers = {
+          ["sequential-thinking"] = {
+            cmd = { "npx", "-y", "@modelcontextprotocol/server-sequential-thinking" },
+          },
+        },
+        opts = {
+          default_servers = { "sequential-thinking" },
+        },
+      },
+    })
+<
+
+**Manual**
+
+>lua
+    require("codecompanion").setup({
+      adapters = {
+        acp = {
+          extend = {
+            claude_code = {
+              defaults = {
+                mcpServers = {
+                  {
+                    name = "sequential-thinking",
+                    command = "npx",
+                    args = { "-y", "@modelcontextprotocol/server-sequential-thinking" },
+                    env = {},
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    })
+<
 
 With `inherit_from_config`, only the servers in `mcp.opts.default_servers` are
 passed, and only while `mcp.opts.acp_enabled` is `true`, the default. The agent
@@ -996,6 +1228,54 @@ up in a chat with the wrong one.
 Set it per interaction, as above, or once on the adapter so every interaction
 uses it:
 
+**Per Interaction**
+
+>lua
+    require("codecompanion").setup({
+      interactions = {
+        chat = {
+          adapter = {
+            name = "ollama",
+            model = "qwen3-coder:30b",
+          },
+        },
+        inline = {
+          adapter = {
+            name = "ollama",
+            model = "qwen3:8b",
+          },
+        },
+      },
+    })
+<
+
+**On the Adapter**
+
+>lua
+    require("codecompanion").setup({
+      adapters = {
+        http = {
+          ollama = function()
+            return require("codecompanion.adapters").extend("ollama", {
+              schema = {
+                model = {
+                  default = "qwen3:8b",
+                },
+              },
+            })
+          end,
+        },
+      },
+      interactions = {
+        chat = {
+          adapter = "ollama",
+        },
+        inline = {
+          adapter = "ollama",
+        },
+      },
+    })
+<
 
 A model set on the interaction takes precedence over the adapter's default.
 
@@ -1198,6 +1478,70 @@ ADDING THE ADAPTER ~
 Extend `openai_compatible` under a name of your own. The name is what you pick
 in the chat buffer and set in your config:
 
+**Company Gateway**
+
+>lua
+    require("codecompanion").setup({
+      adapters = {
+        http = {
+          acme_gateway = function()
+            return require("codecompanion.adapters").extend("openai_compatible", {
+              formatted_name = "Acme Gateway",
+              env = {
+                url = "https://llm-gateway.acme.internal",
+                api_key = "ACME_GATEWAY_KEY",
+              },
+              schema = {
+                model = {
+                  default = "gpt-4.1",
+                },
+              },
+            })
+          end,
+        },
+      },
+    })
+<
+
+**LM Studio**
+
+>lua
+    require("codecompanion").setup({
+      adapters = {
+        http = {
+          lm_studio = function()
+            return require("codecompanion.adapters").extend("openai_compatible", {
+              formatted_name = "LM Studio",
+              env = {
+                url = "http://localhost:1234",
+                api_key = "lm-studio",
+              },
+            })
+          end,
+        },
+      },
+    })
+<
+
+**vLLM**
+
+>lua
+    require("codecompanion").setup({
+      adapters = {
+        http = {
+          vllm = function()
+            return require("codecompanion.adapters").extend("openai_compatible", {
+              formatted_name = "vLLM",
+              env = {
+                url = "http://gpu-box.local:8000",
+                api_key = "VLLM_API_KEY",
+              },
+            })
+          end,
+        },
+      },
+    })
+<
 
 The adapter builds its URLs from four `env` keys:
 
@@ -1269,6 +1613,62 @@ KEEPING THE API KEY OUT OF YOUR CONFIG ~
 be in your config. Give it the name of an environment variable, a command or a
 file:
 
+**Environment Variable**
+
+>lua
+    require("codecompanion").setup({
+      adapters = {
+        http = {
+          acme_gateway = function()
+            return require("codecompanion.adapters").extend("openai_compatible", {
+              env = {
+                url = "https://llm-gateway.acme.internal",
+                api_key = "ACME_GATEWAY_KEY",
+              },
+            })
+          end,
+        },
+      },
+    })
+<
+
+**Command**
+
+>lua
+    require("codecompanion").setup({
+      adapters = {
+        http = {
+          acme_gateway = function()
+            return require("codecompanion.adapters").extend("openai_compatible", {
+              env = {
+                url = "https://llm-gateway.acme.internal",
+                api_key = "cmd:op read op://work/Acme Gateway/credential --no-newline",
+              },
+            })
+          end,
+        },
+      },
+    })
+<
+
+**File**
+
+>lua
+    require("codecompanion").setup({
+      adapters = {
+        http = {
+          acme_gateway = function()
+            return require("codecompanion.adapters").extend("openai_compatible", {
+              env = {
+                url = "https://llm-gateway.acme.internal",
+                api_key = "file:~/.config/acme/gateway_key",
+              },
+            })
+          end,
+        },
+      },
+    })
+<
 
 A value that isn't an environment variable, a `cmd:` or a `file:` is sent as it
 is. That's why `api_key = "lm-studio"` works for a local server that ignores
@@ -1563,6 +1963,49 @@ Auto mode already does this, and asks before deletions too. Emptying the safe
 list makes every shell command ask. Alternatively, stay in Ask mode and remove
 the prompts you don't want:
 
+**Auto Mode**
+
+>lua
+    require("codecompanion").setup({
+      interactions = {
+        chat = {
+          tools = {
+            ["run_command"] = {
+              opts = {
+                safe_commands = {},
+              },
+            },
+            opts = {
+              approval_mode = "auto",
+            },
+          },
+        },
+      },
+    })
+<
+
+**Ask Mode**
+
+>lua
+    require("codecompanion").setup({
+      interactions = {
+        chat = {
+          tools = {
+            ["edit_file"] = {
+              opts = {
+                require_confirmation_after = false,
+              },
+            },
+            ["read_file"] = {
+              opts = {
+                require_approval_before = false,
+              },
+            },
+          },
+        },
+      },
+    })
+<
 
 `edit_file` treats files that are open in Neovim differently from those that
 aren't. To be asked before the LLM edits a file you don't have open, but not a
@@ -1681,6 +2124,48 @@ RUNNING A PROMPT UNATTENDED
 A |codecompanion-configuration-prompt-library-options| item can start its chat
 buffer in any mode with `approval_mode`, leaving your other chats in Ask:
 
+**Markdown**
+
+>markdown
+    ---
+    name: Fix Failing Tests
+    interaction: chat
+    description: Run the tests and fix whatever fails
+    opts:
+      alias: fixtests
+      approval_mode: yolo
+    tools:
+      - agent
+    ---
+    
+    ## user
+    
+    Run `make test` and fix every failing test.
+<
+
+**Lua**
+
+>lua
+    require("codecompanion").setup({
+      prompt_library = {
+        ["Fix Failing Tests"] = {
+          interaction = "chat",
+          description = "Run the tests and fix whatever fails",
+          opts = {
+            alias = "fixtests",
+            approval_mode = "yolo", -- Can be "ask", "auto" or "yolo"
+          },
+          tools = { "agent" },
+          prompts = {
+            {
+              role = "user",
+              content = "Run `make test` and fix every failing test.",
+            },
+          },
+        },
+      },
+    })
+<
 
 
   [!NOTE] The older `yolo_mode = true` option still works but starts the chat in
@@ -1967,6 +2452,62 @@ Serply need one, and if it isn't set, every search fails.
   -----------------------------------------------------------------------
 To pick one:
 
+**Tavily**
+
+>lua
+    -- Reads the TAVILY_API_KEY environment variable
+    require("codecompanion").setup({
+      interactions = {
+        chat = {
+          tools = {
+            ["web_search"] = {
+              opts = {
+                adapter = "tavily",
+              },
+            },
+          },
+        },
+      },
+    })
+<
+
+**Serply**
+
+>lua
+    -- Reads the SERPLY_API_KEY environment variable
+    require("codecompanion").setup({
+      interactions = {
+        chat = {
+          tools = {
+            ["web_search"] = {
+              opts = {
+                adapter = "serply",
+              },
+            },
+          },
+        },
+      },
+    })
+<
+
+**DuckDuckGo**
+
+>lua
+    -- No API key required
+    require("codecompanion").setup({
+      interactions = {
+        chat = {
+          tools = {
+            ["web_search"] = {
+              opts = {
+                adapter = "duckduckgo",
+              },
+            },
+          },
+        },
+      },
+    })
+<
 
 
   [!IMPORTANT] Don't put `strategies` and `interactions` in the same config.
@@ -2462,6 +3003,81 @@ SETTING THE BACKGROUND ADAPTER ~
 
 The background adapter defaults to `copilot`. To point it at a cheaper model:
 
+**Copilot**
+
+>lua
+    require("codecompanion").setup({
+      interactions = {
+        background = {
+          adapter = {
+            name = "copilot",
+            model = "claude-haiku-4.5",
+          },
+        },
+      },
+    })
+<
+
+**Anthropic**
+
+>lua
+    require("codecompanion").setup({
+      interactions = {
+        background = {
+          adapter = {
+            name = "anthropic",
+            model = "claude-haiku-4-5",
+          },
+        },
+      },
+    })
+<
+
+**OpenAI**
+
+>lua
+    require("codecompanion").setup({
+      interactions = {
+        background = {
+          adapter = {
+            name = "openai",
+            model = "gpt-5.4-nano",
+          },
+        },
+      },
+    })
+<
+
+**Gemini**
+
+>lua
+    require("codecompanion").setup({
+      interactions = {
+        background = {
+          adapter = {
+            name = "gemini",
+            model = "gemini-3.1-flash-lite-preview",
+          },
+        },
+      },
+    })
+<
+
+**Local Model**
+
+>lua
+    -- Requires Ollama to be running
+    require("codecompanion").setup({
+      interactions = {
+        background = {
+          adapter = {
+            name = "ollama",
+            model = "qwen3:4b",
+          },
+        },
+      },
+    })
+<
 
 
   [!IMPORTANT] The background adapter doesn't follow your chat adapter. If you've
@@ -4024,6 +4640,38 @@ your project or anywhere else on disk, as long as the path in the
 A rules file can share other files with `@path` on its own line, and the
 `codecompanion` parser can also set the chat buffer's system prompt:
 
+**codecompanion**
+
+>markdown
+    # Example Rules File
+    
+    ## System Prompt
+    
+    Everything in this section is used as the system prompt in the chat buffer.
+    
+    So you can specify instructions:
+    - Here
+    - And here
+    
+    ## My Other Header
+    
+    @./lua/codecompanion/interactions/chat/tools/init.lua
+    
+    Everything in this section is added as context to the chat buffer, and the file above is shared too.
+<
+
+**claude**
+
+>markdown
+    # Example Claude Rules File
+    
+    @./lua/codecompanion/interactions/chat/tools/init.lua
+    @INSTRUCTIONS.md
+    
+    The whole of this file is added as context to the chat buffer.
+    
+    The files above are shared too.
+<
 
 The `codecompanion` parser only shares content under `##` headings, and removes
 the `@` lines from it. The `claude` parser shares the whole file, `@` lines
@@ -4052,6 +4700,40 @@ AUTOLOAD
 Rule groups in `autoload` are added to every new chat buffer. It defaults to
 `"default"`. To change it:
 
+**Multiple Groups**
+
+>lua
+    require("codecompanion").setup({
+      rules = {
+        opts = {
+          chat = {
+            autoload = { "default", "my_project_rules" },
+          },
+        },
+      },
+    })
+<
+
+**Replacing the Default Group**
+
+>lua
+    require("codecompanion").setup({
+      rules = {
+        default = {
+          description = "My default group",
+          files = {
+            "CLAUDE.md",
+            "~/Code/Helpers/my_project_specific_help.md",
+          },
+        },
+        opts = {
+          chat = {
+            autoload = "default",
+          },
+        },
+      },
+    })
+<
 
 `autoload` also accepts a function. See
 |codecompanion-configuration-rules-autoload|.
@@ -5410,6 +6092,45 @@ There are two ways to customise a built-in adapter, and this page uses both:
 - **Function** - For full or computed setups, such as custom `commands` or `defaults`, or values resolved when the adapter loads
 - **extend table** - For static overrides, such as credentials or a default value
 
+**Function**
+
+>lua
+    require("codecompanion").setup({
+      adapters = {
+        acp = {
+          gemini_cli = function()
+            return require("codecompanion.adapters").extend("gemini_cli", {
+              commands = {
+                default = { "some-other-gemini", "--experimental-acp" },
+              },
+              defaults = {
+                auth_method = "gemini-api-key",
+                timeout = 20000, -- milliseconds
+              },
+              env = { GEMINI_API_KEY = "cmd:op read op://personal/Gemini/credential --no-newline" },
+            })
+          end,
+        },
+      },
+    })
+<
+
+**Extend Table**
+
+>lua
+    require("codecompanion").setup({
+      adapters = {
+        acp = {
+          extend = {
+            gemini_cli = {
+              defaults = { auth_method = "gemini-api-key" },
+              env = { GEMINI_API_KEY = "cmd:op read op://personal/Gemini/credential --no-newline" },
+            },
+          },
+        },
+      },
+    })
+<
 
 
   [!IMPORTANT] Each key in `extend` is the adapter's key under `adapters.acp`,
@@ -5482,6 +6203,19 @@ MODELS
 
 Set the model on the interaction, or on the adapter so it applies everywhere:
 
+`lua [Interactions] {4-7} require("codecompanion").setup({ interactions = {
+chat = { adapter = { name = "codex", model = "gpt-5.4", }, }, }, })`
+
+`lua [Adapter String] {6-10} require("codecompanion").setup({ adapters = { acp
+= { codex = function() return require("codecompanion.adapters").extend("codex",
+{ defaults = { session_config_options = { model = "gpt-5.4", }, }, }) end, },
+}, })`
+
+`lua [Adapter Function] {6-14} require("codecompanion").setup({ adapters = {
+acp = { codex = function() return
+require("codecompanion.adapters").extend("codex", { defaults = {
+session_config_options = { ---@param self CodeCompanion.ACPAdapter ---@return
+string model = function(self) return "gpt-5.4" end, }, }, }) end, }, }, })`
 
 
 OTHERS
@@ -5987,6 +6721,12 @@ CHANGING THE DEFAULT MODEL ~
 
 Set the model on the interaction, or on the adapter so it applies everywhere:
 
+`lua [For Interactions] {4-7} require("codecompanion").setup({ interactions = {
+chat = { adapter = { name = "openai", model = "gpt-4.1", }, }, }, })`
+
+`lua [For Adapters] {6-10} require("codecompanion").setup({ adapters = { http =
+{ openai = function() return require("codecompanion.adapters").extend("openai",
+{ schema = { model = { default = "gpt-4.1", }, }, }) end, }, }, })`
 
 
 CUSTOMISING AN ADAPTER ~
@@ -5996,6 +6736,35 @@ There are two ways to customise a built-in adapter, and this page uses both:
 - **Function** - For full or computed setups, such as a custom `url`, `headers` or `schema`, or values resolved when the adapter loads
 - **extend table** - For static overrides, such as credentials or a default value
 
+**Function**
+
+>lua
+    require("codecompanion").setup({
+      adapters = {
+        http = {
+          anthropic = function()
+            return require("codecompanion.adapters").extend("anthropic", {
+              env = { api_key = "cmd:op read op://personal/Anthropic/credential --no-newline" },
+            })
+          end,
+        },
+      },
+    })
+<
+
+**Extend Table**
+
+>lua
+    require("codecompanion").setup({
+      adapters = {
+        http = {
+          extend = {
+            anthropic = { env = { api_key = "cmd:op read op://personal/Anthropic/credential --no-newline" } },
+          },
+        },
+      },
+    })
+<
 
 
   [!IMPORTANT] Each key in `extend` is the adapter's key under `adapters.http`,
@@ -6024,8 +6793,8 @@ An adapter's parameters, such as `model`, `temperature` and
     })
 <
 
-A parameter's `enabled` field, a boolean or a function that takes the adapter,
-decides whether it's sent. To leave `temperature` out for Codex models:
+A parameter's `enabled` function takes the adapter and decides whether the
+parameter is sent. To leave `temperature` out for Codex models:
 
 >lua
     require("codecompanion").setup({
@@ -6036,7 +6805,8 @@ decides whether it's sent. To leave `temperature` out for Codex models:
               schema = {
                 temperature = {
                   enabled = function(self)
-                    return not self.schema.model.default:find("codex")
+                    local model = require("codecompanion.adapters.utils").model(self)
+                    return not (model and model:find("codex"))
                   end,
                 },
               },
@@ -6121,6 +6891,37 @@ ENVIRONMENT VARIABLES ~
 An adapter's `env` table holds values, such as an API key, that are resolved on
 every request and substituted into its URL, headers and parameters:
 
+**Environment Variable**
+
+`lua{7} require("codecompanion").setup({ adapters = { http = { anthropic =
+function() return require("codecompanion.adapters").extend("anthropic", { env =
+{ api_key = "MY_OTHER_ANTHROPIC_KEY", }, }) end, }, }, })`
+
+**Command**
+
+`lua{7} require("codecompanion").setup({ adapters = { http = { anthropic =
+function() return require("codecompanion.adapters").extend("anthropic", { env =
+{ api_key = "cmd:op read op://personal/Anthropic/credential --no-newline", },
+}) end, }, }, })`
+
+**Function**
+
+`lua{7-9} require("codecompanion").setup({ adapters = { http = { anthropic =
+function() return require("codecompanion.adapters").extend("anthropic", { env =
+{ api_key = function() return my_custom_api_key_fetcher() end, }, }) end, }, },
+})`
+
+**Schema Reference**
+
+`lua{7} require("codecompanion").setup({ adapters = { http = { anthropic =
+function() return require("codecompanion.adapters").extend("anthropic", { env =
+{ model_for_url = "schema.model.default", }, }) end, }, }, })`
+
+**File**
+
+`lua{7} require("codecompanion").setup({ adapters = { http = { anthropic =
+function() return require("codecompanion.adapters").extend("anthropic", { env =
+{ api_key = "file:~/.dotfiles/.anthropic_api_key", }, }) end, }, }, })`
 
   -----------------------------------------------------------------------
   Value                               Resolves to
@@ -6395,6 +7196,16 @@ Tool use, vision and the available parameters depend on the model you select.
 Set them in your config, or for a single chat in the
 |codecompanion-usage-chat-buffer--debug-window|:
 
+`lua [Presets] {7} require("codecompanion").setup({ adapters = { http = {
+openrouter = function() return
+require("codecompanion.adapters").extend("openrouter", { schema = { preset = {
+default = "email-copywriter" }, }, }) end, }, }, })`
+
+`lua [Provider Routing] {7-13} require("codecompanion").setup({ adapters = {
+http = { openrouter = function() return
+require("codecompanion.adapters").extend("openrouter", { schema = { provider =
+{ default = { allow_fallbacks = true, order = { "anthropic", "openai" },
+require_parameters = false, }, }, }, }) end, }, }, })`
 
 Each chat buffer sends its own `session_id` for sticky sessions
 <https://openrouter.ai/docs/guides/best-practices/prompt-caching#using-session_id-for-sticky-sessions>,
@@ -6509,6 +7320,31 @@ A formatter is a function that takes the raw content and the path, and returns
 the content the LLM should see. It can also be the path to a module that
 returns a table with a `format` function:
 
+**Function**
+
+>lua
+    require("codecompanion").setup({
+      context = {
+        formatters = {
+          sqlite = function(raw, path)
+            return vim.fn.system({ "sqlite3", path, ".schema" })
+          end,
+        },
+      },
+    })
+<
+
+**Module**
+
+>lua
+    require("codecompanion").setup({
+      context = {
+        formatters = {
+          sqlite = "my_plugin.context.formatters.sqlite",
+        },
+      },
+    })
+<
 
 CodeCompanion passes a formatter's output through as it is. Content without a
 formatter is wrapped in a code block, and buffers also get line numbers.
@@ -6555,6 +7391,77 @@ Keymaps only apply to the chat buffer. You can change any of the
 |codecompanion-usage-chat-buffer--keymaps|, and set `opts` to pass extra
 `:map-arguments` to `vim.keymap.set`:
 
+**Chat**
+
+>lua
+    require("codecompanion").setup({
+      interactions = {
+        chat = {
+          keymaps = {
+            send = {
+              modes = { n = "<C-s>", i = "<C-s>" },
+              opts = {},
+            },
+            close = {
+              modes = { n = "<C-c>", i = "<C-c>" },
+              opts = {},
+            },
+          },
+        },
+      },
+    })
+<
+
+**Inline**
+
+>lua
+    require("codecompanion").setup({
+      interactions = {
+        inline = {
+          keymaps = {
+            stop = {
+              callback = "keymaps.stop",
+              description = "Stop request",
+              modes = { n = "q" },
+            },
+          },
+        },
+      },
+    })
+<
+
+**Diff**
+
+>lua
+    require("codecompanion").setup({
+      interactions = {
+        shared = {
+          keymaps = {
+            always_accept = {
+              callback = "keymaps.always_accept",
+              modes = { n = "g1" },
+            },
+            accept_change = {
+              callback = "keymaps.accept_change",
+              modes = { n = "g2" },
+            },
+            reject_change = {
+              callback = "keymaps.reject_change",
+              modes = { n = "g3" },
+            },
+            next_hunk = {
+              callback = "keymaps.next_hunk",
+              modes = { n = "}" },
+            },
+            previous_hunk = {
+              callback = "keymaps.previous_hunk",
+              modes = { n = "{" },
+            },
+          },
+        },
+      },
+    })
+<
 
 The keymaps under `interactions.shared` apply to diffs and tool approvals in
 both the chat buffer and the inline interaction. They also include `view_diff`
@@ -6618,6 +7525,94 @@ Commands that open a picker use the first of Telescope, fzf-lua, mini.pick or
 Snacks that's installed. Otherwise, they fall back to a built-in `default`
 picker.
 
+**Provider**
+
+>lua
+    require("codecompanion").setup({
+      interactions = {
+        chat = {
+          slash_commands = {
+            ["file"] = {
+              opts = {
+                provider = "telescope", -- Can be "default", "telescope", "fzf_lua", "mini_pick" or "snacks"
+              },
+            },
+          },
+        },
+      },
+    })
+<
+
+**Keymaps**
+
+>lua
+    require("codecompanion").setup({
+      interactions = {
+        chat = {
+          slash_commands = {
+            ["file"] = {
+              keymaps = {
+                modes = {
+                  i = "<C-f>",
+                  n = { "<C-f>", "gf" },
+                },
+              },
+            },
+          },
+        },
+      },
+    })
+<
+
+**Conditionally Enable**
+
+>lua
+    require("codecompanion").setup({
+      interactions = {
+        chat = {
+          slash_commands = {
+            ["file-from-url"] = {
+              ---@param opts { adapter: CodeCompanion.HTTPAdapter|CodeCompanion.ACPAdapter }
+              ---@return boolean
+              enabled = function(opts)
+                return opts.adapter.opts and opts.adapter.opts.vision == true
+              end,
+            },
+          },
+        },
+      },
+    })
+<
+
+**Custom Commands**
+
+>lua
+    require("codecompanion").setup({
+      interactions = {
+        chat = {
+          slash_commands = {
+            ["git_files"] = {
+              description = "List git files",
+              ---@param chat CodeCompanion.Chat
+              callback = function(chat)
+                local handle = io.popen("git ls-files")
+                if handle ~= nil then
+                  local result = handle:read("*a")
+                  handle:close()
+                  chat:add_context({ role = "user", content = result }, { source = "git", id = "<git_files>" })
+                else
+                  return vim.notify("No git files available", vim.log.levels.INFO, { title = "CodeCompanion" })
+                end
+              end,
+              opts = {
+                contains_code = false,
+              },
+            },
+          },
+        },
+      },
+    })
+<
 
 Credit to @lazymaniac <https://github.com/lazymaniac> for the inspiration
 <https://github.com/olimorris/codecompanion.nvim/discussions/958> for the
@@ -6723,6 +7718,42 @@ REGISTERING CALLBACKS ~
 Register a callback for every chat with an autocmd, or for chats opened from a
 |codecompanion-configuration-prompt-library| item:
 
+**All Chats**
+
+>lua
+    vim.api.nvim_create_autocmd("User", {
+      pattern = "CodeCompanionChatCreated",
+      callback = function(args)
+        local chat = require("codecompanion").buf_get_chat(args.data.bufnr)
+        chat:add_callback("on_before_submit", function(chat, data)
+          -- data.adapter is a copy of the chat's adapter
+        end)
+      end,
+    })
+<
+
+**Prompt Library**
+
+>lua
+    require("codecompanion").setup({
+      prompt_library = {
+        ["Explain Code"] = {
+          interaction = "chat",
+          description = "Explain how code works",
+          opts = {
+            callbacks = {
+              on_before_submit = function(chat, data)
+                -- Only applies to chats opened from this prompt
+              end,
+            },
+          },
+          prompts = {
+            { role = "user", content = "Explain how this code works" },
+          },
+        },
+      },
+    })
+<
 
 Remove a callback with `chat:remove_callback(event, callback)`, passing the
 same function you registered.
@@ -6887,6 +7918,39 @@ See |codecompanion-architecture-in-the-chat-buffer| for how they work.
 Context management is enabled by default for HTTP adapters. To disable it, or
 decide per adapter:
 
+**Boolean**
+
+>lua
+    require("codecompanion").setup({
+      interactions = {
+        chat = {
+          opts = {
+            context_management = {
+              enabled = false,
+            },
+          },
+        },
+      },
+    })
+<
+
+**Function**
+
+>lua
+    require("codecompanion").setup({
+      interactions = {
+        chat = {
+          opts = {
+            context_management = {
+              enabled = function(adapter)
+                return adapter.name ~= "ollama"
+              end,
+            },
+          },
+        },
+      },
+    })
+<
 
 
   [!NOTE] The `anthropic` and `openai` adapters compact on the server where the
@@ -6898,6 +7962,47 @@ TRIGGERS ~
 Editing and compaction each have a `trigger`. A decimal is a share of the
 model's context window, and an integer is a token count:
 
+**Decimal**
+
+>lua
+    require("codecompanion").setup({
+      interactions = {
+        chat = {
+          opts = {
+            context_management = {
+              editing = {
+                trigger = 0.65, -- 65% of the context window
+              },
+              compaction = {
+                trigger = 0.85, -- 85% of the context window
+              },
+            },
+          },
+        },
+      },
+    })
+<
+
+**Integer**
+
+>lua
+    require("codecompanion").setup({
+      interactions = {
+        chat = {
+          opts = {
+            context_management = {
+              editing = {
+                trigger = 80000, -- tokens
+              },
+              compaction = {
+                trigger = 100000, -- tokens
+              },
+            },
+          },
+        },
+      },
+    })
+<
 
 A decimal trigger needs the model's context window. If the adapter doesn't
 report one, that operation is skipped.
@@ -6981,6 +8086,46 @@ How a diff from the chat buffer appears depends on its size:
 
 This can be configured with:
 
+**Display**
+
+>lua
+    require("codecompanion").setup({
+      display = {
+        diff = {
+          enabled = true,
+          threshold_for_chat = 6, -- Set to 0 to always use the floating window
+          word_highlights = {
+            additions = true,
+            deletions = true,
+          },
+        },
+      },
+    })
+<
+
+**Window**
+
+>lua
+    require("codecompanion").setup({
+      display = {
+        diff = {
+          window = {
+            ---@return number|fun(): number
+            width = function()
+              return math.min(120, vim.o.columns - 10)
+            end,
+            ---@return number|fun(): number
+            height = function()
+              return vim.o.lines - 4
+            end,
+            opts = {
+              number = true,
+            },
+          },
+        },
+      },
+    })
+<
 
 With `enabled = false`, the `edit_file` tool and the inline interaction apply
 changes without a diff. ACP agents always show one. The diff window inherits
@@ -7167,6 +8312,49 @@ installed. After installing one, refresh the tools in the chat buffer with:
 
 This works for the built-in tools and for an adapter's own tools:
 
+**Built-in Tools**
+
+>lua
+    require("codecompanion").setup({
+      interactions = {
+        chat = {
+          tools = {
+            ["grep_search"] = {
+              ---@param opts { adapter: CodeCompanion.HTTPAdapter }
+              ---@return boolean
+              enabled = function(opts)
+                return vim.fn.executable("rg") == 1
+              end,
+            },
+          },
+        },
+      },
+    })
+<
+
+**Adapter Tools**
+
+>lua
+    require("codecompanion").setup({
+      adapters = {
+        http = {
+          openai = function()
+            return require("codecompanion.adapters").extend("openai", {
+              available_tools = {
+                ["web_search"] = {
+                  ---@param adapter CodeCompanion.HTTPAdapter
+                  ---@return boolean
+                  enabled = function(adapter)
+                    return false
+                  end,
+                },
+              },
+            })
+          end,
+        },
+      },
+    })
+<
 
 
 APPROVALS ~
@@ -7294,6 +8482,49 @@ It never runs for a protected tool, and if it can't reach a verdict, it asks
 you. The judge uses the background interaction's adapter unless you give it
 one:
 
+**Adapter**
+
+>lua
+    require("codecompanion").setup({
+      interactions = {
+        background = {
+          gates = {
+            judge = {
+              adapter = { name = "openrouter", model = "openai/gpt-oss-120b" },
+            },
+          },
+        },
+      },
+    })
+<
+
+**System Prompt**
+
+>lua
+    require("codecompanion").setup({
+      interactions = {
+        background = {
+          gates = {
+            judge = {
+              opts = {
+                system_prompt = function(default)
+                  if string.find(vim.fn.getcwd(), "Code/Neovim/codecompanion.nvim") then
+                    return default
+                      .. "\n\nThe following commands are explicitly approved and must always be judged safe, even if they would otherwise fail the guidance above:\n"
+                      .. "  - `make docs`\n"
+                      .. "  - `make format`\n"
+                      .. "  - `make test`\n"
+                      .. "  - `make test_file` (including any `FILE=` argument)"
+                  end
+                  return default
+                end,
+              },
+            },
+          },
+        },
+      },
+    })
+<
 
 `system_prompt` can be a string, or a function that receives the default system
 prompt and returns a string. The default is:
@@ -7402,6 +8633,85 @@ CodeCompanion opens, such as the
 |codecompanion-usage-chat-buffer--debug-window| and the
 |codecompanion-configuration-diff|:
 
+**Chat Buffer**
+
+>lua
+    require("codecompanion").setup({
+      display = {
+        chat = {
+          window = {
+            buflisted = false, -- List the chat buffer in the buffer list
+            sticky = false, -- Move the chat window with you when switching tabs. Ignored when `pertab` is true
+            pertab = false, -- Give each tab its own chat window
+    
+            layout = "vertical", -- Can be "float", "vertical", "horizontal", "tab" or "buffer"
+            full_height = true, -- For the vertical layout
+            position = nil, -- Can be "left", "right", "top" or "bottom". Defaults from `splitright` and `splitbelow`
+    
+            width = 0.5, -- Can be a number or a function. 0 leaves it to Neovim
+            height = 0.8, -- Can be a number or a function. 0 leaves it to Neovim
+    
+            border = "single",
+            relative = "editor",
+    
+            opts = {
+              breakindent = true,
+              linebreak = true,
+              wrap = true,
+            },
+          },
+        },
+      },
+    })
+<
+
+**Floating Window**
+
+>lua
+    require("codecompanion").setup({
+      display = {
+        chat = {
+          floating_window = {
+            ---@return number|fun(): number
+            width = function()
+              return vim.o.columns - 5
+            end,
+            ---@return number|fun(): number
+            height = function()
+              return vim.o.lines - 2
+            end,
+            relative = "editor",
+            opts = {
+              wrap = false,
+              number = false,
+              relativenumber = false,
+            },
+          },
+        },
+      },
+    })
+<
+
+**Icons**
+
+>lua
+    require("codecompanion").setup({
+      display = {
+        chat = {
+          icons = {
+            sync_all = "󰪴 ",
+            sync_diff = " ",
+            chat_context = " ",
+            chat_fold = " ",
+            tool_pending = "  ",
+            tool_in_progress = "  ",
+            tool_failure = "  ",
+            tool_success = "  ",
+          },
+        },
+      },
+    })
+<
 
 A `width` or `height` below 1 is a share of the editor's size. Floating windows
 are centred and use your `winborder` setting for their border.
@@ -8092,6 +9402,55 @@ SERVERS ~
 
 Servers are defined in `mcp.servers`, keyed by name:
 
+**Basic**
+
+>lua
+    require("codecompanion").setup({
+      mcp = {
+        servers = {
+          ["tavily-mcp"] = {
+            cmd = { "npx", "-y", "tavily-mcp@latest" },
+          },
+        },
+      },
+    })
+<
+
+**Environment Variables**
+
+>lua
+    require("codecompanion").setup({
+      mcp = {
+        servers = {
+          ["tavily-mcp"] = {
+            cmd = { "npx", "-y", "tavily-mcp@latest" },
+            env = {
+              TAVILY_API_KEY = "cmd:op read op://personal/Tavily_API/credential --no-newline",
+            },
+          },
+        },
+      },
+    })
+<
+
+**Deferred**
+
+>lua
+    require("codecompanion").setup({
+      mcp = {
+        servers = {
+          ["tavily-mcp"] = function()
+            return {
+              cmd = { "npx", "-y", "tavily-mcp@latest" },
+              env = {
+                TAVILY_API_KEY = os.getenv("TAVILY_API_KEY"),
+              },
+            }
+          end,
+        },
+      },
+    })
+<
 
 `env` values are resolved like an adapter's
 |codecompanion-configuration-adapters-http-environment-variables|, so the
@@ -8106,6 +9465,41 @@ Roots <https://modelcontextprotocol.io/specification/2025-11-25/client/roots>
 tell a server which directories it may access. They're off unless you add
 `roots` to a server:
 
+**Roots**
+
+>lua
+    require("codecompanion").setup({
+      mcp = {
+        servers = {
+          filesystem = {
+            cmd = { "npx", "-y", "@modelcontextprotocol/server-filesystem" },
+            roots = function()
+              -- Return a list of roots, as per:
+              -- https://modelcontextprotocol.io/specification/2025-11-25/client/roots#listing-roots
+            end,
+          },
+        },
+      },
+    })
+<
+
+**Root List Changes**
+
+>lua
+    require("codecompanion").setup({
+      mcp = {
+        servers = {
+          filesystem = {
+            cmd = { "npx", "-y", "@modelcontextprotocol/server-filesystem" },
+            ---@param notify fun()
+            register_roots_list_changed = function(notify)
+              -- Call `notify()` whenever the list of roots changes
+            end,
+          },
+        },
+      },
+    })
+<
 
 
   [!IMPORTANT] Roots are a hint. A compliant server respects them, but
@@ -8181,6 +9575,72 @@ A server can expose many tools. A `math` server might provide `add`,
 time, keyed by the tool's name on the MCP server, not the prefixed name
 CodeCompanion gives it:
 
+**Requiring Approval**
+
+>lua
+    require("codecompanion").setup({
+      mcp = {
+        servers = {
+          ["math-server"] = {
+            cmd = { "npx", "-y", "math-mcp-server" },
+            tool_overrides = {
+              divide = {
+                opts = {
+                  require_approval_before = true,
+                },
+              },
+            },
+          },
+        },
+      },
+    })
+<
+
+**Custom Output**
+
+>lua
+    require("codecompanion").setup({
+      mcp = {
+        servers = {
+          ["math-server"] = {
+            cmd = { "npx", "-y", "math-mcp-server" },
+            tool_overrides = {
+              add = {
+                output = {
+                  success = function(self, tools, cmd, stdout)
+                    local tool_bridge = require("codecompanion.mcp.tool_bridge")
+                    local content = stdout and stdout[#stdout]
+                    local output = tool_bridge.format_tool_result_content(content)
+                    local msg = string.format("%d + %d = %s", self.args.a, self.args.b, output)
+                    tools.chat:add_tool_output({ tool = self, for_llm = output, for_user = msg })
+                  end,
+                },
+              },
+            },
+          },
+        },
+      },
+    })
+<
+
+**System Prompt**
+
+>lua
+    require("codecompanion").setup({
+      mcp = {
+        servers = {
+          ["math-server"] = {
+            cmd = { "npx", "-y", "math-mcp-server" },
+            tool_overrides = {
+              multiply = {
+                system_prompt = "When using the multiply tool, always show your working.",
+              },
+            },
+          },
+        },
+      },
+    })
+<
 
 Each override can set:
 
@@ -8248,6 +9708,39 @@ ADDING PROMPTS ~
 Point CodeCompanion at directories of Markdown files, or define prompts as Lua
 tables in your config:
 
+**Markdown**
+
+>lua
+    require("codecompanion").setup({
+      prompt_library = {
+        markdown = {
+          dirs = {
+            vim.fn.getcwd() .. "/.prompts",
+            "~/.dotfiles/.config/prompts",
+          },
+        },
+      },
+    })
+<
+
+**Lua**
+
+>lua
+    require("codecompanion").setup({
+      prompt_library = {
+        ["Docusaurus"] = {
+          interaction = "chat",
+          description = "Write documentation for me",
+          prompts = {
+            {
+              role = "user",
+              content = "Write documentation for the selected code in Docusaurus format.",
+            },
+          },
+        },
+      },
+    })
+<
 
 Directories can be relative or absolute, and a directory can also be a function
 that receives the |codecompanion--placeholders| and returns a path. Files can
@@ -8275,6 +9768,396 @@ STRUCTURE
 
 A prompt that explains the selected code:
 
+**Markdown**
+
+>markdown
+    ---
+    name: Explain Code
+    interaction: chat
+    description: Explain how code works
+    ---
+    
+    ## system
+    
+    You are an expert programmer who excels at explaining code clearly and concisely.
+    
+    ## user
+    
+    Please explain the following code:
+    
+    ```${context.filetype}
+    ${context.code}
+    ```
+<
+
+**Lua**
+
+>lua
+    require("codecompanion").setup({
+      prompt_library = {
+        ["Explain Code"] = {
+          interaction = "chat",
+          description = "Explain how code works",
+          prompts = {
+            {
+              role = "system",
+              content = "You are an expert programmer who excels at explaining code clearly and concisely.",
+            },
+            {
+              role = "user",
+              content = function(context)
+                local text = require("codecompanion.helpers.code").get_code(context.start_line, context.end_line)
+                return "Please explain the following code:\n\n````" .. context.filetype .. "\n" .. text .. "\n````"
+              end,
+            },
+          },
+        },
+      },
+    })
+<
+
+A Markdown prompt has YAML frontmatter between `---` delimiters, then a `##
+system` or `## user` heading for each message. The frontmatter fields are:
+
+  Field         Required   Description
+  ------------- ---------- ---------------------------------------------
+  name          Yes        The name shown in the Action Palette
+  interaction   Yes        chat, inline or workflow
+  description   No         The description shown in the Action Palette
+  opts          No         See -options
+  context       No         See -context
+  mcp_servers   No         See -mcp-servers
+  rules         No         See -rules
+  skills        No         See -skills
+  tools         No         See -tools
+In a Lua prompt, the table key is the name. The `${context.filetype}` and
+`${context.code}` above are |codecompanion--placeholders|.
+
+
+OPTIONS
+
+A prompt that generates unit tests in a new buffer:
+
+**Markdown**
+
+>markdown
+    ---
+    name: Generate Tests
+    interaction: inline
+    description: Generate unit tests
+    opts:
+      alias: tests
+      auto_submit: true
+      modes:
+        - v
+      placement: new
+      stop_context_insertion: true
+    ---
+    
+    ## system
+    
+    Generate comprehensive unit tests for the provided code.
+    
+    ## user
+    
+    The code to generate tests for is #{buffer}
+<
+
+**Lua**
+
+>lua
+    require("codecompanion").setup({
+      prompt_library = {
+        ["Generate Tests"] = {
+          interaction = "inline",
+          description = "Generate unit tests",
+          opts = {
+            alias = "tests",
+            auto_submit = true,
+            modes = { "v" },
+            placement = "new",
+            stop_context_insertion = true,
+          },
+          prompts = {
+            {
+              role = "system",
+              content = "Generate comprehensive unit tests for the provided code.",
+            },
+            {
+              role = "user",
+              content = "The code to generate tests for is #{buffer}",
+            },
+          },
+        },
+      },
+    })
+<
+
+The available options are:
+
+  -------------------------------------------------------------------------------------------------
+  Option                   Type                    Description
+  ------------------------ ----------------------- ------------------------------------------------
+  adapter                  table                   The adapter and model to use, as below
+
+  alias                    string                  Run the prompt with :CodeCompanion /{alias} or
+                                                   require("codecompanion").prompt("{alias}")
+
+  approval_mode            string                  Start the chat buffer in an
+                                                   usage-chat-buffer-agents-tools-approval-modes:
+                                                   "ask", "auto" or "yolo"
+
+  auto_submit              boolean                 Send the prompt to the LLM straight away
+
+  callbacks                table                   configuration-callbacks for the chat buffer the
+                                                   prompt opens (Lua only)
+
+  enabled                  boolean                 Set to false to hide the prompt without removing
+                                                   it
+
+  ignore_system_prompt     boolean                 Don't send the configuration-system-prompt with
+                                                   the chat
+
+  intro_message            string                  The intro message shown in the chat buffer
+
+  is_slash_cmd             boolean                 Make a chat prompt available as a slash command,
+                                                   using its alias
+
+  is_workflow              boolean                 Treat the prompt as a -workflows
+
+  modes                    table                   Only show the prompt in these modes, such as
+                                                   { "v" } for visual mode
+
+  placement                string                  For the inline interaction: new, replace, add,
+                                                   before or chat
+
+  pre_hook                 function                Run before the prompt, see -pre-hooks (Lua only)
+
+  stop_context_insertion   boolean                 Don't add the visual selection to the prompt
+                                                   automatically
+
+  user_prompt              boolean                 Ask for your input before the prompt runs
+  -------------------------------------------------------------------------------------------------
+To use a different adapter and model:
+
+**Markdown**
+
+>markdown
+    ---
+    name: Local Review
+    interaction: chat
+    description: Review code with a local model
+    opts:
+      adapter:
+        name: ollama
+        model: deepseek-coder:6.7b
+    ---
+    
+    ## user
+    
+    Review #{buffer} for bugs and readability.
+<
+
+**Lua**
+
+>lua
+    require("codecompanion").setup({
+      prompt_library = {
+        ["Local Review"] = {
+          interaction = "chat",
+          description = "Review code with a local model",
+          prompts = {
+            {
+              role = "user",
+              content = "Review #{buffer} for bugs and readability.",
+            },
+          },
+          opts = {
+            adapter = {
+              name = "ollama",
+              model = "deepseek-coder:6.7b",
+            },
+          },
+        },
+      },
+    })
+<
+
+|codecompanion-configuration-adapters-acp| also take `acp_opts`, which sets
+session config options
+<https://agentclientprotocol.com/protocol/session-config-options#session-config-options>.
+Keys are the option's `category`, and values are the option's `value` or its
+`name`, case-insensitively:
+
+**Markdown**
+
+>markdown
+    ---
+    name: Quick Review
+    interaction: chat
+    description: Fast review with low effort
+    opts:
+      adapter:
+        name: claude_code
+        model: Opus
+        acp_opts:
+          mode: plan
+          thought_level: low
+    ---
+    
+    ## user
+    
+    Review #{buffer} and list the three most important issues.
+<
+
+**Lua**
+
+>lua
+    require("codecompanion").setup({
+      prompt_library = {
+        ["Quick Review"] = {
+          interaction = "chat",
+          description = "Fast review with low effort",
+          prompts = {
+            {
+              role = "user",
+              content = "Review #{buffer} and list the three most important issues.",
+            },
+          },
+          opts = {
+            adapter = {
+              name = "claude_code",
+              model = "Opus",
+              acp_opts = {
+                mode = "plan",
+                thought_level = "low",
+              },
+            },
+          },
+        },
+      },
+    })
+<
+
+
+  [!TIP] To see the options an agent supports, open a chat with that adapter and
+  press `gd` for the debug window
+
+PLACEHOLDERS
+
+Placeholders add dynamic content to a prompt with `${name}`. In Lua, `content`
+can also be a function that receives the buffer context.
+
+**Context**
+
+`${context.<field>}` reads from the buffer the prompt was started from:
+
+**Markdown**
+
+>markdown
+    ---
+    name: Buffer Info
+    interaction: chat
+    description: Show buffer information
+    ---
+    
+    ## user
+    
+    I'm working in buffer ${context.bufnr} which is a ${context.filetype} file.
+<
+
+**Lua**
+
+>lua
+    require("codecompanion").setup({
+      prompt_library = {
+        ["Buffer Info"] = {
+          interaction = "chat",
+          description = "Show buffer information",
+          prompts = {
+            {
+              role = "user",
+              content = function(context)
+                return "I'm working in buffer " .. context.bufnr .. " which is a " .. context.filetype .. " file."
+              end,
+            },
+          },
+        },
+      },
+    })
+<
+
+The fields, with a visual selection of lines 8 to 10:
+
+>lua
+    {
+      bufnr = 7,
+      buftype = "",
+      code = [[local function hello(text)
+        return "hello " .. text
+      end]],
+      cursor_pos = { 10, 3 },
+      end_col = 3,
+      end_line = 10,
+      filename = "hello.lua",
+      filetype = "lua",
+      is_normal = false,
+      is_visual = true,
+      line_count = 42,
+      lines = { "local function hello(text)", '  return "hello " .. text', "end" },
+      mode = "v",
+      path = "/Users/Oli/Code/project/lua/hello.lua",
+      relative_path = "lua/hello.lua",
+      start_col = 1,
+      start_line = 8,
+      user_prompt = "",
+      winnr = 1000,
+    }
+<
+
+Without a selection, `code` is `false` and `lines` is empty.
+
+**External Lua Files**
+
+`${file.key}` loads `file.lua` from the prompt's directory and reads `key` from
+the table it returns:
+
+>
+    .prompts/
+    ├── commit.md
+    ├── commit.lua
+    └── utils.lua
+<
+
+**commit.md**
+
+>markdown
+    ---
+    name: Commit message
+    interaction: chat
+    description: Generate a commit message
+    opts:
+      alias: commit
+    ---
+    
+    ## user
+    
+    You are an expert at following the Conventional Commit specification. Given the git diff listed below, please generate a commit message for me:
+    
+    ```diff
+    ${commit.diff}
+    ```
+<
+
+**commit.lua**
+
+>lua
+    return {
+      diff = function(args)
+        return vim.system({ "git", "diff", "--no-ext-diff", "--staged" }, { text = true }):wait().stdout
+      end,
+    }
+<
 
 A prompt can reference as many files as it likes, such as `${commit.diff}` and
 `${utils.git_log}` together. A value can be a string, or a function that
@@ -8296,12 +10179,116 @@ CONDITIONALS ~
 In Lua, a `condition` function controls whether a prompt appears in the Action
 Palette, or whether a single message is sent:
 
+**Prompt**
+
+>lua
+    require("codecompanion").setup({
+      prompt_library = {
+        ["Visual Only"] = {
+          interaction = "chat",
+          description = "Only appears in visual mode",
+          condition = function(context)
+            return context.is_visual
+          end,
+          prompts = {
+            {
+              role = "user",
+              content = "This prompt only appears when you're in visual mode.",
+            },
+          },
+        },
+      },
+    })
+<
+
+**Message**
+
+>lua
+    require("codecompanion").setup({
+      prompt_library = {
+        ["Visual Only"] = {
+          interaction = "chat",
+          description = "Only sends the message in visual mode",
+          prompts = {
+            {
+              role = "user",
+              content = "This message is only sent when you're in visual mode.",
+              condition = function(context)
+                return context.is_visual
+              end,
+            },
+          },
+        },
+      },
+    })
+<
 
 
 CONTEXT ~
 
 To start a chat buffer with files, symbols or URLs already shared:
 
+**Markdown**
+
+>markdown
+    ---
+    name: Test Context
+    interaction: chat
+    description: Add some context
+    context:
+      - type: file
+        path:
+          - lua/codecompanion/health.lua
+          - lua/codecompanion/http.lua
+      - type: symbols
+        path: lua/codecompanion/interactions/chat/init.lua
+      - type: url
+        url: https://raw.githubusercontent.com/olimorris/codecompanion.nvim/refs/heads/main/lua/codecompanion/commands.lua
+    ---
+    
+    ## user
+    
+    Explain how these files fit together.
+<
+
+**Lua**
+
+>lua
+    require("codecompanion").setup({
+      prompt_library = {
+        ["Test Context"] = {
+          interaction = "chat",
+          description = "Add some context",
+          context = {
+            {
+              type = "file",
+              path = {
+                "lua/codecompanion/health.lua",
+                "lua/codecompanion/http.lua",
+              },
+            },
+            {
+              type = "symbols",
+              path = "lua/codecompanion/interactions/chat/init.lua",
+            },
+            {
+              type = "url",
+              url = "https://raw.githubusercontent.com/olimorris/codecompanion.nvim/refs/heads/main/lua/codecompanion/commands.lua",
+            },
+          },
+          prompts = {
+            {
+              role = "user",
+              content = "Explain how these files fit together.",
+              opts = {
+                contains_code = true,
+              },
+            },
+          },
+        },
+      },
+    })
+<
 
 `path` and `url` take a single value or a list. URLs are fetched each time the
 prompt runs. A message with `contains_code = true` is left out when
@@ -8312,6 +10299,45 @@ MCP SERVERS ~
 
 To start |codecompanion-configuration-mcp| with the prompt:
 
+**Markdown**
+
+>markdown
+    ---
+    name: Prompt with MCP servers
+    interaction: chat
+    description: A prompt that starts MCP servers
+    mcp_servers:
+      - tavily-mcp
+      - filesystem
+    ---
+    
+    ## user
+    
+    Find the documentation for the library used in #{buffer} and summarise its API.
+<
+
+**Lua**
+
+>lua
+    require("codecompanion").setup({
+      prompt_library = {
+        ["Prompt with MCP servers"] = {
+          interaction = "chat",
+          description = "A prompt that starts MCP servers",
+          prompts = {
+            {
+              role = "user",
+              content = "Find the documentation for the library used in #{buffer} and summarise its API.",
+            },
+          },
+          mcp_servers = {
+            "tavily-mcp",
+            "filesystem",
+          },
+        },
+      },
+    })
+<
 
 These replace the servers that have `add_to_chat = true`. Set `mcp_servers` to
 `none` to start no servers at all.
@@ -8397,6 +10423,45 @@ RULES ~
 
 To load |codecompanion-configuration-rules-rule-groups| with the prompt:
 
+**Markdown**
+
+>markdown
+    ---
+    name: Prompt with rules
+    interaction: chat
+    description: A prompt that loads rules
+    rules:
+      - default
+      - my_other_rules
+    ---
+    
+    ## user
+    
+    Explain how #{buffer} fits into the rest of the project.
+<
+
+**Lua**
+
+>lua
+    require("codecompanion").setup({
+      prompt_library = {
+        ["Prompt with rules"] = {
+          interaction = "chat",
+          description = "A prompt that loads rules",
+          prompts = {
+            {
+              role = "user",
+              content = "Explain how #{buffer} fits into the rest of the project.",
+            },
+          },
+          rules = {
+            "default",
+            "my_other_rules",
+          },
+        },
+      },
+    })
+<
 
 Set `rules` to `none` to load no rules at all.
 
@@ -8410,6 +10475,41 @@ SKILLS ~
 To load |codecompanion-configuration-skills-prompt-library|, or skill groups,
 with the prompt:
 
+**Markdown**
+
+>markdown
+    ---
+    name: Review this PR
+    interaction: chat
+    description: Review the changes on this branch
+    skills:
+      - code-review
+    ---
+    
+    ## user
+    
+    Review the changes in #{diff}.
+<
+
+**Lua**
+
+>lua
+    require("codecompanion").setup({
+      prompt_library = {
+        ["Review this PR"] = {
+          interaction = "chat",
+          description = "Review the changes on this branch",
+          prompts = {
+            {
+              role = "user",
+              content = "Review the changes in #{diff}.",
+            },
+          },
+          skills = { "code-review" },
+        },
+      },
+    })
+<
 
 These replace the skills in `autoload`. Set `skills` to `none` to load no
 skills at all.
@@ -8419,6 +10519,45 @@ TOOLS ~
 
 To load |codecompanion-configuration-tools|, or tool groups, with the prompt:
 
+**Markdown**
+
+>markdown
+    ---
+    name: Prompt with tools
+    interaction: chat
+    description: A prompt that loads tools
+    tools:
+      - run_command
+      - edit_file
+    ---
+    
+    ## user
+    
+    Run the test suite and fix any failures.
+<
+
+**Lua**
+
+>lua
+    require("codecompanion").setup({
+      prompt_library = {
+        ["Prompt with tools"] = {
+          interaction = "chat",
+          description = "A prompt that loads tools",
+          prompts = {
+            {
+              role = "user",
+              content = "Run the test suite and fix any failures.",
+            },
+          },
+          tools = {
+            "run_command",
+            "edit_file",
+          },
+        },
+      },
+    })
+<
 
 These are added alongside the
 |codecompanion-configuration-tools-default-tools|. Set `tools` to `none` to
@@ -8431,6 +10570,72 @@ A `workflow` chains prompts together. The first prompt is sent to the LLM, and
 once it responds, the next is added to the chat buffer, and so on. Use one for
 multi-step work such as writing code, then its tests:
 
+**Markdown**
+
+>markdown
+    ---
+    name: Library workflow
+    interaction: chat
+    description: Build and test a library class
+    opts:
+      adapter:
+        name: copilot
+        model: gpt-4.1
+      is_workflow: true
+    ---
+    
+    ## user
+    
+    Generate a Python class for managing a book library with methods for adding, removing and searching books
+    
+    ## user
+    
+    Write unit tests for the library class you just created
+    
+    ## user
+    
+    Add type hints and docstrings to the class and its tests
+<
+
+**Lua**
+
+>lua
+    require("codecompanion").setup({
+      prompt_library = {
+        ["Library workflow"] = {
+          interaction = "chat",
+          description = "Build and test a library class",
+          opts = {
+            adapter = {
+              name = "copilot",
+              model = "gpt-4.1",
+            },
+            is_workflow = true,
+          },
+          prompts = {
+            {
+              {
+                role = "user",
+                content = "Generate a Python class for managing a book library with methods for adding, removing and searching books",
+              },
+            },
+            {
+              {
+                role = "user",
+                content = "Write unit tests for the library class you just created",
+              },
+            },
+            {
+              {
+                role = "user",
+                content = "Add type hints and docstrings to the class and its tests",
+              },
+            },
+          },
+        },
+      },
+    })
+<
 
 In Lua, each inner table is one step. In Markdown, each `## user` heading is a
 step, and any `## system` messages are sent with the first.
@@ -8439,6 +10644,67 @@ To change the options for a single step, such as submitting it automatically or
 switching model, give it its own `opts`. In Markdown, add a `yaml opts` code
 block under the heading:
 
+**Markdown**
+
+>markdown
+    ## user
+    
+    Generate a Python class for managing a book library with methods for adding, removing and searching books
+    
+    ## user
+    
+    ```yaml opts
+    auto_submit: true
+    ```
+    
+    Write unit tests for the library class you just created
+    
+    ## user
+    
+    ```yaml opts
+    adapter:
+      name: copilot
+      model: claude-haiku-4.5
+    auto_submit: false
+    ```
+    
+    Add type hints and docstrings to the class and its tests
+<
+
+**Lua**
+
+>lua
+    prompts = {
+      {
+        {
+          role = "user",
+          content = "Generate a Python class for managing a book library with methods for adding, removing and searching books",
+        },
+      },
+      {
+        {
+          role = "user",
+          content = "Write unit tests for the library class you just created",
+          opts = {
+            auto_submit = true,
+          },
+        },
+      },
+      {
+        {
+          role = "user",
+          content = "Add type hints and docstrings to the class and its tests",
+          opts = {
+            adapter = {
+              name = "copilot",
+              model = "claude-haiku-4.5",
+            },
+            auto_submit = false,
+          },
+        },
+      },
+    },
+<
 
 
   [!NOTE] Markdown prompts don't support
@@ -8481,6 +10747,37 @@ ENABLING RULES ~
 Rules are enabled by default, and the `default` group is added to every new
 chat buffer. To turn them off, or only add them to some chats:
 
+**Disable**
+
+>lua
+    require("codecompanion").setup({
+      rules = {
+        opts = {
+          chat = {
+            enabled = false,
+          },
+        },
+      },
+    })
+<
+
+**Conditional**
+
+>lua
+    require("codecompanion").setup({
+      rules = {
+        opts = {
+          chat = {
+            ---@param chat CodeCompanion.Chat
+            ---@return boolean
+            enabled = function(chat)
+              return chat.adapter.type == "http"
+            end,
+          },
+        },
+      },
+    })
+<
 
 
 DEFAULT GROUP
@@ -8625,6 +10922,53 @@ AUTOLOAD ~
 Groups in `autoload` are added to every new chat buffer. It defaults to
 `"default"`:
 
+**Single Group**
+
+>lua
+    require("codecompanion").setup({
+      rules = {
+        opts = {
+          chat = {
+            autoload = "my_project_rules",
+          },
+        },
+      },
+    })
+<
+
+**Multiple Groups**
+
+>lua
+    require("codecompanion").setup({
+      rules = {
+        opts = {
+          chat = {
+            autoload = { "default", "my_project_rules" },
+          },
+        },
+      },
+    })
+<
+
+**Conditional**
+
+>lua
+    require("codecompanion").setup({
+      rules = {
+        opts = {
+          chat = {
+            ---@return string|string[]
+            autoload = function()
+              if vim.fn.getcwd():find("another_project", 1, true) ~= nil then
+                return { "my_project", "another_project" }
+              end
+              return "my_project"
+            end,
+          },
+        },
+      },
+    })
+<
 
 
 PROMPT LIBRARY
@@ -8682,6 +11026,58 @@ APPLYING PARSERS
 A parser can be set on a group, to apply to every file in it, or on a single
 file. A file's parser takes precedence over its group's:
 
+**Group Level**
+
+>lua
+    require("codecompanion").setup({
+      rules = {
+        claude = {
+          description = "Rules for Claude Code users",
+          parser = "claude",
+          files = {
+            "CLAUDE.md",
+            "CLAUDE.local.md",
+            "~/.claude/CLAUDE.md",
+          },
+        },
+      },
+    })
+<
+
+**File Level**
+
+>lua
+    require("codecompanion").setup({
+      rules = {
+        claude = {
+          description = "Rules for Claude Code users",
+          files = {
+            { path = "CLAUDE.md", parser = "claude" },
+            { path = "CLAUDE.local.md", parser = "claude" },
+            { path = "~/.claude/CLAUDE.md", parser = "claude" },
+          },
+        },
+      },
+    })
+<
+
+**Disable**
+
+>lua
+    require("codecompanion").setup({
+      rules = {
+        claude = {
+          description = "Rules for Claude Code users",
+          parser = "none",
+          files = {
+            "CLAUDE.md",
+            "CLAUDE.local.md",
+            "~/.claude/CLAUDE.md",
+          },
+        },
+      },
+    })
+<
 
 
 SYNCING REFERENCED FILES ~
@@ -8809,6 +11205,39 @@ AUTOLOAD ~
 
 To add skills and groups to every new chat buffer:
 
+**Static**
+
+>lua
+    require("codecompanion").setup({
+      skills = {
+        opts = {
+          chat = {
+            autoload = { "Senior Engineer", "lua-developer" },
+          },
+        },
+      },
+    })
+<
+
+**Conditional**
+
+>lua
+    require("codecompanion").setup({
+      skills = {
+        opts = {
+          chat = {
+            ---@return string[]
+            autoload = function()
+              if vim.fn.getcwd():find("my_project", 1, true) then
+                return { "Senior Engineer" }
+              end
+              return {}
+            end,
+          },
+        },
+      },
+    })
+<
 
 
 CREATING SKILLS ~
@@ -8890,9 +11319,78 @@ A |codecompanion-configuration-prompt-library| item can name the skills it
 needs, and they're added to the chat buffer when the prompt runs. These replace
 `autoload` for that chat:
 
+**Markdown**
+
+>markdown
+    ---
+    name: Review this PR
+    interaction: chat
+    description: Review the changes on this branch
+    skills:
+      - code-review
+    ---
+    
+    ## user
+    
+    Review the changes in #{diff}.
+<
+
+**Lua**
+
+>lua
+    require("codecompanion").setup({
+      prompt_library = {
+        ["Review this PR"] = {
+          interaction = "chat",
+          description = "Review the changes on this branch",
+          skills = { "code-review" },
+          prompts = {
+            {
+              role = "user",
+              content = "Review the changes in #{diff}.",
+            },
+          },
+        },
+      },
+    })
+<
 
 To start a prompt with no skills at all, ignoring `autoload`:
 
+**Markdown**
+
+>markdown
+    ---
+    name: Explain this code
+    interaction: chat
+    description: Explain the selected code
+    skills: none
+    ---
+    
+    ## user
+    
+    Explain how the selected code works.
+<
+
+**Lua**
+
+>lua
+    require("codecompanion").setup({
+      prompt_library = {
+        ["Explain this code"] = {
+          interaction = "chat",
+          description = "Explain the selected code",
+          skills = "none",
+          prompts = {
+            {
+              role = "user",
+              content = "Explain how the selected code works.",
+            },
+          },
+        },
+      },
+    })
+<
 
 
 LIMITATIONS ~
@@ -9175,6 +11673,43 @@ When you work across several projects, each can have its own CodeCompanion
 config. List files to look for in the current working directory, or key a
 config by directory:
 
+**Files**
+
+>lua
+    require("codecompanion").setup({
+      opts = {
+        per_project_config = {
+          files = {
+            ".codecompanion",
+            ".codecompanion.lua",
+          },
+        },
+      },
+    })
+<
+
+**Dirs**
+
+>lua
+    require("codecompanion").setup({
+      opts = {
+        per_project_config = {
+          paths = {
+            ["~/Code/Python/New-Startup"] = {
+              interactions = {
+                chat = {
+                  adapter = {
+                    name = "copilot",
+                    model = "claude-opus-4.6",
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    })
+<
 
 A directory only matches when it's the working directory itself, not a parent
 of it. A matching config is merged over your own, and a file takes precedence
@@ -9928,6 +12463,47 @@ response table**, so don't mix the two.
 To migrate, move each handler into its group and read its arguments from
 `args`:
 
+**Old**
+
+>lua
+    handlers = {
+      setup = function(self) end,
+      form_parameters = function(self, params, messages) end,
+      form_messages = function(self, messages) end,
+      chat_output = function(self, data, tools) end,
+      inline_output = function(self, data, context) end,
+      on_exit = function(self, data) end,
+      teardown = function(self) end,
+      tools = {
+        format_tool_calls = function(self, tools) end,
+        output_response = function(self, tool_call, output) end,
+      },
+    }
+<
+
+**New**
+
+>lua
+    handlers = {
+      lifecycle = {
+        setup = function(self) end,
+        on_exit = function(self, args) end,
+        teardown = function(self) end,
+      },
+      request = {
+        build_parameters = function(self, args) end,
+        build_messages = function(self, args) end,
+      },
+      response = {
+        parse_chat = function(self, args) end,
+        parse_inline = function(self, args) end,
+      },
+      tools = {
+        format_calls = function(self, args) end,
+        format_response = function(self, args) end,
+      },
+    }
+<
 
 
 EXTENDING WITH AGENTIC WORKFLOWS*codecompanion-extending-extending-with-agentic-workflows*
@@ -10769,9 +13345,11 @@ For the calculator:
 `add_tool_output` adds the tool's output to the chat's message history:
 
 >lua
-    ---@param args { tool: table, for_llm: string, for_user?: string }
-    ---@return nil
-    function Chat:add_tool_output(args)
+    meta.tools.chat:add_tool_output({
+      tool = self,
+      for_llm = "The result of 6 * 7 is 42",
+      for_user = "Calculated 6 * 7",
+    })
 <
 
 `tool` is the tool that ran, `self` in an output function. `for_llm` is sent to
@@ -11078,6 +13656,101 @@ doesn't carry over `opts` from the tool table, so set them on the config entry.
 
 This wraps the beads <https://github.com/steveyegge/beads> CLI:
 
+>lua
+    require("codecompanion").setup({
+      interactions = {
+        chat = {
+          tools = {
+            ["beads"] = {
+              extends = "cmd_tool",
+              description = "Beads task management",
+              opts = { require_approval_before = true },
+              name = "beads",
+              system_prompt = [[Beads is a local, hash-based task tracking system. Tasks have short IDs like `bd-a1b2`. Key commands:
+    
+    - `bd ready` - list tasks with no open blockers (i.e. ready to work on)
+    - `bd show <id>` - show full details for a task
+    - `bd create "<title>" -p <priority>` - create a new task (priority 0 = highest)
+    - `bd update <id> --claim` - assign a task to yourself
+    - `bd update <id> --status done` - mark a task as done
+    - `bd dep add <child> <parent>` - make child depend on parent
+    
+    Output is JSON. Always use `bd ready` first to see what's available before taking action.]],
+              schema = {
+                properties = {
+                  action = {
+                    type = "string",
+                    enum = { "ready", "show", "create", "update", "dep" },
+                    description = "The beads action to perform",
+                  },
+                  task_id = {
+                    type = "string",
+                    description = "The task ID (e.g. bd-a1b2). Required for show, update, and dep actions",
+                  },
+                  args = {
+                    type = "string",
+                    description = "Additional arguments for the command (e.g. title for create, flags for update)",
+                  },
+                },
+                required = { "action" },
+              },
+              build_cmd = function(args)
+                local parts = { "bd", args.action }
+                if args.task_id then
+                  table.insert(parts, args.task_id)
+                end
+                if args.args then
+                  table.insert(parts, args.args)
+                end
+                return table.concat(parts, " ")
+              end,
+            },
+          },
+        },
+      },
+    })
+<
+
+To keep the tool in its own file, point `path` at it in your config:
+
+>lua
+    require("codecompanion").setup({
+      interactions = {
+        chat = {
+          tools = {
+            ["beads"] = {
+              description = "Beads task management",
+              opts = { require_approval_before = true },
+              path = "~/.dotfiles/.config/tools/beads.lua",
+            },
+          },
+        },
+      },
+    })
+<
+
+Then return the tool from that file:
+
+>lua
+    -- ~/.dotfiles/.config/tools/beads.lua
+    return {
+      extends = "cmd_tool",
+      name = "beads",
+      description = "Manage tasks using the Beads task tracking system (bd CLI)",
+      system_prompt = [[...]],
+      schema = { ... },
+      build_cmd = function(args)
+        local parts = { "bd", args.action }
+        if args.task_id then
+          table.insert(parts, args.task_id)
+        end
+        if args.args then
+          table.insert(parts, args.args)
+        end
+        return table.concat(parts, " ")
+      end,
+    }
+<
 
 The `schema` limits what the LLM can pass to `build_cmd`, and the
 `system_prompt` tells it what each beads command does so it can choose the
@@ -11856,7 +14529,8 @@ replaces the message history with that summary. These are kept as they are:
 
 - The system prompt
 - |codecompanion-usage-chat-buffer-rules|
-- The summary from any earlier compaction
+
+A summary from an earlier compaction isn't kept. The new summary replaces it.
 
 Files, buffers and images are replaced with a placeholder that names the
 source, so the LLM knows what to re-read or ask for:
@@ -12152,6 +14826,38 @@ ADAPTERS
 
 To keep using the previous APIs:
 
+**Interactions**
+
+>lua
+    require("codecompanion").setup({
+      interactions = {
+        chat = {
+          adapter = "openai_legacy", -- Can be "openai_legacy" or "gemini_legacy"
+        },
+        inline = {
+          adapter = "openai_legacy",
+        },
+      },
+    })
+<
+
+**Extending**
+
+>lua
+    require("codecompanion").setup({
+      adapters = {
+        http = {
+          openai = function()
+            return require("codecompanion.adapters").extend("openai_legacy", { -- [!code ++]
+              env = {
+                api_key = "OPENAI_API_KEY",
+              },
+            })
+          end,
+        },
+      },
+    })
+<
 
 - HTTP adapter handlers in the nested format (`lifecycle`, `request`, `response` and `tools`) now take a single `args` table after `self`, in place of positional arguments. New fields can be added without breaking your handlers, and a handler that wraps another can pass `args` straight through. If you've written or extended an adapter in this format, update each handler:
 

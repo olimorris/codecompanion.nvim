@@ -219,6 +219,10 @@ opts:
     name: ollama
     model: deepseek-coder:6.7b
 ---
+
+## user
+
+Review #{buffer} for bugs and readability.
 ```
 
 ```lua [Lua]
@@ -227,6 +231,12 @@ require("codecompanion").setup({
     ["Local Review"] = {
       interaction = "chat",
       description = "Review code with a local model",
+      prompts = {
+        {
+          role = "user",
+          content = "Review #{buffer} for bugs and readability.",
+        },
+      },
       opts = {
         adapter = {
           name = "ollama",
@@ -257,6 +267,10 @@ opts:
       mode: plan
       thought_level: low
 ---
+
+## user
+
+Review #{buffer} and list the three most important issues.
 ```
 
 ```lua [Lua]
@@ -265,6 +279,12 @@ require("codecompanion").setup({
     ["Quick Review"] = {
       interaction = "chat",
       description = "Fast review with low effort",
+      prompts = {
+        {
+          role = "user",
+          content = "Review #{buffer} and list the three most important issues.",
+        },
+      },
       opts = {
         adapter = {
           name = "claude_code",
@@ -542,6 +562,10 @@ mcp_servers:
   - tavily-mcp
   - filesystem
 ---
+
+## user
+
+Find the documentation for the library used in #{buffer} and summarise its API.
 ```
 
 ```lua [Lua]
@@ -550,6 +574,12 @@ require("codecompanion").setup({
     ["Prompt with MCP servers"] = {
       interaction = "chat",
       description = "A prompt that starts MCP servers",
+      prompts = {
+        {
+          role = "user",
+          content = "Find the documentation for the library used in #{buffer} and summarise its API.",
+        },
+      },
       mcp_servers = {
         "tavily-mcp",
         "filesystem",
@@ -649,6 +679,10 @@ rules:
   - default
   - my_other_rules
 ---
+
+## user
+
+Explain how #{buffer} fits into the rest of the project.
 ```
 
 ```lua [Lua]
@@ -657,6 +691,12 @@ require("codecompanion").setup({
     ["Prompt with rules"] = {
       interaction = "chat",
       description = "A prompt that loads rules",
+      prompts = {
+        {
+          role = "user",
+          content = "Explain how #{buffer} fits into the rest of the project.",
+        },
+      },
       rules = {
         "default",
         "my_other_rules",
@@ -687,6 +727,10 @@ description: Review the changes on this branch
 skills:
   - code-review
 ---
+
+## user
+
+Review the changes in #{diff}.
 ```
 
 ```lua [Lua]
@@ -695,6 +739,12 @@ require("codecompanion").setup({
     ["Review this PR"] = {
       interaction = "chat",
       description = "Review the changes on this branch",
+      prompts = {
+        {
+          role = "user",
+          content = "Review the changes in #{diff}.",
+        },
+      },
       skills = { "code-review" },
     },
   },
@@ -720,6 +770,10 @@ tools:
   - run_command
   - edit_file
 ---
+
+## user
+
+Run the test suite and fix any failures.
 ```
 
 ```lua [Lua]
@@ -728,6 +782,12 @@ require("codecompanion").setup({
     ["Prompt with tools"] = {
       interaction = "chat",
       description = "A prompt that loads tools",
+      prompts = {
+        {
+          role = "user",
+          content = "Run the test suite and fix any failures.",
+        },
+      },
       tools = {
         "run_command",
         "edit_file",

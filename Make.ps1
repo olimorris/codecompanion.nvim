@@ -47,6 +47,7 @@ function Invoke-Docs
         --metadata="ignorerawblocks:true" `
         --metadata="docmapping:false" `
         --metadata="docmappingproject:true" `
+        --lua-filter scripts/panvimdoc-code-groups.lua `
         --lua-filter deps/panvimdoc/scripts/include-files.lua `
         --lua-filter deps/panvimdoc/scripts/skip-blocks.lua `
         --lua-filter scripts/panvimdoc-cleanup.lua `
