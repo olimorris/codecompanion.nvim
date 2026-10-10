@@ -1,27 +1,24 @@
 ---
-description: "Build a custom CodeCompanion HTTP adapter to connect Neovim to any LLM. Covers the adapter interface, request handlers, environment variables, and schema."
+description: "Build your own HTTP adapter to connect CodeCompanion to any LLM."
 ---
 
 # Extending with Adapters
 
+An _adapter_ is the bridge between CodeCompanion and an LLM's API. It describes the endpoint, the headers and parameters to send, and how to turn CodeCompanion's messages into a request and the LLM's response back into text, reasoning and tool calls. The built-in adapters live in the [adapters directory](https://github.com/olimorris/codecompanion.nvim/tree/main/lua/codecompanion/adapters/http).
+
 > [!TIP]
-> Does your LLM state that it is "OpenAI Compatible"? If so, good news, you can extend from the `openai_legacy` adapter or use the `openai_compatible` one. Something we did with the [xAI](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/adapters/http/xai.lua) adapter
-
-In CodeCompanion, adapters are interfaces that act as a bridge between the plugin's functionality and an LLM. All adapters must follow the interface, below.
-
-This guide is intended to serve as a reference for anyone who wishes to contribute an adapter to the plugin or understand the inner workings of existing adapters.
-
-The plugin's in-built adapters can be found in the [adapters source directory](https://github.com/olimorris/codecompanion.nvim/tree/main/lua/codecompanion/adapters).
+> If your LLM is "OpenAI compatible", extend the `openai_legacy` adapter or use `openai_compatible` instead of writing one from scratch. The [xAI](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/adapters/http/xai.lua) adapter does this
 
 ## The Interface
 
-Let's take a look at the interface of an adapter as per the `adapter.lua` file:
+An HTTP adapter is a table with the following fields (abridged from `lua/codecompanion/adapters/http/init.lua`):
 
 ```lua
 ---@class CodeCompanion.HTTPAdapter
 ---@field name string The name of the adapter e.g. "openai"
 ---@field formatted_name string The formatted name of the adapter e.g. "OpenAI"
 ---@field roles table The mapping of roles in the config to the LLM's defined roles
+---@field features table The features that the adapter supports
 ---@field url string The URL of the LLM to connect to
 ---@field env? table Environment variables which can be referenced in the parameters
 ---@field env_replaced? table Replacement of environment variables with their actual values
@@ -34,170 +31,154 @@ Let's take a look at the interface of an adapter as per the `adapter.lua` file:
 ---@field schema table Set of parameters for the LLM that the user can customise in the chat buffer
 ```
 
-Everything up to the handlers should be self-explanatory. We're simply providing details of the LLM's API to the curl library and executing the request. The real intelligence of the adapter comes from the handlers table which is a set of functions which bridge the functionality of the plugin to the LLM.
+The fields up to `handlers` describe the API and are passed to curl. The `handlers` do the real work, translating between CodeCompanion and the LLM.
 
-## Handler Structure
+`roles` maps CodeCompanion's roles to the LLM's. Messages reach your handlers with their roles already mapped:
 
-As of v17.27.0, handlers are organized into a nested structure that provides clear separation of concerns. As of v20.0.0, every handler takes `self` and a single `args` table, so new fields can be added without breaking your adapter:
+```lua
+roles = {
+  llm = "assistant",
+  user = "user",
+  tool = "tool",
+},
+```
+
+`opts` holds flags such as `stream`, `tools`, `vision` and `documents`. `features.tokens = true` is required for the `parse_tokens` handler to be called.
+
+## Environment Variables
+
+APIs need values injected into different parts of the request. Azure OpenAI puts the endpoint, deployment and API version in the URL, whilst OpenAI takes the API key in an `Authorization` header. Declare them in `env` and reference them with `${}`:
+
+```lua
+url = "${endpoint}/openai/deployments/${deployment}/chat/completions?api-version=${api_version}",
+env = {
+  api_key = "AZURE_OPENAI_API_KEY",
+  endpoint = "AZURE_OPENAI_ENDPOINT",
+  api_version = "2024-06-01",
+  deployment = "schema.model.default",
+},
+headers = {
+  ["Content-Type"] = "application/json",
+  ["api-key"] = "${api_key}",
+},
+```
+
+Variables are replaced in the `url`, `headers`, `parameters` and `raw` fields on every request. Each value is resolved in this order:
+
+| Value | Example | Resolves to |
+| --- | --- | --- |
+| `cmd:` prefix | `"cmd:op read op://personal/Gemini_API/credential --no-newline"` | The command's output, with trailing whitespace removed |
+| `file:` prefix | `"file:~/.secrets/gemini"` | The file's contents, with trailing whitespace removed |
+| Environment variable | `"GEMINI_API_KEY"` | The variable's value, if it's set |
+| Function | `function(self) return os.getenv("GEMINI_API_KEY") end` | The function's return value, called with the adapter |
+| Schema path | `"schema.model.default"` | The value at that path on the adapter |
+| Anything else | `"2024-06-01"` | The string, unchanged |
+
+Commands time out after 20 seconds. This can be changed with:
+
+```lua
+require("codecompanion").setup({
+  adapters = {
+    opts = {
+      cmd_timeout = 20000, -- milliseconds
+    },
+  },
+})
+```
+
+> [!WARNING]
+> A schema path returns the raw value. If `schema.model.default` is a function, use a function in `env` instead
+
+## Handlers
+
+Handlers are grouped into four tables. Each one takes `self` and a single `args` table, so new fields can be added without breaking your adapter:
 
 ```lua
 handlers = {
-  -- Lifecycle hooks (side effects and initialization)
   lifecycle = {
-    setup = function(self) end,          -- Called before request is sent
-    on_exit = function(self, args) end,  -- args.data. Called after request completes
-    teardown = function(self) end,       -- Called last, after on_exit
+    setup = function(self) end,
+    on_exit = function(self, args) end,
+    teardown = function(self) end,
   },
-
-  -- Request builders (pure transformations)
   request = {
-    build_parameters = function(self, args) end,  -- args.params, args.messages
-    build_messages = function(self, args) end,    -- args.messages
-    build_tools = function(self, args) end,       -- args.tools
-    build_reasoning = function(self, args) end,   -- args.data
-    build_body = function(self, args) end,        -- args.payload
+    build_parameters = function(self, args) end,
+    build_messages = function(self, args) end,
+    build_tools = function(self, args) end,
+    build_structured_output = function(self, args) end,
+    build_reasoning = function(self, args) end,
+    build_body = function(self, args) end,
   },
-
-  -- Response parsers (pure transformations)
   response = {
-    parse_chat = function(self, args) end,    -- args.data, args.tools
-    parse_inline = function(self, args) end,  -- args.data, args.context
-    parse_tokens = function(self, args) end,  -- args.data
+    parse_chat = function(self, args) end,
+    parse_inline = function(self, args) end,
+    parse_tokens = function(self, args) end,
+    parse_meta = function(self, args) end,
   },
-
-  -- Tool handlers (grouped functionality)
   tools = {
-    format_calls = function(self, args) end,     -- args.tools
-    format_response = function(self, args) end,  -- args.tool_call, args.output
+    format_calls = function(self, args) end,
+    format_response = function(self, args) end,
   },
 }
 ```
 
-> [!NOTE]
-> **Backwards Compatibility**: The old flat handler structure is still supported. Adapters using the old format (e.g., `form_parameters`, `form_messages`, `chat_output`) will continue to work, and their handlers still take positional arguments. The plugin automatically detects and maps old handler names to the new structure.
+All of them are optional. Every built-in adapter has its own tests, which show how each one handles the API's output.
 
-## Environment Variables
+### Lifecycle
 
-When building an adapter, you'll need to inject variables into different parts of the adapter class. If we take the [Google Gemini](https://github.com/google-gemini/cookbook/blob/main/quickstarts/rest/Streaming_REST.ipynb) endpoint as an example, we need to inject the model and API key variables into the URL of `https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?alt=sse&key=${api_key}`. Whereas with [OpenAI](https://platform.openai.com/docs/api-reference/authentication), we need an `Authorization` http header to contain our API key.
+| Handler | `args` | Description |
+| --- | --- | --- |
+| `setup` | | Run before the request is sent and before environment variables are resolved. Return `false` to cancel the request |
+| `on_exit` | `data` | Run when the request completes, or with no `data` when the user stops it |
+| `teardown` | | Run last, after `on_exit` |
 
-Let's take a look at the `env` table from the Google Gemini adapter that comes with the plugin:
+### Request
 
-```lua
-url = "https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?alt=sse&key=${api_key}",
-env = {
-  api_key = "GEMINI_API_KEY",
-  model = "schema.model.default",
-},
-```
+Except for `build_reasoning`, their return values are merged into the request body:
 
-The key `api_key` represents the name of the variable which can be injected in the adapter via the `${}` notation, and the value can represent one of:
+| Handler | `args` | Description |
+| --- | --- | --- |
+| `build_parameters` | `params`, `messages` | Set the request's parameters |
+| `build_messages` | `messages` | Format the messages for the LLM |
+| `build_tools` | `tools` | Convert CodeCompanion's tool schemas into the LLM's format |
+| `build_structured_output` | `schema` | Convert a structured output schema into the LLM's format |
+| `build_reasoning` | `data` | Combine the streamed reasoning chunks into one, to store on the LLM's message |
+| `build_body` | `payload` | Add anything else to the body |
 
-- A command to execute on the user's system
-- An environment variable from the user's system
-- A function to be executed at runtime
-- A path to an item in the adapter's schema table
-- A plain text value
+### Response
 
-> [!NOTE]
-> Environment variables can be injected into the `url`, `headers` and `parameters` fields of the adapter class at runtime
+| Handler | `args` | Description |
+| --- | --- | --- |
+| `parse_chat` | `data`, `tools` | Parse a response for the chat buffer, writing any tool calls into `tools` |
+| `parse_inline` | `data`, `context` | Parse a response for the inline interaction |
+| `parse_tokens` | `data` | Return the token count from a response |
+| `parse_meta` | `data` | Process non-standard fields that `parse_chat` returns in `extra` |
 
-**Commands**
+### Tools
 
-An environment variable can be obtained from running a command on a user's system. This can be accomplished by prefixing the value with `cmd:` such as:
+| Handler | `args` | Description |
+| --- | --- | --- |
+| `format_calls` | `tools` | Format the LLM's tool calls for the next request |
+| `format_response` | `tool_call`, `output` | Format a tool's output as a message for the LLM |
 
-```lua
-env = {
-  api_key = "cmd:op read op://personal/Gemini_API/credential --no-newline",
-},
-```
+## Building the Handlers
 
-In this example, we're running the `op read` command to get a credential from 1Password.
-
-**Environment Variable**
-
-An environment variable can also be obtained by using lua's `os.getenv` function. Simply enter the name of the variable as a string such as:
-
-```lua
-env = {
-  api_key = "GEMINI_API_KEY",
-},
-```
-
-**Functions**
-
-An environment variable can also be resolved via the use of a function such as:
+The examples below build the main handlers for OpenAI's Chat Completions API, as in the `openai_legacy` adapter. Put this at the top of your adapter:
 
 ```lua
-env = {
-  api_key = function()
-    return os.getenv("GEMINI_API_KEY")
-  end,
-},
+local adapter_utils = require("codecompanion.adapters.utils")
+local log = require("codecompanion.utils.log")
 ```
 
-**Schema Values**
+### `build_messages`
 
-An environment variable can also be resolved by entering the path to a value in a table on the adapter class. For example:
-
-```lua
-env = {
-  model = "schema.model.default",
-},
-```
-
-In this example, we're getting the value of a user's chosen model from the schema table on the adapter.
-
-## Handlers
-
-The handlers table is organized into four main categories:
-
-### Lifecycle Handlers
-
-These handlers manage side effects and initialization:
-
-- `lifecycle.setup` - Called before the request is sent and before environment variables are set. Must return a boolean to indicate success
-- `lifecycle.on_exit` - Called after the request completes. Useful for handling errors
-- `lifecycle.teardown` - Called last, after `on_exit`
-
-### Request Handlers
-
-These handlers transform data for the LLM request:
-
-- `request.build_parameters` - Set the parameters of the request
-- `request.build_messages` - Format the messages array for the LLM
-- `request.build_tools` - Transform tool schemas for the LLM
-- `request.build_reasoning` - Build reasoning parameters (for models that support it)
-- `request.build_body` - Set additional body parameters
-
-### Response Handlers
-
-These handlers parse LLM responses:
-
-- `response.parse_chat` - Format chat output for the chat buffer
-- `response.parse_inline` - Format output for inline insertion
-- `response.parse_tokens` - Extract token count from the response
-- `response.parse_meta` - Process non-standard fields in the response (currently only supported by OpenAI-based adapters)
-
-### Tool Handlers
-
-These handlers manage tool/function calling:
-
-- `tools.format_calls` - Format tool calls for inclusion in the request
-- `tools.format_response` - Format tool responses for the LLM
-
-> [!TIP]
-> All of the adapters in the plugin come with their own tests. These serve as a great reference to understand how they're working with the output of the API
-
-### OpenAI's API Output
-
-If we reference the OpenAI [documentation](https://platform.openai.com/docs/guides/text-generation/chat-completions-api) we can see that they require the messages to be in an array which consists of `role` and `content`:
+OpenAI expects a `messages` array of `role` and `content`:
 
 ```sh
 curl https://api.openai.com/v1/chat/completions \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer $OPENAI_API_KEY" \
   -d '{
-    "model": "gpt-4-0125-preview",
+    "model": "gpt-4.1",
     "messages": [
       {
         "role": "user",
@@ -207,30 +188,18 @@ curl https://api.openai.com/v1/chat/completions \
   }'
 ```
 
-### Chat Buffer Output
-
-The chat buffer, which is structured like:
-
-```markdown
-## Me
-
-Explain Ruby in two words
-```
-
-results in the following output:
+CodeCompanion passes the chat buffer's messages in `args.messages`, each with at least a `role` and `content`:
 
 ```lua
 {
   {
     role = "user",
-    content = "Explain Ruby in two words"
-  }
+    content = "Explain Ruby in two words",
+  },
 }
 ```
 
-### `request.build_messages`
-
-The chat buffer's output is passed to this handler as `args.messages`. So we can just output this as part of a messages table:
+That's already the right shape, so the handler returns them as they are:
 
 ```lua
 handlers = {
@@ -242,182 +211,9 @@ handlers = {
 }
 ```
 
-### `response.parse_chat`
+### `build_parameters`
 
-Now let's look at how we format the output from OpenAI. Running that request results in:
-
-```txt
-data: {"id":"chatcmpl-90DdmqMKOKpqFemxX0OhTVdH042gu","object":"chat.completion.chunk","created":1709839462,"model":"gpt-4-0125-preview","system_fingerprint":"fp_70b2088885","choices":[{"index":0,"delta":{"role":"assistant","content":""},"logprobs":null,"finish_reason":null}]}
-```
-
-```txt
-data: {"id":"chatcmpl-90DdmqMKOKpqFemxX0OhTVdH042gu","object":"chat.completion.chunk","created":1709839462,"model":"gpt-4-0125-preview","system_fingerprint":"fp_70b2088885","choices":[{"index":0,"delta":{"content":"Programming"},"logprobs":null,"finish_reason":null}]}
-```
-
-```txt
-data: {"id":"chatcmpl-90DdmqMKOKpqFemxX0OhTVdH042gu","object":"chat.completion.chunk","created":1709839462,"model":"gpt-4-0125-preview","system_fingerprint":"fp_70b2088885","choices":[{"index":0,"delta":{"content":" language"},"logprobs":null,"finish_reason":null}]},
-```
-
-```txt
-data: [DONE]
-```
-
-> [!IMPORTANT]
-> Note that the `parse_chat` handler requires a table containing `status` and `output` to be returned.
-
-Remember that we're streaming from the API so the request comes through in batches. Thankfully the `http.lua` file handles this and we just have to handle formatting the output into the chat buffer.
-
-The first thing to note with streaming endpoints is that they don't return valid JSON. In this case, the output is prefixed with `data: `. CodeCompanion comes with some handy utility functions to work with this:
-
-```lua
--- Put this at the top of your adapter
-local utils = require("codecompanion.adapters.utils")
-
-handlers = {
-  response = {
-    parse_chat = function(self, args)
-      local data = utils.clean_streamed_data(args.data)
-    end,
-  },
-}
-```
-
-> [!IMPORTANT]
-> The `args.data` passed to the `parse_chat` handler is the response from OpenAI
-
-We can then decode the JSON using native vim functions:
-
-```lua
-handlers = {
-  response = {
-    parse_chat = function(self, args)
-      local data = utils.clean_streamed_data(args.data)
-      local ok, json = pcall(vim.json.decode, data, { luanil = { object = true } })
-    end,
-  },
-}
-```
-
-We want to include any nil values so we pass in `luanil = { object = true }`.
-
-Examining the output of the API, we see that the streamed data is stored in a `choices[1].delta` table. That's easy to pickup:
-
-```lua
-handlers = {
-  response = {
-    parse_chat = function(self, args)
-      ---
-      local delta = json.choices[1].delta
-    end,
-  },
-}
-```
-
-and we can then access the new streamed data that we want to write into the chat buffer, with:
-
-```lua
-handlers = {
-  response = {
-    parse_chat = function(self, args)
-      local output = {}
-      ---
-      local delta = json.choices[1].delta
-
-      if delta.content then
-        output.content = delta.content
-        output.role = delta.role or nil
-      end
-    end,
-  },
-}
-```
-
-And then we can return the output in the following format:
-
-```lua
-handlers = {
-  response = {
-    parse_chat = function(self, args)
-      --
-      return {
-        status = "success",
-        output = output,
-      }
-    end,
-  },
-}
-```
-
-Now if we put it all together, and put some checks in place to make sure that we have data in our response:
-
-```lua
-handlers = {
-  response = {
-    parse_chat = function(self, args)
-      local output = {}
-
-      if args.data and args.data ~= "" then
-        local data = utils.clean_streamed_data(args.data)
-        local ok, json = pcall(vim.json.decode, data, { luanil = { object = true } })
-
-        local delta = json.choices[1].delta
-
-        if delta.content then
-          output.content = delta.content
-          output.role = delta.role or nil
-
-          return {
-            status = "success",
-            output = output,
-          }
-        end
-      end
-    end,
-  },
-}
-```
-
-### `response.parse_meta`
-
-Some OpenAI-compatible API providers like deepseek, Gemini and OpenRouter implement a superset of the standard specification, and provide reasoning tokens/summaries within their response.
-The non-standard fields in the [`message` (non-streaming)](https://platform.openai.com/docs/api-reference/chat/object#chat-object-choices-message) or [`delta` (streaming)](https://platform.openai.com/docs/api-reference/chat-streaming/streaming#chat_streaming-streaming-choices-delta) object are captured by the OpenAI adapter and can be used to extract the reasoning.
-
-For example, the DeepSeek API provides the reasoning tokens in the `delta.reasoning_content` field.
-We can therefore use the following `parse_meta` handler to extract the reasoning tokens and put them into the appropriate output fields:
-
-```lua
-handlers = {
-  response = {
-    ---@param self CodeCompanion.HTTPAdapter
-    --- `args.data` is the output of the `parse_chat` handler
-    ---@param args { data: {status: string, output: {role: string?, content: string?}, extra: table} }
-    ---@return {status: string, output: {role: string?, content: string?, reasoning:{content: string?}?}}
-    parse_meta = function(self, args)
-      local data = args.data
-      local extra = data.extra
-      if extra.reasoning_content then
-        -- codecompanion expect the reasoning tokens in this format
-        data.output.reasoning = { content = extra.reasoning_content }
-        -- so that codecompanion doesn't mistake this as a normal response with empty string as the content
-        if data.output.content == "" then
-          data.output.content = nil
-        end
-      end
-      return data
-    end
-  }
-}
-```
-
-Notes:
-
-1. You don't always have to set `data.output.content` to `nil`. This is mostly intended for `streaming`, and you may encounter issues in non-stream mode if you do that.
-2. It's expected that the processed `data` table is returned at the end.
-3. For adapters that are using the legacy flat handler formats, this handler should be named `handlers.parse_message_meta` and takes `data` as a positional argument.
-
-### `request.build_parameters`
-
-For the purposes of the OpenAI adapter, no additional parameters need to be created. So we just pass this through:
+OpenAI needs no extra parameters, so this returns them unchanged:
 
 ```lua
 handlers = {
@@ -429,70 +225,122 @@ handlers = {
 }
 ```
 
-### `response.parse_inline`
+### `parse_chat`
 
-From a design perspective, the inline interaction is very similar to the chat interaction. With the `parse_inline` handler we simply return the content we wish to be streamed into the buffer.
+A streamed response arrives in chunks, and CodeCompanion calls `parse_chat` with each one in `args.data`:
 
-In the case of OpenAI, once we've checked the data we have back from the LLM and parsed it as JSON, we simply need to:
+```txt
+data: {"id":"chatcmpl-90DdmqMKOKpqFemxX0OhTVdH042gu","object":"chat.completion.chunk","created":1709839462,"model":"gpt-4.1","choices":[{"index":0,"delta":{"role":"assistant","content":""},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-90DdmqMKOKpqFemxX0OhTVdH042gu","object":"chat.completion.chunk","created":1709839462,"model":"gpt-4.1","choices":[{"index":0,"delta":{"content":"Programming"},"finish_reason":null}]}
+
+data: [DONE]
+```
+
+Each chunk is prefixed with `data: `, so it isn't valid JSON. `adapter_utils.clean_streamed_data` strips the prefix, and `luanil = { object = true }` keeps `null` values as `nil`:
 
 ```lua
----Output the data from the API ready for inlining into the current buffer
----@param self CodeCompanion.HTTPAdapter
----@param args { data: table, context: table }
----@return string|table|nil
 handlers = {
   response = {
-    parse_inline = function(self, args)
-      -- Data cleansed, parsed and validated
-      -- ..
-      local content = json.choices[1].delta.content
-      if content then
-        return content
+    parse_chat = function(self, args)
+      if not args.data or args.data == "" then
+        return nil
       end
+
+      local data = adapter_utils.clean_streamed_data(args.data)
+      local ok, json = pcall(vim.json.decode, data, { luanil = { object = true } })
+      if not ok or not json.choices or #json.choices == 0 then
+        return nil
+      end
+
+      local delta = json.choices[1].delta
+      return {
+        status = "success",
+        output = {
+          role = delta.role,
+          content = delta.content,
+        },
+      }
     end,
   },
 }
 ```
 
-The `parse_inline` handler also receives `args.context` from the buffer that initiated the request.
+**`parse_chat` must return a table with `status` and `output`**. Return `nil` for anything it can't parse, such as `[DONE]` or an error, and leave errors to `on_exit`.
 
-### `lifecycle.on_exit`
+To show reasoning, add `output.reasoning = { content = "..." }`.
 
-Handling errors from a streaming endpoint can be challenging. It's recommended that any errors are managed in the `on_exit` handler which is initiated when the response has completed. In the case of OpenAI, if there is an error, we'll see a response back from the API like:
+### `parse_meta`
 
-```sh
-data: {
-data:     "error": {
-data:         "message": "Incorrect API key provided: 1sk-F18b****************************************XdwS. You can find your API key at https://platform.openai.com/account/api-keys.",
-data:         "type": "invalid_request_error",
-data:         "param": null,
-data:         "code": "invalid_api_key"
-data:     }
-data: }
-```
+Some OpenAI-compatible providers, such as DeepSeek and OpenRouter, add non-standard fields to the [`message`](https://platform.openai.com/docs/api-reference/chat/object#chat-object-choices-message) or [`delta`](https://platform.openai.com/docs/api-reference/chat-streaming/streaming#chat_streaming-streaming-choices-delta) object. The OpenAI-based adapters return these in an `extra` table from `parse_chat`, and `parse_meta` is called whenever `extra` is present.
 
-This would be challenging to parse! Thankfully we can leverage the `on_exit` handler which receives the final payload, resembling:
+DeepSeek streams its reasoning in `delta.reasoning_content`. To move it into the reasoning output:
 
 ```lua
-{
-  body = '{\n    "error": {\n        "message": "Incorrect API key provided: 1sk-F18b****************************************XdwS. You can find your API key at https://platform.openai.com/account/api-keys.",\n        "type": "invalid_request_error",\n        "param": null,\n        "code": "invalid_api_key"\n    }\n}',
-  exit = 0,
-  headers = { "date: Thu, 03 Oct 2024 08:05:32 GMT" },
-  status = 401
+handlers = {
+  response = {
+    parse_meta = function(self, args)
+      local data = args.data
+      if data.extra.reasoning_content then
+        data.output.reasoning = { content = data.extra.reasoning_content }
+        -- An empty string is treated as a normal response
+        if data.output.content == "" then
+          data.output.content = nil
+        end
+      end
+      return data
+    end,
+  },
 }
 ```
 
-and that's much easier to work with:
+Always return `data`. Setting `output.content` to `nil` is only needed when streaming and can cause problems without it.
+
+### `parse_inline`
+
+The inline interaction doesn't stream, so `args.data` is the whole response, with the JSON in `args.data.body`. Return the text to write into the buffer:
 
 ```lua
----Function to run when the request has completed. Useful to catch errors
----@param self CodeCompanion.HTTPAdapter
----@param args { data: table }
----@return nil
+handlers = {
+  response = {
+    parse_inline = function(self, args)
+      if not args.data or args.data == "" then
+        return nil
+      end
+
+      local ok, json = pcall(vim.json.decode, args.data.body, { luanil = { object = true } })
+      if not ok then
+        return { status = "error", output = json }
+      end
+
+      return { status = "success", output = json.choices[1].message.content }
+    end,
+  },
+}
+```
+
+`args.context` holds details of the buffer that started the request.
+
+### `on_exit`
+
+Errors from a streaming endpoint are hard to parse, as they arrive across several `data:` lines. `on_exit` receives the final response instead:
+
+```lua
+{
+  body = '{\n    "error": {\n        "message": "Incorrect API key provided: sk-F18b****XdwS.",\n        "type": "invalid_request_error",\n        "param": null,\n        "code": "invalid_api_key"\n    }\n}',
+  exit = 0,
+  headers = { "date: Thu, 03 Oct 2024 08:05:32 GMT" },
+  status = 401,
+}
+```
+
+That's easier to work with:
+
+```lua
 handlers = {
   lifecycle = {
     on_exit = function(self, args)
-      if args.data.status >= 400 then
+      if args.data and args.data.status >= 400 then
         log:error("Error: %s", args.data.body)
       end
     end,
@@ -500,46 +348,87 @@ handlers = {
 }
 ```
 
-The `log:error` call ensures that any errors are logged to the logfile as well as displayed to the user in Neovim. It's also important to reference that the `parse_chat` and `parse_inline` handlers need to be able to ignore any errors from the API and let `on_exit` handle them.
+`log:error` writes to the log file and notifies the user.
 
-### `lifecycle.setup` and `lifecycle.teardown`
+### `setup` and `teardown`
 
-The `setup` handler will execute before the request is sent to the LLM's endpoint and before the environment variables have been set. This is leveraged in the Copilot adapter to obtain the token before it's resolved as part of the environment variables table. The `setup` handler **must** return a boolean value so the `http.lua` file can determine whether to proceed with the request.
-
-The `teardown` handler will execute once the request has completed and after `on_exit`.
-
-Example:
+`setup` runs before environment variables are resolved, which is why the Copilot adapter uses it to fetch a token. It runs on a copy of the adapter made for each request, so changes don't carry over to the next one:
 
 ```lua
 handlers = {
   lifecycle = {
     setup = function(self)
-      -- Perform initialization
-      return true  -- Must return boolean
+      if self.opts.stream then
+        self.parameters.stream = true
+      end
+      return true
     end,
+    teardown = function(self) end,
+  },
+}
+```
 
-    teardown = function(self)
-      -- Clean up resources
+### Utilities
+
+Many "OpenAI compatible" endpoints have quirks:
+
+- System messages must come first (`anthropic`, `deepseek`)
+- System messages must be a single message (`anthropic`, `deepseek`)
+- Messages must alternate between user and LLM (`deepseek`)
+
+The [adapter utilities](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/adapters/utils/init.lua), such as `merge_system_messages` and `merge_messages`, handle these. The built-in adapters are the best reference for how to use them.
+
+## Tools
+
+To support [function calling](https://platform.openai.com/docs/guides/function-calling?api-mode=chat), set `opts.tools = true` and have `parse_chat` write tool calls into `args.tools`. Then add:
+
+- **`build_tools`** - converts CodeCompanion's tool schemas into the LLM's format
+- **`format_calls`** - [formats](https://platform.openai.com/docs/guides/function-calling?api-mode=chat#handling-function-calls) the LLM's tool calls for the next request
+- **`format_response`** - formats a tool's output as a message for the chat buffer's message history
+
+```lua
+handlers = {
+  request = {
+    build_tools = function(self, args)
+      if not self.opts.tools or not args.tools then
+        return nil
+      end
+
+      local transformed = {}
+      for _, tool in pairs(args.tools) do
+        for _, schema in pairs(tool) do
+          table.insert(transformed, schema)
+        end
+      end
+      return { tools = transformed }
+    end,
+  },
+  tools = {
+    format_calls = function(self, args)
+      return args.tools
+    end,
+    format_response = function(self, args)
+      return {
+        role = self.roles.tool or "tool",
+        tools = {
+          call_id = adapter_utils.pairing_id(args.tool_call),
+          name = args.tool_call["function"].name,
+        },
+        content = args.output,
+        opts = { visible = false },
+      }
     end,
   },
 }
 ```
 
-### The Utility File
-
-A lot of LLM endpoints claim to be "OpenAI Compatible" yet have odd quirks which prevent you from using the OpenAI Adapter. Common issues can be:
-
-- System messages have to be the first message (`anthropic`, `deepseek`)
-- System messages have to be one message (`anthropic`, `deepseek`)
-- Messages must follow a `User -> LLM -> User -> LLM` turn based flow (`deepseek`)
-
-To address this, an [adapter utilities](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/adapters/utils/init.lua) file has been created that you can leverage in building or extending your own adapters. Finally, always refer to the pre-built adapters as a reference point.
+Many LLMs claim to follow OpenAI's function calling standard but still need adjustments to work.
 
 ## Schema
 
-The schema table describes the settings/parameters for the LLM. If the user has `display.chat.show_settings = true` then this table will be exposed at the top of the chat buffer.
+The `schema` table describes the LLM's settings. With `display.chat.show_settings = true`, they appear at the top of the chat buffer for the user to edit.
 
-We'll explore some of the options in the Copilot adapter's schema table:
+From the `openai_legacy` adapter:
 
 ```lua
 schema = {
@@ -548,25 +437,39 @@ schema = {
     mapping = "parameters",
     type = "enum",
     desc = "ID of the model to use. See the model endpoint compatibility table for details on which models work with the Chat API.",
-    ---@type string|fun(): string
-    default = "gpt-4o-2024-08-06",
+    default = "gpt-4.1",
     choices = {
-      ["o3-mini-2025-01-31"] = { opts = { can_reason = true } },
-      ["o1-2024-12-17"] = { opts = { can_reason = true } },
-      ["o1-mini-2024-09-12"] = { opts = { can_reason = true } },
-      "claude-3.5-sonnet",
-      "claude-3.7-sonnet",
-      "claude-3.7-sonnet-thought",
-      "gpt-4o-2024-08-06",
-      "gemini-2.0-flash-001",
+      ["gpt-4.1"] = {
+        formatted_name = "GPT 4.1",
+        meta = { context_window = 1047576 },
+        opts = { has_vision = true, can_form_structured_outputs = true },
+      },
+      ["o3-mini-2025-01-31"] = {
+        formatted_name = "o3 Mini",
+        opts = { can_reason = true, can_form_structured_outputs = true },
+      },
+      "gpt-4",
+      "gpt-3.5-turbo",
     },
   },
-}
+},
 ```
 
-The model key sets out the specific model which is to be used to interact with the Copilot endpoint. We've listed the default, in this example, as `gpt-4o-2024-08-06` but we allow the user to choose from a possible five options, via the `choices` key. We've given this an order value of `1` so that it's always displayed at the top of the chat buffer. We've also given it a useful description as this is used in the virtual text when a user hovers over it. Finally, we've specified that it has a mapping property of `parameters`. This tells the adapter that we wish to map this model key to the parameters part of the HTTP request. You'll also notice that some of the models have a table attached to them. This can be useful if you need to do conditional logic in any of the handler methods at runtime.
+| Key | Description |
+| --- | --- |
+| `order` | Position in the chat buffer's settings |
+| `mapping` | Where in the adapter the value goes, such as `parameters` |
+| `type` | One of `string`, `number`, `integer`, `boolean`, `enum`, `list` or `map` |
+| `desc` | Shown as virtual text when the cursor is on the setting |
+| `default` | The default value, or a function that receives the adapter |
+| `choices` | The allowed values for an `enum`, or a function that returns them |
+| `optional` | Allow the value to be `nil` |
+| `enabled` | A function that receives the adapter and returns whether the setting applies |
+| `validate` | A function that returns whether the value is valid, and an error message if not |
 
-Let's take a look at one more schema value:
+A choice can be a plain string, or a table with a `formatted_name`, `meta` and `opts` for your handlers to read at runtime.
+
+A setting can depend on the model:
 
 ```lua
 temperature = {
@@ -574,25 +477,23 @@ temperature = {
   mapping = "parameters",
   type = "number",
   default = 0,
-  ---@param self CodeCompanion.HTTPAdapter
   enabled = function(self)
-    local model = self.schema.model.default
-    if type(model) == "function" then
-      model = model()
-    end
-    return not vim.startswith(model, "o1")
+    local model = require("codecompanion.adapters.utils").resolve_model(self)
+    return model ~= nil and not vim.startswith(model, "o1")
   end,
-  -- This isn't in the Copilot adapter but it's useful to reference!
   validate = function(n)
     return n >= 0 and n <= 2, "Must be between 0 and 2"
   end,
-  desc = "What sampling temperature to use, between 0 and 2. Higher values like 0.8 will make the output more random, while lower values like 0.2 will make it more focused and deterministic. We generally recommend altering this or top_p but not both.",
+  desc = "What sampling temperature to use, between 0 and 2.",
 },
 ```
 
-You'll see we've specified a function call for the `enabled` key. We're simply checking that the model name doesn't start with `o1` as these models don't accept temperature as a parameter. You'll also see we've specified a function call for the `validate` key. We're simply checking that the value of the temperature is between 0 and 2.
+`o1` models don't accept a temperature, so `enabled` leaves it out of their requests.
 
-For some endpoints, like OpenAI's [Responses API](https://platform.openai.com/docs/api-reference/responses/create?api-mode=responses), schema values may need to be nested in the parameters:
+> [!IMPORTANT]
+> `schema.model.default` can be a function. Use `resolve_model` from `codecompanion.adapters.utils` to read it as a string
+
+Some APIs, such as OpenAI's [Responses API](https://platform.openai.com/docs/api-reference/responses/create?api-mode=responses), nest parameters:
 
 ```bash
 curl https://api.openai.com/v1/responses \
@@ -607,7 +508,7 @@ curl https://api.openai.com/v1/responses \
   }'
 ```
 
-To accomplish this, you can use dot notation:
+Use dot notation in the key to nest the value:
 
 ```lua
 ["reasoning.effort"] = {
@@ -617,57 +518,26 @@ To accomplish this, you can use dot notation:
 },
 ```
 
-## Function Calling / Tool Use
+## Legacy Handlers
 
-In order to enable your adapter to make use of [Function Calling](https://platform.openai.com/docs/guides/function-calling?api-mode=chat), you need to setup some additional handlers:
+Adapters written with the older flat handlers still work, and their handlers still take positional arguments. CodeCompanion detects the format and maps the old names to the new ones. From v20.0.0, the new handlers take a single `args` table.
 
-- `request.build_tools` - which transforms the tools provided by CodeCompanion into a schema supported by the adapter
-- `tools.format_calls` - which [formats](https://platform.openai.com/docs/guides/function-calling?api-mode=chat#handling-function-calls) the adapters tool calls and puts them into the http request
-- `tools.format_response` - which formats and outputs the adapter's tool call so it can be included in the chat buffer's messages stack
+| Old | New |
+| --- | --- |
+| `setup`, `on_exit`, `teardown` | `lifecycle.setup`, `lifecycle.on_exit`, `lifecycle.teardown` |
+| `form_parameters`, `form_messages`, `form_tools` | `request.build_parameters`, `request.build_messages`, `request.build_tools` |
+| `form_structured_output`, `form_reasoning`, `set_body` | `request.build_structured_output`, `request.build_reasoning`, `request.build_body` |
+| `chat_output`, `inline_output`, `tokens` | `response.parse_chat`, `response.parse_inline`, `response.parse_tokens` |
+| `parse_message_meta` | `response.parse_meta` |
+| `tools.format_tool_calls`, `tools.output_response` | `tools.format_calls`, `tools.format_response` |
 
-You will also need to ensure that `opts.tools = true` and the `parse_chat` handler writes any tool calls into `args.tools`. From experience, whilst many LLMs claim to support the OpenAI API standard for function calling, they can require some additional configuration to work as expected.
+**An adapter is treated as the new format if it has a `lifecycle`, `request` or `response` table**, so don't mix the two.
 
-Example:
+To migrate, move each handler into its group and read its arguments from `args`:
 
-```lua
-handlers = {
-  request = {
-    build_tools = function(self, args)
-      if not self.opts.tools or not args.tools then
-        return
-      end
-      -- Transform tools into LLM's expected format
-      return { tools = transformed_tools }
-    end,
-  },
+::: code-group
 
-  tools = {
-    format_calls = function(self, args)
-      -- Format args.tools for the request
-      return formatted_calls
-    end,
-
-    format_response = function(self, args)
-      -- Format tool response for LLM
-      return {
-        role = self.roles.tool or "tool",
-        tools = {
-          call_id = args.tool_call.id,
-        },
-        content = args.output,
-        opts = { visible = false },
-      }
-    end,
-  },
-}
-```
-
-## Migrating from Old Handler Format
-
-If you have an existing adapter using the old flat handler structure, it will continue to work without changes. However, to migrate to the new nested structure for better organization:
-
-**Old format:**
-```lua
+```lua [Old]
 handlers = {
   setup = function(self) end,
   form_parameters = function(self, params, messages) end,
@@ -683,8 +553,7 @@ handlers = {
 }
 ```
 
-**New format:**
-```lua
+```lua [New]
 handlers = {
   lifecycle = {
     setup = function(self) end,
@@ -705,3 +574,5 @@ handlers = {
   },
 }
 ```
+
+:::

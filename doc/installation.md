@@ -1,28 +1,33 @@
 ---
-description: "Install CodeCompanion.nvim with lazy.nvim or packer. Covers dependencies, Neovim 0.11+ requirements, optional integrations like nvim-cmp, and API key setup."
+description: "Install CodeCompanion.nvim and its dependencies, then add extensions and the plugins it works with."
 ---
 
 # Installation
 
 > [!IMPORTANT]
-> To avoid breaking changes, it is recommended to pin the plugin to a specific release when installing.
+> Pin the plugin to a release to avoid breaking changes
 
 ## Requirements
 
-- The `curl` library
-- Neovim 0.12.0 or greater
+- Neovim 0.12 or later
+- [curl](https://curl.se)
+- [plenary.nvim](https://github.com/nvim-lua/plenary.nvim)
 - _(Optional)_ An API key for your chosen LLM
-- _(Optional)_ [nvim-treesitter](https://github.com/nvim-treesitter/nvim-treesitter) and a `yaml` parser for markdown prompt library items
-- _(Optional)_ The [file](https://man7.org/linux/man-pages/man1/file.1.html) command for detecting image mimetype
-- _(Optional)_ The [ripgrep](https://github.com/BurntSushi/ripgrep) library for the `grep_search` tool
+- _(Optional)_ A Tree-sitter `yaml` parser, for markdown prompts in the [prompt library](/configuration/prompt-library) and [skills](/usage/chat-buffer/skills)
+- _(Optional)_ The [file](https://man7.org/linux/man-pages/man1/file.1.html) command, to detect the mimetype of images
+- _(Optional)_ [ripgrep](https://github.com/BurntSushi/ripgrep), for the [grep_search](/usage/chat-buffer/agents-tools#grep-search) tool
+- _(Optional)_ [MarkItDown](https://github.com/microsoft/markitdown), to fetch webpages with the default adapter
+- _(Optional)_ `sqlite3`, to read Copilot tokens from a SQLite database
 
-You can run `:checkhealth codecompanion` to verify that all requirements are met.
+To check them:
 
-## Installation
+```
+:checkhealth codecompanion
+```
 
-The plugin can be installed with the plugin manager of your choice. It is recommended to pin the plugin to a specific release to avoid breaking changes.
+## Installing
 
-[nvim-treesitter](https://github.com/nvim-treesitter/nvim-treesitter) is required if you plan to use markdown prompts in the [prompt library](/configuration/prompt-library), ensuring you have the `yaml` parser installed.
+[nvim-treesitter](https://github.com/nvim-treesitter/nvim-treesitter) is the easiest way to install the `yaml` parser:
 
 ::: code-group
 
@@ -66,13 +71,12 @@ use({
 
 :::
 
-**Plenary.nvim note:**
-
-As per [#377](https://github.com/olimorris/codecompanion.nvim/issues/377), if you pin your plugins to the latest releases, ensure you set plenary.nvim to follow the master branch
+> [!WARNING]
+> If you pin your plugins to their latest releases, keep plenary.nvim on its master branch. See [#377](https://github.com/olimorris/codecompanion.nvim/issues/377)
 
 ## Extensions
 
-CodeCompanion supports extensions that add additional functionality to the plugin. Below is an example which installs and configures [mcphub.nvim](https://github.com/ravitemer/mcphub.nvim):
+Extensions add features to CodeCompanion. To install and configure [mcphub.nvim](https://github.com/ravitemer/mcphub.nvim):
 
 ::: code-group
 
@@ -103,11 +107,15 @@ require("codecompanion").setup({
 
 :::
 
-Visit the [extensions documentation](extending/extensions) to learn more about available extensions and how to create your own.
+See [Extending with Extensions](/extending/extensions) for the extensions available and how to write your own.
 
 ## Other Plugins
 
-CodeCompanion integrates with a number of other plugins to make your AI coding experience more enjoyable. Below are some common lazy.nvim configurations for popular plugins:
+These plugins work well with CodeCompanion. The examples use lazy.nvim.
+
+### Rendering Markdown
+
+[render-markdown.nvim](https://github.com/MeanderingProgrammer/render-markdown.nvim) and [markview.nvim](https://github.com/OXY2DEV/markview.nvim) render the markdown in the chat buffer:
 
 ::: code-group
 
@@ -131,7 +139,13 @@ CodeCompanion integrates with a number of other plugins to make your AI coding e
 },
 ```
 
-```lua [img-clip.nvim]
+:::
+
+### img-clip.nvim
+
+[img-clip.nvim](https://github.com/hakonharnes/img-clip.nvim) pastes images from your clipboard into the chat buffer with `:PasteImage`:
+
+```lua
 {
   "HakonHarnes/img-clip.nvim",
   opts = {
@@ -146,13 +160,9 @@ CodeCompanion integrates with a number of other plugins to make your AI coding e
 },
 ```
 
-:::
-
-Use [render-markdown.nvim](https://github.com/MeanderingProgrammer/render-markdown.nvim) or [markview.nvim](https://github.com/OXY2DEV/markview.nvim) to render the markdown in the chat buffer.  Use [img-clip.nvim](https://github.com/hakonharnes/img-clip.nvim) to copy images from your system clipboard into a chat buffer via `:PasteImage`:
-
 ## Completion
 
-When in the [chat buffer](/usage/chat-buffer/), completion can be used to more easily add [editor context](/usage/chat-buffer/editor-context), [slash commands](/usage/chat-buffer/slash-commands) and [tools](/usage/chat-buffer/agents-tools). Out of the box, the plugin supports completion with both [nvim-cmp](https://github.com/hrsh7th/nvim-cmp) and [blink.cmp](https://github.com/Saghen/blink.cmp). For the latter, on version <= 0.10.0, ensure that you've added `codecompanion` as a source:
+Completion in the [chat buffer](/usage/chat-buffer/#completion) works with [blink.cmp](https://github.com/Saghen/blink.cmp), [nvim-cmp](https://github.com/hrsh7th/nvim-cmp) and [coc.nvim](https://github.com/neoclide/coc.nvim), or with Neovim's native completion. On blink.cmp 0.10.0 or earlier, add `codecompanion` as a source:
 
 ```lua
 sources = {
@@ -162,8 +172,6 @@ sources = {
 },
 ```
 
-The plugin also supports [native completion](/usage/chat-buffer/#completion) and [coc.nvim](https://github.com/neoclide/coc.nvim).
-
 ## Help
 
-Consider using the [minimal.lua](https://github.com/olimorris/codecompanion.nvim/blob/main/minimal.lua) file to troubleshoot, running it with `nvim --clean -u minimal.lua`.
+If something isn't working, see [Troubleshooting](/troubleshooting).

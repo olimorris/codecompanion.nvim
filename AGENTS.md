@@ -7,7 +7,7 @@ This is a Neovim plugin written in Lua, which allows developers to code with LLM
 - `make format` - StyLua (120 cols, 2 spaces). Run before committing.
 - `make test` - full test suite (Mini.Test)
 - `make test_file FILE=path` - targeted tests
-- `make docs` - regenerate vimdoc. Run this after changing any docs pages. Read `VOICE.md` before editing anything in `doc/`
+- `make docs` - regenerate vimdoc. Run this after changing any docs pages. Read `.codecompanion/skills/writing-docs/SKILL.md` before editing anything in `doc/`
 
 ## Code conventions
 
@@ -38,7 +38,7 @@ Core: `lua/codecompanion/`
 - **Harness:** for HTTP adapters, CodeCompanion is the harness - system prompt, tools, approvals, context management and the agent loop. ACP adapters bring their own harness, which is why the built-in tools are HTTP-only
 - **Agent loop** (`interactions/chat/agent_loop.lua`): response → run tools (`tools/orchestrator.lua`) → send output back, repeating until the LLM responds without a tool call. Stop and Cancel end the loop; Reject sends the rejection to the LLM and the loop carries on
 - **Tools** (`interactions/chat/tools/builtin/`): `ask_questions`, `run_command`, `read_file`, `create_file`, `delete_file`, `edit_file/`, `grep_search`, `file_search`, `web_search`, `fetch_webpage`, `memory`, `get_changed_files`, `get_diagnostics`, `cmd_tool` (factory for custom command tools)
-- **Slash Commands** (`interactions/chat/slash_commands/builtin/`): `/buffer`, `/command`, `/compact`, `/fetch`, `/file`, `/file-from-url`, `/help`, `/mcp`, `/mode`, `/now`, `/rules`, `/symbols`
+- **Slash Commands** (`interactions/chat/slash_commands/builtin/`): `/acp_session_options`, `/buffer`, `/command`, `/compact`, `/fetch`, `/file`, `/file-from-url`, `/fork`, `/help`, `/mcp`, `/mcp-prompts`, `/now`, `/rename`, `/resume`, `/rules`, `/save`, `/share`, `/skills`, `/skills-group`, `/symbols`
 - **Editor Context** (`interactions/chat/editor_context/`): `buffer`, `buffers`, `diagnostics`, `diff`, `messages`, `quickfix`, `selection`, `terminal`, `viewport`
 - **Config:** `config.lua` - tool groups (`agent`, `files`), adapter defaults, all settings
 - **Entry point:** `plugin/codecompanion.lua` → `lua/codecompanion/init.lua`

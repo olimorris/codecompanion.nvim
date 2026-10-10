@@ -18,8 +18,8 @@
       "scope": ["tests/**"]
     },
     {
-      "path": "VOICE.md",
-      "description": "How the docs are written: tone, page structure, code-first lead-ins, tables and callouts. Cite the relevant section when raising a docs comment.",
+      "path": ".codecompanion/skills/writing-docs/SKILL.md",
+      "description": "How the docs are written: tone, page structure, code-first lead-ins, tables, callouts, punctuation and numbers. Cite the relevant section when raising a docs comment.",
       "scope": ["doc/**"]
     }
   ]
