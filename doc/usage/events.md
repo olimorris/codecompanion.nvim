@@ -1,77 +1,34 @@
 ---
-description: "Reference for all CodeCompanion events and hooks — integrate with Neovim's autocmd system to react to chat, inline, CLI, and tool lifecycle events."
+description: "Every event CodeCompanion fires, and how to hook into them from your Neovim config."
 ---
 
-# Events / Hooks
+# Events
 
-In order to enable a tighter integration between CodeCompanion and your Neovim config, the plugin fires events at various points during its lifecycle.
+CodeCompanion fires `User` autocmds at points in its lifecycle, so your config can react to a chat opening, a request finishing or a file being edited.
 
-## List of Events
+For hooks that can change a chat's state, such as `on_before_submit` and `on_tool_output`, see [Callbacks](/configuration/callbacks).
 
-The events that are fired from within the plugin are:
+## Consuming an Event
 
-- `CodeCompanionACPConnected` - Fired after the ACP connection is authenticated and ready to use
-- `CodeCompanionACPSessionPre` - Fired after ACP authentication completes but before a new session is established; allows subscribers to modify the connection (e.g. inject MCP servers) synchronously
-- `CodeCompanionACPSessionPost` - Fired after a new ACP session has been established
-- `CodeCompanionChatACPModeChanged` - Fired after the ACP mode has been changed in the chat
-- `CodeCompanionACPChatRestored` - Fired after an ACP session has been restored
-- `CodeCompanionChatCreated` - Fired after a chat has been created for the first time
-- `CodeCompanionChatOpened` - Fired after a chat has been opened
-- `CodeCompanionChatClosed` - Fired after a chat has been permanently closed
-- `CodeCompanionChatHidden` - Fired after a chat has been hidden
-- `CodeCompanionChatSubmitted` - Fired after a chat has been submitted
-- `CodeCompanionChatDone` - Fired after a chat has received the response
-- `CodeCompanionChatCompacting` - Fired after the chat begins compacting messages to reduce token usage
-- `CodeCompanionChatStopped` - Fired after a chat has been stopped
-- `CodeCompanionChatCleared` - Fired after a chat has been cleared
-- `CodeCompanionChatRestored` - Fired after a chat has been restored to an editable state (e.g. when `on_before_submit` prevents submission)
-- `CodeCompanionChatAdapter` - Fired after the adapter has been set in the chat
-- `CodeCompanionChatModel` - Fired after the model has been set in the chat
-- `CodeCompanionChatSessionSaved` - Fired after a chat has been saved to disk as a session, with `slug` in the data payload
-- `CodeCompanionChatSessionRestored` - Fired after a session has been restored from disk, with `stem` in the data payload
-- `CodeCompanionChatSessionsChanged` - Fired after a session has been written or deleted, so the list on disk has moved on
-- `CodeCompanionCLICreated` - Fired after a CLI buffer has been created for the first time
-- `CodeCompanionCLIOpened` - Fired after a CLI buffer has been opened
-- `CodeCompanionCLIClosed` - Fired after a CLI buffer has been closed
-- `CodeCompanionCLIHidden` - Fired after a CLI buffer has been hidden
-- `CodeCompanionCLISent` - Fired after data has been sent to a CLI buffer
-- `CodeCompanionCLISubmitted` - Fired when a CLI agent accepts a prompt, however it was typed. Requires [agent hooks](/configuration/cli#hooks)
-- `CodeCompanionCLIDone` - Fired when a CLI agent finishes a turn. Requires [agent hooks](/configuration/cli#hooks)
-- `CodeCompanionCLIApprovalRequested` - Fired when a CLI agent is waiting on the user, with a `message` in the data payload. Requires [agent hooks](/configuration/cli#hooks)
-- `CodeCompanionCLIApprovalFinished` - Fired when a CLI agent resumes after waiting. Requires [agent hooks](/configuration/cli#hooks)
-- `CodeCompanionContextChanged` - Fired when the context that a chat buffer follows, changes
-- `CodeCompanionFileEdited` - Fired after the LLM has edited or created a file; the data payload includes the `path` and what made the change (`tool`)
-- `CodeCompanionInlineStarted` - Fired at the start of the Inline interaction
-- `CodeCompanionInlineFinished` - Fired at the end of the Inline interaction
-- `CodeCompanionMCPServerStart` - Fired when an MCP server is started
-- `CodeCompanionMCPServerReady` - Fired when an MCP server is ready for requests
-- `CodeCompanionMCPServerClosed` - Fired when an MCP server is closed
-- `CodeCompanionMCPServerToolsLoaded` - Fired when tools are loaded for an MCP server
-- `CodeCompanionRequestStarted` - Fired at the start of any API request, and at the start of a CLI agent's turn when [hooks](/configuration/cli#hooks) are wired up
-- `CodeCompanionRequestStreaming` - Fired at the start of a streaming API request
-- `CodeCompanionRequestFinished` - Fired at the end of any API request, and at the end of a CLI agent's turn when [hooks](/configuration/cli#hooks) are wired up
-- `CodeCompanionToolAdded` - Fired when a tool has been added to a chat
-- `CodeCompanionToolApprovalRequested` - Fired when a tool is requesting approval to run
-- `CodeCompanionToolApprovalFinished` - Fired when a user has actioned an approval request
-- `CodeCompanionToolQuestionAsked` - Fired when a tool asks the user a question
-- `CodeCompanionToolQuestionAnswered` - Fired when a user has answered or skipped a question
-- `CodeCompanionToolStarted` - Fired when a tool has started executing
-- `CodeCompanionToolFinished` - Fired when a tool has finished executing
-- `CodeCompanionToolsStarted` - Fired when the tool system has been initiated
-- `CodeCompanionToolsFinished` - Fired when the tool system has finished running all tools, or when they have been stopped or cancelled
-- `CodeCompanionToolsJudgeStarted` - Fired when the background judge begins vetting a tool call
-- `CodeCompanionToolsJudgeFinished` - Fired when the background judge returns its verdict
+To format a buffer once an inline request finishes:
 
+```lua
+local group = vim.api.nvim_create_augroup("CodeCompanionHooks", {})
 
-In addition to these events, the chat buffer has its own **callback system** for hooking into lifecycle events like `on_before_submit`, `on_checkpoint` and `on_tool_output`. These callbacks receive the chat instance and can inspect or mutate chat state. See the [callbacks](/configuration/callbacks) section for details.
-
-There are also events that can be utilized to trigger commands from within the plugin:
-
-- `CodeCompanionChatRefreshCache` - Used to refresh conditional elements in the chat buffer
+vim.api.nvim_create_autocmd({ "User" }, {
+  pattern = "CodeCompanionInline*",
+  group = group,
+  callback = function(request)
+    if request.match == "CodeCompanionInlineFinished" then
+      require("conform").format({ bufnr = request.buf })
+    end
+  end,
+})
+```
 
 ## Event Data
 
-Each event also comes with a data payload. For example, with `CodeCompanionRequestStarted`:
+Each event carries a `data` payload. For `CodeCompanionRequestStarted`:
 
 ```lua
 {
@@ -94,31 +51,110 @@ Each event also comes with a data payload. For example, with `CodeCompanionReque
 }
 ```
 
-And the `CodeCompanionRequestFinished` also has a `data.status` value.
+`CodeCompanionRequestFinished` adds a `status`, such as `"success"`, `"error"` or `"cancelled"`.
 
-## Consuming an Event
+## Triggering an Event
 
-Events can be hooked into as follows:
-
-```lua
-local group = vim.api.nvim_create_augroup("CodeCompanionHooks", {})
-
-vim.api.nvim_create_autocmd({ "User" }, {
-  pattern = "CodeCompanionInline*",
-  group = group,
-  callback = function(request)
-    if request.match == "CodeCompanionInlineFinished" then
-      -- Format the buffer after the inline request has completed
-      require("conform").format({ bufnr = request.buf })
-    end
-  end,
-})
-```
-
-You can trigger an event with:
+To make the chat buffer re-check which tools and slash commands are enabled:
 
 ```lua
 vim.api.nvim_exec_autocmds("User", {
   pattern = "CodeCompanionChatRefreshCache",
 })
 ```
+
+## List of Events
+
+**Chat buffer**
+
+| Event | Fired |
+| --- | --- |
+| `CodeCompanionChatCreated` | After a chat is created for the first time |
+| `CodeCompanionChatOpened` | After a chat is opened |
+| `CodeCompanionChatHidden` | After a chat is hidden |
+| `CodeCompanionChatClosed` | After a chat is closed for good |
+| `CodeCompanionChatSubmitted` | After a message is sent |
+| `CodeCompanionChatDone` | After a response is received |
+| `CodeCompanionChatStopped` | After a request is stopped |
+| `CodeCompanionChatCleared` | After a chat is cleared |
+| `CodeCompanionChatRestored` | After a chat is made editable again, such as when `on_before_submit` blocks a message |
+| `CodeCompanionChatCompacting` | When a chat starts compacting its messages |
+| `CodeCompanionChatAdapter` | After the adapter is set |
+| `CodeCompanionChatModel` | After the model is set |
+| `CodeCompanionChatToolAdded` | After a tool is added, with the `tool` in the payload |
+
+**Sessions**
+
+| Event | Fired |
+| --- | --- |
+| `CodeCompanionChatSessionSaved` | After a chat is saved to disk, with its `slug` in the payload |
+| `CodeCompanionChatSessionRestored` | After a session is restored, with its `stem` in the payload |
+| `CodeCompanionChatSessionsChanged` | After a session is written or deleted |
+
+**ACP**
+
+| Event | Fired |
+| --- | --- |
+| `CodeCompanionACPConnected` | After the connection is authenticated and ready |
+| `CodeCompanionACPSessionPre` | After authentication, before a session starts, so you can change the connection, such as adding MCP servers |
+| `CodeCompanionACPSessionPost` | After a session starts |
+| `CodeCompanionACPChatRestored` | After a session is restored |
+| `CodeCompanionACPCommandsUpdate` | After an agent's commands are loaded, with the `commands` in the payload |
+| `CodeCompanionChatACPConfigChanged` | After an agent's configuration options change, with the `config_options` in the payload |
+
+**CLI**
+
+| Event | Fired |
+| --- | --- |
+| `CodeCompanionCLICreated` | After a CLI buffer is created for the first time |
+| `CodeCompanionCLIOpened` | After a CLI buffer is opened |
+| `CodeCompanionCLIHidden` | After a CLI buffer is hidden |
+| `CodeCompanionCLIClosed` | After a CLI buffer is closed |
+| `CodeCompanionCLISent` | After text is sent to a CLI buffer |
+| `CodeCompanionCLISubmitted` | When the agent accepts a prompt, however it was typed |
+| `CodeCompanionCLIDone` | When the agent finishes a turn |
+| `CodeCompanionCLIApprovalRequested` | When the agent is waiting on you, with a `message` in the payload |
+| `CodeCompanionCLIApprovalFinished` | When the agent resumes after waiting |
+
+The last four need [agent hooks](/configuration/cli#hooks).
+
+**Requests**
+
+| Event | Fired |
+| --- | --- |
+| `CodeCompanionRequestStarted` | At the start of a request, or a CLI agent's turn when [hooks](/configuration/cli#hooks) are set up |
+| `CodeCompanionRequestStreaming` | At the start of a streaming request |
+| `CodeCompanionRequestFinished` | At the end of a request, or a CLI agent's turn when [hooks](/configuration/cli#hooks) are set up |
+| `CodeCompanionInlineStarted` | At the start of an inline request |
+| `CodeCompanionInlineFinished` | At the end of an inline request |
+
+**Tools**
+
+| Event | Fired |
+| --- | --- |
+| `CodeCompanionToolsStarted` | When a batch of tools starts |
+| `CodeCompanionToolsFinished` | When a batch of tools finishes, is stopped or is cancelled |
+| `CodeCompanionToolStarted` | When a tool starts |
+| `CodeCompanionToolFinished` | When a tool finishes |
+| `CodeCompanionToolApprovalRequested` | When a tool asks for approval |
+| `CodeCompanionToolApprovalFinished` | When you approve or reject a tool |
+| `CodeCompanionToolQuestionAsked` | When a tool asks you a question |
+| `CodeCompanionToolQuestionAnswered` | When you answer or skip a question |
+| `CodeCompanionToolsJudgeStarted` | When the [judge](/guides/background-model#tool-judge) starts vetting a tool call |
+| `CodeCompanionToolsJudgeFinished` | When the judge returns its verdict |
+
+**Files and diffs**
+
+| Event | Fired |
+| --- | --- |
+| `CodeCompanionFileEdited` | After a file is edited or created, with the `path` and the `tool` that changed it in the payload |
+| `CodeCompanionDiffHunkChanged` | After moving to the next or previous hunk in a diff |
+
+**MCP**
+
+| Event | Fired |
+| --- | --- |
+| `CodeCompanionMCPServerStart` | When a server starts |
+| `CodeCompanionMCPServerReady` | When a server is ready for requests |
+| `CodeCompanionMCPServerToolsLoaded` | When a server's tools are loaded |
+| `CodeCompanionMCPServerClosed` | When a server closes |

@@ -1,5 +1,5 @@
 ---
-description: "Use CodeCompanion's Action Palette to launch chat buffers, switch between open chats, access the prompt library, and discover plugin features from a single menu."
+description: "Open chats, sessions, prompts and workflows from a single menu in Neovim."
 ---
 
 # Using the Action Palette
@@ -8,25 +8,54 @@ description: "Use CodeCompanion's Action Palette to launch chat buffers, switch 
   <img src="https://github.com/user-attachments/assets/0d427d6d-aa5f-405c-ba14-583830251740" alt="Using the action palette" />
 </p>
 
-The _Action Palette_ has been designed to be your entry point for the many configuration options that CodeCompanion offers. It can be opened with `:CodeCompanionActions`.
+The _Action Palette_ is a single menu for starting chats, switching between them and running prompts from your [prompt library](/usage/prompt-library). To open it:
 
-Once opened, the user can see plugin defined actions such as `Chat` and `Open Chats`. The latter, enabling the user to move between any open chat buffers. These can be turned off in the config by setting `display.action_palette.opts.show_preset_actions = false`.
+```
+:CodeCompanionActions
+```
+
+Opened from a chat buffer, it lists that chat's keymaps and slash commands instead.
+
+## Actions
+
+The palette starts with these actions:
+
+| Action | Description |
+| --- | --- |
+| `Chat` | Open a new chat buffer |
+| `Open chats ...` | Move to any open chat buffer |
+| `Saved sessions ...` | Restore a chat [saved to disk](/configuration/sessions) |
+| `Chat with rules ...` | Open a chat buffer with a [rule group](/usage/chat-buffer/rules) loaded |
+
+To hide them, set `display.action_palette.opts.show_preset_actions = false`.
 
 ## Built-in Prompts
 
-The plugin also defines a number of prompts in the form of the prompt library:
+Below the actions are the prompts that ship with CodeCompanion:
 
-- `Commit message` - Generate a commit message
-- `Explain code` - Explain how code in a buffer works
-- `Explain LSP diagnostics`  - Explain the LSP diagnostics for the selected code
-- `Fix code` - Fix the selected code
-- `Unit tests` - Generate unit tests for selected code
+| Prompt | Alias | Description |
+| --- | --- | --- |
+| `Commit message` | `commit` | Generate a commit message |
+| `Explain code` | `explain` | Explain how code in a buffer works |
+| `Explain LSP diagnostics` | `lsp` | Explain the LSP diagnostics for the selected code |
+| `Fix code` | `fix` | Fix the selected code |
+| `Help with CodeCompanion` | `help` | Answer a question from CodeCompanion's documentation |
+| `Inline prompt` | | Prompt the LLM from inside a Neovim buffer |
+| `Unit tests` | `tests` | Generate unit tests for the selected code |
+| `Code workflow` | | Run the built-in [workflow](/usage/workflows) |
 
-> [!INFO]
-> These can also be called via the cmd line with their `alias`, for example `:CodeCompanion /explain`
+Prompts with an alias can also be run from the command line:
 
-The plugin also contains two built-in workflows, `Code workflow` and `Edit test repeat workflow`. See the [workflows section](/usage/workflows) for more information.
+```
+:CodeCompanion /explain
+```
 
-The built-in prompts can be turned off by setting `display.action_palette.opts.show_preset_prompts = false`.
+To hide the built-in prompts, set `display.action_palette.opts.show_preset_prompts = false`.
 
-You can also refresh the markdown prompts in your prompt library with `:CodeCompanionActions Refresh`
+## Refreshing
+
+The palette caches its items. After editing your prompt library, reload them with:
+
+```
+:CodeCompanionActions Refresh
+```

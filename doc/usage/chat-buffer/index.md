@@ -1,99 +1,108 @@
 ---
-description: "Everything about CodeCompanion's chat buffer — opening, toggling, keymaps, multi-turn conversations with LLMs, and adding images in Neovim."
+description: "Converse with an LLM or an agent in a Neovim buffer, sharing context and switching adapters as you go."
 prev:
   text: 'Action Palette'
   link: '/usage/action-palette'
 next:
-  text: 'Agents/Tools'
+  text: 'Agents and Tools'
   link: '/usage/chat-buffer/agents-tools'
 ---
 
 # Using the Chat Buffer
 
-> [!NOTE]
-> The chat buffer has a filetype of `codecompanion` and a buftype of `nofile`.
+The _chat buffer_ is where you converse with an LLM or an agent. It's a markdown buffer, with a filetype of `codecompanion`, where `H2` headers separate your messages from the LLM's responses.
 
-You can open a chat buffer with the `:CodeCompanionChat` command or with `require("codecompanion").chat()` and you can toggle the visibility of the chat buffer with `:CodeCompanionChat Toggle` or `require("codecompanion").toggle()`.
+To open a chat buffer:
 
-You can even customize the chat buffer's window options:
-
-```lua
-require("codecompanion").chat({ window_opts = { layout = "float", width = 0.6 }})
--- or:
-require("codecompanion").toggle({ window_opts = { layout = "float", width = 0.6 }})
+```
+:CodeCompanionChat
 ```
 
-The chat buffer uses markdown as its syntax and `H2` headers separate the user and LLM's responses. The plugin is turn-based, meaning that the user sends a response which is then followed by the LLM's. The user's responses are parsed by treesitter and sent via an adapter to an LLM for a response which is then streamed back into the buffer. A response is sent to the LLM by pressing `<CR>` or `<C-s>` in normal mode or `<C-CR>` in insert mode. This can of course be changed as per the [keymaps](#keymaps) section.
+To show or hide it:
 
-New in `v19.12.0`, you can send a message to the LLM whilst it's executing tool calls with the `btw` keymap which is triggered with `gm`. When safe to do so, CodeCompanion will send the message to the LLM.
+```
+:CodeCompanionChat Toggle
+```
+
+The Lua equivalents, `require("codecompanion").chat()` and `require("codecompanion").toggle()`, also accept window options:
+
+```lua
+require("codecompanion").chat({ window_opts = { layout = "float", width = 0.6 } })
+```
+
+Press `<CR>` or `<C-s>` in normal mode, or `<C-s>` in insert mode, to send your message. The response streams back into the buffer. While the LLM is running tools, press `gm` to send it a follow-up, which CodeCompanion delivers once it's safe to do so.
 
 ## Action Palette
 
-The chat buffer has its own _Action Palette_ which can be accessed with `:CodeCompanionActions` when in the chat buffer. This displays available keymaps and slash commands and can be used to trigger them.
+From a chat buffer, `:CodeCompanionActions` opens the chat's own [Action Palette](/usage/action-palette), listing its keymaps and slash commands.
 
 ## Changing Adapter and Model
 
 <img src="https://github.com/user-attachments/assets/e19ade4f-1daa-4634-b071-4ecd400371eb" alt="Change adapter and model" />
 
-One of the joys of working with CodeCompanion is being able to switch between conversing with an LLM and an agent, all from within the chat buffer.
-
-To do this, simply press `ga` to open up the _Select Adapter_ select window. If your chosen adapter has more than one model then you'll be prompted to make another selection. This works for both _HTTP_ and _ACP_ adapters.
+Press `ga` to pick a different adapter. If the adapter has more than one model, you're asked to pick one of those too. This works for both HTTP and ACP adapters, so you can move between an LLM and an agent in the same chat.
 
 ## Changing ACP Command
 
-ACP adapters are initiated via a command in the configuration. By default, this will be the `default` command. Some ACP adapters have additional commands and these can be triggered via the cmd line with something like `:CodeCompanionChat adapter=gemini_cli command=yolo`, or you can use the [/command](/usage/chat-buffer/slash-commands#command) slash command within the chat buffer.
+ACP adapters start the agent with a command from your configuration, `default` unless you choose otherwise. To start one with a different command:
+
+```
+:CodeCompanionChat adapter=gemini_cli command=yolo
+```
+
+From inside a chat buffer, use the [/command](/usage/chat-buffer/slash-commands#command) slash command.
 
 ## Completion
 
-> [!IMPORTANT]
-> As of `v17.5.0`, variables and tools are wrapped in curly braces automatically, such as `#{buffer}` or `@{files}`
-
 <img src="https://github.com/user-attachments/assets/02b4d5e2-3b40-4044-8a85-ccd6dfa6d271" alt="Completion" />
 
-You can invoke the completion plugins by typing `#` or `@` followed by the variable or tool name, which will trigger the completion menu. If you don't use a completion plugin, you can use native completions with no setup, invoking them with `<C-_>` from within the chat buffer.
+Type a trigger character to open the completion menu:
 
-When using an ACP adapter (such as claude-code), you can also type `\` (backslash, by default) to get completions for ACP commands. These are agent-specific commands like `/compact` (compact chat history) that are dynamically discovered from the agent itself.
+| Trigger | Completes |
+| --- | --- |
+| `#` | [Editor context](/usage/chat-buffer/editor-context), such as `#{buffer}` |
+| `@` | [Tools](/usage/chat-buffer/agents-tools), such as `@{agent}` |
+| `/` | [Slash commands](/usage/chat-buffer/slash-commands) |
+| `\` | Commands from an ACP agent, such as `\compact` |
+
+Completion works with blink.cmp, nvim-cmp and coc.nvim. Without a completion plugin, press `<C-_>` for native completion. The trigger characters can be changed under `opts.triggers`.
+
+ACP commands come from the agent itself, and CodeCompanion turns `\command` into `/command` when you send the message. The backslash keeps them apart from CodeCompanion's own slash commands.
 
 > [!NOTE]
-> It typically takes 1-5 seconds after opening a chat buffer for ACP commands to become available. The agent needs to initialize and scan for both built-in and custom commands. If you define a new custom command mid-session, the same delay applies before it appears in the completion list.
-
-The backslash trigger is used to avoid conflicts with CodeCompanion's built-in [Slash Commands](/usage/chat-buffer/slash-commands). When you send a message, `\command` is automatically transformed to `/command` for the agent. The trigger character can be customized via `interactions.chat.slash_commands.opts.acp.trigger` in your config.
-
-It's worth noting that not all commands available in ACP CLI tools are exposed via the SDK. Only a subset of built-in commands are supported, though this is constantly evolving as the underlying SDKs mature.
+> ACP commands take a few seconds to appear after you open a chat buffer, and only the commands an agent exposes through its SDK are listed
 
 ## Context
 
 <img src="https://github.com/user-attachments/assets/e8a31214-ccba-407f-a8e4-32ba185a3ecd" alt="context" />
 
-Sharing context with an LLM is crucial in order to generate useful responses. Generally, context can be added to a chat buffer via the use of [editor context](editor-context), [slash commands](slash-commands) and [tools](agents-tools). CodeCompanion displays context in a blockquote entitled `Context`.
+Add context with [editor context](/usage/chat-buffer/editor-context), [slash commands](/usage/chat-buffer/slash-commands) and [tools](/usage/chat-buffer/agents-tools). Each item is listed in a `Context` blockquote at the top of your message.
 
 > [!IMPORTANT]
-> Context items contain the data of an object at a point in time. By default, they **are not** self-updating
+> A context item is a snapshot of its source at the time it was added. Only `#{buffer}` and `#{buffers}` stay in sync by default
 
-In order to allow for context to self-update, buffers and files can be synced to a chat buffer. On every turn, you can determine what is sent to the LLM. For both, you can choose to send _all_ of the content or just the _diff_.
+To keep any other buffer or file up to date, sync it to the chat buffer. Put your cursor on the context item and press:
 
-The advantage of sending _all_ of a file or buffer's content is that the LLM will always receive a fresh copy of the source data regardless of any changes. However, please note that this can consume a lot of tokens.
+- `gba` to send its entire content on every turn
+- `gbd` to send only what's changed since the last turn
 
-Syncing and sending only a _diff_, is a more token-conscious way of keeping the LLM up to date. Diffs track changes (adds, edits, deletes) in the underlying buffer/file and update the LLM on each turn. Press `gbd` on any context item to start syncing its diff.
+Sending the entire content means the LLM always sees the latest version, at the cost of more tokens. Sending the diff is cheaper.
 
-Some file types are worth syncing every time they're attached. Jupyter Notebooks are the out of the box example, since a notebook changes on disk whenever a cell is run. Any extension can be watched from the moment it's added to the chat buffer by listing it in [sync_diff](/configuration/chat-buffer#syncing).
+Some file types are worth syncing as soon as they're added. Jupyter Notebooks change on disk every time a cell runs, so they're synced by default. To add more, see [Syncing](/configuration/chat-buffer#syncing).
 
-Finally, it's important to note that all http adapter endpoints require the sending of previous messages that make up the conversation. So even though you've shared context once, many messages ago, the LLM will always be able to refer to it, unless you actively alter the history of the conversation via `gd`.
+HTTP adapters send the whole conversation on every turn, so the LLM can refer to context you shared many messages ago. To change that history, use the [debug window](#debug-window).
 
 ### Adding via Paths
 
-You can manually add files or URLs to the chat buffer by way of a [markdown link](https://www.markdownguide.org/basic-syntax/#links):
+To attach a file or URL, write it as a [markdown link](https://www.markdownguide.org/basic-syntax/#links):
 
 ```markdown
 I want to share [File](~/Code/Neovim/codecompanion.nvim/README.md) with you
 ```
 
-Any link pointing at a file on disk is attached to the chat buffer when a message is sent to the LLM. The link is then replaced with the file's path. This works for images, PDFs and any other file type.
+When you send the message, the file is attached and the link is replaced with its path. This works for text files, images and PDFs. URLs are fetched with the [fetch](/usage/chat-buffer/slash-commands#fetch) slash command's adapter, without a cache.
 
-Links to URLs are fetched with the [fetch](/usage/chat-buffer/slash-commands#fetch) slash command's adapter and never use a cache.
-
-Markdown cannot parse a bare space in a link, so a path containing one must be wrapped accordingly:
-
+Markdown can't parse a bare space in a link, so wrap a path that contains one:
 
 | Link | Attached |
 | --- | --- |
@@ -103,101 +112,83 @@ Markdown cannot parse a bare space in a link, so a path containing one must be w
 | `[File]("/Users/Oli/Downloads/some report.txt")` | Yes |
 | `[File](/Users/Oli/Downloads/some report.txt)` | No |
 
-
 ### Removing
 
-If a context item is added by mistake, it can be removed from the chat buffer by simply deleting it from the `Context` blockquote. On the next turn, all data related to that context item will be removed from the message history.
+To remove a context item, delete its line from the `Context` blockquote. On the next turn, everything it added is removed from the message history.
 
 ## Debug Window
 
 <img src="https://github.com/user-attachments/assets/9790def5-dc9c-4922-911f-90c6042b122d" alt="Debug window" />
 
-Sometimes it's necessary to peek under the hood of the chat buffer to understand what hyperparameters are being sent to the LLM, or what the message history looks like. By pressing `gd`, you can open up a debug window which contains all of the relevant information about the chat buffer, including the message history, adapter settings and context items.
+Press `gd` to open the _debug window_. It shows what's sent to the LLM on the next turn: the adapter's settings, the context items and the full message history, including the system prompt and other messages hidden from the chat buffer.
 
-You can edit all content in the debug window and persist it to the chat buffer by doing `<C-s>`.
+The debug window is a Lua buffer. Edit it, then press `<C-s>` to write your changes back to the chat buffer.
 
 ## Generating Titles
 
-CodeCompanion can automatically generate titles for your chat buffers based on their content. This is accomplished via a background interaction. To enable this:
+CodeCompanion can give each chat buffer a title, written by a [background interaction](/guides/background-model). To turn it on:
 
-```lua{11,16}
+```lua
 require("codecompanion").setup({
   interactions = {
     background = {
       chat = {
-        callbacks = {
-          ["on_ready"] = {
-            actions = {
-              "interactions.background.builtin.chat_make_title",
-            },
-            -- Enable "on_ready" callback which contains the title generation action
-            enabled = true,
-          },
-        },
         opts = {
-          -- Enable background interactions generally
           enabled = true,
         },
       },
     },
-  }
+  },
 })
 ```
 
-Finally, ensure that you have an adapter configured for any background interactions.
+See [Chat Titles](/guides/background-model#chat-titles) to choose the model that writes them.
 
-## Images / Vision
+## Images
 
 <p>
 <video controls muted title="Adding images to the chat buffer" src="https://github.com/user-attachments/assets/8897d58e-f2c4-4da9-a170-22f31a75c358"></video>
 </p>
 
-Many LLMs have the ability to receive images as input (sometimes referred to as vision). CodeCompanion supports the adding of images into the chat buffer via the [/file](/usage/chat-buffer/slash-commands#file) and [/file-from-url](/usage/chat-buffer/slash-commands#file-from-url) slash commands and through the system clipboard with [img-clip.nvim](/installation#img-clip-nvim). CodeCompanion can work with images in your file system and also with remote URLs, encoding both into a base64 representation.
+Add images from disk with [/file](/usage/chat-buffer/slash-commands#file), from a URL with [/file-from-url](/usage/chat-buffer/slash-commands#file-from-url), or from the clipboard with [img-clip.nvim](/installation#img-clip-nvim). Both local and remote images are base64 encoded.
 
-If your adapter and model doesn't support images, then CodeCompanion will endeavour to ensure that the image is not included in the messages payload that's sent to the LLM.
+If the model doesn't accept images, CodeCompanion leaves them out of the request.
 
 ## Keymaps
 
-The plugin has a host of keymaps available in the chat buffer. The keymaps available to the user in normal mode are:
+Press `?` in a chat buffer to list every keymap. The defaults in normal mode are:
 
-- `options`: `?` to display all available keymaps
-- `send`: `<CR>|<C-s>` to send a message to the LLM
-- `close`: `<C-c>` to close the chat buffer
-- `stop`: `q` to stop the current request
+| Keymap | Name | Description |
+| --- | --- | --- |
+| `<CR>` `<C-s>` | `send` | Send the message to the LLM |
+| `<C-c>` | `close` | Close the chat buffer |
+| `q` | `stop` | Stop the current request |
+| `ga` | `change_adapter` | Change adapter and model |
+| `gba` | `sync_all` | Toggle live-syncing of a context item |
+| `gbd` | `sync_diff` | Toggle diff-only syncing of a context item |
+| `gc` | `codeblock` | Insert an empty codeblock |
+| `gd` | `debug` | Open the debug window |
+| `gf` | `fold_code` | Fold all codeblocks |
+| `gm` | `_btw` | Send a follow-up while the LLM is running |
+| `gM` | `rules` | Remove rules from the chat |
+| `gr` | `regenerate` | Regenerate the last response |
+| `gR` | `goto_file_under_cursor` | Open the file path under the cursor |
+| `gs` | `system_prompt` | Toggle the system prompt on and off |
+| `gS` | `copilot_stats` | Show Copilot usage statistics |
+| `gtx` | `clear_approvals` | Reset cached tool approvals |
+| `gty` | `yolo_mode` | Choose how tool calls are approved |
+| `gx` | `clear` | Clear all messages from the chat |
+| `gy` | `yank_code` | Yank code from the last codeblock |
+| `}` `{` | `next_chat` `previous_chat` | Move to the next or previous chat |
+| `]]` `[[` | `next_header` `previous_header` | Jump to the next or previous header |
 
-- `change_adapter`: `ga` to change the adapter for the current chat
-- `clear`: `gx` to clear the chat buffer’s contents
-- `copilot_stats`: `gS` to show copilot usage stats
-- `btw`: `gm` type a message to the LLM whilst it's streaming
-- `codeblock`: `gc` to insert a codeblock in the chat buffer
-- `debug`: `gd` to view/debug the chat buffer’s contents
-- `fold_code`: `gf` to fold any codeblocks in the chat buffer
-- `goto_file_under_cursor`: `gR` to go to the file under cursor
-- `next_chat`: `}` to move to the next chat
-- `next_header`: `]]` to move to the next header
-- `previous_chat`: `{` to move to the previous chat
-- `previous_header`: `[[` to move to the previous header
-- `regenerate`: `gr` to regenerate the last response
-- `rules`: `gM` to clear all rules from the chat buffer
-- `sync_all`: `gba` to sync a context item's entire content on every turn
-- `sync_diff`: `gbd` to sync only a context item's diff on every turn
-- `system_prompt`: `gs` to toggle the system prompt on/off
-- `yank_code`: `gy` to yank the last codeblock in the chat buffer
-
-## Messages
-
-> [!TIP]
-> The message history and adapter settings can be modified via the debug window (`gd`) in the chat buffer
-
-It's important to note that some messages, such as system prompts or context provided via [Slash Commands](/usage/chat-buffer/slash-commands), will be hidden. This is to keep the chat buffer uncluttered from a UI perspective. Using the `gd` keymap opens up the debug window, which allows the user to see the full contents of the messages table which will be sent to the LLM on the next turn.
-
-The message history cannot be altered directly in the chat buffer. However, it can be modified in the debug window. This window is simply a Lua buffer which the user can edit as they wish. To persist any changes, the chat buffer keymaps for sending a message (defaults: `<CR>` or `<C-s>`) can be used.
+In insert mode, `<C-s>` sends the message, `<C-c>` closes the chat buffer and `<C-_>` opens the completion menu. To change any of them, see [Keymaps](/configuration/chat-buffer#keymaps).
 
 ## Multiple Chats
 
-You can have as many chat buffers open as you like. Cycle between them with `{` and `}`, and use `:CodeCompanionChat Toggle` to show or hide the last one.
+Open as many chat buffers as you like. Cycle through them with `{` and `}`, and use `:CodeCompanionChat Toggle` to show or hide the last one.
 
-By default, opening or cycling to a chat hides whichever chat is currently visible. To give each tab its own chat, so activity in one tab never closes or takes over a chat in another:
+By default, opening or cycling to a chat hides the one that's visible. To give each tab its own chat, so a chat in one tab is never closed or replaced from another:
 
 ```lua
 require("codecompanion").setup({
@@ -211,11 +202,22 @@ require("codecompanion").setup({
 })
 ```
 
-With `pertab` enabled, `{` and `}` only cycle through chats that are visible in the current tab or not visible anywhere, and `:CodeCompanionChat Toggle` jumps to the tab a chat lives in.
+With `pertab` enabled, `{` and `}` only cycle through chats that are visible in the current tab or hidden everywhere, and `:CodeCompanionChat Toggle` jumps to the tab a chat lives in.
 
 ## Settings
 
 <img src="https://github.com/user-attachments/assets/01f1e482-1f7b-474f-ae23-f25cc637f40a" alt="Settings" />
 
-When conversing with an LLM, it can be useful to tweak model settings in between responses in order to generate the perfect output. If settings are enabled (`display.chat.show_settings = true`), then a yaml block will be present at the top of the chat buffer which can be modified in between responses. The yaml block is simply a representation of an adapter's schema table.
+To tweak the model's settings between responses, show them as a YAML block at the top of the chat buffer:
 
+```lua
+require("codecompanion").setup({
+  display = {
+    chat = {
+      show_settings = true,
+    },
+  },
+})
+```
+
+The block mirrors the adapter's `schema` table. Edit a value and it's used from the next response onwards.

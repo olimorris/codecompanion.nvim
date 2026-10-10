@@ -1,41 +1,42 @@
 ---
-description: "Create a CodeCompanion extension to add custom functionality to the plugin — distributable as a Neovim plugin or defined locally in your configuration."
+description: "Build a CodeCompanion extension, distributed as a Neovim plugin or defined in your own config."
 ---
 
 # Extending with Extensions
 
-CodeCompanion supports extensions similar to telescope.nvim, allowing users to create functionality that can be shared with others. Extensions can either be distributed as plugins or defined locally in your configuration.
+An _extension_ adds functionality to CodeCompanion, in the same way as extensions for telescope.nvim. Distribute one as a Neovim plugin or define it in your own config.
 
 ## Using Extensions
 
-Extensions are configured in your CodeCompanion setup:
+Install the extension alongside CodeCompanion, then configure it under `extensions`:
 
 ```lua
--- Install the extension
 {
   "olimorris/codecompanion.nvim",
   dependencies = {
-    "ravitemer/codecompanion-history.nvim" -- history extension
-  }
+    "ravitemer/codecompanion-history.nvim",
+  },
 }
+```
 
--- Configure in your setup
+```lua
 require("codecompanion").setup({
   extensions = {
     history = {
-      enabled = true, -- defaults to true
+      enabled = true,
       opts = {
         dir_to_save = vim.fn.stdpath("data") .. "/codecompanion_chats.json",
-      }
-    }
-  }
+      },
+    },
+  },
 })
 ```
 
+Extensions are enabled by default. Set `enabled = false` to skip loading one. See [Configuring Extensions](/configuration/extensions) for more.
 
 ## Creating Extensions
 
-Extensions are typically distributed as plugins. Create a new plugin with the following structure:
+A plugin extension lives under `lua/codecompanion/_extensions/`, in a directory named after the extension:
 
 ```
 your-extension/
@@ -43,42 +44,38 @@ your-extension/
 │   └── codecompanion/
 │       └── _extensions/
 │           └── your_extension/
-│               └── init.lua  -- Main extension file
+│               └── init.lua
 └── README.md
 ```
 
-The init.lua file should export a module that provides setup and optional exports:
+`init.lua` returns a table with a `setup` function and, optionally, `exports`:
 
 ```lua
 ---@class CodeCompanion.Extension
----@field setup fun(opts: table) Function called when extension is loaded
----@field exports? table Functions exposed via codecompanion.extensions.your_extension
+---@field setup fun(opts: table): any Function called when extension is loaded
+---@field exports? table Optional table of functions exposed via codecompanion.extensions.name
 local Extension = {}
 
----Setup the extension
----@param opts table Configuration options
+---@param opts table
 function Extension.setup(opts)
-  -- Initialize extension
-  -- Add actions, keymaps etc.
+  -- Add keymaps, slash commands, tools etc.
 end
 
--- Optional: Functions exposed via codecompanion.extensions.your_extension
 Extension.exports = {
-  clear_history = function() end
+  clear_history = function() end,
 }
 
 return Extension
 ```
 
-### Extending Chat Functionality
+CodeCompanion calls `setup` with the extension's `opts` when you call `require("codecompanion").setup()`.
 
-A common pattern is to add keymaps, slash_commands, tools to the codecompanion.config object inside setup function.
+### Extending the Chat Buffer
+
+Extensions usually add keymaps, slash commands or tools to `require("codecompanion.config")` in `setup`. To add a chat buffer keymap:
 
 ```lua
----This is called on codecompanion setup.
----You can access config via require("codecompanion.config") and chat via require("codecompanion.chat").last_chat() etc
 function Extension.setup(opts)
-  -- Add action to chat keymaps
   local chat_keymaps = require("codecompanion.config").interactions.chat.keymaps
 
   chat_keymaps.open_saved_chats = {
@@ -87,100 +84,81 @@ function Extension.setup(opts)
     },
     description = "Open Saved Chats",
     callback = function(chat)
-        -- Implementation of opening saved chats
-        vim.notify("Opening saved chats for " .. chat.id)
-    end
+      vim.notify("Opening saved chats for " .. chat.id)
+    end,
   }
 end
 ```
 
-Once configured, extension exports are accessible via:
+To reach a chat from elsewhere, use `require("codecompanion").last_chat()`.
+
+### Exports
+
+Exports are available under the name the extension is configured with:
 
 ```lua
-local codecompanion = require("codecompanion")
--- Use exported functions
-codecompanion.extensions.codecompanion_history.clear_history()
+require("codecompanion").extensions.history.clear_history()
 ```
 
 ## Local Extensions
 
-Extensions can also be defined directly in your configuration for simpler use cases:
+To define an extension in your own config, pass it as a `callback`:
 
 ```lua
--- Example: Adding a message editor extension
 require("codecompanion").setup({
   extensions = {
     editor = {
       enabled = true,
       opts = {},
       callback = {
-        setup = function(ext_config)
-          -- Add a new action to chat keymaps
-          local open_editor = {
+        setup = function(opts)
+          local chat_keymaps = require("codecompanion.config").interactions.chat.keymaps
+
+          chat_keymaps.open_editor = {
             modes = {
-              n = "ge",  -- Keymap to open editor
+              n = "ge",
             },
             description = "Open Editor",
             callback = function(chat)
-              -- Implementation of editor opening logic
-              -- You have access to the chat buffer via the chat parameter
               vim.notify("Editor opened for chat " .. chat.id)
             end,
           }
-
-          -- Add the action to chat keymaps config
-          local chat_keymaps = require("codecompanion.config").interactions.chat.keymaps
-          chat_keymaps.open_editor = open_editor
         end,
-
-        -- Optional: Expose functions
         exports = {
           is_editor_open = function()
-            return false -- Implementation
-          end
-        }
-      }
-    }
-  }
+            return false
+          end,
+        },
+      },
+    },
+  },
 })
 ```
 
-The callback can be:
-- A function returning the extension table
-- The extension table directly
-- A string path to a module that returns the extension
+The `callback` can be:
 
-## Dynamic registration
+- The extension table
+- A function that returns the extension table
+- A module path that returns the extension, such as `"mcphub.extensions.codecompanion"`
 
-Extensions can also be added dynamically using
+Without a `callback`, CodeCompanion loads `codecompanion._extensions.<name>` from your runtimepath.
+
+## Registering at Runtime
+
+To add an extension after setup:
 
 ```lua
-require("codecompanion").register_extension("codecompanion_history", {
-    callback = {
-        setup = function()
-        end,
-        exports = {}
-    },
+require("codecompanion").register_extension("history", {
+  setup = function(opts) end,
+  exports = {},
 })
 ```
+
+The second argument is the extension table itself, not a `callback`. Its `setup` is called with an empty `opts` table.
 
 ## Best Practices
 
-1. **Namespacing**:
-   - Use unique names for extensions to avoid conflicts
-   - Prefix functions and variables appropriately
-
-2. **Configuration**:
-   - Provide sensible defaults
-   - Allow customization via opts table
-   - Document all options
-
-3. **Integration**:
-   - Follow CodeCompanion's patterns for actions and tools
-   - Use existing utilities like keymaps.set_keymap
-   - Handle errors appropriately
-
-4. **Documentation**:
-   - Document installation process
-   - List all available options
-   - Provide usage examples
+- **Naming** - give your extension a unique name, and prefix its functions and variables to avoid clashes
+- **Configuration** - provide sensible defaults, take everything else through `opts` and document every option
+- **Integration** - follow CodeCompanion's patterns for keymaps, slash commands and tools, and handle errors with `pcall`
+- **Documentation** - cover installation, every option and some usage examples

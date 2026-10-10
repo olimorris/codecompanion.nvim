@@ -187,7 +187,7 @@ See [adapter tools](/usage/chat-buffer/agents-tools#adapter-tools) for more.
 
 ## Fetching a Page
 
-When you already know the page you want, you don't need a search. There are two ways to add a page to the chat:
+When you already know the page you want, there are two ways to add it to the chat:
 
 - **`@{fetch_webpage}`** - A tool. The LLM decides which URL to fetch and reads the result straight away
 - **`/fetch`** - A [slash command](/usage/chat-buffer/slash-commands#fetch). You enter the URL, and can cache the page to add it again later without fetching it

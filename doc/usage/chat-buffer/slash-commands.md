@@ -1,5 +1,5 @@
 ---
-description: "Reference for all CodeCompanion slash commands — fetch URLs, add files and buffers, compact message history, insert symbols, and run ACP session options."
+description: "Add files, buffers, URLs, help tags and symbols to the chat buffer, and manage sessions, MCP servers and ACP agents, with slash commands."
 ---
 
 # Using Slash Commands
@@ -8,17 +8,42 @@ description: "Reference for all CodeCompanion slash commands — fetch URLs, add
   <img src="https://github.com/user-attachments/assets/02b4d5e2-3b40-4044-8a85-ccd6dfa6d271" alt="Using slash commands" />
 </p>
 
-Slash Commands enable you to quickly add context to the chat buffer. They are comprised of values present in the `interactions.chat.slash_commands` table alongside the `prompt_library` table where individual prompts have `opts.is_slash_cmd = true`.
+Slash commands add context to the chat buffer and act on the chat itself. Type `/` in the chat buffer to list them. They come from the `interactions.chat.slash_commands` table, plus any [prompt library](/configuration/prompt-library#options) item with `opts.is_slash_cmd = true`, such as the built-in `/commit` and `/explain`.
 
 > [!NOTE]
-> Every command on this page is CodeCompanion's own and is triggered with `/`. An [ACP](/configuration/adapters-acp) agent such as Claude Code also exposes its own commands, which the plugin discovers from the agent at runtime. Those are triggered with `\` to keep the two apart - see [ACP Commands](/usage/chat-buffer/#completion).
+> An [ACP](/configuration/adapters-acp) agent such as Claude Code has its own commands, which are triggered with `\` to keep them apart. See [completion](/usage/chat-buffer/#completion)
+
+| Command | Description |
+| --- | --- |
+| [/acp_session_options](#acp-session-options) | Change an ACP agent's session config options |
+| [/buffer](#buffer) | Add open buffers |
+| [/command](#command) | Change the command used to start an ACP agent |
+| [/compact](#compact) | Replace the message history with a summary |
+| [/fetch](#fetch) | Add the contents of a URL |
+| [/file](#file) | Add files, images or PDFs |
+| [/file-from-url](#file-from-url) | Download a file and add it |
+| [/fork](#fork) | Copy the chat into a new chat buffer |
+| [/help](#help) | Add content from Vim help tags |
+| [/mcp](#mcp) | Start and stop MCP servers |
+| [/mcp-prompts](#mcp-prompts) | Add a prompt from an MCP server |
+| [/now](#now) | Insert the current date and time |
+| [/rename](#rename) | Rename the chat |
+| [/resume](#resume) | Restore a previous session |
+| [/rules](#rules) | Add a rules group |
+| [/save](#save) | Save the chat as a session |
+| [/share](#share) | Share the chat as a GitHub Gist |
+| [/skills](#skills) | Add skills |
+| [/skills-group](#skills-group) | Add a group of skills |
+| [/symbols](#symbols) | Add a symbolic outline of a file |
+
+Some commands only appear for one type of adapter. The section for each command says which.
 
 ## /acp_session_options
 
 > [!NOTE]
-> This command is only relevant for users of ACP adapters
+> ACP adapters only
 
-The [ACP specification](https://agentclientprotocol.com/protocol/session-config-options) allows users to change config options for an agent session and the _acp_session_options_ slash command provides the interface to do this.
+The _acp_session_options_ slash command changes an agent's [session config options](https://agentclientprotocol.com/protocol/session-config-options), such as its mode or reasoning level.
 
 ## /buffer
 
@@ -26,38 +51,65 @@ The [ACP specification](https://agentclientprotocol.com/protocol/session-config-
 <img src="https://github.com/user-attachments/assets/1be7593b-f77f-44f9-a418-1d04b3f46785" alt="buffer slash command" />
 </p>
 
-> [!NOTE]
-> As of [v16.2.0](https://github.com/olimorris/codecompanion.nvim/releases/tag/v16.2.0), buffers are now watched by default
+The _buffer_ slash command adds the contents of one or more open buffers to the chat buffer. It works with the default picker, Telescope, fzf-lua, mini.pick and Snacks.
 
-The _buffer_ slash command enables you to add the contents of any open buffers in Neovim to the chat buffer. The command has native, _Telescope_, _mini.pick_, _fzf.lua_ and _snacks.nvim_ providers available. Also, multiple buffers can be selected and added to the chat buffer as per the video above.
+By default, an added buffer is [synced](/configuration/chat-buffer#syncing) by its diff, so the LLM sees your changes on every turn. Set `opts.default_params` to `"all"` to send the whole buffer instead.
 
-This slash command is also available in the [CLI prompt input](/usage/cli#slash-commands), where it inserts `@path` references instead of buffer contents.
+In the [CLI prompt input](/usage/cli#slash-commands), this command inserts `@path` references instead of buffer contents.
 
 ## /command
 
-The _command_ slash command is specific to [ACP](/configuration/adapters-acp) adapters and allows users to switch between different adapter commands. For instance, some ACP adapters may allow you to run the agent command with a specific flag. Be mindful that switching commands is destructive and essentially resets the chat buffer for the purposes of a conversation with an agent.
+> [!NOTE]
+> ACP adapters only
+
+The _command_ slash command switches the command used to start an ACP agent, such as one that runs the agent with a specific flag. **Switching commands resets the conversation with the agent**.
 
 ## /compact
 
-The _compact_ slash command, based on [Claude Code's](https://code.claude.com/docs/en/slash-commands#built-in-slash-commands) corresponding feature, clears the chat buffer's message history whilst preserving a summary, in context.
+> [!NOTE]
+> HTTP adapters only
 
-System prompts, rules and file/buffer shares will be preserved but all user, assistant and tool messages will be removed. The summary is generated by prompting the same LLM to summarize the chat history into a concise format.
+The _compact_ slash command replaces the chat's message history with a summary, based on [Claude Code's](https://code.claude.com/docs/en/slash-commands#built-in-slash-commands) feature of the same name. You confirm before the summary is generated.
+
+The system prompt and rules are kept. Files, buffers and images are replaced with placeholders naming each one, and everything else is summarised. See [compaction](/architecture#compaction) for the details.
 
 ## /fetch
 
 > [!TIP]
-> To better understand a Neovim plugin, send its `config.lua` to your LLM via the _fetch_ command alongside a prompt
+> To understand a Neovim plugin better, send its `config.lua` to your LLM with `/fetch` alongside your prompt
 
-The _fetch_ slash command allows you to add the contents of a URL to the chat buffer. By default, it uses the [markitdown](https://github.com/microsoft/markitdown) CLI to convert the page into Markdown, which also supports local files and document formats like pdf and docx. You can also use the [jina.ai](https://jina.ai) adapter, which converts the page into plain text without anything installed locally. For convenience, the slash command will cache the output to disk and prompt the user if they wish to restore from the cache, should they look to fetch the same URL.
+The _fetch_ slash command adds the contents of a URL to the chat buffer. By default, the [MarkItDown](https://github.com/microsoft/markitdown) CLI converts the page into Markdown, and also handles local files and documents such as PDF and DOCX. The [Jina](https://jina.ai) adapter is an alternative that needs nothing installed locally:
 
-The markitdown adapter runs the `markitdown` CLI, timing out at two minutes. This can be modified with:
+```lua
+require("codecompanion").setup({
+  interactions = {
+    chat = {
+      slash_commands = {
+        ["fetch"] = {
+          opts = {
+            adapter = "jina", -- Can be "markitdown" or "jina"
+          },
+        },
+      },
+    },
+  },
+})
+```
+
+After a fetch, you're asked whether to cache the page. Once anything is cached, `/fetch` asks whether to enter a URL or pick from the cache.
+
+MarkItDown times out after two minutes. To change this:
 
 ```lua
 require("codecompanion").setup({
   adapters = {
     http = {
       extend = {
-        markitdown = { opts = { timeout = 300000 } }, -- milliseconds
+        markitdown = {
+          opts = {
+            timeout = 300000, -- milliseconds
+          },
+        },
       },
     },
   },
@@ -70,13 +122,15 @@ require("codecompanion").setup({
   <video controls muted title="File slash command demo" src="https://github.com/user-attachments/assets/3359c752-e5e0-41bf-8952-557edf11efdf"></video>
 </p>
 
-The _file_ slash command allows you to add the contents of a file in the current working directory to the chat buffer. The command has native, _Telescope_, _mini.pick_, _fzf.lua_ and _snacks.nvim_ providers available. Also, multiple files can be selected and added to the chat buffer.
+The _file_ slash command adds the contents of one or more files in the current working directory to the chat buffer. It works with the default picker, Telescope, fzf-lua, mini.pick and Snacks. In most pickers, `<CR>` selects a file and `<Tab>` marks several.
 
-The content of a file can be reshaped before the LLM sees it with [context formatters](/configuration/others#context-formatters).
+[Context formatters](/configuration/chat-buffer#context-formatters) can reshape a file's content before the LLM sees it.
 
-**Searching other directories**
+In the [CLI prompt input](/usage/cli#slash-commands), this command inserts `@path` references instead of file contents.
 
-Use `opts.dirs` to give the picker a list of directories to search alongside the current working directory:
+**Searching Other Directories**
+
+To search other directories alongside the current working directory:
 
 ```lua
 require("codecompanion").setup({
@@ -94,38 +148,33 @@ require("codecompanion").setup({
 })
 ```
 
-Paths may be relative or use `~`.
+Paths can be relative or start with `~`.
 
 **Images**
 
-Selecting a gif, jpeg, png or webp image sends it to the LLM as an image rather than as file content. The adapter must support vision, otherwise the image isn't added.
+A GIF, JPEG, PNG or WebP image is sent to the LLM as an image rather than as file content. If the adapter doesn't support vision, the image isn't added.
 
 **PDFs**
 
-[#3218](https://github.com/olimorris/codecompanion.nvim/pull/3218) added support for PDFs for the following http adapters:
+A PDF is base64 encoded and sent to the LLM as a document ([#3218](https://github.com/olimorris/codecompanion.nvim/pull/3218)). If the adapter doesn't support documents, the PDF isn't added. These HTTP adapters support them:
 
 - Anthropic
-- Copilot (currently only supports OpenAI models)
+- Copilot, with OpenAI models only
+- Gemini
 - OpenAI
-- OpenAI Responses
+- OpenAI (Legacy)
 - OpenRouter
-
-Simply use the `/file` slash command and select a PDF file. The plugin will `base64` encode the PDF and send it to the LLM.
-
-This slash command is also available in the [CLI prompt input](/usage/cli#slash-commands), where it inserts `@path` references instead of file contents.
-
-- Select a single file: `⏎ enter`
-- Select multiple files: `⇥ tab`
-
-Please note that these mappings may be different depending on your provider.
 
 ## /file-from-url
 
-The _file-from-url_ slash command downloads a file and adds it to the chat buffer, in the same way as [/file](#file). Images and PDFs are sent as attachments and anything else as file content, with the URL shown in place of the file path. A webpage is handed to the [/fetch](#fetch) slash command instead.
+The _file-from-url_ slash command downloads a file and adds it to the chat buffer, in the same way as [/file](#file). Images and PDFs are sent as attachments and anything else as file content, with the URL shown in place of the file path. A webpage is handed to [/fetch](#fetch) instead.
 
 ## /fork
 
-The _fork_ slash command, specific to _http_ adapters, allows you to duplicate the current chat buffer, copying the message history and preserving tools and context in the process. This enables you to branch the conversation and experiment with different prompts, models or even adapters without losing the original conversation.
+> [!NOTE]
+> HTTP adapters only
+
+The _fork_ slash command copies the chat into a new chat buffer, keeping the message history, tools and context. Use it to branch a conversation and try different prompts, models or adapters without losing the original. You're asked for a title, which defaults to the current one.
 
 To save every fork as a [session](/configuration/sessions) as soon as it's created:
 
@@ -147,53 +196,58 @@ require("codecompanion").setup({
 
 ## /help
 
-The _help_ slash command allows you to add content from a vim help file (`:h helpfile`), to the chat buffer, by searching for help tags. Currently this is only available for _Telescope_, _mini.pick_, _fzf_lua_ and _snacks.nvim_ providers. By default, the slash command will prompt you to trim a help file that is over 1,000 lines in length.
+The _help_ slash command searches Vim help tags (`:h helpfile`) and adds the matching help content to the chat buffer. It works with Telescope, fzf-lua, mini.pick and Snacks, but not the default picker.
 
-## /rules
-
-The _rules_ slash command allows you to add [rules](/usage/chat-buffer/rules) groups to the chat buffer.
+If a help file is longer than `opts.max_lines` (128 by default), you're asked whether to trim it to that many lines around the tag.
 
 ## /mcp
 
-The _mcp_ slash command allows you to start and stop [Model Context Protocol (MCP)](/configuration/mcp) servers manually from within a chat buffer. This is applied at a global level, so starting/stopping servers in one chat buffer will affect all other chat buffers. A _snacks.nvim_ and `vim.ui.select` provider is available for selecting which MCP servers to start/stop.
+The _mcp_ slash command starts and stops [MCP](/configuration/mcp) servers. **This applies globally, so starting or stopping a server affects every chat buffer**. It works with `vim.ui.select` and Snacks.
 
 ## /mcp-prompts
 
-The _mcp-prompts_ slash command adds a [prompt](https://modelcontextprotocol.io/specification/2025-11-25/server/prompts) from a running MCP server to the chat buffer, ready for you to edit before sending. After selecting a prompt, you'll be asked for each of its arguments in turn. Optional arguments can be left blank, and cancelling at any point adds nothing.
+The _mcp-prompts_ slash command adds a [prompt](https://modelcontextprotocol.io/specification/2025-11-25/server/prompts) from a running MCP server to the chat buffer, ready for you to edit before sending. After you select a prompt, you're asked for each of its arguments in turn. Optional arguments can be left blank, and cancelling at any point adds nothing.
 
 > [!NOTE]
 > Only the text from a prompt's `user` messages is added. Images, resources and `assistant` messages are skipped
 
-## /mode
-
-The _mode_ slash command is specific to [ACP](/configuration/adapters-acp) adapters and allows users to switch between different agent operating modes, as per the [protocol](https://agentclientprotocol.com/protocol/session-modes) docs.
-
 ## /now
 
-The _now_ slash command simply inserts the current datetime stamp into the chat buffer.
+The _now_ slash command inserts the current date and time into the chat buffer.
 
 ## /rename
 
-The _rename_ slash command is specific to [http](/configuration/adapters-http) adapters. It allows you to rename the title of the conversation in the chat buffer. This can be useful to keep track of different conversations via _open chats_ in the [action palette](/usage/action-palette).
+> [!NOTE]
+> HTTP adapters only
+
+The _rename_ slash command changes the chat's title, which helps you tell chats apart in the [action palette](/usage/action-palette).
 
 ## /resume
 
-The _resume_ slash command lists your past chat sessions and restores the selected one into the chat buffer.
+The _resume_ slash command lists your past sessions and restores the selected one into a chat buffer. What it lists depends on the adapter:
 
-What it lists depends on the adapter. On an [ACP](/configuration/adapters-acp) adapter that supports the `session/list` capability, it asks the agent for its own sessions. On an [http](/configuration/adapters-http) adapter, it lists the [sessions](/configuration/sessions) saved to disk.
+- **HTTP** - The [sessions](/configuration/sessions) saved to disk. If the current chat has no messages, it's replaced by the restored one
+- **ACP** - The agent's own sessions, if it supports the `session/list` and `session/load` capabilities
 
 > [!NOTE]
-> The `/resume` command must be used before sending any messages. It is only available on a fresh chat buffer.
+> On an ACP adapter, `/resume` only works before you've sent a message
+
+## /rules
+
+The _rules_ slash command adds a [rules](/usage/chat-buffer/rules) group to the chat buffer. It's also available in the [CLI prompt input](/usage/cli#slash-commands).
 
 ## /save
 
-The _save_ slash command is specific to [http](/configuration/adapters-http) adapters. It saves the chat to disk as a [session](/configuration/sessions), which you can restore later with `/resume`. You'll be asked for a title if the chat doesn't already have one.
+> [!NOTE]
+> HTTP adapters only, and hidden when sessions are disabled
 
-Chats are saved automatically by default, so `/save` is for when you want to name one yourself or save it before the LLM has responded.
+The _save_ slash command saves the chat to disk as a [session](/configuration/sessions), which you can restore later with [/resume](#resume). You're asked for a title if the chat doesn't have one.
+
+By default, a chat isn't saved until you use `/save`. After that, it's saved again after every response. Turn on `autosave` in the [session config](/configuration/sessions) to save every chat automatically.
 
 ## /share
 
-The _share_ slash command allows you to share the conversation in the chat buffer as a secret [GitHub Gist](https://gist.github.com). You'll need to ensure that you set a token in your configuration with permission to create gists:
+The _share_ slash command shares the chat as a secret [GitHub Gist](https://gist.github.com) and copies its URL to the clipboard. It needs a GitHub token with the `gist` scope:
 
 ```lua
 require("codecompanion").setup({
@@ -213,7 +267,7 @@ require("codecompanion").setup({
 
 ## /skills
 
-The _skills_ slash command adds [skills](/usage/chat-buffer/skills) to the chat buffer. Multiple skills can be selected at once, depending on the picker you've configured.
+The _skills_ slash command adds [skills](/usage/chat-buffer/skills) to the chat buffer. Depending on your picker, several can be selected at once.
 
 ## /skills-group
 
@@ -222,11 +276,8 @@ The _skills-group_ slash command adds a [group](/configuration/skills#groups) of
 ## /symbols
 
 > [!NOTE]
-> If a filetype isn't supported please consider making a PR to add the corresponding Tree-sitter queries from
-> [aerial.nvim](https://github.com/stevearc/aerial.nvim)
+> If a filetype isn't supported, consider a PR adding the Tree-sitter queries from [aerial.nvim](https://github.com/stevearc/aerial.nvim)
 
-The _symbols_ slash command uses Tree-sitter to create a symbolic outline of a file to share with the LLM. This can be a useful way to minimize token consumption whilst sharing the basic outline of a file. The plugin utilizes the amazing work from **aerial.nvim** by using their Tree-sitter symbol queries as the basis. The list of filetypes that the plugin currently supports can be found in the [Tree-sitter queries directory](https://github.com/olimorris/codecompanion.nvim/tree/main/queries).
+The _symbols_ slash command uses Tree-sitter to build a symbolic outline of a file, sharing its structure with the LLM for fewer tokens than the full content. The queries come from aerial.nvim, and the supported filetypes are listed in the [queries directory](https://github.com/olimorris/codecompanion.nvim/tree/main/queries).
 
-The command has native, _Telescope_, _mini.pick_, _fzf.lua_ and _snacks.nvim_ providers available. Also, multiple symbols can be selected and added to the chat buffer.
-
-
+It works with the default picker, Telescope, fzf-lua, mini.pick and Snacks, and several files can be selected at once.

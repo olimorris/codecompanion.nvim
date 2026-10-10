@@ -8,7 +8,7 @@ Many providers, self-hosted servers and company gateways accept the same request
 
 ## Adding the Adapter
 
-Extend `openai_compatible` under a name of your own. The name is what you'll pick in the chat buffer and set in your config:
+Extend `openai_compatible` under a name of your own. The name is what you pick in the chat buffer and set in your config:
 
 ::: code-group
 
@@ -88,7 +88,7 @@ If a provider gives you a base URL that ends in `/v1`, such as `https://api.tsub
 
 ## Choosing the Model
 
-If you don't set a model, the adapter asks `models_endpoint` for the list of models and uses the first one it returns. The list is cached for 30 minutes, which you can change with `adapters.http.opts.cache_models_for` (seconds).
+If you don't set a model, the adapter asks `models_endpoint` for the list of models and uses the first one it returns. The list is cached for 30 minutes, set by `adapters.http.opts.cache_models_for` in seconds.
 
 Some providers don't serve a model list. If yours returns a 404, or lists models you can't use, set both the default and the choices yourself so the endpoint is never called:
 
@@ -177,7 +177,7 @@ require("codecompanion").setup({
 
 :::
 
-A value that isn't an environment variable, a `cmd:` or a `file:` is sent as it is. That's why `api_key = "lm-studio"` works for a local server that ignores the key. Commands time out after 20 seconds, which you can change with `adapters.opts.cmd_timeout` (milliseconds). See [environment variables](/configuration/adapters-http#environment-variables) for every form `env` accepts.
+A value that isn't an environment variable, a `cmd:` or a `file:` is sent as it is. That's why `api_key = "lm-studio"` works for a local server that ignores the key. Commands time out after 20 seconds, set by `adapters.opts.cmd_timeout` in milliseconds. See [environment variables](/configuration/adapters-http#environment-variables) for every form `env` accepts.
 
 > [!IMPORTANT]
 > If you don't set `api_key`, the adapter sends the value of `OPENAI_API_KEY`. Set it to something else so your OpenAI key isn't sent to another provider
@@ -280,7 +280,7 @@ require("codecompanion").setup({
 })
 ```
 
-With `tools = false`, tool definitions are left out of the request, so the LLM never sees `@{files}` or any other tool. With `vision = false`, the _image_ slash command is disabled.
+With `tools = false`, tool definitions are left out of the request, so the LLM never sees `@{files}` or any other tool. With `vision = false`, images added with [/file](/usage/chat-buffer/slash-commands#file) aren't added to the chat.
 
 ### The Responses API
 

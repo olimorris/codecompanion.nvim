@@ -1,5 +1,5 @@
 ---
-description: "Configure the CodeCompanion Action Palette — your entry point to chat buffers, prompt library prompts, and plugin features in Neovim."
+description: "Change how the Action Palette looks, which picker it uses and which built-in items it lists."
 ---
 
 # Configuring the Action Palette
@@ -8,14 +8,11 @@ description: "Configure the CodeCompanion Action Palette — your entry point to
   <img src="https://github.com/user-attachments/assets/0d427d6d-aa5f-405c-ba14-583830251740" alt="Action Palette">
 </p>
 
-The Action Palette holds plugin specific items like the ability to launch a chat buffer and the currently open chat buffers alongside displaying the prompts from the [Prompt Library](prompt-library).
+The [Action Palette](/usage/action-palette) lists CodeCompanion's actions, such as starting a chat or switching to an open one, alongside the prompts from the [prompt library](/configuration/prompt-library).
 
 ## Layout
 
-> [!NOTE]
-> The Action Palette also supports [Telescope.nvim](https://github.com/nvim-telescope/telescope.nvim), [fzf_lua](https://github.com/ibhagwan/fzf-lua), [mini.pick](https://github.com/echasnovski/mini.pick) and [snacks.nvim](https://github.com/folke/snacks.nvim)
-
-You can change the appearance of the chat buffer by changing the `display.action_palette` table in your configuration:
+The palette is configured under `display.action_palette`. The defaults are:
 
 ```lua
 require("codecompanion").setup({
@@ -23,14 +20,26 @@ require("codecompanion").setup({
     action_palette = {
       width = 95,
       height = 10,
-      prompt = "Prompt ", -- Prompt used for interactive LLM calls
-      provider = "default", -- Can be "default", "telescope", "fzf_lua", "mini_pick" or "snacks". If not specified, the plugin will autodetect installed providers.
+      prompt = "Prompt ", -- Shown when CodeCompanion asks for your input
+      provider = "default", -- Can be "default", "telescope", "fzf_lua", "mini_pick" or "snacks"
       opts = {
-        show_preset_actions = true, -- Show the preset actions in the action palette?
-        show_preset_prompts = true, -- Show the preset prompts in the action palette?
-        title = "CodeCompanion actions", -- The title of the action palette
+        show_preset_actions = true,
+        show_preset_prompts = true,
+        title = "CodeCompanion actions",
       },
     },
   },
-}),
+})
 ```
+
+If you don't set a `provider`, CodeCompanion uses the first one installed out of [Telescope](https://github.com/nvim-telescope/telescope.nvim), [fzf-lua](https://github.com/ibhagwan/fzf-lua), [mini.pick](https://github.com/nvim-mini/mini.pick) and [Snacks](https://github.com/folke/snacks.nvim), then falls back to `default`. `width` and `height` only apply to the `default` provider.
+
+## Options
+
+The `opts` table takes:
+
+| Option | Description |
+| --- | --- |
+| `show_preset_actions` | Show the [actions](/usage/action-palette#actions), such as `Chat` and `Open chats ...` |
+| `show_preset_prompts` | Show the [prompts](/usage/action-palette#built-in-prompts) that ship with CodeCompanion |
+| `title` | The title of the palette |

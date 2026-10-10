@@ -1,28 +1,28 @@
 ---
-description: "Hook into the CodeCompanion chat buffer lifecycle in Neovim with callbacks: prevent submission, truncate tool output and inspect messages at checkpoints."
+description: "Hook into the chat buffer's lifecycle to block a submission, trim tool output or edit the message history."
 ---
 
 # Configuring Callbacks
 
-Callbacks allow you to hook into the chat buffer's lifecycle and react to specific events. They are registered per-chat and receive the chat instance as the first argument.
+_Callbacks_ run your own code at set points in a chat buffer's lifecycle. They're registered per chat, and receive the chat as the first argument and a table of event data as the second.
 
-## Available Events
+## Events
 
-| Event | Description | Extra Args |
-|---|---|---|
-| `on_created` | Chat buffer has been created | - |
-| `on_before_submit` | Before the message is sent to the LLM. Return `false` to prevent submission | `{ adapter }` |
-| `on_submitted` | After the message has been sent to the LLM | `{ payload }` |
-| `on_checkpoint` | Fires at safe points during the chat lifecycle. Messages are mutable | `{ adapter, estimated_tokens, messages, reported_tokens }` |
-| `on_tool_output` | Before tool output is added to the chat. Mutate `args.for_llm`/`args.for_user` to modify | `{ tool, for_llm, for_user }` |
-| `on_ready` | Chat is ready for the next turn (after LLM response) | - |
-| `on_completed` | LLM response has been fully processed, with `error` describing the failure when `status` is `"error"` | `{ status, error }` |
-| `on_cancelled` | Request has been stopped/cancelled | - |
-| `on_closed` | Chat buffer has been closed | - |
+| Event | Fires | Data |
+| --- | --- | --- |
+| `on_created` | When the chat buffer is created | - |
+| `on_before_submit` | Before a message is sent to the LLM. Return `false` to stop it | `adapter` |
+| `on_submitted` | After the message is sent to the LLM | `payload` |
+| `on_checkpoint` | At safe points in the chat, with a mutable message history | `adapter`, `estimated_tokens`, `messages`, `reported_tokens` |
+| `on_tool_output` | Before a tool's output is added to the chat | `tool`, `for_llm`, `for_user` |
+| `on_ready` | When the chat is ready for your next message | - |
+| `on_completed` | When the LLM's response is fully processed. `error` is set when `status` is `"error"` | `status`, `error` |
+| `on_cancelled` | When a request is stopped | - |
+| `on_closed` | When the chat buffer is closed | - |
 
 ## Registering Callbacks
 
-Callbacks can be registered in two ways:
+Register a callback for every chat with an autocmd, or for chats opened from a [prompt library](/configuration/prompt-library) item:
 
 ::: code-group
 
@@ -31,9 +31,8 @@ vim.api.nvim_create_autocmd("User", {
   pattern = "CodeCompanionChatCreated",
   callback = function(args)
     local chat = require("codecompanion").buf_get_chat(args.data.bufnr)
-    chat:add_callback("on_before_submit", function(c, info)
-      -- Access the adapter via info.adapter
-      -- Access messages via c.messages
+    chat:add_callback("on_before_submit", function(chat, data)
+      -- data.adapter is a copy of the chat's adapter
     end)
   end,
 })
@@ -42,13 +41,18 @@ vim.api.nvim_create_autocmd("User", {
 ```lua [Prompt Library]
 require("codecompanion").setup({
   prompt_library = {
-    ["My Prompt"] = {
+    ["Explain Code"] = {
+      interaction = "chat",
+      description = "Explain how code works",
       opts = {
         callbacks = {
-          on_before_submit = function(chat, info)
+          on_before_submit = function(chat, data)
             -- Only applies to chats opened from this prompt
           end,
         },
+      },
+      prompts = {
+        { role = "user", content = "Explain how this code works" },
       },
     },
   },
@@ -57,9 +61,11 @@ require("codecompanion").setup({
 
 :::
 
+Remove a callback with `chat:remove_callback(event, callback)`, passing the same function you registered.
+
 ## Background Callbacks
 
-Callbacks can also be registered in the config via `interactions.background.chat.callbacks`. These run asynchronously using a separate background LLM instance and are suited for fire-and-forget tasks like generating chat titles. Unlike the callbacks above, they cannot return values to influence the chat's behavior:
+_Background callbacks_ run asynchronously, using a separate LLM from the [background interaction](/guides/background-model). They suit fire-and-forget tasks like generating chat titles, and unlike the callbacks above, they can't change what the chat does:
 
 ```lua
 require("codecompanion").setup({
@@ -83,24 +89,24 @@ require("codecompanion").setup({
 })
 ```
 
-The `actions` table contains module paths that are resolved and executed asynchronously. See the [generating titles](/usage/chat-buffer/#generating-titles) section for a working example.
+Each action is a module path, or a `{ path = "...", adapter = "..." }` table to give that action its own adapter. Background callbacks are off until you set `opts.enabled = true`. See [Generating Titles](/usage/chat-buffer/#generating-titles) for a working example.
 
 > [!TIP]
-> You can change the adapters used for background callbacks, see the [background interaction adapters](/configuration/adapters-http#background-interaction-adapters) section
+> To change the adapter for every background callback, see [Background Interaction Adapters](/configuration/adapters-http#background-interaction-adapters)
 
 ## Preventing Submission
 
-The `on_before_submit` callback can return `false` to prevent a message from being sent to the LLM. When cancelled, `chat:restore()` is called automatically, which resets the buffer to an editable state and fires a `CodeCompanionChatRestored` event. The user's message remains in the buffer so it can be edited and resubmitted.
+When `on_before_submit` returns `false`, the message isn't sent. CodeCompanion calls `chat:restore()`, which makes the buffer editable again and fires a `CodeCompanionChatRestored` event. Your message stays in the buffer to edit and send again.
 
-This is useful for implementing safeguards such as token/context limit checks:
+To stop a message that's over a token limit:
 
 ```lua
 vim.api.nvim_create_autocmd("User", {
   pattern = "CodeCompanionChatCreated",
   callback = function(args)
     local chat = require("codecompanion").buf_get_chat(args.data.bufnr)
-    chat:add_callback("on_before_submit", function(c, data)
-      local token_count = my_tokenizer.count(c.messages)
+    chat:add_callback("on_before_submit", function(chat, data)
+      local token_count = my_tokenizer.count(chat.messages)
       local context_limit = 128000
 
       if token_count > context_limit then
@@ -115,25 +121,20 @@ vim.api.nvim_create_autocmd("User", {
 })
 ```
 
-The `info` table passed to `on_before_submit` contains:
-
-- `adapter` - A safe copy of the current adapter (with name, model, features, schema, etc.)
-
 ## Truncating Tool Output
 
-The `on_tool_output` callback fires before a tool's output is added to the chat. The `args` table contains `tool` (the tool name), `for_llm` (the content sent to the LLM) and `for_user` (what's shown in the buffer). Mutate `args.for_llm` and/or `args.for_user` to modify the output:
+`on_tool_output` fires before a tool's output is added to the chat. `data.tool` is the tool's name, `data.for_llm` is the output sent to the LLM and `data.for_user` is what's shown in the chat buffer. Change either to change the output:
 
 ```lua
 vim.api.nvim_create_autocmd("User", {
   pattern = "CodeCompanionChatCreated",
   callback = function(args)
     local chat = require("codecompanion").buf_get_chat(args.data.bufnr)
-    chat:add_callback("on_tool_output", function(c, data)
+    chat:add_callback("on_tool_output", function(chat, data)
       local tokens = require("codecompanion.utils.tokens")
       local max_tokens = 10000
 
       if data.for_llm and tokens.calculate(data.for_llm) > max_tokens then
-        -- Trim to roughly max_tokens worth of characters
         local max_chars = max_tokens * 6
         data.for_llm = data.for_llm:sub(1, max_chars) .. "\n\n[Output truncated]"
         data.for_user = data.for_llm
@@ -149,41 +150,43 @@ vim.api.nvim_create_autocmd("User", {
 
 ## Checkpoints
 
-The `on_checkpoint` callback fires at various safe points during the chat lifecycle, giving you the ability to inspect and mutate the message stack before the chat continues. It fires:
+`on_checkpoint` fires at points where the message history is safe to change:
 
-- **Before submit** — Before a request is sent to an LLM
-- **After tool output** — Once tools in the current batch have finished, ensuring no orphaned tool calls
-- **After a response with no tools** — When the LLM responds, minus any tool calls
+- **Before submit** - before a request is sent to the LLM
+- **After tool output** - once every tool in the current batch has returned, so no tool call is left without a result
+- **After a response with no tools** - when the LLM responds without calling a tool
 
 The `data` table contains:
 
-- `adapter` — a safe copy of the current adapter (includes `meta.context_window` for HTTP adapters)
-- `estimated_tokens` — client-side token estimate across all messages
-- `messages` — a **mutable reference** to the chat's message stack. Changes made here persist back to the chat
-- `reported_tokens` — server-reported token count (if available from the adapter)
+- **adapter** - a copy of the chat's adapter
+- **estimated_tokens** - a client-side estimate of the tokens across all messages
+- **messages** - the chat's message history. **Changes made here persist back to the chat**
+- **reported_tokens** - the token count reported by the adapter, if it gives one
 
-This is useful for monitoring context window usage and compacting the message stack:
+To warn when the context window is filling up:
 
 ```lua
 vim.api.nvim_create_autocmd("User", {
   pattern = "CodeCompanionChatCreated",
   callback = function(args)
     local chat = require("codecompanion").buf_get_chat(args.data.bufnr)
-    chat:add_callback("on_checkpoint", function(c, data)
-      local context_window = data.adapter.meta and data.adapter.meta.context_window
+    chat:add_callback("on_checkpoint", function(chat, data)
+      local meta = data.adapter.model and data.adapter.model.meta
+      local context_window = meta and meta.context_window
       if not context_window then
         return
       end
 
       local usage = data.estimated_tokens / context_window
       if usage > 0.8 then
-        vim.notify(
-          string.format("Context window %.0f%% full", usage * 100),
-          vim.log.levels.WARN
-        )
-        -- Compact data.messages in-place here
+        vim.notify(string.format("Context window %.0f%% full", usage * 100), vim.log.levels.WARN)
       end
     end)
   end,
 })
 ```
+
+> [!NOTE]
+> `adapter.model.meta` is only set for adapters with a fixed list of models, so it's `nil` for adapters that fetch theirs
+
+For built-in compaction, see [Configuring Context Management](/configuration/context-management).
