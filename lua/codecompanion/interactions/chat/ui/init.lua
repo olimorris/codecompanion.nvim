@@ -550,9 +550,15 @@ end
 function UI:set_virtual_text(message, method, range)
   range = range or { api.nvim_buf_line_count(self.chat_bufnr) - 1, 0 }
 
+  local lines = vim.split(message, "\n", { trimempty = true })
+  local virt_lines = vim.tbl_map(function(line)
+    return { { line, "CodeCompanionVirtualText" } }
+  end, vim.list_slice(lines, 2))
+
   return api.nvim_buf_set_extmark(self.chat_bufnr, CONSTANTS.NS_VIRTUAL_TEXT, range[1], range[2], {
-    virt_text = { { message, "CodeCompanionVirtualText" } },
+    virt_text = { { lines[1] or "", "CodeCompanionVirtualText" } },
     virt_text_pos = method or "eol",
+    virt_lines = #virt_lines > 0 and virt_lines or nil,
   })
 end
 

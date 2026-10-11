@@ -968,11 +968,6 @@ end
 ---@param opts? {opts: table, _meta: table}
 ---@return CodeCompanion.Chat
 function Chat:set_system_prompt(prompt, opts)
-  if self.opts and self.opts.ignore_system_prompt then
-    return self
-  end
-
-  prompt = prompt or config.interactions.chat.opts.system_prompt
   opts = opts or { visible = false }
 
   local _meta = { tag = tags.SYSTEM_PROMPT_FROM_CONFIG }
@@ -980,6 +975,12 @@ function Chat:set_system_prompt(prompt, opts)
     _meta = opts._meta
     opts._meta = nil
   end
+
+  if _meta.tag == tags.SYSTEM_PROMPT_FROM_CONFIG and self.opts and self.opts.ignore_system_prompt then
+    return self
+  end
+
+  prompt = prompt or config.interactions.chat.opts.system_prompt
 
   -- If the system prompt already exists, update it
   if helpers.has_tag(_meta.tag, self.messages) then
