@@ -28,4 +28,4 @@ Any prompt with an `alias` can be run from the command line:
 
 In the chat buffer, type `/` followed by the alias. Only chat prompts with `is_slash_cmd = true` in their `opts` appear here.
 
-Any tools the prompt declares are added to the chat buffer before its content is inserted.
+Any [tools](/configuration/prompt-library#tools) and [skills](/configuration/prompt-library#skills) the prompt declares are added to the chat buffer before its content is inserted.

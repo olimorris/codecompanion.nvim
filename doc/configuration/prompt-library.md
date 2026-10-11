@@ -311,7 +311,7 @@ Placeholders add dynamic content to a prompt with `${name}`. In Lua, `content` c
 
 **Context**
 
-`${context.<field>}` reads from the buffer the prompt was started from:
+`${context.<field>}` reads from the buffer the prompt was started from, along with the current date:
 
 ::: code-group
 
@@ -358,6 +358,7 @@ The fields, with a visual selection of lines 8 to 10:
     return "hello " .. text
   end]],
   cursor_pos = { 10, 3 },
+  date = "Sunday, 11 October 2026",
   end_col = 3,
   end_line = 10,
   filename = "hello.lua",
@@ -376,7 +377,7 @@ The fields, with a visual selection of lines 8 to 10:
 }
 ```
 
-Without a selection, `code` is `false` and `lines` is empty.
+Without a selection, `code` is `false` and `lines` is empty. The `date` follows [`date_format`](/configuration/system-prompt#chat-system-prompt), which also sets the date in the system prompt.
 
 **External Lua Files**
 

@@ -70,7 +70,7 @@ local defaults = {
   constants = constants,
   interactions = {
     opts = {
-      date_format = "%A, %d %B %Y", -- The date format to use in system prompts
+      date_format = "%A, %d %B %Y", -- The date format to use in system prompts and prompt library placeholders
 
       watcher = {
         enabled = true, -- Reload buffers when an agent modifies files on disk

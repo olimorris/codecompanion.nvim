@@ -128,6 +128,7 @@ function M.get(bufnr, args)
     buftype = api.nvim_get_option_value("buftype", { buf = bufnr }) or "",
     code = vim.tbl_count(lines) > 0 and table.concat(lines, "\n"),
     cursor_pos = cursor_pos,
+    date = tostring(os.date(require("codecompanion.config").interactions.opts.date_format)),
     end_col = end_col,
     end_line = end_line,
     filetype = M.get_filetype(bufnr),
