@@ -4,6 +4,7 @@ local adapters = require("codecompanion.adapters")
 local async = require("codecompanion.utils.async")
 local config = require("codecompanion.config")
 local input = require("codecompanion.interactions.shared.input")
+local utils = require("codecompanion.utils")
 
 local api = vim.api
 local fmt = string.format
@@ -47,29 +48,28 @@ local function remember_adapter(inline)
   _adapters[bufnr] = { adapter = inline.adapter.name, model = get_model(inline.adapter) }
 end
 
----Pick one of the agent's models, which it only lists once the buffer's session is open
+---Pick one of the agent's models, which it only lists once a session is open
 ---@param inline CodeCompanion.Inline
 ---@param opts { on_done: fun() }
 ---@return nil
 local function select_acp_model(inline, opts)
   local inline_acp = require("codecompanion.interactions.inline.adapters.acp")
-  local session = { adapter = inline.adapter, bufnr = inline.bufnr }
 
   async.sync(function()
-    local models = inline_acp.list_models(session)
+    local models = inline_acp.list_models({ adapter = inline.adapter })
+    if models then
+      -- The open session may belong to another buffer, whose model isn't the one picked here
+      models.currentModelId = get_model(inline.adapter) or models.currentModelId
+    end
     vim.schedule(function()
       adapter_ui.select_model({
         adapter = inline.adapter,
         acp_models = models,
         on_choice = function(model_id)
-          if not model_id then
-            return opts.on_done()
-          end
-          async.sync(function()
-            inline_acp.set_model(vim.tbl_extend("force", session, { model = model_id }))
+          if model_id then
             inline.adapter = adapters.resolve(inline.adapter.name, { model = model_id })
-            vim.schedule(opts.on_done)
-          end)()
+          end
+          opts.on_done()
         end,
       })
     end)
@@ -107,26 +107,79 @@ local function select_adapter(inline, opts)
   })
 end
 
+---@param inline CodeCompanion.Inline
+---@return string
+local function get_title(inline)
+  if inline.is_continuing then
+    return fmt(" Continue · %s ", get_adapter_label(inline.conversation.adapter))
+  end
+  return fmt(" %s · %s ", config.display.input.title, get_adapter_label(inline.adapter))
+end
+
+---Step back into the buffer's conversation and through its prompts, or forward out of it to a new one
+---@param inline CodeCompanion.Inline
+---@return { history_up: fun(), history_down: fun() }
+local function get_conversation_keymaps(inline)
+  local prompts = inline.conversation.prompts
+  local index, draft = 0, ""
+
+  return {
+    history_up = function()
+      if not inline.is_continuing then
+        inline.is_continuing = true
+        return input.set_title(get_title(inline))
+      end
+      if index == #prompts then
+        return
+      end
+      if index == 0 then
+        draft = input.get_content()
+      end
+      index = index + 1
+      input.set_content(prompts[#prompts - index + 1])
+    end,
+    history_down = function()
+      if index == 0 then
+        inline.is_continuing = false
+        return input.set_title(get_title(inline))
+      end
+      index = index - 1
+      input.set_content(index == 0 and draft or prompts[#prompts - index + 1])
+    end,
+  }
+end
+
 ---Open the input box, where the adapter and model can be changed before sending
 ---@param inline CodeCompanion.Inline
 ---@param opts { on_submit: fun(input: string) }
 ---@return nil
 function M.open_input(inline, opts)
+  local callbacks = {
+    change_adapter = function()
+      if inline.is_continuing then
+        local keys = config.display.input.keymaps.history_down.modes.n
+        return utils.notify(
+          fmt("Press %s to start a new conversation, then change adapter", vim.iter({ keys }):flatten():next())
+        )
+      end
+      input.hide()
+      select_adapter(inline, {
+        on_done = function()
+          remember_adapter(inline)
+          M.open_input(inline, opts)
+        end,
+      })
+    end,
+  }
+  if inline.conversation then
+    callbacks = vim.tbl_extend("force", callbacks, get_conversation_keymaps(inline))
+  end
+
   input.open({
-    title = fmt(" %s · %s ", config.display.input.title, get_adapter_label(inline.adapter)),
+    title = get_title(inline),
     window = { height = config.interactions.inline.display.input.height },
     on_submit = opts.on_submit,
-    callbacks = {
-      change_adapter = function()
-        input.hide()
-        select_adapter(inline, {
-          on_done = function()
-            remember_adapter(inline)
-            M.open_input(inline, opts)
-          end,
-        })
-      end,
-    },
+    callbacks = callbacks,
   })
 end
 

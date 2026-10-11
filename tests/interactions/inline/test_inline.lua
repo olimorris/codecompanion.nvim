@@ -296,6 +296,101 @@ T["Inline"]["sends the full instructions of an autoloaded skill"] = function()
   h.eq(true, child.lua_get([[_G.find_sent_message("The project's own take.") ~= nil]]))
 end
 
+T["Inline"]["continuing sends the earlier turns and ONE fresh copy of the buffer"] = function()
+  child.lua([[
+    vim.api.nvim_buf_set_lines(0, 0, -1, false, { "local a = 1" })
+    table.insert(_G.responses, _G.edit({ old_string = "local a = 1", new_string = "local a = 10" }))
+    _G.new_inline({ start_line = 1, end_line = 1, start_col = 0, end_col = 0 }):prompt("Multiply a by 10")
+    _G.wait_for_requests()
+
+    table.insert(_G.responses, { content = "Done" })
+    local inline = _G.new_inline({ start_line = 1, end_line = 1, start_col = 0, end_col = 0 })
+    inline.is_continuing = true
+    inline:prompt("Now by 100")
+    _G.wait_for_requests()
+
+    _G.sent = vim.tbl_map(function(message)
+      return { role = message.role, content = message.content }
+    end, _G.requests[2].messages)
+  ]])
+
+  local sent = child.lua_get([[_G.sent]])
+  local copies = vim.tbl_filter(function(message)
+    return type(message.content) == "string" and message.content:find("````lua", 1, true) ~= nil
+  end, sent)
+  local contents = table.concat(
+    vim.tbl_map(function(message)
+      return type(message.content) == "string" and message.content or ""
+    end, sent),
+    "\n"
+  )
+
+  h.eq(1, #copies)
+  h.expect_contains("Here is a fresh copy", copies[1].content)
+  h.expect_contains("local a = 10", copies[1].content)
+  h.expect_contains("Multiply a by 10", contents)
+  h.expect_contains("Edit applied", contents)
+end
+
+T["Inline"]["a new prompt DOES NOT send the earlier conversation"] = function()
+  child.lua([[
+    vim.api.nvim_buf_set_lines(0, 0, -1, false, { "local a = 1" })
+    table.insert(_G.responses, { content = "It sets a" })
+    _G.new_inline({ start_line = 1, end_line = 1, start_col = 0, end_col = 0 }):prompt("Explain this")
+    _G.wait_for_requests()
+
+    table.insert(_G.responses, { content = "Done" })
+    _G.new_inline({ start_line = 1, end_line = 1, start_col = 0, end_col = 0 }):prompt("Multiply a by 10")
+    _G.wait_for_requests()
+  ]])
+
+  h.eq(
+    { first = true, earlier = false },
+    child.lua_get([[{
+      first = _G.find_sent_message("Explain this") ~= nil,
+      earlier = vim.iter(_G.requests[2].messages):any(function(message)
+        return type(message.content) == "string" and message.content:find("Explain this", 1, true) ~= nil
+      end),
+    }]])
+  )
+end
+
+T["Inline"]["<Up> continues the conversation, recalls its prompts and <Down> leaves it"] = function()
+  local result = child.lua([[
+    vim.api.nvim_buf_set_lines(0, 0, -1, false, { "local a = 1" })
+    table.insert(_G.responses, { content = "It sets a" })
+    _G.new_inline({ start_line = 1, end_line = 1, start_col = 0, end_col = 0 }):prompt("Explain this")
+    _G.wait_for_requests()
+
+    local input = require("codecompanion.interactions.shared.input")
+    local inline = _G.new_inline({ start_line = 1, end_line = 1, start_col = 0, end_col = 0 })
+    require("codecompanion.interactions.inline.ui").open_input(inline, { on_submit = function() end })
+
+    local function get_state()
+      return {
+        content = input.get_content(),
+        continuing = inline.is_continuing,
+        title = vim.api.nvim_win_get_config(0).title[1][1],
+      }
+    end
+
+    local states = {}
+    for _, key in ipairs({ "<Up>", "<Up>", "<Down>", "<Down>" }) do
+      vim.api.nvim_feedkeys(vim.keycode(key), "x", false)
+      table.insert(states, get_state())
+    end
+    input.close()
+    return states
+  ]])
+
+  h.eq({ content = "", continuing = true }, { content = result[1].content, continuing = result[1].continuing })
+  h.expect_contains("Continue", result[1].title)
+  h.eq("Explain this", result[2].content)
+  h.eq({ content = "", continuing = true }, { content = result[3].content, continuing = result[3].continuing })
+  h.eq(false, result[4].continuing)
+  h.expect_contains("Prompt", result[4].title)
+end
+
 T["Inline"]["ACP"] = new_set({
   hooks = {
     pre_case = function()
@@ -446,6 +541,39 @@ T["Inline"]["ACP"]["drops the agent's edits OUTSIDE the selection and keeps thos
   ]])
 
   h.eq({ "local a = 1", "local b = 20", "local c = 3" }, child.lua_get([[vim.api.nvim_buf_get_lines(0, 0, -1, false)]]))
+end
+
+T["Inline"]["ACP"]["continuing keeps the agent's session and a new prompt opens another"] = function()
+  child.lua([[
+    local connection = require("codecompanion.acp").new()
+    local count = 0
+    connection.ensure_session = function(self)
+      if not self.session_id then
+        count = count + 1
+        self.session_id = "session-" .. count
+      end
+      return true
+    end
+
+    vim.api.nvim_buf_set_lines(0, 0, -1, false, { "local a = 1" })
+    local _, copy_path = _G.prompt_agent()
+    vim.fn.writefile({ "local a = 10" }, copy_path)
+    _G.last_prompt_request.handlers.complete("end_turn")
+    vim.wait(100)
+
+    _G.sessions = {}
+    for _, is_continuing in ipairs({ true, false }) do
+      local inline = _G.new_inline({ start_line = 1, end_line = 1, start_col = 0, end_col = 0 })
+      inline.adapter = require("codecompanion.adapters").resolve("test_acp")
+      inline.is_continuing = is_continuing
+      inline:prompt("Again")
+      table.insert(_G.sessions, connection.session_id)
+      _G.last_prompt_request.handlers.complete("end_turn")
+      vim.wait(100)
+    end
+  ]])
+
+  h.eq({ "session-1", "session-2" }, child.lua_get([[_G.sessions]]))
 end
 
 T["Inline"]["ACP"]["DOES NOT allow the agent to edit any file but the copy"] = function()

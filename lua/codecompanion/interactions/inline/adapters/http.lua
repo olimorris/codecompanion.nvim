@@ -4,6 +4,7 @@
 ---@field edited string The editable lines with every successful edit applied
 ---@field inline CodeCompanion.Inline
 ---@field on_done fun(result: CodeCompanion.Inline.Result)
+---@field preamble_count number How many messages the system prompt, rules and skills take up
 ---@field retries number How many times a failed edit has been sent back to the LLM
 ---@field stopped? boolean
 
@@ -59,6 +60,7 @@ function HTTP:submit(messages, opts)
   }
   vim.list_extend(preamble, Rules.get_messages(config.rules.opts.inline.autoload))
   vim.list_extend(preamble, skills.get_messages(config.skills.opts.inline.autoload))
+  self.preamble_count = #preamble
   self:send(vim.list_extend(preamble, messages))
 end
 
@@ -174,7 +176,11 @@ function HTTP:done(args)
     if response.content == "" then
       return self:finish({ error = fmt("%s returned no edits and no reply", self.adapter.formatted_name) })
     end
-    return self:finish({ reply = response.content })
+    table.insert(
+      args.messages,
+      { role = config.constants.LLM_ROLE, content = response.content, opts = { visible = false } }
+    )
+    return self:finish({ reply = response.content, messages = self:get_conversation(args.messages) })
   end
 
   response.tool_calls = adapters.call_handler(self.adapter, "format_calls", { tools = response.tool_calls })
@@ -184,7 +190,8 @@ function HTTP:done(args)
   end, results)
 
   if vim.tbl_isempty(failed) then
-    return self:finish({ lines = self:get_new_content() })
+    local messages = self:add_tool_results(args.messages, { response = response, results = results })
+    return self:finish({ lines = self:get_new_content(), messages = self:get_conversation(messages) })
   end
 
   if self.retries >= CONSTANTS.MAX_RETRIES then
@@ -224,6 +231,13 @@ function HTTP:add_tool_results(messages, args)
   end
 
   return messages
+end
+
+---The messages without the system prompt, rules and skills, which are rebuilt for every prompt
+---@param messages table
+---@return table
+function HTTP:get_conversation(messages)
+  return vim.list_slice(messages, self.preamble_count + 1)
 end
 
 ---The buffer's lines with the edited lines spliced back in

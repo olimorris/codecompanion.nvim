@@ -5,6 +5,7 @@
 ---@field on_done fun(result: CodeCompanion.Inline.Result)
 ---@field prompt? table The prompt that's being processed
 ---@field reply string[] The agent's text reply
+---@field session_id? string
 ---@field stopped? boolean
 
 local async = require("codecompanion.utils.async")
@@ -28,8 +29,8 @@ local CONSTANTS = {
 
 local _connecting ---@type CodeCompanion.ACPAdapter|nil
 local _connection
+local _live_sessions = {} ---@type table<string, boolean>
 local _running
-local _sessions = {}
 
 ---@return CodeCompanion.ACPAdapter|nil
 local function get_busy_adapter()
@@ -49,7 +50,7 @@ local function connect(adapter)
   end
 
   -- A new or restarted agent process doesn't know the sessions it had before
-  _sessions = {}
+  _live_sessions = {}
   _connection = _connection or require("codecompanion.acp").new({ adapter = adapter })
   if not _connection:connect_and_authenticate() then
     _connection = nil
@@ -59,58 +60,39 @@ local function connect(adapter)
   return _connection
 end
 
----Connect and switch to the buffer's own session, creating one the first time
----@param opts { adapter: CodeCompanion.ACPAdapter, bufnr: number }
+---Connect and switch to the given session, or a new one if it's missing or the agent no longer has it
+---@param opts { adapter: CodeCompanion.ACPAdapter, session_id?: string }
 ---@return CodeCompanion.ACP.Connection|nil
-local function open_buffer_session(opts)
+local function open_session(opts)
   local connection = connect(opts.adapter)
   if not connection then
     return nil
   end
 
-  local bufnr = opts.bufnr
-  connection:use_session(_sessions[bufnr])
+  local session_id = _live_sessions[opts.session_id] and opts.session_id or nil
+  connection:use_session(session_id)
   if not connection:ensure_session() then
     return nil
   end
 
-  if not _sessions[bufnr] then
+  if not session_id then
     -- The inline adapter, not the connection's, carries the model picked for this buffer
     require("codecompanion.interactions.chat.acp.defaults").apply(opts.adapter, connection)
-    api.nvim_create_autocmd("BufWipeout", {
-      buffer = bufnr,
-      once = true,
-      callback = function()
-        _sessions[bufnr] = nil
-      end,
-    })
   end
 
-  _sessions[bufnr] = connection.session_id
+  _live_sessions[connection.session_id] = true
   return connection
 end
 
----Open the buffer's session, holding the connection until it's ready
----@param opts { adapter: CodeCompanion.ACPAdapter, bufnr: number }
+---Open the session, holding the connection until it's ready
+---@param opts { adapter: CodeCompanion.ACPAdapter, session_id?: string }
 ---@return CodeCompanion.ACP.Connection|nil
-local function connect_to_buffer_session(opts)
+local function connect_to_session(opts)
   -- A second buffer arriving mid-setup would share the session being created
   _connecting = opts.adapter
-  local connection = open_buffer_session(opts)
+  local connection = open_session(opts)
   _connecting = nil
   return connection
-end
-
----Connect to the buffer's session, unless a prompt or another session's setup is running
----@param opts { adapter: CodeCompanion.ACPAdapter, bufnr: number }
----@return CodeCompanion.ACP.Connection|nil
-local function connect_when_idle(opts)
-  -- Switching sessions mid-prompt would leave the agent's replies with nowhere to go
-  local busy = get_busy_adapter()
-  if busy then
-    return log:warn("[Inline] %s is still working on an inline prompt", busy.formatted_name)
-  end
-  return connect_to_buffer_session(opts)
 end
 
 ---@class CodeCompanion.Inline.ACP
@@ -141,11 +123,16 @@ function ACP:submit(messages, opts)
 
   self.copy_path = self:make_copy()
 
+  local session_id = self.inline.is_continuing and self.inline.conversation.session_id or nil
   async.sync(function()
-    local connection = connect_to_buffer_session({ adapter = self.adapter, bufnr = self.inline.bufnr })
+    local connection = connect_to_session({ adapter = self.adapter, session_id = session_id })
     if not connection then
       return self:finish({ error = fmt("Could not connect to %s", self.adapter.formatted_name) })
     end
+    if session_id and connection.session_id ~= session_id then
+      log:warn("[Inline] %s restarted, so this prompt starts a new conversation", self.adapter.formatted_name)
+    end
+    self.session_id = connection.session_id
     -- Stopping while connecting deleted the copy, so a prompt sent now would offer to empty the buffer
     if self.stopped then
       return
@@ -175,22 +162,18 @@ function ACP:submit(messages, opts)
   end)()
 end
 
----List the agent's models for the buffer's session, which must run inside a coroutine
----@param opts { adapter: CodeCompanion.ACPAdapter, bufnr: number }
+---List the agent's models, which must run inside a coroutine
+---@param opts { adapter: CodeCompanion.ACPAdapter }
 ---@return { availableModels: { modelId: string, name: string }[], currentModelId: string }|nil
 function ACP.list_models(opts)
-  local connection = connect_when_idle(opts)
-  return connection and connection:get_models()
-end
-
----Change the model of the buffer's session, which must run inside a coroutine
----@param opts { adapter: CodeCompanion.ACPAdapter, bufnr: number, model: string }
----@return nil
-function ACP.set_model(opts)
-  local connection = connect_when_idle(opts)
-  if connection then
-    connection:set_model(opts.model)
+  -- Switching sessions mid-prompt would leave the agent's replies with nowhere to go
+  local busy = get_busy_adapter()
+  if busy then
+    return log:warn("[Inline] %s is still working on an inline prompt", busy.formatted_name)
   end
+  -- Any session will list the models, so reuse the open one rather than wait for a new one
+  local connection = connect_to_session({ adapter = opts.adapter, session_id = _connection and _connection.session_id })
+  return connection and connection:get_models()
 end
 
 ---@return nil
@@ -377,6 +360,7 @@ function ACP:finish(result)
     return
   end
   self:clean_up()
+  result.session_id = self.session_id
   vim.schedule(function()
     self.on_done(result)
   end)

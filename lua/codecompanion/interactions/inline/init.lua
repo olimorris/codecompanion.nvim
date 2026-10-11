@@ -8,8 +8,11 @@ The Inline Interaction - This is where code is applied directly to a Neovim buff
 ---@field aug number The ID for the autocmd group
 ---@field buffer_context CodeCompanion.BufferContext
 ---@field bufnr number The buffer number to apply the inline edits to
+---@field conversation? CodeCompanion.Inline.Conversation The buffer's last conversation, which the prompt can continue
 ---@field diff_ui? CodeCompanion.DiffUI The diff UI instance
+---@field is_continuing? boolean
 ---@field opts table
+---@field prompt_text? string What the user asked, to recall when continuing the conversation
 ---@field prompts table The prompts to send to the LLM
 ---@field request? CodeCompanion.Inline.HTTP|CodeCompanion.Inline.ACP The request that's being processed
 ---@field requesting? boolean Whether the LLM is working on the prompt, so the finish event fires once
@@ -30,6 +33,14 @@ The Inline Interaction - This is where code is applied directly to a Neovim buff
 ---@field lines? string[] The buffer with the LLM's edits applied
 ---@field reply? string The LLM's text reply, when it made no edits
 ---@field error? string
+---@field messages? table[] The conversation with an HTTP adapter, without the system prompt, rules or skills
+---@field session_id? string The agent's session, for an ACP adapter
+
+---@class CodeCompanion.Inline.Conversation
+---@field adapter CodeCompanion.HTTPAdapter|CodeCompanion.ACPAdapter
+---@field prompts string[] What the user asked, oldest first
+---@field messages? table[] The conversation with an HTTP adapter, without any copies of the buffer
+---@field session_id? string The agent's session, for an ACP adapter
 
 local acp = require("codecompanion.interactions.inline.adapters.acp")
 local adapter_utils = require("codecompanion.adapters.utils")
@@ -53,6 +64,8 @@ local CONSTANTS = {
   AUTOCMD_GROUP = "codecompanion.inline",
 }
 
+local _conversations = {} ---@type table<number, CodeCompanion.Inline.Conversation>
+
 ---@class CodeCompanion.Inline
 local Inline = {}
 
@@ -69,6 +82,7 @@ function Inline.new(args)
     }),
     buffer_context = args.buffer_context,
     bufnr = args.buffer_context.bufnr,
+    conversation = _conversations[args.buffer_context.bufnr],
     opts = args.opts or {},
     prompts = args.prompts,
   }, { __index = Inline })
@@ -135,6 +149,9 @@ end
 ---@param opts { user_prompt?: string, input?: string }
 ---@return nil
 function Inline:send_prompt(opts)
+  if self.is_continuing then
+    self.adapter = self.conversation.adapter
+  end
   if self.adapter.type == "http" and not self.adapter.opts.tools then
     return log:error(
       "[Inline] The %s adapter can't call tools, which inline needs to edit the buffer",
@@ -150,6 +167,7 @@ function Inline:send_prompt(opts)
     return
   end
   self.target = target
+  self.prompt_text = opts.input or opts.user_prompt
 
   local messages = self:make_messages(target, opts.user_prompt)
   if opts.input then
@@ -192,8 +210,11 @@ function Inline:format_target(target)
   local shared_lines = (target.context.first == 1 and target.context.last == #target.lines) and "the whole buffer"
     or fmt("lines %d-%d of %d", target.context.first, target.context.last, #target.lines)
 
+  local intro = self.is_continuing
+      and "Here is a fresh copy of %s from `%s`. Review it before making any further edits:"
+    or "This is %s from `%s`:"
   local content = fmt(
-    "This is %s from `%s`:\n\n````%s\n%s\n````",
+    intro .. "\n\n````%s\n%s\n````",
     shared_lines,
     name ~= "" and name or "[No Name]",
     filetype,
@@ -219,14 +240,13 @@ end
 ---@param user_prompt? string
 ---@return table
 function Inline:make_messages(target, user_prompt)
-  local messages = {
-    {
-      role = user_role,
-      content = self:format_target(target),
-      _meta = { tag = "buffer" },
-      opts = { visible = false },
-    },
-  }
+  local messages = self.is_continuing and vim.deepcopy(self.conversation.messages or {}) or {}
+  table.insert(messages, {
+    role = user_role,
+    content = self:format_target(target),
+    _meta = { tag = "buffer" },
+    opts = { visible = false },
+  })
 
   vim.list_extend(messages, self:get_prompt_library_messages())
 
@@ -395,6 +415,7 @@ function Inline:done(result)
     return self:reset()
   end
 
+  self:save_conversation(result)
   if result.reply then
     self:reset()
     return ui.show_reply(result.reply, { adapter = self.adapter })
@@ -404,6 +425,35 @@ function Inline:done(result)
   return vim.schedule(function()
     self:review(result.lines)
   end)
+end
+
+---Keep the buffer's conversation so the next prompt can continue it, replacing any it had before
+---@param result CodeCompanion.Inline.Result
+---@return nil
+function Inline:save_conversation(result)
+  local bufnr = self.bufnr
+  if not _conversations[bufnr] then
+    api.nvim_create_autocmd("BufWipeout", {
+      buffer = bufnr,
+      once = true,
+      callback = function()
+        _conversations[bufnr] = nil
+      end,
+    })
+  end
+
+  local prompts = self.is_continuing and vim.list_slice(self.conversation.prompts) or {}
+  table.insert(prompts, self.prompt_text)
+
+  _conversations[bufnr] = {
+    adapter = self.adapter,
+    prompts = prompts,
+    -- A copy of the buffer from an earlier turn would contradict the fresh one sent with each prompt
+    messages = result.messages and vim.tbl_filter(function(message)
+      return not (message._meta and message._meta.tag == "buffer")
+    end, result.messages),
+    session_id = result.session_id,
+  }
 end
 
 ---Fire `InlineFinished` once the LLM is done with the prompt, however it ended

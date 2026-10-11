@@ -75,7 +75,7 @@ end
 
 ---Set the input buffer content
 ---@param text string
-local function _set_content(text)
+function M.set_content(text)
   if not _input or not api.nvim_buf_is_valid(_input.bufnr) then
     return
   end
@@ -87,7 +87,7 @@ end
 
 ---Get the current input buffer content
 ---@return string
-local function _get_content()
+function M.get_content()
   if not _input or not api.nvim_buf_is_valid(_input.bufnr) then
     return ""
   end
@@ -122,11 +122,11 @@ local function _history_up()
   end
 
   if _history_index == 0 then
-    _draft = _get_content()
+    _draft = M.get_content()
   end
 
   _history_index = math.min(_history_index + 1, #_history)
-  _set_content(_history[#_history - _history_index + 1])
+  M.set_content(_history[#_history - _history_index + 1])
 end
 
 ---Navigate to the next history entry
@@ -138,9 +138,9 @@ local function _history_down()
   _history_index = _history_index - 1
 
   if _history_index == 0 then
-    _set_content(_draft)
+    M.set_content(_draft)
   else
-    _set_content(_history[#_history - _history_index + 1])
+    M.set_content(_history[#_history - _history_index + 1])
   end
 end
 
@@ -234,6 +234,15 @@ function M.open(opts)
 
   if opts.on_open then
     opts.on_open(bufnr, _input.winnr)
+  end
+end
+
+---@param title string
+---@return nil
+function M.set_title(title)
+  if M.is_visible() then
+    local title_pos = api.nvim_win_get_config(_input.winnr).title_pos
+    api.nvim_win_set_config(_input.winnr, { title = title, title_pos = title_pos })
   end
 end
 
