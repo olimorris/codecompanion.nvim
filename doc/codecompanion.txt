@@ -1,4 +1,4 @@
-*codecompanion.txt*         For NVIM v0.11        Last change: 2026 October 10
+*codecompanion.txt*         For NVIM v0.11        Last change: 2026 October 11
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -5833,8 +5833,9 @@ SLASH COMMANDS ~
 In the chat buffer, type `/` followed by the alias. Only chat prompts with
 `is_slash_cmd = true` in their `opts` appear here.
 
-Any tools the prompt declares are added to the chat buffer before its content
-is inserted.
+Any |codecompanion-configuration-prompt-library-tools| and
+|codecompanion-configuration-prompt-library-skills| the prompt declares are
+added to the chat buffer before its content is inserted.
 
 
 WORKFLOWS                                      *codecompanion-usage-workflows*
@@ -10050,7 +10051,8 @@ can also be a function that receives the buffer context.
 
 **Context**
 
-`${context.<field>}` reads from the buffer the prompt was started from:
+`${context.<field>}` reads from the buffer the prompt was started from, along
+with the current date:
 
 **Markdown**
 
@@ -10097,6 +10099,7 @@ The fields, with a visual selection of lines 8 to 10:
         return "hello " .. text
       end]],
       cursor_pos = { 10, 3 },
+      date = "Sunday, 11 October 2026",
       end_col = 3,
       end_line = 10,
       filename = "hello.lua",
@@ -10115,7 +10118,9 @@ The fields, with a visual selection of lines 8 to 10:
     }
 <
 
-Without a selection, `code` is `false` and `lines` is empty.
+Without a selection, `code` is `false` and `lines` is empty. The `date` follows
+|codecompanion-configuration-system-prompt-chat-system-prompt|, which also sets
+the date in the system prompt.
 
 **External Lua Files**
 
