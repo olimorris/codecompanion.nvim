@@ -269,6 +269,81 @@ T["Prompt Library"]["can ignore system prompt"] = function()
   h.eq(false, has_system_tag)
 end
 
+T["Prompt Library"]["ignoring the system prompt KEEPS the tool system prompt"] = function()
+  local tags = child.lua([[
+      codecompanion.setup({
+        interactions = {
+          chat = {
+            tools = {
+              opts = {
+                system_prompt = { enabled = true, prompt = "My tool system prompt" },
+              },
+            },
+          },
+        },
+        prompt_library = {
+          ["Coach"] = {
+            strategy = "chat",
+            description = "A personal coach",
+            tools = { "read_file" },
+            opts = {
+              alias = "coach",
+              index = 1,
+              ignore_system_prompt = true,
+            },
+            prompts = {
+              {
+                role = "system",
+                content = "You are my personal coach",
+              },
+            },
+          },
+        },
+      })
+      codecompanion.prompt("coach")
+      local chat = codecompanion.last_chat()
+      local helpers = require("codecompanion.interactions.chat.helpers")
+      local tags = require("codecompanion.interactions.shared.tags")
+      return {
+        system = helpers.has_tag(tags.SYSTEM_PROMPT_FROM_CONFIG, chat.messages),
+        tool = helpers.has_tag(tags.TOOL_SYSTEM_PROMPT, chat.messages),
+      }
+    ]])
+  h.eq({ system = false, tool = true }, tags)
+end
+
+T["Prompt Library"]["tool system prompt is first in a chat with NO other messages"] = function()
+  local tag = child.lua([[
+      codecompanion.setup({
+        interactions = {
+          chat = {
+            tools = {
+              opts = {
+                system_prompt = { enabled = true, prompt = "My tool system prompt" },
+              },
+            },
+          },
+        },
+        prompt_library = {
+          ["Blank"] = {
+            strategy = "chat",
+            description = "Loads tools only",
+            tools = { "read_file" },
+            opts = {
+              alias = "blank",
+              index = 1,
+              ignore_system_prompt = true,
+            },
+          },
+        },
+      })
+      codecompanion.prompt("blank")
+      local first = codecompanion.last_chat().messages[1]
+      return first and first._meta.tag
+    ]])
+  h.eq("tool_system_prompt", tag)
+end
+
 T["Prompt Library"]["can start the chat buffer in an approval mode"] = function()
   local mode = child.lua([[
     codecompanion.setup({

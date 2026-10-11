@@ -232,10 +232,6 @@ function M.parse_prompt(content, frontmatter)
 
   store_prompt()
 
-  if #prompts == 0 then
-    return nil
-  end
-
   if frontmatter and frontmatter.opts and frontmatter.opts.is_workflow then
     local workflow = {}
     local first_prompt = {}

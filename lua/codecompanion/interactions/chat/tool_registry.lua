@@ -14,6 +14,7 @@ Methods for handling interactions between the chat buffer and tools
 local ToolRegistry = {}
 
 local config = require("codecompanion.config")
+local helpers = require("codecompanion.interactions.chat.helpers")
 local tags = require("codecompanion.interactions.shared.tags")
 local utils = require("codecompanion.utils")
 
@@ -245,10 +246,11 @@ function ToolRegistry:add_tool_system_prompt()
     prompt = prompt({ ctx = self.ctx, tools = vim.tbl_keys(self.in_use) })
   end
 
-  local index = 2 -- Add after the main system prompt if not replacing
+  local index = 1
   if opts.replace_main_system_prompt then
-    index = 1
     self.chat:remove_tagged_message(tags.SYSTEM_PROMPT_FROM_CONFIG)
+  elseif helpers.has_tag(tags.SYSTEM_PROMPT_FROM_CONFIG, self.chat.messages) then
+    index = 2
   end
 
   self.chat:set_system_prompt(prompt, { visible = false, _meta = { tag = tags.TOOL_SYSTEM_PROMPT, index = index } })

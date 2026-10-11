@@ -448,7 +448,7 @@ No I'm not.
     { markdown }
   )
 
-  h.eq(vim.NIL, result, "No prompts should be parsed for incorrect roles")
+  h.eq({}, result, "No prompts should be parsed for incorrect roles")
 end
 
 T["Markdown"]["load_from_dir loads all markdown files in a directory"] = function()
