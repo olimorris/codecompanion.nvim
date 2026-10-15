@@ -5,7 +5,7 @@ description: "Choose the adapter, keymaps, editor context and layout for the inl
 # Configuring the Inline Interaction
 
 > [!IMPORTANT]
-> Only **http** adapters whose model supports tool calling can be used for the inline interaction
+> HTTP adapters must use a model that supports tool calling. ACP agents edit a temporary copy of the buffer instead
 
 <p align="center">
   <img src="https://github.com/user-attachments/assets/21568a7f-aea8-4928-b3d4-f39c6566a23c" alt="Inline Interaction">
@@ -30,7 +30,19 @@ require("codecompanion").setup({
 })
 ```
 
-See [Configuring HTTP Adapters](/configuration/adapters-http) for more.
+An ACP agent can be used too:
+
+```lua
+require("codecompanion").setup({
+  interactions = {
+    inline = {
+      adapter = "claude_code",
+    },
+  },
+})
+```
+
+See [Configuring HTTP Adapters](/configuration/adapters-http) and [Configuring ACP Adapters](/configuration/adapters-acp) for more.
 
 ## Keymaps
 
@@ -130,7 +142,7 @@ require("codecompanion").setup({
 })
 ```
 
-If the model's input limit minus 3,000 is smaller, that's used instead, leaving room for the prompt and the reply.
+If the model's input limit minus 3,000 is smaller, that's used instead, leaving room for the prompt and the reply. When you [continue a conversation](/usage/inline#continuing-a-conversation) with an HTTP adapter, the earlier turns are taken off that too.
 
 ## Rules and Skills
 
