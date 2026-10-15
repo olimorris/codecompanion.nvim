@@ -19,16 +19,32 @@ local CONSTANTS = {
 
 local M = {}
 
----The configured limit, capped so the model has room for the prompt and its reply
+---The configured limit, capped so the model has room for the conversation so far, the prompt and its reply
 ---@param adapter CodeCompanion.HTTPAdapter|CodeCompanion.ACPAdapter
+---@param opts? { history_tokens?: number }
 ---@return number
-function M.get_max_tokens(adapter)
+function M.get_max_tokens(adapter, opts)
+  opts = opts or {}
   local configured = config.interactions.inline.opts.max_context_tokens
   local input_limit = shared.input_limit(adapter)
   if not input_limit then
     return configured
   end
-  return math.min(configured, input_limit - CONSTANTS.RESERVED_TOKENS)
+  return math.min(configured, input_limit - CONSTANTS.RESERVED_TOKENS - (opts.history_tokens or 0))
+end
+
+---Estimate the tokens in a conversation, including the arguments of its tool calls
+---@param messages table[]
+---@return number
+function M.get_conversation_tokens(messages)
+  local tool_tokens = 0
+  for _, message in ipairs(messages) do
+    for _, call in ipairs(vim.tbl_get(message, "tools", "calls") or {}) do
+      local args = vim.tbl_get(call, "function", "arguments")
+      tool_tokens = tool_tokens + tokens.calculate(type(args) == "table" and vim.json.encode(args) or args)
+    end
+  end
+  return tokens.get_tokens(messages) + tool_tokens
 end
 
 ---The `edit_file` schema, scoped to the one buffer that inline edits

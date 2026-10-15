@@ -144,6 +144,15 @@ local function _history_down()
   end
 end
 
+---Remove the keymaps bound for the caller that opened the input
+---@return nil
+local function _clear_caller_keymaps()
+  for _, keymap in ipairs(_input.caller_keymaps) do
+    pcall(vim.keymap.del, keymap.mode, keymap.lhs, { buffer = _input.bufnr })
+  end
+  _input.caller_keymaps = {}
+end
+
 ---Bind the input's own keymaps and then the caller's, rebinding any key that hiding removed
 ---@param callbacks table<string, function>
 ---@return nil
@@ -162,6 +171,10 @@ function M.open(opts)
     _input.allow_empty = opts.allow_empty
 
     if M.is_visible() then
+      -- Another buffer's caller keymaps would otherwise send the prompt back to that buffer
+      _clear_caller_keymaps()
+      _bind_keymaps(opts.callbacks or {})
+      M.set_title(opts.title or " CodeCompanion ")
       api.nvim_set_current_win(_input.winnr)
       vim.cmd("startinsert")
       return
@@ -259,12 +272,9 @@ function M.hide()
 
   if _input.bufnr and api.nvim_buf_is_valid(_input.bufnr) then
     vim.bo[_input.bufnr].modified = false
-    for _, keymap in ipairs(_input.caller_keymaps) do
-      pcall(vim.keymap.del, keymap.mode, keymap.lhs, { buffer = _input.bufnr })
-    end
+    _clear_caller_keymaps()
   end
 
-  _input.caller_keymaps = {}
   _input.winnr = nil
 end
 

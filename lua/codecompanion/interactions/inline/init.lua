@@ -184,10 +184,17 @@ end
 ---@return CodeCompanion.Inline.Target|nil
 function Inline:get_target()
   local lines = api.nvim_buf_get_lines(self.bufnr, 0, -1, false)
-  local max_tokens = inline_utils.get_max_tokens(self.adapter)
+  local history = self.is_continuing and self.conversation.messages or {}
+  local max_tokens =
+    inline_utils.get_max_tokens(self.adapter, { history_tokens = inline_utils.get_conversation_tokens(history) })
 
   local selection = { first = self.buffer_context.start_line, last = self.buffer_context.end_line }
   local selection_tokens = tokens.calculate(inline_utils.get_text(lines, selection))
+  if selection_tokens > max_tokens and self.is_continuing then
+    return log:error(
+      "[Inline] The selection and the conversation so far are over the model's context window. Select less code or start a new conversation"
+    )
+  end
   if selection_tokens > max_tokens then
     return log:error(
       "[Inline] The selection is around %d tokens, which is over the %d token limit for inline. Select less code",
@@ -412,6 +419,10 @@ function Inline:done(result)
 
   if result.error then
     log:error("[Inline] %s", result.error)
+    return self:reset()
+  end
+  if not api.nvim_buf_is_valid(self.bufnr) then
+    log:warn("[Inline] The buffer was closed before the LLM finished, so its response was discarded")
     return self:reset()
   end
 

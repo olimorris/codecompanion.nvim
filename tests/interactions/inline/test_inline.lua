@@ -355,6 +355,87 @@ T["Inline"]["a new prompt DOES NOT send the earlier conversation"] = function()
   )
 end
 
+T["Inline"]["continuing shares FEWER lines WHEN the conversation fills the context window"] = function()
+  child.lua([[
+    local lines = {}
+    for i = 1, 100 do
+      table.insert(lines, "local variable_" .. i .. " = " .. i)
+    end
+    local bufnr = vim.api.nvim_get_current_buf()
+    vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, lines)
+    local tokens = require("codecompanion.utils.tokens")
+    local buffer_tokens = tokens.calculate(table.concat(lines, "\n"))
+    local reply = "word"
+    while tokens.calculate(reply) < buffer_tokens / 2 do
+      reply = reply .. " word"
+    end
+
+    local first = _G.new_inline({ bufnr = bufnr, start_line = 50, end_line = 50, start_col = 0, end_col = 0 })
+    first.adapter.model = vim.tbl_extend("force", first.adapter.model or {}, { meta = { context_window = 3000 + buffer_tokens + 50 } })
+    table.insert(_G.responses, { content = reply })
+    first:prompt("Explain this")
+    _G.wait_for_requests()
+
+    table.insert(_G.responses, { content = "Done" })
+    local inline = _G.new_inline({ bufnr = bufnr, start_line = 50, end_line = 50, start_col = 0, end_col = 0 })
+    inline.is_continuing = true
+    inline:prompt("And this?")
+    _G.wait_for_requests()
+  ]])
+
+  h.eq(true, child.lua_get([[_G.find_sent_message("This is the whole buffer") ~= nil]]))
+  local shared = child.lua_get([[vim.iter(_G.requests[2].messages):find(function(message)
+    return type(message.content) == "string" and message.content:find("Here is a fresh copy", 1, true)
+  end).content]])
+  h.expect_contains("fresh copy of lines ", shared)
+end
+
+T["Inline"]["finishes cleanly WHEN the buffer is wiped while the LLM is working"] = function()
+  local result = child.lua([[
+    local bufnr = vim.api.nvim_create_buf(true, false)
+    vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, { "local a = 1" })
+    local finished = false
+    vim.api.nvim_create_autocmd("User", {
+      pattern = "CodeCompanionInlineFinished",
+      callback = function()
+        finished = true
+      end,
+    })
+
+    table.insert(_G.responses, { content = "It sets a" })
+    _G.new_inline({ bufnr = bufnr, start_line = 1, end_line = 1, start_col = 0, end_col = 0 }):prompt("Explain this")
+    vim.api.nvim_buf_delete(bufnr, { force = true })
+    _G.wait_for_requests()
+    return { finished = finished, errors = vim.v.errmsg }
+  ]])
+
+  h.eq({ finished = true, errors = "" }, result)
+end
+
+T["Inline"]["reopening the visible input for ANOTHER buffer DOES NOT keep the first buffer's keymaps"] = function()
+  local result = child.lua([[
+    vim.api.nvim_buf_set_lines(0, 0, -1, false, { "local a = 1" })
+    table.insert(_G.responses, { content = "It sets a" })
+    _G.new_inline({ start_line = 1, end_line = 1, start_col = 0, end_col = 0 }):prompt("Explain this")
+    _G.wait_for_requests()
+
+    local ui = require("codecompanion.interactions.inline.ui")
+    local first = _G.new_inline({ start_line = 1, end_line = 1, start_col = 0, end_col = 0 })
+    ui.open_input(first, { on_submit = function() end })
+
+    local other = _G.new_inline({ bufnr = vim.api.nvim_create_buf(true, false), start_line = 1, end_line = 1, start_col = 0, end_col = 0 })
+    ui.open_input(other, { on_submit = function() end })
+    vim.api.nvim_feedkeys(vim.keycode("<Up>"), "x", false)
+
+    local state = { first = first.is_continuing, title = vim.api.nvim_win_get_config(0).title[1][1] }
+    require("codecompanion.interactions.shared.input").close()
+    return state
+  ]])
+
+  h.eq(nil, result.first)
+  h.eq(nil, result.title:find("Continue", 1, true))
+end
+
 T["Inline"]["<Up> continues the conversation, recalls its prompts and <Down> leaves it"] = function()
   local result = child.lua([[
     vim.api.nvim_buf_set_lines(0, 0, -1, false, { "local a = 1" })

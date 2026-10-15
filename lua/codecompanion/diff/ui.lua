@@ -219,11 +219,13 @@ function DiffUI:resolve_hunk(index, opts)
   self:redraw({ from_lines = from_lines, to_lines = to_lines, hunk = index })
 end
 
----Take back the last hunk decision
+---Undo the user's own edits, or take back the last hunk decision once there are none
 ---@return nil
 function DiffUI:undo_hunk()
-  if self:warn_if_edited() then
-    return
+  if self:is_edited() then
+    return api.nvim_buf_call(self.bufnr, function()
+      vim.cmd("silent undo")
+    end)
   end
   local decision = table.remove(self.decisions)
   if decision then
@@ -231,10 +233,15 @@ function DiffUI:undo_hunk()
   end
 end
 
+---@return boolean
+function DiffUI:is_edited()
+  return not vim.deep_equal(api.nvim_buf_get_lines(self.bufnr, 0, -1, false), self.drawn_lines)
+end
+
 ---Hunk decisions redraw the whole buffer, which would wipe out any edits the user has made since
 ---@return boolean
 function DiffUI:warn_if_edited()
-  if vim.deep_equal(api.nvim_buf_get_lines(self.bufnr, 0, -1, false), self.drawn_lines) then
+  if not self:is_edited() then
     return false
   end
   utils.notify(
