@@ -1,4 +1,4 @@
-*codecompanion.txt*         For NVIM v0.11        Last change: 2026 October 15
+*codecompanion.txt*         For NVIM v0.11        Last change: 2026 October 16
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -5730,54 +5730,6 @@ You can also call inline prompts from the
 `:'<,'>CodeCompanion /docstrings`.
 
 
-INPUT BOX ~
-
-The input box has its own keymaps:
-
-  -----------------------------------------------------------------------------
-  Keymap                  Mode                    Action
-  ----------------------- ----------------------- -----------------------------
-  <CR> or <C-s>           Normal                  Send the prompt
-
-  <C-s>                   Insert                  Send the prompt
-
-  q or <Esc>              Normal                  Close the input box, keeping
-                                                  what you've written
-
-  <Up> / <Down>           Normal and insert       -continuing-a-conversation,
-                                                  or step through earlier
-                                                  prompts
-
-  ga                      Normal                  Change the adapter and model
-  -----------------------------------------------------------------------------
-While the LLM is working, press `q` in the buffer to stop the request.
-
-
-ADAPTERS ~
-
-The inline interaction works with |codecompanion-configuration-adapters-http|
-whose model supports tool calling, and with
-|codecompanion-configuration-adapters-acp| such as Claude Code and Codex.
-
-Press `ga` in the input box to pick an adapter and model. Your choice is
-remembered for that buffer, so later inline prompts in it use the same adapter
-and model until you pick again. Other buffers keep using
-`interactions.inline.adapter`.
-
-For a one-off, include the adapter in your prompt with `adapter=*`. For example
-`:<','>CodeCompanion adapter=deepseek can you refactor this?`. This isn't
-remembered, and can be combined with editor context.
-
-**ACP Agents**
-
-An agent edits a temporary copy of the buffer rather than the buffer itself,
-and its edits are brought back for you to review. It can read and search your
-project, but it can't edit any other file or run commands. Each agent works on
-one inline prompt at a time, and your
-|codecompanion-configuration-inline-rules-and-skills| aren't sent to it, as it
-loads its own.
-
-
 HOW EDITS WORK ~
 
 The current buffer is shared with the LLM, which edits it by calling the
@@ -5834,6 +5786,52 @@ with `display.diff.enabled`, the banner above the current hunk hidden with
 `interactions.shared.keymaps`.
 
 
+INPUT BOX ~
+
+The input box has its own keymaps:
+
+  -----------------------------------------------------------------------
+  Keymap                              Action
+  ----------------------------------- -----------------------------------
+  <CR> or <C-s>                       Send the prompt
+
+  q or <Esc>                          Close the input box, keeping what
+                                      you've written
+
+  <Up> or <Down>                      -continuing-a-conversation, or step
+                                      through earlier prompts
+
+  ga                                  Change the adapter and model
+  -----------------------------------------------------------------------
+While the LLM is working, press `q` in the buffer to stop the request.
+
+
+ADAPTERS ~
+
+The inline interaction works with |codecompanion-configuration-adapters-http|
+and |codecompanion-configuration-adapters-acp| such as Claude Code and Codex.
+**An HTTP adapter's model must support tool calling**, as that's how the LLM
+edits the buffer.
+
+Press `ga` in the input box to pick an adapter and model. Your choice is
+remembered for that buffer, so later inline prompts in it use the same adapter
+and model until you pick again. Other buffers keep using
+`interactions.inline.adapter`.
+
+For a one-off, include the adapter in your prompt with `adapter=*`. For example
+`:<','>CodeCompanion adapter=deepseek can you refactor this?`. This isn't
+remembered, and can be combined with editor context.
+
+**ACP Agents**
+
+An agent edits a temporary copy of the buffer rather than the buffer itself,
+and its edits are brought back for you to review. It can read and search your
+project, but it can't edit any other file or run commands. Each agent works on
+one inline prompt at a time, and your
+|codecompanion-configuration-inline-rules-and-skills| aren't sent to it, as it
+loads its own.
+
+
 CONTINUING A CONVERSATION ~
 
 Each buffer remembers its last inline conversation, so you can follow up on a
@@ -5871,7 +5869,6 @@ prompt, and you can add your own as per the
 
 LIMITATIONS ~
 
-- An HTTP adapter's model must support tool calling. Adapters that don't, such as xAI, are refused.
 - A selection is limited by whole lines, so selecting part of a line lets the LLM edit all of it.
 - If the buffer changes while the LLM is responding, its edits are discarded. If the buffer is closed, its reply is discarded too.
 - When continuing a conversation with an HTTP adapter, the earlier turns count towards the model's input limit. Fewer lines of the buffer are shared as the conversation grows, and once your selection no longer fits, you need to start a new conversation.
@@ -9365,7 +9362,8 @@ using the same `edit_file` tool as the chat buffer.
 
 CHANGING ADAPTER ~
 
-The inline interaction uses the `copilot` adapter by default. To change it:
+The inline interaction uses the `copilot` adapter with the `gpt-5.4-mini` model
+by default. To change it:
 
 >lua
     require("codecompanion").setup({
@@ -15214,19 +15212,35 @@ The inline interaction now edits the buffer with the
 asking the LLM where to place a block of code. See
 |codecompanion-usage-inline-how-edits-work|.
 
-- The adapter's model must support tool calling. Inline prompts sent with an adapter that doesn't, such as `xai`, are refused with an error
-- The current buffer is always shared with the LLM, up to a |codecompanion-configuration-inline-context-limit|, so the inline `#{buffer}` editor context has been removed. Delete it from your inline prompts
-- With a visual selection, the LLM can only edit the selected lines
-- Your `default` rules group, including `AGENTS.md` and `CLAUDE.md`, is sent with every inline prompt to an HTTP adapter, on top of the context limit. Set `rules.opts.inline.autoload = {}` to stop it. See |codecompanion-configuration-inline-rules-and-skills|
-- The `placement` prompt library option has been removed, along with the option to write code into a new buffer. Inline prompts that set `placement` can delete it
+
+  [!IMPORTANT] The default inline adapter is now `copilot` with the
+  `gpt-5.4-mini` model, as editing through a tool needs a capable model to be
+  reliable. This makes inline unusable on Copilot's free and student plans, so
+  |codecompanion-configuration-inline-changing-adapter| if you're on one
+**Update your config**
+
+If you've customised inline:
+
+- Delete the `#{buffer}` editor context from your inline prompts. The current buffer is always shared with the LLM, up to a |codecompanion-configuration-inline-context-limit|
+- Delete `placement` from your inline prompts. Writing code into a new buffer is no longer an option
+- Delete `display.inline.layout`
+- Delete the `response.parse_inline` and `inline_output` handlers from your adapters. Inline now uses `response.parse_chat` (or `chat_output`) and the tool handlers, the same as the chat buffer
 - `pre_hook` no longer runs for inline prompts
+- The `Unit tests` prompt (`/tests`) has been removed from the prompt library
+
+**What's changed**
+
+- The adapter's model must support tool calling. Inline prompts sent with an adapter that doesn't, such as `xai`, are refused with an error
+- With a visual selection, the LLM can only edit the selected lines
 - A reply that doesn't edit the buffer, such as an answer to a question, opens in a float rather than a chat buffer
-- `display.inline.layout` has been removed
 - `:CodeCompanion` with no prompt, and prompts with `user_prompt`, now open CodeCompanion's input box rather than `vim.ui.input`
 - The inline diff can be reviewed a hunk at a time with the new `accept_hunk` (`ga`), `reject_hunk` (`gr`) and `undo_hunk` (`u`) keymaps in `interactions.shared.keymaps`. `reject_change` now rejects only the hunks that are left
-- The `Unit tests` prompt (`/tests`) has been removed from the prompt library
-- The `response.parse_inline` and `inline_output` adapter handlers have been removed. If your adapter defines either, delete it. Inline now uses `response.parse_chat` (or `chat_output`) and the tool handlers, the same as the chat buffer
 
+
+  [!IMPORTANT] Your `default` rules group, including `AGENTS.md` and `CLAUDE.md`,
+  is sent with every inline prompt to an HTTP adapter, on top of the context
+  limit. Set `rules.opts.inline.autoload = {}` to stop it. See
+  |codecompanion-configuration-inline-rules-and-skills|
 - The Super Diff is removed (#2600 <https://github.com/olimorris/codecompanion.nvim/pull/2600>)
 - CodeCompanion only supports its built-in diff, which is enabled by default. Mini.Diff is no longer supported (#2600 <https://github.com/olimorris/codecompanion.nvim/pull/2600>)
 - The `full_stack_dev` group is renamed to |codecompanion-usage-chat-buffer-agents-tools-agent| (#2786 <https://github.com/olimorris/codecompanion.nvim/pull/2786>)

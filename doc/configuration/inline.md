@@ -15,7 +15,7 @@ CodeCompanion provides an _inline_ interaction for quick, direct editing of your
 
 ## Changing Adapter
 
-The inline interaction uses the `copilot` adapter by default. To change it:
+The inline interaction uses the `copilot` adapter with the `gpt-5.4-mini` model by default. To change it:
 
 ```lua
 require("codecompanion").setup({

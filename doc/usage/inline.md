@@ -12,32 +12,6 @@ As per the [Getting Started](/getting-started#editing-inline) guide, the inline 
 
 You can also call inline prompts from the [prompt library](/configuration/prompt-library) by their alias, such as `:'<,'>CodeCompanion /docstrings`.
 
-## Input Box
-
-The input box has its own keymaps:
-
-| Keymap | Mode | Action |
-|---|---|---|
-| `<CR>` or `<C-s>` | Normal | Send the prompt |
-| `<C-s>` | Insert | Send the prompt |
-| `q` or `<Esc>` | Normal | Close the input box, keeping what you've written |
-| `<Up>` / `<Down>` | Normal and insert | [Continue the last conversation](#continuing-a-conversation), or step through earlier prompts |
-| `ga` | Normal | Change the adapter and model |
-
-While the LLM is working, press `q` in the buffer to stop the request.
-
-## Adapters
-
-The inline interaction works with [HTTP adapters](/configuration/adapters-http) whose model supports tool calling, and with [ACP agents](/configuration/adapters-acp) such as Claude Code and Codex.
-
-Press `ga` in the input box to pick an adapter and model. Your choice is remembered for that buffer, so later inline prompts in it use the same adapter and model until you pick again. Other buffers keep using `interactions.inline.adapter`.
-
-For a one-off, include the adapter in your prompt with `adapter=*`. For example `:<','>CodeCompanion adapter=deepseek can you refactor this?`. This isn't remembered, and can be combined with editor context.
-
-**ACP Agents**
-
-An agent edits a temporary copy of the buffer rather than the buffer itself, and its edits are brought back for you to review. It can read and search your project, but it can't edit any other file or run commands. Each agent works on one inline prompt at a time, and your [rules and skills](/configuration/inline#rules-and-skills) aren't sent to it, as it loads its own.
-
 ## How Edits Work
 
 The current buffer is shared with the LLM, which edits it by calling the `edit_file` tool, once per change. What it can edit depends on your selection:
@@ -67,6 +41,31 @@ By default, the LLM's edits are shown as a diff in the buffer, which you can rev
 
 Once every hunk has been accepted or rejected, the diff closes. Pressing `u` afterwards undoes the whole edit in one step, however many hunks you resolved, and rejecting every hunk leaves nothing to undo. The diff can be turned off with `display.diff.enabled`, the banner above the current hunk hidden with `display.diff.show_banner`, and the keymaps changed in `interactions.shared.keymaps`.
 
+## Input Box
+
+The input box has its own keymaps:
+
+| Keymap | Action |
+|---|---|
+| `<CR>` or `<C-s>` | Send the prompt |
+| `q` or `<Esc>` | Close the input box, keeping what you've written |
+| `<Up>` or `<Down>` | [Continue the last conversation](#continuing-a-conversation), or step through earlier prompts |
+| `ga` | Change the adapter and model |
+
+While the LLM is working, press `q` in the buffer to stop the request.
+
+## Adapters
+
+The inline interaction works with [HTTP adapters](/configuration/adapters-http) and [ACP agents](/configuration/adapters-acp) such as Claude Code and Codex. **An HTTP adapter's model must support tool calling**, as that's how the LLM edits the buffer.
+
+Press `ga` in the input box to pick an adapter and model. Your choice is remembered for that buffer, so later inline prompts in it use the same adapter and model until you pick again. Other buffers keep using `interactions.inline.adapter`.
+
+For a one-off, include the adapter in your prompt with `adapter=*`. For example `:<','>CodeCompanion adapter=deepseek can you refactor this?`. This isn't remembered, and can be combined with editor context.
+
+**ACP Agents**
+
+An agent edits a temporary copy of the buffer rather than the buffer itself, and its edits are brought back for you to review. It can read and search your project, but it can't edit any other file or run commands. Each agent works on one inline prompt at a time, and your [rules and skills](/configuration/inline#rules-and-skills) aren't sent to it, as it loads its own.
+
 ## Continuing a Conversation
 
 Each buffer remembers its last inline conversation, so you can follow up on a reply or ask for another change without starting again. Press `<Up>` in the input box to continue it, and the title changes to `Continue` with the conversation's adapter and model. Press `<Up>` again to step back through the prompts you sent, and `<Down>` to step forward and then out to a new conversation.
@@ -86,7 +85,6 @@ Include them in your prompt, for example `:CodeCompanion #{clipboard} use this f
 
 ## Limitations
 
-- An HTTP adapter's model must support tool calling. Adapters that don't, such as xAI, are refused.
 - A selection is limited by whole lines, so selecting part of a line lets the LLM edit all of it.
 - If the buffer changes while the LLM is responding, its edits are discarded. If the buffer is closed, its reply is discarded too.
 - When continuing a conversation with an HTTP adapter, the earlier turns count towards the model's input limit. Fewer lines of the buffer are shared as the conversation grows, and once your selection no longer fits, you need to start a new conversation.
