@@ -293,7 +293,7 @@ Helpers.make_tool_call = function(chat, tool_call, tool_output, messages)
   }, { visible = false })
 
   -- Then add the tool output
-  chat:add_tool_output({ tool = tool_call, for_llm = tool_output })
+  chat:add_tool_output(tool_call, { content = tool_output })
 
   -- Finally, add any LLM messages
   if messages.llm_final_response then

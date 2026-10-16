@@ -1,4 +1,4 @@
-*codecompanion.txt*         For NVIM v0.11        Last change: 2026 October 11
+*codecompanion.txt*         For NVIM v0.11        Last change: 2026 October 16
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -7696,7 +7696,7 @@ EVENTS ~
                           message history         messages,
                                                   reported_tokens
 
-  on_tool_output          Before a tool's output  tool, for_llm, for_user
+  on_tool_output          Before a tool's output  tool, content, display
                           is added to the chat    
 
   on_ready                When the chat is ready  -
@@ -7832,8 +7832,8 @@ To stop a message that's over a token limit:
 TRUNCATING TOOL OUTPUT ~
 
 `on_tool_output` fires before a tool's output is added to the chat. `data.tool`
-is the tool's name, `data.for_llm` is the output sent to the LLM and
-`data.for_user` is what's shown in the chat buffer. Change either to change the
+is the tool's name, `data.content` is the output sent to the LLM and
+`data.display` is what's shown in the chat buffer. Change either to change the
 output:
 
 >lua
@@ -7845,10 +7845,10 @@ output:
           local tokens = require("codecompanion.utils.tokens")
           local max_tokens = 10000
     
-          if data.for_llm and tokens.calculate(data.for_llm) > max_tokens then
+          if data.content and tokens.calculate(data.content) > max_tokens then
             local max_chars = max_tokens * 6
-            data.for_llm = data.for_llm:sub(1, max_chars) .. "\n\n[Output truncated]"
-            data.for_user = data.for_llm
+            data.content = data.content:sub(1, max_chars) .. "\n\n[Output truncated]"
+            data.display = data.content
             vim.notify(
               string.format("Tool output from '%s' truncated (~%d tokens)", data.tool, max_tokens),
               vim.log.levels.WARN
@@ -9613,7 +9613,7 @@ CodeCompanion gives it:
                     local content = stdout and stdout[#stdout]
                     local output = tool_bridge.format_tool_result_content(content)
                     local msg = string.format("%d + %d = %s", self.args.a, self.args.b, output)
-                    tools.chat:add_tool_output({ tool = self, for_llm = output, for_user = msg })
+                    tools.chat:add_tool_output(self, { content = output, display = msg })
                   end,
                 },
               },
@@ -13342,13 +13342,13 @@ For the calculator:
       ---@param stdout table
       ---@param meta { tools: CodeCompanion.Tools, cmd: table }
       success = function(self, stdout, meta)
-        return meta.tools.chat:add_tool_output({ tool = self, for_llm = tostring(stdout[#stdout]) })
+        return meta.tools.chat:add_tool_output(self, { content = tostring(stdout[#stdout]) })
       end,
       ---@param self CodeCompanion.Tools.Tool
       ---@param stderr table
       ---@param meta { tools: CodeCompanion.Tools, cmd: table }
       error = function(self, stderr, meta)
-        return meta.tools.chat:add_tool_output({ tool = self, for_llm = tostring(stderr[#stderr]) })
+        return meta.tools.chat:add_tool_output(self, { content = tostring(stderr[#stderr]) })
       end,
     },
 <
@@ -13356,16 +13356,15 @@ For the calculator:
 `add_tool_output` adds the tool's output to the chat's message history:
 
 >lua
-    meta.tools.chat:add_tool_output({
-      tool = self,
-      for_llm = "The result of 6 * 7 is 42",
-      for_user = "Calculated 6 * 7",
+    meta.tools.chat:add_tool_output(self, {
+      content = "The result of 6 * 7 is 42",
+      display = "Calculated 6 * 7",
     })
 <
 
-`tool` is the tool that ran, `self` in an output function. `for_llm` is sent to
-the LLM. `for_user` is shown in the chat buffer, `for_llm` is shown when it's
-`nil`, and an empty string shows nothing.
+The first argument is the tool that ran, `self` in an output function.
+`content` is sent to the LLM. `display` is shown in the chat buffer, `content`
+is shown when it's `nil`, and `false` or an empty string shows nothing.
 
 
   [!IMPORTANT] If an output function you define doesn't call `add_tool_output`,
@@ -13498,13 +13497,13 @@ Putting it all together:
                 ---@param stdout table
                 ---@param meta { tools: CodeCompanion.Tools, cmd: table }
                 success = function(self, stdout, meta)
-                  return meta.tools.chat:add_tool_output({ tool = self, for_llm = tostring(stdout[#stdout]) })
+                  return meta.tools.chat:add_tool_output(self, { content = tostring(stdout[#stdout]) })
                 end,
                 ---@param self CodeCompanion.Tools.Tool
                 ---@param stderr table
                 ---@param meta { tools: CodeCompanion.Tools, cmd: table }
                 error = function(self, stderr, meta)
-                  return meta.tools.chat:add_tool_output({ tool = self, for_llm = tostring(stderr[#stderr]) })
+                  return meta.tools.chat:add_tool_output(self, { content = tostring(stderr[#stderr]) })
                 end,
               },
             },
@@ -13597,14 +13596,14 @@ To change what the LLM is told in either case:
       ---@param meta { tools: CodeCompanion.Tools, cmd: table, opts: { reason?: string } }
       ---@return nil
       rejected = function(self, meta)
-        meta.tools.chat:add_tool_output({ tool = self, for_llm = "The user declined to run the calculator tool" })
+        meta.tools.chat:add_tool_output(self, { content = "The user declined to run the calculator tool" })
       end,
     
       ---@param self CodeCompanion.Tools.Tool
       ---@param meta { tools: CodeCompanion.Tools, cmd: table }
       ---@return nil
       cancelled = function(self, meta)
-        meta.tools.chat:add_tool_output({ tool = self, for_llm = "The user cancelled the execution of the calculator tool" })
+        meta.tools.chat:add_tool_output(self, { content = "The user cancelled the execution of the calculator tool" })
       end,
     },
 <
@@ -15028,7 +15027,7 @@ Update any calls from a custom tool, slash command or callback:
   -------------------------------------------------------------------------------------------------------------------------------------------
   Method                  Before                                   After
   ----------------------- ---------------------------------------- --------------------------------------------------------------------------
-  add_tool_output         (tool, for_llm, for_user)                ({ tool, for_llm, for_user? })
+  add_tool_output         (tool, for_llm, for_user)                (tool, { content, display? })
 
   add_context             (data, source, id, opts)                 (data, { source, id, bufnr?, path?, tag?, visible?, context_opts? })
 
@@ -15041,9 +15040,13 @@ Update any calls from a custom tool, slash command or callback:
 For example, in a tool's output handler:
 
 >lua
-    chat:add_tool_output(self, "The result is 42") -- [!code --]
-    chat:add_tool_output({ tool = self, for_llm = "The result is 42" }) -- [!code ++]
+    chat:add_tool_output(self, "The result is 42", "Calculated 6 * 7") -- [!code --]
+    chat:add_tool_output(self, { content = "The result is 42", display = "Calculated 6 * 7" }) -- [!code ++]
 <
+
+`display = false` also shows nothing in the chat buffer, alongside an empty
+string. The `on_tool_output` callback's `data.for_llm` and `data.for_user` are
+renamed to `data.content` and `data.display` to match.
 
 - The Super Diff is removed (#2600 <https://github.com/olimorris/codecompanion.nvim/pull/2600>)
 - CodeCompanion only supports its built-in diff, which is enabled by default. Mini.Diff is no longer supported (#2600 <https://github.com/olimorris/codecompanion.nvim/pull/2600>)
