@@ -76,7 +76,6 @@ return {
     response = {
       parse_chat = deepseek.handlers.response.parse_chat,
       parse_meta = deepseek.handlers.response.parse_meta,
-      parse_inline = deepseek.handlers.response.parse_inline,
       parse_tokens = deepseek.handlers.response.parse_tokens,
     },
 

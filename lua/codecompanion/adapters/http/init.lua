@@ -49,7 +49,6 @@ local function get_handler(adapter, name)
 
     -- response
     parse_chat = "chat_output",
-    parse_inline = "inline_output",
     parse_tokens = "tokens",
     parse_meta = "parse_message_meta",
 
@@ -80,7 +79,6 @@ local LEGACY_ARGUMENTS = {
   build_reasoning = { "data" },
   build_body = { "payload" },
   parse_chat = { "data", "tools" },
-  parse_inline = { "data", "context" },
   parse_tokens = { "data" },
   parse_meta = { "data" },
   format_calls = { "tools" },
@@ -127,7 +125,6 @@ end
 
 ---@class CodeCompanion.HTTPAdapter.Handlers.Response
 ---@field parse_chat? fun(self: CodeCompanion.HTTPAdapter, args: { data: string|table, tools?: table }): { status: string, output: table }|nil
----@field parse_inline? fun(self: CodeCompanion.HTTPAdapter, args: { data: string|table, context?: table }): { status: string, output: string }|nil
 ---@field parse_tokens? fun(self: CodeCompanion.HTTPAdapter, args: { data: table }): number|nil
 ---@field parse_meta? fun(self: CodeCompanion.HTTPAdapter, args: { data: {status: string, output: {role: string?, content: string?}, extra: table} }):{status: string, output: {role: string?, content: string?, reasoning:{content: string?}|table|nil}}
 
@@ -150,7 +147,6 @@ end
 ---@field form_structured_output? fun(self: CodeCompanion.HTTPAdapter, schema: CodeCompanion.StructuredOutput.Schema): table|nil (Deprecated: use request.build_structured_output)
 ---@field tokens? fun(self: CodeCompanion.HTTPAdapter, data: table): number|nil (Deprecated: use response.parse_tokens)
 ---@field chat_output? fun(self: CodeCompanion.HTTPAdapter, data: table, tools: table): table|nil (Deprecated: use response.parse_chat)
----@field inline_output? fun(self: CodeCompanion.HTTPAdapter, data: table, context: table): table|nil (Deprecated: use response.parse_inline)
 ---@field on_exit? fun(self: CodeCompanion.HTTPAdapter, data: table): table|nil (Deprecated: use lifecycle.on_exit)
 ---@field teardown? fun(self: CodeCompanion.HTTPAdapter): any (Deprecated: use lifecycle.teardown)
 

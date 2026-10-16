@@ -454,13 +454,4 @@ T["Gemini Legacy adapter"]["No Streaming"]["can process tools"] = function()
   h.eq(tool_output, tools)
 end
 
-T["Gemini Legacy adapter"]["No Streaming"]["can output for the inline assistant"] = function()
-  local data = vim.fn.readfile("tests/adapters/http/stubs/gemini_no_streaming.txt")
-  data = table.concat(data, "\n")
-
-  local json = { body = data }
-
-  h.expect_starts_with("Elegant, dynamic.", adapter.handlers.inline_output(adapter, json).output)
-end
-
 return T

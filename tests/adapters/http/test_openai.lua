@@ -600,6 +600,16 @@ T["Responses"]["No Streaming"]["chat_output"] = function()
   h.eq("Dynamic, expressive", adapter.handlers.response.parse_chat(adapter, { data = json }).output.content)
 end
 
+T["Responses"]["No Streaming"]["returns the response id"] = function()
+  local data = vim.fn.readfile("tests/adapters/http/stubs/openai_responses_no_streaming.txt")
+  local json = { body = table.concat(data, "\n") }
+
+  h.eq(
+    "resp_01a1d13de05d29790068e2e3706ac8819788b138ffa5996f92",
+    adapter.handlers.response.parse_chat(adapter, { data = json }).output.meta.response_id
+  )
+end
+
 T["Responses"]["No Streaming"]["can process tools"] = function()
   local data = vim.fn.readfile("tests/adapters/http/stubs/openai_responses_tools_no_streaming.txt")
   data = table.concat(data, "\n")
@@ -633,19 +643,6 @@ T["Responses"]["No Streaming"]["can process tools"] = function()
     },
   }
   h.eq(tool_output, tools)
-end
-
-T["Responses"]["No Streaming"]["can output for the inline assistant"] = function()
-  local data = vim.fn.readfile("tests/adapters/http/stubs/openai_responses_inline.txt")
-  data = table.concat(data, "\n")
-
-  -- Match the format of the actual request
-  local json = { body = data }
-
-  h.eq(
-    '{"code": "print(\'Hello World\')","language": "lua","placement": "add"}',
-    adapter.handlers.response.parse_inline(adapter, { data = json }).output
-  )
 end
 
 T["Responses"]["No Streaming"]["can process reasoning output"] = function()

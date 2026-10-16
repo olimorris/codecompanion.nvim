@@ -342,16 +342,6 @@ T["Ollama adapter"]["No Streaming"]["can process tools"] = function()
   -- h.eq(formatted_tools, adapter.handlers.tools.format_tool_calls(adapter, tools))
 end
 
-T["Ollama adapter"]["No Streaming"]["can output for the inline assistant"] = function()
-  local data = vim.fn.readfile("tests/adapters/http/stubs/ollama_no_streaming.txt")
-  data = table.concat(data, "\n")
-
-  -- Match the format of the actual request
-  local json = { body = data }
-
-  h.eq("Dynamic Scripting language", adapter.handlers.inline_output(adapter, json).output)
-end
-
 T["Ollama adapter"]["OLLAMA_HOST"] = new_set()
 
 T["Ollama adapter"]["OLLAMA_HOST"]["uses OLLAMA_HOST when set"] = function()

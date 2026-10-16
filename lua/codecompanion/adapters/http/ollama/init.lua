@@ -206,24 +206,6 @@ return {
         }
       end,
     },
-    inline_output = function(self, data, context)
-      if self.opts.stream then
-        return log:error("Inline output is not supported for non-streaming models")
-      end
-
-      if data and data ~= "" then
-        local ok, json = pcall(vim.json.decode, data.body, { luanil = { object = true } })
-
-        if not ok then
-          log:error("Error decoding JSON: %s", data.body)
-          return { status = "error", output = json }
-        end
-
-        if json.message.content then
-          return { status = "success", output = json.message.content }
-        end
-      end
-    end,
 
     ---Form the reasoning output that is stored in the chat buffer
     ---@param self CodeCompanion.HTTPAdapter

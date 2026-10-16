@@ -215,6 +215,8 @@ function Client:send(payload, opts)
   local handle_state = "pending"
   local meta = { id = tostring(math.random(10000000)) }
   local had_error = false
+  -- Read once, as the caller may switch streaming back on before `done` runs
+  local is_streaming = self.adapter and self.adapter.opts and self.adapter.opts.stream
 
   ---@param s "pending"|"streaming"|"success"|"error"|"cancelled"
   local function set_state(s)
@@ -233,8 +235,6 @@ function Client:send(payload, opts)
         end
         return
       end
-
-      local is_streaming = self.adapter and self.adapter.opts and self.adapter.opts.stream
 
       -- Streaming chunks (no final response table is delivered here on success)
       if is_streaming then
@@ -261,7 +261,6 @@ function Client:send(payload, opts)
 
     -- Defer on_done to the next tick to suppress it if an error arrives later on
     done = function()
-      local is_streaming = self.adapter and self.adapter.opts and self.adapter.opts.stream
       if not is_streaming then
         return
       end

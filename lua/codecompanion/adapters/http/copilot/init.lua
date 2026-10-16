@@ -59,9 +59,6 @@ local function handlers(adapter)
     responses.handlers.chat_output = function(self, data, tools)
       return responses.handlers.response.parse_chat(self, { data = data, tools = tools })
     end
-    responses.handlers.inline_output = function(self, data, context)
-      return responses.handlers.response.parse_inline(self, { data = data, context = context })
-    end
     responses.handlers.tokens = function(self, data)
       return responses.handlers.response.parse_tokens(self, { data = data })
     end
@@ -394,9 +391,6 @@ return {
         return handlers(self).tools.output_response(self, tool_call, output)
       end,
     },
-    inline_output = function(self, data, context)
-      return handlers(self).inline_output(self, data, context)
-    end,
     on_exit = function(self, data)
       return handlers(self).on_exit(self, data)
     end,

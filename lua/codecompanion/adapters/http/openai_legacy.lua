@@ -358,30 +358,6 @@ return {
       }
     end,
 
-    ---Output the data from the API ready for inlining into the current buffer
-    ---@param self CodeCompanion.HTTPAdapter
-    ---@param data string|table The streamed JSON data from the API, also formatted by the format_data handler
-    ---@param context? table Useful context about the buffer to inline to
-    ---@return {status: string, output: table}|nil
-    inline_output = function(self, data, context)
-      if self.opts.stream then
-        return log:error("Inline output is not supported for non-streaming models")
-      end
-
-      if data and data ~= "" then
-        local ok, json = pcall(vim.json.decode, data.body, { luanil = { object = true } })
-
-        if not ok then
-          log:error("Error decoding JSON: %s", data.body)
-          return { status = "error", output = json }
-        end
-
-        local choice = json.choices[1]
-        if choice.message.content then
-          return { status = "success", output = choice.message.content }
-        end
-      end
-    end,
     tools = {
       ---Format the LLM's tool calls for inclusion back in the request
       ---@param self CodeCompanion.HTTPAdapter

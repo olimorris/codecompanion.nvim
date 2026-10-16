@@ -374,31 +374,6 @@ return {
       }
     end,
 
-    ---Output the data from the API ready for inlining into the current buffer
-    ---@param self CodeCompanion.HTTPAdapter
-    ---@param data string|table
-    ---@param context? table
-    ---@return table|nil
-    inline_output = function(self, data, context)
-      if self.opts.stream then
-        return log:error("Inline output is not supported in streaming mode")
-      end
-
-      if data and data ~= "" then
-        local ok, json = pcall(vim.json.decode, data.body, { luanil = { object = true } })
-
-        if not ok then
-          log:error("Error decoding JSON: %s", data.body)
-          return { status = "error", output = json }
-        end
-
-        local text = json.candidates[1].content.parts[1].text
-        if text then
-          return { status = "success", output = text }
-        end
-      end
-    end,
-
     tools = {
       ---Normalize raw tool calls from chat_output into the internal format
       ---@param self CodeCompanion.HTTPAdapter

@@ -92,7 +92,6 @@ The fields in `args` match the old positional arguments:
 | `request.build_reasoning` | `data` |
 | `request.build_body` | `payload` |
 | `response.parse_chat` | `data`, `tools` |
-| `response.parse_inline` | `data`, `context` |
 | `response.parse_tokens` | `data` |
 | `response.parse_meta` | `data` |
 | `tools.format_calls` | `tools` |
@@ -222,7 +221,34 @@ chat:add_tool_output(self, "The result is 42", "Calculated 6 * 7") -- [!code --]
 chat:add_tool_output(self, { content = "The result is 42", display = "Calculated 6 * 7" }) -- [!code ++]
 ```
 
-`display = false` also shows nothing in the chat buffer, alongside an empty string. The `on_tool_output` callback's `data.for_llm` and `data.for_user` are renamed to `data.content` and `data.display` to match.
+### Inline
+
+The inline interaction now edits the buffer with the [edit_file](/usage/chat-buffer/agents-tools#edit-file) tool, rather than asking the LLM where to place a block of code. See [How Edits Work](/usage/inline#how-edits-work).
+
+> [!IMPORTANT]
+> The default inline adapter is now `copilot` with the `gpt-5.4-mini` model, as editing through a tool needs a capable model to be reliable. This makes inline unusable on Copilot's free and student plans, so [change the adapter](/configuration/inline#changing-adapter) if you're on one
+
+**Update your config**
+
+If you've customised inline:
+
+- Delete the `#{buffer}` editor context from your inline prompts. The current buffer is always shared with the LLM, up to a [context limit](/configuration/inline#context-limit)
+- Delete `placement` from your inline prompts. Writing code into a new buffer is no longer an option
+- Delete `display.inline.layout`
+- Delete the `response.parse_inline` and `inline_output` handlers from your adapters. Inline now uses `response.parse_chat` (or `chat_output`) and the tool handlers, the same as the chat buffer
+- `pre_hook` no longer runs for inline prompts
+- The `Unit tests` prompt (`/tests`) has been removed from the prompt library
+
+**What's changed**
+
+- The adapter's model must support tool calling. Inline prompts sent with an adapter that doesn't, such as `xai`, are refused with an error
+- With a visual selection, the LLM can only edit the selected lines
+- A reply that doesn't edit the buffer, such as an answer to a question, opens in a float rather than a chat buffer
+- `:CodeCompanion` with no prompt, and prompts with `user_prompt`, now open CodeCompanion's input box rather than `vim.ui.input`
+- The inline diff can be reviewed a hunk at a time with the new `accept_hunk` (`ga`), `reject_hunk` (`gr`) and `undo_hunk` (`u`) keymaps in `interactions.shared.keymaps`. `reject_change` now rejects only the hunks that are left
+
+> [!IMPORTANT]
+> Your `default` rules group, including `AGENTS.md` and `CLAUDE.md`, is sent with every inline prompt to an HTTP adapter, on top of the context limit. Set `rules.opts.inline.autoload = {}` to stop it. See [Rules and Skills](/configuration/inline#rules-and-skills)
 
 ## v18.7.0 to v19.0.0
 

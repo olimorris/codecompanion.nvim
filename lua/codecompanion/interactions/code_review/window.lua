@@ -633,40 +633,7 @@ end
 ---Show the window's keymaps in a float
 ---@return nil
 local function show_keymaps()
-  local rows = {}
-  for _, map in pairs(config.interactions.code_review.keymaps or {}) do
-    local keys = type(map) == "table" and map.visible ~= false and map.modes and map.modes.n or nil
-    if keys then
-      keys = vim.tbl_map(function(key)
-        return fmt("`%s`", key)
-      end, type(keys) == "table" and keys or { keys })
-      table.insert(rows, { keys = table.concat(keys, " or "), description = map.description })
-    end
-  end
-
-  table.sort(rows, function(a, b)
-    return a.keys < b.keys
-  end)
-
-  local width = 0
-  for _, row in ipairs(rows) do
-    width = math.max(width, #row.keys)
-  end
-
-  local lines = { "### Keymaps", "" }
-  for _, row in ipairs(rows) do
-    table.insert(lines, fmt(" %s%s_%s_", row.keys, string.rep(" ", width - #row.keys + 4), row.description))
-  end
-
-  ui_utils.create_float(lines, {
-    ft = "markdown",
-    height = #lines + 2,
-    lock = true,
-    relative = "editor",
-    style = "minimal",
-    title = "Code Review",
-    width = width + 60,
-  })
+  ui_utils.show_keymaps(config.interactions.code_review.keymaps or {}, { title = "Code Review" })
 end
 
 local ACTIONS = {

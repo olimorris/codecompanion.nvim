@@ -474,15 +474,6 @@ T["Gemini adapter"]["No Streaming"]["can process a completed tool call with text
   h.expect_starts_with("The temperature in London", result.output.content)
 end
 
-T["Gemini adapter"]["No Streaming"]["can output for the inline assistant"] = function()
-  local data = vim.fn.readfile("tests/adapters/http/stubs/gemini_interactions_non_streaming.txt")
-  data = table.concat(data, "\n")
-
-  local json = { body = data }
-
-  h.expect_starts_with("There are 8 paws", adapter.handlers.response.parse_inline(adapter, { data = json }).output)
-end
-
 T["Gemini adapter"]["No Streaming"]["can output an image description"] = function()
   local data = vim.fn.readfile("tests/adapters/http/stubs/gemini_interactions_vision.txt")
   data = table.concat(data, "\n")

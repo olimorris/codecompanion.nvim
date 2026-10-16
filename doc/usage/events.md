@@ -10,7 +10,7 @@ For hooks that can change a chat's state, such as `on_before_submit` and `on_too
 
 ## Consuming an Event
 
-To format a buffer once an inline request finishes:
+To format a buffer once you've kept an inline edit:
 
 ```lua
 local group = vim.api.nvim_create_augroup("CodeCompanionHooks", {})
@@ -19,7 +19,7 @@ vim.api.nvim_create_autocmd({ "User" }, {
   pattern = "CodeCompanionInline*",
   group = group,
   callback = function(request)
-    if request.match == "CodeCompanionInlineFinished" then
+    if request.match == "CodeCompanionInlineAccepted" then
       require("conform").format({ bufnr = request.buf })
     end
   end,
@@ -126,7 +126,8 @@ The last four need [agent hooks](/configuration/cli#hooks).
 | `CodeCompanionRequestStreaming` | At the start of a streaming request |
 | `CodeCompanionRequestFinished` | At the end of a request, or a CLI agent's turn when [hooks](/configuration/cli#hooks) are set up |
 | `CodeCompanionInlineStarted` | At the start of an inline request |
-| `CodeCompanionInlineFinished` | At the end of an inline request |
+| `CodeCompanionInlineFinished` | At the end of an inline request, before its edits are reviewed |
+| `CodeCompanionInlineAccepted` | When you keep any of an inline request's edits |
 
 **Tools**
 

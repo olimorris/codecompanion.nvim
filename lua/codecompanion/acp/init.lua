@@ -55,6 +55,7 @@ local uv = vim.uv
 ---@field _loading_session boolean|nil
 ---@field _on_session_update function|nil
 ---@field _config_options table[] Raw configOptions from the agent
+---@field _session_config_options table<string, table[]> The configOptions of each session, restored when switching back to it
 ---@field _in_flight table<string, CodeCompanion.ACP.Connection.InFlight> Establishment steps currently underway
 ---@field _pending_callbacks table<number, function> Async callbacks keyed by request ID
 ---@field _rpc_log? { path: string, write: fun(data: string) } Per-connection log capturing raw JSON-RPC traffic
@@ -106,6 +107,7 @@ function Connection.new(args)
     _in_flight = {},
     _initialized = false,
     _pending_callbacks = {},
+    _session_config_options = {},
     _state = { handle = nil, id_gen = jsonrpc.IdGenerator.new(), line_buffer = jsonrpc.LineBuffer.new() },
   }, { __index = Connection }) ---@cast self CodeCompanion.ACP.Connection
 
@@ -314,6 +316,14 @@ function Connection:ensure_session()
   end
 
   return self:_open_session()
+end
+
+---Prompt through a different session on this connection, or a new one when `session_id` is nil
+---@param session_id? string
+---@return nil
+function Connection:use_session(session_id)
+  self.session_id = session_id
+  self._config_options = self._session_config_options[session_id] or {}
 end
 
 ---Create or load the session, announcing it to listeners
@@ -848,6 +858,12 @@ function Connection:handle_fs_write_file_request(id, params)
     return self:send_error(id, "invalid params", jsonrpc.errors.INVALID_PARAMS)
   end
 
+  -- An agent can write without asking for permission first
+  local handlers = self._active_prompt and self._active_prompt.handlers
+  if handlers and handlers.write_text_file_request and not handlers.write_text_file_request({ path = path }) then
+    return self:send_error(id, ("fs/write_text_file rejected for %s"):format(path))
+  end
+
   local fs = require("codecompanion.interactions.chat.acp.fs")
   local ok, err = fs.write_text_file(path, content)
   if ok then
@@ -884,6 +900,9 @@ end
 ---@param config_options table[] Array of SessionConfigOption
 function Connection:_apply_config_options(config_options)
   self._config_options = config_options
+  if self.session_id then
+    self._session_config_options[self.session_id] = config_options
+  end
 end
 
 ---Find a config option by category

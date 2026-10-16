@@ -538,37 +538,6 @@ return {
 
         return nil
       end,
-
-      ---Output the data from the API ready for inlining into the current buffer
-      ---@param self CodeCompanion.HTTPAdapter
-      ---@param args { data: string|table, context?: table }
-      ---@return table|nil
-      parse_inline = function(self, args)
-        local data = args.data
-        if self.opts.stream then
-          return log:error("Inline output is not supported in streaming mode")
-        end
-
-        if data and data ~= "" then
-          local ok, json = pcall(vim.json.decode, data.body, { luanil = { object = true } })
-
-          if not ok then
-            log:error("Error decoding JSON: %s", data.body)
-            return { status = "error", output = json }
-          end
-
-          local content
-          for _, step in ipairs(json.steps or {}) do
-            if step.type == "model_output" then
-              content = (content or "") .. (join_text_blocks(step.content) or "")
-            end
-          end
-
-          if content then
-            return { status = "success", output = content }
-          end
-        end
-      end,
     },
 
     tools = {

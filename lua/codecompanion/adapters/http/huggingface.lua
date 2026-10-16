@@ -129,9 +129,6 @@ return {
     chat_output = function(self, data, tools)
       return openai.handlers.chat_output(self, data, tools)
     end,
-    inline_output = function(self, data, context)
-      return openai.handlers.inline_output(self, data, context)
-    end,
     on_exit = function(self, data)
       return openai.handlers.on_exit(self, data)
     end,

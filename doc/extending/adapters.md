@@ -543,7 +543,6 @@ handlers = {
   form_parameters = function(self, params, messages) end,
   form_messages = function(self, messages) end,
   chat_output = function(self, data, tools) end,
-  inline_output = function(self, data, context) end,
   on_exit = function(self, data) end,
   teardown = function(self) end,
   tools = {
@@ -566,7 +565,6 @@ handlers = {
   },
   response = {
     parse_chat = function(self, args) end,
-    parse_inline = function(self, args) end,
   },
   tools = {
     format_calls = function(self, args) end,

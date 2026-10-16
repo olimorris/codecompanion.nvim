@@ -128,9 +128,6 @@ return {
     chat_output = function(self, data, tools)
       return openai.handlers.chat_output(self, data, tools)
     end,
-    inline_output = function(self, data, context)
-      return openai.handlers.inline_output(self, data, context)
-    end,
     tools = {
       format_tool_calls = function(self, tools)
         return openai.handlers.tools.format_tool_calls(self, tools)
