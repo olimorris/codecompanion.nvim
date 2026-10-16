@@ -70,7 +70,7 @@ local defaults = {
   constants = constants,
   interactions = {
     opts = {
-      date_format = "%A, %d %B %Y", -- The date format to use in system prompts
+      date_format = "%A, %d %B %Y", -- The date format to use in system prompts and prompt library placeholders
 
       watcher = {
         enabled = true, -- Reload buffers when an agent modifies files on disk
@@ -355,18 +355,20 @@ The user is working on a %s machine. Please respond with system specific command
             ---@return string
             prompt = function(args)
               return [[<instructions>
-You are a highly sophisticated automated coding agent with expert-level knowledge across many different programming languages and frameworks.
-The user will ask a question, or ask you to perform a task, and it may require lots of research to answer correctly. There is a selection of tools that let you perform actions or retrieve helpful context to answer the user's question.
+The user will ask a question, or ask you to perform a task, and it may require research to answer correctly. There is a selection of tools that let you perform actions or retrieve helpful context to answer the user's question.
 You will be given some context and attachments along with the user prompt. You can use them if they are relevant to the task, and ignore them if not.
-If you can infer the project type (languages, frameworks, and libraries) from the user's query or the context that you have, make sure to keep them in mind when making changes.
-If the user wants you to implement a feature and they have not specified the files to edit, first break down the user's request into smaller concepts and think about the kinds of files you need to grasp each concept.
-If you aren't sure which tool is relevant, you can call multiple tools. You can call tools repeatedly to take actions or gather as much context as needed until you have completed the task fully. Don't give up unless you are sure the request cannot be fulfilled with the tools you have. It's YOUR RESPONSIBILITY to make sure that you have done all you can to collect necessary context.
+If you aren't sure which tool is relevant, you can call multiple tools. You can call tools repeatedly to take actions or gather as much context as needed until you have completed the task fully. Don't give up unless you are sure the request cannot be fulfilled with the tools you have.
 Don't make assumptions about the situation - gather context first, then perform the task or answer the question.
-Think creatively and explore the workspace in order to make a complete fix.
 Don't repeat yourself after a tool call, pick up where you left off.
-NEVER print out a codeblock with a terminal command to run unless the user asked for it.
 You don't need to read a file if it's already provided in context.
 </instructions>
+<codingInstructions>
+Only when the user asks you to write, change or debug code:
+- If you can infer the project type (languages, frameworks, and libraries) from the user's query or the context that you have, keep them in mind when making changes.
+- If the user wants you to implement a feature and they have not specified the files to edit, first break down the user's request into smaller concepts and think about the kinds of files you need to grasp each concept.
+- Think creatively and explore the workspace in order to make a complete fix.
+- NEVER print out a codeblock with a terminal command to run unless the user asked for it.
+</codingInstructions>
 <toolUseInstructions>
 When using a tool, follow the json schema very carefully and make sure to include ALL required properties.
 Always output valid JSON when using a tool.

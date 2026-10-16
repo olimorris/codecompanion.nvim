@@ -968,11 +968,6 @@ end
 ---@param opts? {opts: table, _meta: table}
 ---@return CodeCompanion.Chat
 function Chat:set_system_prompt(prompt, opts)
-  if self.opts and self.opts.ignore_system_prompt then
-    return self
-  end
-
-  prompt = prompt or config.interactions.chat.opts.system_prompt
   opts = opts or { visible = false }
 
   local _meta = { tag = tags.SYSTEM_PROMPT_FROM_CONFIG }
@@ -980,6 +975,12 @@ function Chat:set_system_prompt(prompt, opts)
     _meta = opts._meta
     opts._meta = nil
   end
+
+  if _meta.tag == tags.SYSTEM_PROMPT_FROM_CONFIG and self.opts and self.opts.ignore_system_prompt then
+    return self
+  end
+
+  prompt = prompt or config.interactions.chat.opts.system_prompt
 
   -- If the system prompt already exists, update it
   if helpers.has_tag(_meta.tag, self.messages) then
@@ -1898,21 +1899,19 @@ function Chat:update_buf_line(args)
 end
 
 ---Add the output from a tool to the message history and a message to the UI
----@param args { tool: table, for_llm: string, for_user?: string }
+---@param tool table
+---@param opts { content: string, display?: string|false }
 ---@return nil
-function Chat:add_tool_output(args)
-  local tool = args.tool
-  local for_llm, for_user = args.for_llm, args.for_user
+function Chat:add_tool_output(tool, opts)
   local tool_call = tool.function_call
   log:debug("Tool output: %s", tool_call)
 
   -- Allow users to modify the tool output before it's added to the message history
-  local tool_output = { tool = tool.name, for_llm = for_llm, for_user = for_user }
+  local tool_output = { tool = tool.name, content = opts.content, display = opts.display }
   self:dispatch("on_tool_output", tool_output)
-  for_llm = tool_output.for_llm
-  for_user = tool_output.for_user
+  local content, display = tool_output.content, tool_output.display
 
-  local output = adapters.call_handler(self.adapter, "format_response", { tool_call = tool_call, output = for_llm })
+  local output = adapters.call_handler(self.adapter, "format_response", { tool_call = tool_call, output = content })
   if not output then
     return log:error("Adapter does not support tool response formatting")
   end
@@ -1942,11 +1941,10 @@ function Chat:add_tool_output(args)
     estimated_tokens = tokens.calculate(output.content),
   })
 
-  -- Allow tools to pass in an empty string to not write any output to the buffer
-  if for_user ~= "" then
+  if display ~= false and display ~= "" then
     self:add_buf_message({
       role = config.constants.LLM_ROLE,
-      content = (for_user or for_llm),
+      content = (display or content),
     }, {
       type = self.MESSAGE_TYPES.TOOL_MESSAGE,
     })

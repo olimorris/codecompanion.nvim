@@ -862,10 +862,10 @@ T["Chat"]["on_tool_output callback receives correct args"] = function()
     chat:add_callback("on_tool_output", function(c, args)
       callback_args = {
         tool = args.tool,
-        for_llm = args.for_llm,
-        for_user = args.for_user,
+        content = args.content,
+        display = args.display,
       }
-      args.for_llm = "Modified: " .. args.for_llm
+      args.content = "Modified: " .. args.content
     end)
 
     local tool = {
@@ -880,7 +880,7 @@ T["Chat"]["on_tool_output callback receives correct args"] = function()
         type = "function",
       },
     }
-    chat:add_tool_output({ tool = tool, for_llm = "LLM output", for_user = "User output" })
+    chat:add_tool_output(tool, { content = "LLM output", display = "User output" })
 
     return {
       callback_args = callback_args,
@@ -889,8 +889,8 @@ T["Chat"]["on_tool_output callback receives correct args"] = function()
   ]])
 
   h.eq(result.callback_args.tool, "weather")
-  h.eq(result.callback_args.for_llm, "LLM output")
-  h.eq(result.callback_args.for_user, "User output")
+  h.eq(result.callback_args.content, "LLM output")
+  h.eq(result.callback_args.display, "User output")
   h.eq(result.message_content, "Modified: LLM output")
 end
 

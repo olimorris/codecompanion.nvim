@@ -26,7 +26,7 @@ end
 ---@param llm_message string
 ---@param user_message? string
 local send_response_to_chat = function(exec, llm_message, user_message)
-  exec.tools.chat:add_tool_output({ tool = exec.tool, for_llm = llm_message, for_user = user_message })
+  exec.tools.chat:add_tool_output(exec.tool, { content = llm_message, display = user_message })
 end
 
 ---Execute a shell command with platform-specific handling
@@ -601,9 +601,8 @@ function Orchestrator:error(args)
   end)
   if not ok then
     if self.tool and self.tool.function_call then
-      self.tools.chat:add_tool_output({
-        tool = self.tool,
-        for_llm = string.format("Internal error with `%s` tool: %s", self.tool.name, err),
+      self.tools.chat:add_tool_output(self.tool, {
+        content = string.format("Internal error with `%s` tool: %s", self.tool.name, err),
       })
     end
   end
@@ -635,9 +634,8 @@ function Orchestrator:success(args)
   if not ok then
     log:error("Internal error with the %s success handler: %s", self.tool.name, err)
     if self.tool and self.tool.function_call then
-      self.tools.chat:add_tool_output({
-        tool = self.tool,
-        for_llm = string.format("Internal error with `%s` tool", self.tool.name),
+      self.tools.chat:add_tool_output(self.tool, {
+        content = string.format("Internal error with `%s` tool", self.tool.name),
       })
     end
   end

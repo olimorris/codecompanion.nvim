@@ -124,6 +124,8 @@ A Markdown prompt has YAML frontmatter between `---` delimiters, then a `## syst
 | `skills` | No | See [Skills](#skills) |
 | `tools` | No | See [Tools](#tools) |
 
+The messages are optional. A prompt with only frontmatter opens an empty chat buffer with its context, rules, skills and tools loaded.
+
 In a Lua prompt, the table key is the name. The `${context.filetype}` and `${context.code}` above are [placeholders](#placeholders).
 
 ### Options
@@ -193,8 +195,8 @@ The available options are:
 | `auto_submit` | boolean | Send the prompt to the LLM straight away |
 | `callbacks` | table | [Callbacks](/configuration/callbacks) for the chat buffer the prompt opens (Lua only) |
 | `enabled` | boolean | Set to `false` to hide the prompt without removing it |
-| `ignore_system_prompt` | boolean | Don't send the [system prompt](/configuration/system-prompt) with the chat |
-| `intro_message` | string | The intro message shown in the chat buffer |
+| `ignore_system_prompt` | boolean | Don't send the chat [system prompt](/configuration/system-prompt). The tool system prompt is still sent |
+| `intro_message` | string | The intro message shown in the chat buffer, with each `\n` starting a new line |
 | `is_slash_cmd` | boolean | Make a chat prompt available as a slash command, using its `alias` |
 | `is_workflow` | boolean | Treat the prompt as a [workflow](#workflows) |
 | `modes` | table | Only show the prompt in these modes, such as `{ "v" }` for visual mode |
@@ -309,7 +311,7 @@ Placeholders add dynamic content to a prompt with `${name}`. In Lua, `content` c
 
 **Context**
 
-`${context.<field>}` reads from the buffer the prompt was started from:
+`${context.<field>}` reads from the buffer the prompt was started from, along with the current date:
 
 ::: code-group
 
@@ -356,6 +358,7 @@ The fields, with a visual selection of lines 8 to 10:
     return "hello " .. text
   end]],
   cursor_pos = { 10, 3 },
+  date = "Sunday, 11 October 2026",
   end_col = 3,
   end_line = 10,
   filename = "hello.lua",
@@ -374,7 +377,7 @@ The fields, with a visual selection of lines 8 to 10:
 }
 ```
 
-Without a selection, `code` is `false` and `lines` is empty.
+Without a selection, `code` is `false` and `lines` is empty. The `date` follows [`date_format`](/configuration/system-prompt#chat-system-prompt), which also sets the date in the system prompt.
 
 **External Lua Files**
 

@@ -5907,8 +5907,9 @@ SLASH COMMANDS ~
 In the chat buffer, type `/` followed by the alias. Only chat prompts with
 `is_slash_cmd = true` in their `opts` appear here.
 
-Any tools the prompt declares are added to the chat buffer before its content
-is inserted.
+Any |codecompanion-configuration-prompt-library-tools| and
+|codecompanion-configuration-prompt-library-skills| the prompt declares are
+added to the chat buffer before its content is inserted.
 
 
 WORKFLOWS                                      *codecompanion-usage-workflows*
@@ -7769,7 +7770,7 @@ EVENTS ~
                           message history         messages,
                                                   reported_tokens
 
-  on_tool_output          Before a tool's output  tool, for_llm, for_user
+  on_tool_output          Before a tool's output  tool, content, display
                           is added to the chat    
 
   on_ready                When the chat is ready  -
@@ -7905,8 +7906,8 @@ To stop a message that's over a token limit:
 TRUNCATING TOOL OUTPUT ~
 
 `on_tool_output` fires before a tool's output is added to the chat. `data.tool`
-is the tool's name, `data.for_llm` is the output sent to the LLM and
-`data.for_user` is what's shown in the chat buffer. Change either to change the
+is the tool's name, `data.content` is the output sent to the LLM and
+`data.display` is what's shown in the chat buffer. Change either to change the
 output:
 
 >lua
@@ -7918,10 +7919,10 @@ output:
           local tokens = require("codecompanion.utils.tokens")
           local max_tokens = 10000
     
-          if data.for_llm and tokens.calculate(data.for_llm) > max_tokens then
+          if data.content and tokens.calculate(data.content) > max_tokens then
             local max_chars = max_tokens * 6
-            data.for_llm = data.for_llm:sub(1, max_chars) .. "\n\n[Output truncated]"
-            data.for_user = data.for_llm
+            data.content = data.content:sub(1, max_chars) .. "\n\n[Output truncated]"
+            data.display = data.content
             vim.notify(
               string.format("Tool output from '%s' truncated (~%d tokens)", data.tool, max_tokens),
               vim.log.levels.WARN
@@ -9780,7 +9781,7 @@ CodeCompanion gives it:
                     local content = stdout and stdout[#stdout]
                     local output = tool_bridge.format_tool_result_content(content)
                     local msg = string.format("%d + %d = %s", self.args.a, self.args.b, output)
-                    tools.chat:add_tool_output({ tool = self, for_llm = output, for_user = msg })
+                    tools.chat:add_tool_output(self, { content = output, display = msg })
                   end,
                 },
               },
@@ -9998,6 +9999,9 @@ system` or `## user` heading for each message. The frontmatter fields are:
   rules         No         See -rules
   skills        No         See -skills
   tools         No         See -tools
+The messages are optional. A prompt with only frontmatter opens an empty chat
+buffer with its context, rules, skills and tools loaded.
+
 In a Lua prompt, the table key is the name. The `${context.filetype}` and
 `${context.code}` above are |codecompanion--placeholders|.
 
@@ -10081,10 +10085,11 @@ The available options are:
   enabled                  boolean                 Set to false to hide the prompt without removing
                                                    it
 
-  ignore_system_prompt     boolean                 Don't send the configuration-system-prompt with
-                                                   the chat
+  ignore_system_prompt     boolean                 Don't send the chat configuration-system-prompt.
+                                                   The tool system prompt is still sent
 
-  intro_message            string                  The intro message shown in the chat buffer
+  intro_message            string                  The intro message shown in the chat buffer, with
+                                                   each \n starting a new line
 
   is_slash_cmd             boolean                 Make a chat prompt available as a slash command,
                                                    using its alias
@@ -10216,7 +10221,8 @@ can also be a function that receives the buffer context.
 
 **Context**
 
-`${context.<field>}` reads from the buffer the prompt was started from:
+`${context.<field>}` reads from the buffer the prompt was started from, along
+with the current date:
 
 **Markdown**
 
@@ -10263,6 +10269,7 @@ The fields, with a visual selection of lines 8 to 10:
         return "hello " .. text
       end]],
       cursor_pos = { 10, 3 },
+      date = "Sunday, 11 October 2026",
       end_col = 3,
       end_line = 10,
       filename = "hello.lua",
@@ -10281,7 +10288,9 @@ The fields, with a visual selection of lines 8 to 10:
     }
 <
 
-Without a selection, `code` is `false` and `lines` is empty.
+Without a selection, `code` is `false` and `lines` is empty. The `date` follows
+|codecompanion-configuration-system-prompt-chat-system-prompt|, which also sets
+the date in the system prompt.
 
 **External Lua Files**
 
@@ -11637,18 +11646,20 @@ first:
 
 >txt
     <instructions>
-    You are a highly sophisticated automated coding agent with expert-level knowledge across many different programming languages and frameworks.
-    The user will ask a question, or ask you to perform a task, and it may require lots of research to answer correctly. There is a selection of tools that let you perform actions or retrieve helpful context to answer the user's question.
+    The user will ask a question, or ask you to perform a task, and it may require research to answer correctly. There is a selection of tools that let you perform actions or retrieve helpful context to answer the user's question.
     You will be given some context and attachments along with the user prompt. You can use them if they are relevant to the task, and ignore them if not.
-    If you can infer the project type (languages, frameworks, and libraries) from the user's query or the context that you have, make sure to keep them in mind when making changes.
-    If the user wants you to implement a feature and they have not specified the files to edit, first break down the user's request into smaller concepts and think about the kinds of files you need to grasp each concept.
-    If you aren't sure which tool is relevant, you can call multiple tools. You can call tools repeatedly to take actions or gather as much context as needed until you have completed the task fully. Don't give up unless you are sure the request cannot be fulfilled with the tools you have. It's YOUR RESPONSIBILITY to make sure that you have done all you can to collect necessary context.
+    If you aren't sure which tool is relevant, you can call multiple tools. You can call tools repeatedly to take actions or gather as much context as needed until you have completed the task fully. Don't give up unless you are sure the request cannot be fulfilled with the tools you have.
     Don't make assumptions about the situation - gather context first, then perform the task or answer the question.
-    Think creatively and explore the workspace in order to make a complete fix.
     Don't repeat yourself after a tool call, pick up where you left off.
-    NEVER print out a codeblock with a terminal command to run unless the user asked for it.
     You don't need to read a file if it's already provided in context.
     </instructions>
+    <codingInstructions>
+    Only when the user asks you to write, change or debug code:
+    - If you can infer the project type (languages, frameworks, and libraries) from the user's query or the context that you have, keep them in mind when making changes.
+    - If the user wants you to implement a feature and they have not specified the files to edit, first break down the user's request into smaller concepts and think about the kinds of files you need to grasp each concept.
+    - Think creatively and explore the workspace in order to make a complete fix.
+    - NEVER print out a codeblock with a terminal command to run unless the user asked for it.
+    </codingInstructions>
     <toolUseInstructions>
     When using a tool, follow the json schema very carefully and make sure to include ALL required properties.
     Always output valid JSON when using a tool.
@@ -13498,13 +13509,13 @@ For the calculator:
       ---@param stdout table
       ---@param meta { tools: CodeCompanion.Tools, cmd: table }
       success = function(self, stdout, meta)
-        return meta.tools.chat:add_tool_output({ tool = self, for_llm = tostring(stdout[#stdout]) })
+        return meta.tools.chat:add_tool_output(self, { content = tostring(stdout[#stdout]) })
       end,
       ---@param self CodeCompanion.Tools.Tool
       ---@param stderr table
       ---@param meta { tools: CodeCompanion.Tools, cmd: table }
       error = function(self, stderr, meta)
-        return meta.tools.chat:add_tool_output({ tool = self, for_llm = tostring(stderr[#stderr]) })
+        return meta.tools.chat:add_tool_output(self, { content = tostring(stderr[#stderr]) })
       end,
     },
 <
@@ -13512,16 +13523,15 @@ For the calculator:
 `add_tool_output` adds the tool's output to the chat's message history:
 
 >lua
-    meta.tools.chat:add_tool_output({
-      tool = self,
-      for_llm = "The result of 6 * 7 is 42",
-      for_user = "Calculated 6 * 7",
+    meta.tools.chat:add_tool_output(self, {
+      content = "The result of 6 * 7 is 42",
+      display = "Calculated 6 * 7",
     })
 <
 
-`tool` is the tool that ran, `self` in an output function. `for_llm` is sent to
-the LLM. `for_user` is shown in the chat buffer, `for_llm` is shown when it's
-`nil`, and an empty string shows nothing.
+The first argument is the tool that ran, `self` in an output function.
+`content` is sent to the LLM. `display` is shown in the chat buffer, `content`
+is shown when it's `nil`, and `false` or an empty string shows nothing.
 
 
   [!IMPORTANT] If an output function you define doesn't call `add_tool_output`,
@@ -13654,13 +13664,13 @@ Putting it all together:
                 ---@param stdout table
                 ---@param meta { tools: CodeCompanion.Tools, cmd: table }
                 success = function(self, stdout, meta)
-                  return meta.tools.chat:add_tool_output({ tool = self, for_llm = tostring(stdout[#stdout]) })
+                  return meta.tools.chat:add_tool_output(self, { content = tostring(stdout[#stdout]) })
                 end,
                 ---@param self CodeCompanion.Tools.Tool
                 ---@param stderr table
                 ---@param meta { tools: CodeCompanion.Tools, cmd: table }
                 error = function(self, stderr, meta)
-                  return meta.tools.chat:add_tool_output({ tool = self, for_llm = tostring(stderr[#stderr]) })
+                  return meta.tools.chat:add_tool_output(self, { content = tostring(stderr[#stderr]) })
                 end,
               },
             },
@@ -13753,14 +13763,14 @@ To change what the LLM is told in either case:
       ---@param meta { tools: CodeCompanion.Tools, cmd: table, opts: { reason?: string } }
       ---@return nil
       rejected = function(self, meta)
-        meta.tools.chat:add_tool_output({ tool = self, for_llm = "The user declined to run the calculator tool" })
+        meta.tools.chat:add_tool_output(self, { content = "The user declined to run the calculator tool" })
       end,
     
       ---@param self CodeCompanion.Tools.Tool
       ---@param meta { tools: CodeCompanion.Tools, cmd: table }
       ---@return nil
       cancelled = function(self, meta)
-        meta.tools.chat:add_tool_output({ tool = self, for_llm = "The user cancelled the execution of the calculator tool" })
+        meta.tools.chat:add_tool_output(self, { content = "The user cancelled the execution of the calculator tool" })
       end,
     },
 <
@@ -15187,7 +15197,7 @@ Update any calls from a custom tool, slash command or callback:
   -------------------------------------------------------------------------------------------------------------------------------------------
   Method                  Before                                   After
   ----------------------- ---------------------------------------- --------------------------------------------------------------------------
-  add_tool_output         (tool, for_llm, for_user)                ({ tool, for_llm, for_user? })
+  add_tool_output         (tool, for_llm, for_user)                (tool, { content, display? })
 
   add_context             (data, source, id, opts)                 (data, { source, id, bufnr?, path?, tag?, visible?, context_opts? })
 
@@ -15200,8 +15210,8 @@ Update any calls from a custom tool, slash command or callback:
 For example, in a tool's output handler:
 
 >lua
-    chat:add_tool_output(self, "The result is 42") -- [!code --]
-    chat:add_tool_output({ tool = self, for_llm = "The result is 42" }) -- [!code ++]
+    chat:add_tool_output(self, "The result is 42", "Calculated 6 * 7") -- [!code --]
+    chat:add_tool_output(self, { content = "The result is 42", display = "Calculated 6 * 7" }) -- [!code ++]
 <
 
 
