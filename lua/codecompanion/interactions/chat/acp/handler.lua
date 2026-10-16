@@ -1,5 +1,6 @@
 local Queue = require("codecompanion.utils.queue")
 
+local acp_adapter = require("codecompanion.adapters.acp")
 local async = require("codecompanion.utils.async")
 local config = require("codecompanion.config")
 local formatter = require("codecompanion.interactions.chat.acp.formatters")
@@ -16,6 +17,7 @@ local watch = require("codecompanion.interactions.shared.watch")
 ---@field edits table<string, { path: string, line?: number }[]> Files each tool call has edited, by tool call ID
 ---@field ui_state table<string, table> Cache of tool call UI states (line_number, icon_id) by tool call ID
 ---@field _permission { queue: CodeCompanion.Queue, active: boolean, respond: function|nil } Internal state for managing permission requests
+---@field _pending_agent_request function|nil Cancels the agent request that is waiting for the user
 local ACPHandler = {}
 
 ---@param chat CodeCompanion.Chat
@@ -28,6 +30,7 @@ function ACPHandler.new(chat)
     tools = {},
     edits = {},
     ui_state = {},
+    _pending_agent_request = nil,
     _permission = {
       active = false,
       queue = Queue.new(),
@@ -234,6 +237,9 @@ function ACPHandler:create_and_send_prompt(payload)
     :on_permission_request(function(request)
       self:handle_permission_request(request)
     end)
+    :on_agent_request(function(message)
+      return self:handle_agent_request(message)
+    end)
     :on_complete(function()
       self:handle_complete()
     end)
@@ -242,6 +248,7 @@ function ACPHandler:create_and_send_prompt(payload)
     end)
     :on_cancel(function()
       self:_clear_permission_queue()
+      self:_cancel_pending_agent_request()
     end)
     :with_options({ bufnr = self.chat.bufnr, interaction = "chat" })
     :send()
@@ -463,6 +470,7 @@ end
 ---@return nil
 function ACPHandler:handle_complete()
   self:_clear_permission_queue()
+  self:_cancel_pending_agent_request()
 
   if not self.chat.status or self.chat.status == "" then
     self.chat.status = "success"
@@ -476,6 +484,7 @@ end
 ---@return nil
 function ACPHandler:handle_error(error)
   self:_clear_permission_queue()
+  self:_cancel_pending_agent_request()
 
   self.chat.status = "error"
   log:error("[ACP::Handler] %s", error)
@@ -486,6 +495,44 @@ function ACPHandler:handle_error(error)
   )
 
   self.chat:done({ output = self.output, error = error })
+end
+
+---@return nil
+function ACPHandler:_cancel_pending_agent_request()
+  if self._pending_agent_request then
+    pcall(self._pending_agent_request)
+    self._pending_agent_request = nil
+  end
+end
+
+---Create a function that sends the result of an agent request only once
+---@param id? number
+---@return fun(result: table)
+function ACPHandler:_create_agent_responder(id)
+  local responded = false
+  return function(result)
+    if responded or not id then
+      return
+    end
+    responded = true
+    self._pending_agent_request = nil
+    self.chat.acp_connection:send_result(id, result)
+  end
+end
+
+---Let the adapter handle an agent request that the ACP connection does not recognise
+---@param message table
+---@return boolean
+function ACPHandler:handle_agent_request(message)
+  local handled = acp_adapter.call_handler(self.chat.adapter, "agent_request", {
+    chat = self.chat,
+    message = message,
+    respond = self:_create_agent_responder(message.id),
+    on_cancel = function(cancel)
+      self._pending_agent_request = cancel
+    end,
+  })
+  return handled == true
 end
 
 return ACPHandler
