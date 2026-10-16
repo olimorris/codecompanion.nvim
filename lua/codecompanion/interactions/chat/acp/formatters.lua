@@ -108,6 +108,49 @@ local function find_diff(tool_call)
   end
 end
 
+---@param text string
+---@return boolean
+local function is_inside_unclosed_quote(text)
+  local quote
+  local index = 1
+  while index <= #text do
+    local char = text:sub(index, index)
+    if quote == '"' and char == "\\" then
+      index = index + 1
+    elseif char == quote then
+      quote = nil
+    elseif not quote and (char == "'" or char == '"') then
+      quote = char
+    end
+    index = index + 1
+  end
+  return quote ~= nil
+end
+
+---Join a multi-line shell command onto one line, separating commands with "; "
+---@param command string
+---@return string
+local function join_command_lines(command)
+  local joined = ""
+  for raw_line in (command .. "\n"):gmatch("(.-)\r?\n") do
+    local line = raw_line:match("^%s*(.-)%s*$")
+    if joined ~= "" and is_inside_unclosed_quote(joined) then
+      joined = joined .. "\\n" .. raw_line
+    elseif line ~= "" then
+      if joined == "" then
+        joined = line
+      elseif joined:match("\\$") then
+        joined = joined:gsub("%s*\\$", "") .. " " .. line
+      elseif joined:match("[;&|]$") then
+        joined = joined .. " " .. line
+      else
+        joined = joined .. "; " .. line
+      end
+    end
+  end
+  return joined
+end
+
 ---Pull a meaningful command/operation out of a tool call title.
 ---Handles backtick-wrapped commands and strips trailing preview noise
 ---like " => …" or " — …" that some agents append.
@@ -164,7 +207,7 @@ local function build_label(tool_call)
   if tool_call.kind == "execute" then
     local command = tool_call.rawInput and tool_call.rawInput.command
     if type(command) == "string" and command ~= "" then
-      return ("%s: %s"):format(kind, sanitize_text(command, MAX_TITLE))
+      return ("%s: %s"):format(kind, sanitize_text(join_command_lines(command), math.huge))
     end
     return ("%s: %s"):format(kind, parse_title(tool_call.title))
   end
@@ -256,6 +299,7 @@ local function normalize(tool_call)
     content = tool_call.content or {},
     kind = tool_call.kind or "other",
     locations = tool_call.locations or {},
+    rawInput = tool_call.rawInput,
     status = tool_call.status or "pending",
     title = tool_call.title or "Tool call",
     toolCallId = tool_call.toolCallId or "unknown",

@@ -223,6 +223,45 @@ T["ACP Formatters"]["execute - falls back to title when no rawInput.command"] = 
   )
 end
 
+T["ACP Formatters"]["execute - joins separate commands on their own lines with a semicolon"] = function()
+  h.eq(
+    "Execute: cd foo; npm install; npm test",
+    format({
+      toolCallId = "exec-4",
+      kind = "execute",
+      status = "pending",
+      title = "run",
+      rawInput = { command = "cd foo\nnpm install\nnpm test" },
+    })
+  )
+end
+
+T["ACP Formatters"]["execute - joins a backslash continuation with a space"] = function()
+  h.eq(
+    "Execute: MGC=/path/to/mgc some-command --flag",
+    format({
+      toolCallId = "exec-5",
+      kind = "execute",
+      status = "pending",
+      title = "run",
+      rawInput = { command = "MGC=/path/to/mgc \\\n  some-command --flag" },
+    })
+  )
+end
+
+T["ACP Formatters"]["execute - keeps a newline INSIDE quotes as a visible escape"] = function()
+  h.eq(
+    [[Execute: printf 'a\nb\n'; echo "done; \"x\""]],
+    format({
+      toolCallId = "exec-6",
+      kind = "execute",
+      status = "pending",
+      title = "run",
+      rawInput = { command = 'printf \'a\nb\n\'\necho "done; \\"x\\""' },
+    })
+  )
+end
+
 T["ACP Formatters"]["search - verbose appends content summary"] = function()
   h.eq(
     "Search: Find **/*add_buf_message* — No files found",
