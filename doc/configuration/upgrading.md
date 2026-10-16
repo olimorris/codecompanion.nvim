@@ -209,7 +209,7 @@ Chat buffer methods that took several positional arguments now take a table. Upd
 
 | Method | Before | After |
 | --- | --- | --- |
-| `add_tool_output` | `(tool, for_llm, for_user)` | `({ tool, for_llm, for_user? })` |
+| `add_tool_output` | `(tool, for_llm, for_user)` | `(tool, { content, display? })` |
 | `add_context` | `(data, source, id, opts)` | `(data, { source, id, bufnr?, path?, tag?, visible?, context_opts? })` |
 | `change_adapter` | `(adapter, callback)` | `({ adapter, model?, callback? })` |
 | `done` | `(output, reasoning, tools, meta, opts)` | `({ output?, reasoning?, tools?, meta?, status?, error? })` |
@@ -218,9 +218,11 @@ Chat buffer methods that took several positional arguments now take a table. Upd
 For example, in a tool's output handler:
 
 ```lua
-chat:add_tool_output(self, "The result is 42") -- [!code --]
-chat:add_tool_output({ tool = self, for_llm = "The result is 42" }) -- [!code ++]
+chat:add_tool_output(self, "The result is 42", "Calculated 6 * 7") -- [!code --]
+chat:add_tool_output(self, { content = "The result is 42", display = "Calculated 6 * 7" }) -- [!code ++]
 ```
+
+`display = false` also shows nothing in the chat buffer, alongside an empty string. The `on_tool_output` callback's `data.for_llm` and `data.for_user` are renamed to `data.content` and `data.display` to match.
 
 ## v18.7.0 to v19.0.0
 

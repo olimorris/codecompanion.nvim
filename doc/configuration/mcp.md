@@ -195,7 +195,7 @@ require("codecompanion").setup({
                 local content = stdout and stdout[#stdout]
                 local output = tool_bridge.format_tool_result_content(content)
                 local msg = string.format("%d + %d = %s", self.args.a, self.args.b, output)
-                tools.chat:add_tool_output({ tool = self, for_llm = output, for_user = msg })
+                tools.chat:add_tool_output(self, { content = output, display = msg })
               end,
             },
           },
