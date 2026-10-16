@@ -915,16 +915,6 @@ T["Anthropic adapter"]["No Streaming"]["can output for the chat buffer"] = funct
   h.expect_starts_with("Dynamic elegance", adapter.handlers.chat_output(adapter, json).output.content)
 end
 
-T["Anthropic adapter"]["No Streaming"]["can output for the inline assistant with non reasoning models"] = function()
-  local data = vim.fn.readfile("tests/adapters/http/stubs/anthropic_no_streaming.txt")
-  data = table.concat(data, "\n")
-
-  -- Match the format of the actual request
-  local json = { body = data }
-
-  h.expect_starts_with("Dynamic elegance", adapter.handlers.inline_output(adapter, json).output)
-end
-
 T["Anthropic adapter"]["No Streaming"]["can process compaction output"] = function()
   local data = vim.fn.readfile("tests/adapters/http/stubs/anthropic_compaction_no_streaming.txt")
   data = table.concat(data, "\n")
@@ -974,24 +964,13 @@ T["Anthropic adapter"]["No Streaming"]["can process tools"] = function()
   h.expect_json_equals(tool_output[2]["function"]["arguments"], tools[2]["function"]["arguments"])
 end
 
-T["Anthropic adapter"]["No Streaming"]["can output for the inline assistant with reasoning models"] = function()
-  adapter = require("codecompanion.adapters").extend("anthropic", {
-    opts = {
-      stream = false,
-      can_reason = true,
-    },
-  })
-
+T["Anthropic adapter"]["No Streaming"]["keeps the thinking and its signature"] = function()
   local data = vim.fn.readfile("tests/adapters/http/stubs/anthropic_reasoning_no_streaming.txt")
-  data = table.concat(data, "\n")
+  local json = { body = table.concat(data, "\n") }
 
-  -- Match the format of the actual request
-  local json = { body = data }
-
-  h.eq(
-    [[<response>\n  <code>hello world</code>\n  <language>lua</language>\n  <placement>add</placement>\n</response>]],
-    adapter.handlers.inline_output(adapter, json).output
-  )
+  local reasoning = adapter.handlers.chat_output(adapter, json).output.reasoning
+  h.expect_starts_with('The user wants me to print "hello world"', reasoning.content)
+  h.expect_starts_with("ErUBCkYIARgCIkC1", reasoning.signature)
 end
 
 T["Anthropic adapter"]["resolves model capabilities on the first request"] = function()

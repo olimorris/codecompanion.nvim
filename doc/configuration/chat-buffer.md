@@ -1,16 +1,14 @@
 ---
-description: "Configure CodeCompanion's chat buffer — keymaps, display options, context management, system prompt, and tool settings for AI-assisted coding in Neovim."
+description: "Set the chat buffer's adapter, completion, keymaps, editor context, slash commands and syncing."
 ---
 
 # Configuring the Chat Buffer
 
-By default, CodeCompanion provides a _chat_ interaction that uses a dedicated Neovim buffer for conversational interaction with your chosen LLM. This buffer can be customized according to your preferences.
-
-Please refer to the [config.lua](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/config.lua#L42-L392) file for a full list of all configuration options.
+The _chat buffer_ is where you converse with an LLM or an agent. Its settings live under `interactions.chat`, and every option is listed in [config.lua](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/config.lua).
 
 ## Changing Adapter
 
-By default, CodeCompanion sets the _copilot_ adapter for the chat interaction. You can change this to be a _ACP_ or _HTTP_ adapter:
+The chat buffer uses the `copilot` adapter by default. To use another HTTP or ACP adapter:
 
 ```lua
 require("codecompanion").setup({
@@ -18,36 +16,34 @@ require("codecompanion").setup({
     chat = {
       adapter = {
         name = "anthropic",
-        model = "claude-haiku-4-5-20251001"
+        model = "claude-haiku-4-5-20251001",
       },
     },
   },
 })
 ```
 
-See the section on [ACP](/configuration/adapters-acp) and [HTTP](/configuration/adapters-http) for more information.
+See [ACP adapters](/configuration/adapters-acp) and [HTTP adapters](/configuration/adapters-http) for the full list.
 
 ## Completion
 
-By default, CodeCompanion will determine if you have one of [blink.cmp](https://github.com/saghen/blink.cmp), [nvim-cmp](https://github.com/hrsh7th/nvim-cmp), or [coc.nvim](https://github.com/neoclide/coc.nvim) installed, selecting it as the default provider. Failing this, the default completion engine will be used.
-
-You can override this with:
+CodeCompanion uses [blink.cmp](https://github.com/saghen/blink.cmp), [nvim-cmp](https://github.com/hrsh7th/nvim-cmp) or [coc.nvim](https://github.com/neoclide/coc.nvim), in that order, if one is installed. Otherwise, it falls back to Neovim's native completion. You can override this with:
 
 ```lua
 require("codecompanion").setup({
   interactions = {
     chat = {
       opts = {
-        completion_provider = "blink", -- blink|cmp|coc|default
-      }
-    }
-  }
+        completion_provider = "blink", -- Can be "blink", "cmp", "coc" or "default"
+      },
+    },
+  },
 })
 ```
 
-### Prefixes
+### Triggers
 
-You can also customize the prefixes that trigger completions for [editor context](/usage/chat-buffer/editor-context), [slash commands](/usage/chat-buffer/slash-commands), and [tools](/usage/chat-buffer/agents-tools):
+The characters that open completion for [editor context](/usage/chat-buffer/editor-context), [slash commands](/usage/chat-buffer/slash-commands), [tools](/usage/chat-buffer/agents-tools) and ACP commands can be changed with:
 
 ```lua
 require("codecompanion").setup({
@@ -64,13 +60,11 @@ require("codecompanion").setup({
 
 ## Context Formatters
 
-You can customise how a buffer and file's content is shared with an LLM with context formatters.
+Some files are a poor fit for an LLM as they are. A [Jupyter Notebook](https://jupyter.org/) is a large JSON document with markdown, code and base64 images embedded in it, which fills the context window quickly. A _context formatter_ changes a file's content before the LLM sees it.
 
-**Example:** A [Jupyter Notebook](https://jupyter.org/) is a large JSON document with markdown, code and sometimes base64 images embedded in it. They ca be large files which quickly erode an LLM's context window.
+Formatters are keyed by file extension, and apply whether the file is added with `/file`, `/buffer`, editor context, a rules file or a [sync](#syncing). CodeCompanion ships one for `ipynb` files.
 
-A context formatter modifies a file's content before it is shared with an LLM. This is the case whether the file was attached with `/file`, opened as a buffer and attached with `/buffer`, pulled in by a rules file, or re-read to produce a [sync](/configuration/chat-buffer#syncing) diff.
-
-You can define your own formatter by ensuring your you implement a `format(raw, path)` function which returns the content the LLM should see, or the path to a module which returns one:
+A formatter is a function that takes the raw content and the path, and returns the content the LLM should see. It can also be the path to a module that returns a table with a `format` function:
 
 ::: code-group
 
@@ -79,18 +73,17 @@ require("codecompanion").setup({
   context = {
     formatters = {
       sqlite = function(raw, path)
-        -- Return the content the LLM should see for this file
+        return vim.fn.system({ "sqlite3", path, ".schema" })
       end,
     },
   },
 })
 ```
 
-```lua [Path]
+```lua [Module]
 require("codecompanion").setup({
   context = {
     formatters = {
-      -- The path to any module, or file, which returns a table with a `format` function.
       sqlite = "my_plugin.context.formatters.sqlite",
     },
   },
@@ -99,30 +92,26 @@ require("codecompanion").setup({
 
 :::
 
-Formatters are responsible for their own formatting, so content they return is passed through as-is. Content they do not touch is wrapped in a code fence when attached to the chat, and buffers additionally get line numbers. Neither is applied when content is re-read for a sync diff, as the diff itself is fenced.
-
-
+CodeCompanion passes a formatter's output through as it is. Content without a formatter is wrapped in a code block, and buffers also get line numbers. Neither applies to a sync diff, which is already fenced. If a formatter errors or doesn't return a string, the raw content is used instead.
 
 ## Editor Context
 
-[Editor context](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/config.lua#L90) can be inserted into the chat buffer using `#` (by default). It provides contextual code or information about the current Neovim state. For instance, the built-in `#{buffer}` editor context sends the current buffer’s contents to the LLM.
+[Editor context](/usage/chat-buffer/editor-context), such as `#{buffer}`, shares part of your Neovim session with the LLM. It's configured under `interactions.shared.editor_context`, as it's shared with the [CLI interaction](/usage/cli).
 
-You can even define your own context:
+To add your own, give it a `callback` that returns the content to send:
 
 ```lua
 require("codecompanion").setup({
   interactions = {
-    chat = {
+    shared = {
       editor_context = {
-        ["my_editor_context_item"] = {
-          ---Ensure the file matches the CodeCompanion.EditorContext class
-          ---@return string|fun(): nil
-          callback = "/Users/Oli/Code/my_editor_context_item.lua",
-          description = "Explain what your does",
+        ["git_branch"] = {
+          description = "Share the current git branch",
+          callback = function()
+            return "The current git branch is " .. vim.fn.system("git branch --show-current")
+          end,
           opts = {
             contains_code = false,
-            --has_params = true,    -- Set this if your editor context item supports parameters
-            --default_params = nil, -- Set default parameters
           },
         },
       },
@@ -131,40 +120,15 @@ require("codecompanion").setup({
 })
 ```
 
-### Syncing
-
-Neovim buffers can be [synced](/usage/chat-buffer/editor-context#with-parameters) with the chat buffer. That is, on each turn their content can be shared with the LLM. This is useful if you're modifying a buffer and want the LLM to always have the latest changes.
-
-For the built-in `#buffer` editor context, this is enabled by default. However, you can change it with:
-
-```lua
-require("codecompanion").setup({
-  interactions = {
-    chat = {
-      editor_context = {
-        ["buffer"] = {
-          opts = {
-            -- Always sync the buffer by sharing its "diff"
-            -- Or choose "all" to share the entire buffer
-            default_params = "all",
-          },
-        },
-      },
-    },
-  },
-})
-```
+For more control, swap `callback` for `path`, pointing to a module built like those in `lua/codecompanion/interactions/shared/editor_context/`.
 
 ## Keymaps
 
-> [!NOTE]
-> The plugin scopes CodeCompanion specific keymaps to the _chat buffer_ only.
-
-You can define or override the [default keymaps](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/config.lua#L178) to send messages, regenerate responses, close the buffer, etc.
+Keymaps only apply to the chat buffer. You can change any of the [defaults](/usage/chat-buffer/#keymaps), and set `opts` to pass extra `:map-arguments` to `vim.keymap.set`:
 
 ::: code-group
 
-```lua [Chat] {3}
+```lua [Chat]
 require("codecompanion").setup({
   interactions = {
     chat = {
@@ -183,7 +147,7 @@ require("codecompanion").setup({
 })
 ```
 
-```lua [Inline] {3}
+```lua [Inline]
 require("codecompanion").setup({
   interactions = {
     inline = {
@@ -199,7 +163,7 @@ require("codecompanion").setup({
 })
 ```
 
-```lua [Diff] {3}
+```lua [Diff]
 require("codecompanion").setup({
   interactions = {
     shared = {
@@ -232,9 +196,9 @@ require("codecompanion").setup({
 
 :::
 
-For the chat interaction, the keymaps are mapped to `<C-s>` for sending a message and `<C-c>` for closing in both normal and insert modes. To set other `:map-arguments`, you can use the optional `opts` table which will be fed to `vim.keymap.set`.
+The keymaps under `interactions.shared` apply to diffs and tool approvals in both the chat buffer and the inline interaction. They also include `view_diff` (`gv`) and `cancel` (`g4`).
 
-To disable a keymap, you can set it to `false` in your configuration:
+To disable a keymap, set it to `false`:
 
 ```lua
 require("codecompanion").setup({
@@ -242,57 +206,51 @@ require("codecompanion").setup({
     chat = {
       keymaps = {
         send = false,
-        close = false
-      }
-    }
-  }
+        close = false,
+      },
+    },
+  },
 })
 ```
 
-
 ## Prompt Decorator
 
-It can be useful to decorate your prompt with additional information, prior to sending to an LLM. For example, the GitHub Copilot prompt in VS Code, wraps a user's prompt between `<prompt></prompt>` tags, presumably to differentiate the user's ask from additional context. This can also be achieved in CodeCompanion:
+A _prompt decorator_ changes your message before it's sent to the LLM. The GitHub Copilot prompt in VS Code, for example, wraps the user's message in `<prompt></prompt>` tags to separate it from the rest of the context. To do the same:
 
 ```lua
 require("codecompanion").setup({
   interactions = {
     chat = {
       opts = {
-        ---Decorate the user message before it's sent to the LLM
         ---@param message string
-        ---@param adapter CodeCompanion.Adapter
-        ---@param context table
+        ---@param adapter CodeCompanion.HTTPAdapter|CodeCompanion.ACPAdapter
+        ---@param context CodeCompanion.BufferContext
         ---@return string
         prompt_decorator = function(message, adapter, context)
           return string.format([[<prompt>%s</prompt>]], message)
         end,
-      }
-    }
-  }
+      },
+    },
+  },
 })
 ```
 
-The decorator function also has access to the adapter in the chat buffer alongside the [context](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/utils/context.lua#L121-L137) table (which refreshes when a user toggles the chat buffer).
+The `adapter` is a copy of the chat buffer's adapter, and `context` describes the buffer the chat was opened from. It's refreshed each time you toggle the chat buffer. Regenerating a response skips the decorator.
 
 ## Slash Commands
 
-> [!IMPORTANT]
-> Each slash command may have their own unique configuration so be sure to check out the [config.lua](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/config.lua) file
+[Slash commands](/usage/chat-buffer/slash-commands) add context to the chat buffer, such as a file's contents or the date. Each has its own options, so check [config.lua](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/config.lua) for the full list.
 
-[Slash Commands](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/config.lua#L114) (invoked with `/` by default) let you dynamically insert context into the chat buffer, such as file contents or date/time.
-
-The plugin supports providers like [telescope](https://github.com/nvim-telescope/telescope.nvim), [mini_pick](https://github.com/echasnovski/mini.pick), [fzf_lua](https://github.com/ibhagwan/fzf-lua) and [snacks.nvim](https://github.com/folke/snacks.nvim). By default, the plugin will automatically detect if you have any of those plugins installed and duly set them as the default provider. Failing that, the in-built `default` provider will be used. Please see the [Chat Buffer](/usage/chat-buffer/) usage section for information on how to use Slash Commands.
+Commands that open a picker use the first of Telescope, fzf-lua, mini.pick or Snacks that's installed. Otherwise, they fall back to a built-in `default` picker.
 
 ::: code-group
 
-```lua [Configure]
+```lua [Provider]
 require("codecompanion").setup({
   interactions = {
     chat = {
       slash_commands = {
         ["file"] = {
-          -- Use Telescope as the provider for the /file command
           opts = {
             provider = "telescope", -- Can be "default", "telescope", "fzf_lua", "mini_pick" or "snacks"
           },
@@ -327,8 +285,8 @@ require("codecompanion").setup({
   interactions = {
     chat = {
       slash_commands = {
-        ["image"] = {
-          ---@param opts { adapter: CodeCompanion.HTTPAdapter }
+        ["file-from-url"] = {
+          ---@param opts { adapter: CodeCompanion.HTTPAdapter|CodeCompanion.ACPAdapter }
           ---@return boolean
           enabled = function(opts)
             return opts.adapter.opts and opts.adapter.opts.vision == true
@@ -353,7 +311,7 @@ require("codecompanion").setup({
             if handle ~= nil then
               local result = handle:read("*a")
               handle:close()
-              chat:add_context({ role = "user", content = result }, "git", "<git_files>")
+              chat:add_context({ role = "user", content = result }, { source = "git", id = "<git_files>" })
             else
               return vim.notify("No git files available", vim.log.levels.INFO, { title = "CodeCompanion" })
             end
@@ -372,11 +330,29 @@ require("codecompanion").setup({
 
 Credit to [@lazymaniac](https://github.com/lazymaniac) for the [inspiration](https://github.com/olimorris/codecompanion.nvim/discussions/958) for the custom slash command example.
 
-## Syncing Buffers/Files
+## Syncing
 
-[Context items](/usage/chat-buffer/index#context) hold the data of a file or buffer at a point in time.
+A [context item](/usage/chat-buffer/#context) is a snapshot of a buffer or file at the time it was added. [Syncing](/usage/chat-buffer/editor-context#syncing) shares its latest content with the LLM on every turn, either in full or as a diff.
 
-Depending on the file type, it may be worthwhile continuously syncing their content with an LLM. Extensions listed in `sync_diff` are watched from the moment they're added to the chat buffer, whether that's with `/file`, `/buffer`, `#{buffer}` or `#{buffers}`:
+`#{buffer}` syncs by sending a diff. To send the whole buffer instead:
+
+```lua
+require("codecompanion").setup({
+  interactions = {
+    shared = {
+      editor_context = {
+        ["buffer"] = {
+          opts = {
+            default_params = "all", -- Can be "all" or "diff"
+          },
+        },
+      },
+    },
+  },
+})
+```
+
+Some file types are worth syncing as soon as they're added. Extensions listed in `sync_diff` are synced as a diff whether they're added with `/file`, `/buffer`, `#{buffer}` or `#{buffers}`:
 
 ```lua
 require("codecompanion").setup({
@@ -384,7 +360,7 @@ require("codecompanion").setup({
     chat = {
       opts = {
         sync_diff = {
-          ipynb = true, -- Notebooks change on disk whenever a cell is run
+          ipynb = true,
           sqlite = true,
         },
       },
@@ -393,4 +369,4 @@ require("codecompanion").setup({
 })
 ```
 
-To change how a file's content is shaped before the LLM sees it, see [Context Formatters](/configuration/others#context-formatters).
+Jupyter Notebooks change on disk every time a cell runs, so `ipynb` is listed by default. To change how a file's content looks to the LLM, see [Context Formatters](#context-formatters).

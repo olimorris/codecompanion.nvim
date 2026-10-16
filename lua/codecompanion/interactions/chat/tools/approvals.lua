@@ -12,7 +12,7 @@
         -- Chat bufnr
         [1] = {
           -- Tools that have been approved
-          insert_edit_into_file = true,
+          edit_file = true,
           read_file = true,
         },
         [2] = {

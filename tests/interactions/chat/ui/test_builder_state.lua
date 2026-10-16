@@ -143,7 +143,7 @@ T["Builder"]["update_line collapses a multi-line replacement rather than losing 
   local before = child.lua_get([[vim.api.nvim_buf_line_count(_G.chat.bufnr)]])
 
   local updated = child.lua(
-    [[return _G.chat:update_buf_line(...,  "run_command: ls -la \\\n  --color", { status = "success" })]],
+    [[return _G.chat:update_buf_line({ line_number = ..., content = "run_command: ls -la \\\n  --color", status = "success" })]],
     { line_number }
   )
 

@@ -29,7 +29,7 @@ local adapter_config = {
       api_key = "cmd:op read op://personal/Gemini_API/credential --no-newline",
     },
   }),
-  gemini_interactions = require("codecompanion.adapters").extend("gemini_interactions", {
+  gemini_legacy = require("codecompanion.adapters").extend("gemini_legacy", {
     env = {
       api_key = "cmd:op read op://personal/Gemini_API/credential --no-newline",
     },
@@ -44,7 +44,7 @@ local adapter_config = {
       api_key = "cmd:op read op://personal/OpenAI_API/credential --no-newline",
     },
   }),
-  openai_responses = require("codecompanion.adapters").extend("openai_responses", {
+  openai_legacy = require("codecompanion.adapters").extend("openai_legacy", {
     env = {
       api_key = "cmd:op read op://personal/OpenAI_API/credential --no-newline",
     },
@@ -56,7 +56,7 @@ local adapter_config = {
   }),
 }
 
-local adapter_name = "gemini_interactions"
+local adapter_name = "gemini"
 local adapter = adapter_config[adapter_name]
 
 local structured_output = {

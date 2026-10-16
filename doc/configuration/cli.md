@@ -1,14 +1,14 @@
 ---
-description: "Configure CLI agents in CodeCompanion — define agents like Claude Code or Codex, set custom commands, configure the terminal provider, and manage input settings."
+description: "Define CLI agents such as Claude Code and Codex, install their hooks and choose how their terminal looks and behaves."
 ---
 
-# Configuring the Command-Line Interface (CLI)
+# Configuring the CLI
 
-By default, CodeCompanion uses the _terminal_ provider for CLI interactions, which runs agents in a Neovim terminal buffer. However, the CLI system is flexible and allows you to define custom agents and providers to suit your workflow.
+The _CLI interaction_ runs agents such as Claude Code and Codex in a Neovim terminal. CodeCompanion ships with no agents defined, so you add the ones you use.
 
 ## Agents
 
-To use the CLI interaction, you need to define at least one agent in your configuration:
+Agents live under `interactions.cli.agents`, and `interactions.cli.agent` sets the default:
 
 ```lua
 require("codecompanion").setup({
@@ -22,38 +22,6 @@ require("codecompanion").setup({
           description = "Claude Code CLI",
           provider = "terminal",
         },
-      },
-    },
-  },
-})
-```
-
-The `agent` field sets the default agent. You can override it per-command with `:CodeCompanionCLI agent=<name>`.
-
-### Agent Options
-
-| Option | Type | Description |
-|---|---|---|
-| `cmd` | `string` | The command to run (e.g. `"claude"`, `"codex"`) |
-| `args` | `table` | Arguments to pass to the command |
-| `description` | `string` | Description shown in the action palette |
-| `provider` | `string` | Which provider to use (defaults to `"terminal"`) |
-
-### Multiple Agents
-
-You can define multiple agents and switch between them:
-
-```lua
-require("codecompanion").setup({
-  interactions = {
-    cli = {
-      agent = "claude_code",
-      agents = {
-        claude_code = {
-          cmd = "claude",
-          args = {},
-          description = "Claude Code CLI",
-        },
         codex = {
           cmd = "codex",
           args = {},
@@ -65,27 +33,35 @@ require("codecompanion").setup({
 })
 ```
 
-Then use `:CodeCompanionCLI agent=codex <prompt>` to use a specific agent.
+| Option | Type | Description |
+| --- | --- | --- |
+| `cmd` | `string` | The command to run, such as `"claude"` or `"codex"` |
+| `args` | `table` | Arguments passed to the command |
+| `description` | `string` | Shown in the Action Palette |
+| `provider` | `string` | The [provider](#providers) that runs the agent. Defaults to `"terminal"` |
+
+To start an agent other than the default:
+
+```
+:CodeCompanionCLI agent=codex <prompt>
+```
 
 ## Hooks
 
-CLI interactions can integrate with agents that support hooks, enabling the CodeCompanion event system to react to the agent in realtime. Without this, features that need to know where a turn starts and ends, such as the [code review](/usage/code-review), are limited.
+Without hooks, CodeCompanion can't tell when an agent's turn starts and ends, which limits features such as [code reviews](/usage/code-review). With them, the [event system](/usage/events) reacts to the agent as it works.
 
-Currently, CodeCompanion only supports [Claude Code](https://code.claude.com/docs/en/hooks).
-
-### Installing
-
-In order to integrate CodeCompanion with the supported coding agents, inside Neovim, run:
+Only [Claude Code](https://code.claude.com/docs/en/hooks) is supported. To install its hooks into `~/.claude/settings.json`:
 
 ```
 :CodeCompanionCLI Install
 ```
 
-- In the case of Claude Code, hooks are added to `~/.claude/settings.json`
+> [!NOTE]
+> Hooks are matched on the agent's `cmd`, so it must be `claude`. Run Claude Code once before installing, so its settings file exists
 
 ## Providers
 
-Providers determine how the CLI agent is run. The built-in `terminal` provider uses a Neovim terminal buffer with `jobstart()`:
+A _provider_ decides how an agent is run. The built-in `terminal` provider starts it with `jobstart()` in a Neovim terminal buffer:
 
 ```lua
 require("codecompanion").setup({
@@ -104,7 +80,7 @@ require("codecompanion").setup({
 
 ### Custom Providers
 
-You can create custom providers and reference them by module path or file path:
+A provider's `path` can be a CodeCompanion module, any Lua module or a file path. To add your own and use it for an agent:
 
 ```lua
 require("codecompanion").setup({
@@ -112,7 +88,6 @@ require("codecompanion").setup({
     cli = {
       providers = {
         my_provider = {
-          -- Can be a codecompanion module, a Lua module, or a file path
           path = "my_custom.cli_provider",
           description = "My custom CLI provider",
         },
@@ -129,11 +104,11 @@ require("codecompanion").setup({
 })
 ```
 
-If an agent's `provider` field doesn't match any entry in the `providers` table, the `terminal` provider is used as a fallback.
+An agent whose `provider` isn't in the `providers` table falls back to `terminal`.
 
 ## Keymaps
 
-The CLI buffer supports keymaps for navigating between interactions:
+`{` and `}` move between interactions in the CLI buffer. The defaults are:
 
 ```lua
 require("codecompanion").setup({
@@ -143,12 +118,12 @@ require("codecompanion").setup({
         next_chat = {
           modes = { n = "}" },
           callback = "keymaps.next_chat",
-          description = "[Nav] Next interaction",
+          description = "Open the next interaction",
         },
         previous_chat = {
           modes = { n = "{" },
           callback = "keymaps.previous_chat",
-          description = "[Nav] Previous interaction",
+          description = "Open the previous interaction",
         },
       },
     },
@@ -156,33 +131,42 @@ require("codecompanion").setup({
 })
 ```
 
+## Insert Mode
 
-## Options
-
-There are a number of options available for CLI interactions:
+To enter insert mode whenever you focus the CLI terminal, and leave it when you move away:
 
 ```lua
 require("codecompanion").setup({
   interactions = {
     cli = {
       opts = {
-        auto_insert = true, -- Enter insert mode when focusing the CLI terminal
-        reload = true, -- Reload buffers when an agent modifies files on disk
+        auto_insert = true,
       },
     },
   },
 })
 ```
 
-| Option | Type | Default | Description |
-|---|---|---|---|
-| `auto_insert` | `boolean` | `true` | Automatically enter insert mode when the CLI terminal is focused |
-| `reload` | `boolean` | `true` | Watches the cwd for file changes and runs `:checktime` to reload buffers |
+## Reloading Buffers
 
+While an agent runs, CodeCompanion watches the directories of your open buffers and reloads any that the agent changes on disk. This is shared with ACP agents and can be configured with:
 
-## User Interface (UI)
+```lua
+require("codecompanion").setup({
+  interactions = {
+    opts = {
+      watcher = {
+        enabled = true,
+        debounce = 500, -- milliseconds
+      },
+    },
+  },
+})
+```
 
-The CLI window inherits its layout from `display.chat.window` by default. You can override specific options via `display.cli.window`:
+## Window
+
+The CLI window takes its layout from `display.chat.window`. Options under `display.cli.window` are merged on top, so you only set what differs:
 
 ```lua
 require("codecompanion").setup({
@@ -201,9 +185,7 @@ require("codecompanion").setup({
 })
 ```
 
-Any options set in `display.cli.window` are merged on top of the chat window defaults. This means you only need to specify what you want to change.
-
-You can also pass `width` and `height` overrides via the Lua API:
+To override the size for a single call from Lua:
 
 ```lua
 require("codecompanion").cli("fix the tests", {
@@ -211,4 +193,3 @@ require("codecompanion").cli("fix the tests", {
   height = 0.8,
 })
 ```
-

@@ -33,34 +33,26 @@ return {
     },
   },
   handlers = {
-    ---@param self CodeCompanion.ACPAdapter
-    ---@return boolean
-    setup = function(self)
-      return true
-    end,
+    lifecycle = {
+      ---@param self CodeCompanion.ACPAdapter
+      ---@return boolean
+      setup = function(self)
+        return true
+      end,
 
-    ---Manually handle authentication
-    ---@param self CodeCompanion.ACPAdapter
-    ---@return boolean
-    auth = function(self)
-      -- kiro-cli handles authentication exclusively through its kiro-cli CLI interface
-      -- Users are expected to login there and then can use the ACP after. auth is therefore
-      -- declared a success here to work around attempted authentication.
-      return true
-    end,
+      ---Manually handle authentication
+      ---@param self CodeCompanion.ACPAdapter
+      ---@return boolean
+      auth = function(self)
+        -- kiro-cli handles authentication exclusively through its kiro-cli CLI interface
+        -- Users are expected to login there and then can use the ACP after. auth is therefore
+        -- declared a success here to work around attempted authentication.
+        return true
+      end,
+    },
 
-    ---@param self CodeCompanion.ACPAdapter
-    ---@param messages table
-    ---@param capabilities table
-    ---@return table
-    form_messages = function(self, messages, capabilities)
-      return helpers.form_messages(self, messages, capabilities)
-    end,
-
-    ---Function to run when the request has completed. Useful to catch errors
-    ---@param self CodeCompanion.ACPAdapter
-    ---@param code number
-    ---@return nil
-    on_exit = function(self, code) end,
+    request = {
+      build_messages = helpers.build_messages,
+    },
   },
 }

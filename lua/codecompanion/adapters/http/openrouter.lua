@@ -1,5 +1,5 @@
 local fetch_models = require("codecompanion.adapters.utils.models.fetch")
-local openai = require("codecompanion.adapters.http.openai")
+local openai = require("codecompanion.adapters.http.openai_legacy")
 
 local models_source = {
   name = "OpenRouter",
@@ -307,9 +307,6 @@ return {
         return openai.handlers.tools.output_response(self, tool_call, output)
       end,
     },
-    inline_output = function(self, data, context)
-      return openai.handlers.inline_output(self, data, context)
-    end,
     on_exit = function(self, data)
       return openai.handlers.on_exit(self, data)
     end,

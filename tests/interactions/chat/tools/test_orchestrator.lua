@@ -31,12 +31,7 @@ local function setup_with_tools_and_approval_stub(n_tools, choice_label)
     local cfg = {
       interactions = {
         chat = {
-          tools = {
-            opts = {
-              auto_submit_success = false,
-              auto_submit_errors = false,
-            },
-          },
+          tools = {},
         },
       },
     }
@@ -77,6 +72,17 @@ local function setup_with_tools_and_approval_stub(n_tools, choice_label)
     -- Create chat and tools
     local chat, tools = h.setup_chat_buffer(cfg)
     _G.chat, _G.tools = chat, tools
+
+    _G.submitted = 0
+    local submit = chat.submit
+    chat.submit = function(self, opts)
+      _G.submitted = _G.submitted + 1
+      return submit(self, opts)
+    end
+
+    if _G.queue_workflow_prompt then
+      chat.subscribers:subscribe({ data = { opts = { auto_submit = true } }, callback = function() end })
+    end
 
     -- Stub approval_prompt to auto-select a choice by label
     local ap = require("codecompanion.interactions.chat.helpers.approval_prompt")
@@ -139,6 +145,27 @@ T["rejects all queued tools when user selects reject"] = function()
   h.eq(executed, {})
 end
 
+T["rejecting a tool continues the agent loop"] = function()
+  setup_with_tools_and_approval_stub(1, "Reject")
+
+  h.eq(child.lua_get("_G.submitted"), 1)
+end
+
+T["cancelling a tool ENDS the agent loop"] = function()
+  setup_with_tools_and_approval_stub(2, "Cancel")
+
+  h.eq(child.lua_get("_G.executed or {}"), {})
+  h.eq(child.lua_get("_G.submitted"), 0)
+end
+
+T["cancelling a tool DOES NOT submit a queued workflow prompt"] = function()
+  child.lua([[_G.queue_workflow_prompt = true]])
+  setup_with_tools_and_approval_stub(1, "Cancel")
+  child.lua([[vim.wait(700)]])
+
+  h.eq(child.lua_get("_G.submitted"), 0)
+end
+
 T["tools only receive output that relates to their execution"] = function()
   child.lua([[
     --require("tests.log")
@@ -191,7 +218,6 @@ local function setup_auto_mode(opts)
         },
         chat = {
           tools = {
-            opts = { auto_submit_success = false, auto_submit_errors = false },
             dangerous = {
               enabled = true,
               opts = {

@@ -1,7 +1,7 @@
 local Curl = require("plenary.curl")
 local config = require("codecompanion.config")
 local log = require("codecompanion.utils.log")
-local openai = require("codecompanion.adapters.http.openai")
+local openai = require("codecompanion.adapters.http.openai_legacy")
 
 -- Cache variables for models
 local _cached_models
@@ -128,9 +128,6 @@ return {
     end,
     chat_output = function(self, data, tools)
       return openai.handlers.chat_output(self, data, tools)
-    end,
-    inline_output = function(self, data, context)
-      return openai.handlers.inline_output(self, data, context)
     end,
     on_exit = function(self, data)
       return openai.handlers.on_exit(self, data)

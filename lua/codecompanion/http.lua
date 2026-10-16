@@ -99,17 +99,15 @@ end
 function Client.merge_body(adapter, payload)
   return vim.tbl_deep_extend(
     "keep",
-    adapters.call_handler(
-      adapter,
-      "build_parameters",
-      adapter_utils.set_env_vars(adapter, adapter.parameters),
-      payload.messages
-    ) or {},
-    adapters.call_handler(adapter, "build_messages", payload.messages) or {},
-    adapters.call_handler(adapter, "build_tools", payload.tools) or {},
-    adapters.call_handler(adapter, "build_structured_output", payload.structured_output) or {},
+    adapters.call_handler(adapter, "build_parameters", {
+      params = adapter_utils.set_env_vars(adapter, adapter.parameters),
+      messages = payload.messages,
+    }) or {},
+    adapters.call_handler(adapter, "build_messages", { messages = payload.messages }) or {},
+    adapters.call_handler(adapter, "build_tools", { tools = payload.tools }) or {},
+    adapters.call_handler(adapter, "build_structured_output", { schema = payload.structured_output }) or {},
     adapter.body and adapter.body or {},
-    adapters.call_handler(adapter, "build_body", payload) or {}
+    adapters.call_handler(adapter, "build_body", { payload = payload }) or {}
   )
 end
 
@@ -217,6 +215,8 @@ function Client:send(payload, opts)
   local handle_state = "pending"
   local meta = { id = tostring(math.random(10000000)) }
   local had_error = false
+  -- Read once, as the caller may switch streaming back on before `done` runs
+  local is_streaming = self.adapter and self.adapter.opts and self.adapter.opts.stream
 
   ---@param s "pending"|"streaming"|"success"|"error"|"cancelled"
   local function set_state(s)
@@ -235,8 +235,6 @@ function Client:send(payload, opts)
         end
         return
       end
-
-      local is_streaming = self.adapter and self.adapter.opts and self.adapter.opts.stream
 
       -- Streaming chunks (no final response table is delivered here on success)
       if is_streaming then
@@ -263,7 +261,6 @@ function Client:send(payload, opts)
 
     -- Defer on_done to the next tick to suppress it if an error arrives later on
     done = function()
-      local is_streaming = self.adapter and self.adapter.opts and self.adapter.opts.stream
       if not is_streaming then
         return
       end
@@ -354,7 +351,7 @@ function Client:send_sync(payload, opts)
     end
   end
 
-  adapters.call_handler(adapter, "on_exit", response or (err and err.stderr))
+  adapters.call_handler(adapter, "on_exit", { data = response or (err and err.stderr) })
   adapters.call_handler(adapter, "teardown")
 
   if not opts.silent then
@@ -419,7 +416,7 @@ function Client:request(payload, actions, opts)
           cb(nil, data, adapter)
         end
 
-        adapters.call_handler(adapter, "on_exit", data)
+        adapters.call_handler(adapter, "on_exit", { data = data })
         adapters.call_handler(adapter, "teardown")
 
         if actions.done and type(actions.done) == "function" then

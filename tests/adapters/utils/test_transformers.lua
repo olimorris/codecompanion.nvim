@@ -106,7 +106,7 @@ T["Transformers"]["can enforce strictness with nested objects in arrays"] = func
   local nested_schema = {
     type = "function",
     ["function"] = {
-      name = "insert_edit_into_file",
+      name = "test_tool",
       description = "Edit a file",
       parameters = {
         type = "object",
@@ -197,6 +197,28 @@ T["Transformers"]["transform_schema_if_needed uses strict_mode when schema has n
   h.eq(true, result2.strict)
   h.eq({ "string", "null" }, result2.parameters.properties.query.type) -- Has null type
   h.eq({ "query" }, result2.parameters.required) -- All properties required
+end
+
+T["Transformers"]["strict_mode DOES NOT modify the tool's own schema"] = function()
+  local tool_schema = {
+    type = "function",
+    ["function"] = {
+      name = "test_tool",
+      description = "A test tool",
+      parameters = {
+        type = "object",
+        properties = {
+          query = { type = "string", description = "Query parameter" },
+        },
+        required = { "query" },
+      },
+    },
+  }
+
+  transform.transform_schema_if_needed(tool_schema, { strict_mode = true })
+
+  h.eq("string", tool_schema["function"].parameters.properties.query.type)
+  h.eq("string", transform.to_gemini(tool_schema).parameters.properties.query.type)
 end
 
 T["Transformers"]["enforces additionalProperties false on deeply nested MCP schemas"] = function()

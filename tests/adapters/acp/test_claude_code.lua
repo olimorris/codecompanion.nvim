@@ -20,7 +20,7 @@ T["Claude Code adapter"]["does not pass the env var name as the token when it is
     local adapter = require("codecompanion.adapters").resolve("claude_code")
     require("codecompanion.adapters.utils").get_env_vars(adapter)
 
-    local ok = adapter.handlers.setup(adapter)
+    local ok = adapter.handlers.lifecycle.setup(adapter)
     return { ok = ok, token = adapter.env_replaced.CLAUDE_CODE_OAUTH_TOKEN }
   ]])
 

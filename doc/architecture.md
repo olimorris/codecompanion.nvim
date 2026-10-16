@@ -1,73 +1,83 @@
 ---
-description: "How CodeCompanion manages LLM context windows, handles token limits, and is architected internally — reference for contributors and advanced users."
+description: "Understand how CodeCompanion keeps a conversation inside the LLM's context window, for contributors and curious users."
 ---
 
 # Architecture
 
-This section of the documentation covers architectural concepts and design principles that underpin CodeCompanion's functionality.
-
-This is not mandatory reading for users of CodeCompanion. It may be of interest to those who are looking to understand some of the technical details of how CodeCompanion works, or those who are looking to contribute to the project.
+This page covers how parts of CodeCompanion work under the hood. You don't need it to use the plugin, but it's useful if you're contributing or want to know why CodeCompanion behaves the way it does.
 
 ## How Context Is Managed
 
-One of the limitations of working with LLMs is that of context, as they have a finite window with which they can respond to a user's ask. That is, there's only a certain amount of data that LLMs can reference in order to generate a response. To equate this to human terms, it can be thought of as [working memory](https://en.wikipedia.org/wiki/Working_memory) and it varies greatly depending on what model you're using. The context window is measured in [tokens](https://platform.claude.com/docs/en/about-claude/glossary#tokens).
+An LLM can only consider a limited number of [tokens](https://platform.claude.com/docs/en/about-claude/glossary#tokens) at once, known as its _context window_. When a conversation outgrows it, the conversation ends and can't continue, which is costly in the middle of a coding session.
 
-When a user breaches the context window, the conversation **ends** and it **cannot** continue. This can be hugely inconvenient in the middle of a coding session and potentially time consuming to recover from. CodeCompanion has context awareness which means it can prevent this from happening by taking **preventative** action and it does this in two ways:
+CodeCompanion acts before that happens, in two ways:
 
-1. **Context editing** - Whereby the conversation history is edited to remove less relevant information
-2. **Compaction** - Where a conversation is summarised, removing historical messages and content
+- **Context editing** - Clears older tool results from the message history
+- **Compaction** - Summarises the conversation and replaces the message history with the summary
+
+Both apply to HTTP adapters only. ACP agents manage their own context.
 
 ### In the Chat Buffer
 
-Firstly, CodeCompanion manages context by paying close attention to the number of tokens in the [chat buffer](/usage/chat-buffer/), matching them against a defined trigger threshold in your config, which can be [customised](/configuration/context-management).
+CodeCompanion counts the tokens in the [chat buffer](/usage/chat-buffer/) after each response, and before tool output is sent back, then compares them with two [thresholds](/configuration/context-management):
 
-CodeCompanion uses two thresholds: an **editing** trigger (default `0.65` of the context window) and a **compaction** trigger (default `0.85`). When the chat buffer crosses the lower threshold, context editing begins. If it later crosses the upper threshold then compaction runs. The lower threshold ensures that the lower risk editing action is triggered more often, buying more time before compaction is required.
+| Operation | Default trigger |
+|---|---|
+| Context editing | `0.65` of the context window |
+| Compaction | `0.85` of the context window |
 
-#### Context Editing
+The lower threshold means the cheaper, lower risk editing runs first and more often, which delays the need for compaction. Once the conversation crosses the upper threshold, compaction runs instead.
+
+### Context Editing
 
 > [!NOTE]
 > Inspired by [Anthropic's context editing](https://platform.claude.com/docs/en/build-with-claude/context-editing)
 
-Context editing is the lighter and more risk-free option of the two operations. It walks through the chat's message history and replaces the *content* of older tool call results with a placeholder, leaving the conversation intact. This ensures that tool calls and tool results are never orphaned, whilst ensuring the token count is reduced.
-
-Editing works in terms of **cycles**. A cycle represents one user turn and everything the LLM did in response to it (tool calls, tool results, replies). By default, the most recent 3 cycles are preserved in full; older cycles have their tool results swapped for a placeholder. This means an in-flight agentic loop is never cut in half — a cycle is preserved or aged as a whole.
-
-You can exclude specific tools from being edited via the `exclude_tools` configuration option. For example, the `memory` tool is excluded by default, since its output is often referenced again later in the conversation.
-
-When a tool result is edited, its content becomes:
+Context editing replaces the _content_ of older tool results with a placeholder, leaving the conversation's shape intact. Tool calls and their results are never orphaned, and the token count drops:
 
 ```
 <important>Tool result cleared to save context. Re-run the tool if you need this output</important>
 ```
 
-#### Compaction
+Editing works in _cycles_. A cycle is one user turn and everything the LLM did in response, such as tool calls, tool results and replies. The last three cycles are kept in full, as set by `keep_cycles`, and older cycles have their tool results cleared. An in-flight [agent loop](/usage/chat-buffer/agents-tools#how-they-work) is never cut in half, as a cycle is kept or cleared as a whole.
+
+Output from the tools in `exclude_tools` is never cleared. By default that's the `memory` tool, as its output is often referenced later in the conversation.
+
+### Compaction
 
 > [!NOTE]
 > Inspired by [Claude Code's compaction prompt](https://github.com/Piebald-AI/claude-code-system-prompts)
 
-When no more editing can be performed, CodeCompanion will use compaction. It makes a single LLM call to summarise the conversation so far, then replaces the message history with that summary.
-
-Not everything in the history is summarised and the below items are preserved:
+Compaction makes one LLM request to summarise the conversation so far, then replaces the message history with that summary. These are kept as they are:
 
 - The system prompt
-- Project rules (anything tagged via the [`/rules`](/usage/chat-buffer/slash-commands#rules) slash command)
+- [Rules](/usage/chat-buffer/rules)
 
-Files, buffers, and images that were attached during the chat are replaced with reference placeholders, similarly to how tool results are replaced when edited:
+A summary from an earlier compaction isn't kept. The new summary replaces it.
+
+Files, buffers and images are replaced with a placeholder that names the source, so the LLM knows what to re-read or ask for:
 
 ```
-<important>File content for `lua/foo.lua` cleared during compaction. Re-read the file if you need it.</important>
+<important>File content for `lua/codecompanion/init.lua` cleared during compaction. Re-read the file if you need it.</important>
 ```
 
-The placeholder names the file so the LLM knows how to re-read or re-request it. All other messages are summarised and removed.
+Everything else is summarised and removed. Compaction is skipped if it would save fewer than 10,000 tokens, as set by `min_token_savings`.
 
-Compaction can use a different adapter than the chat itself, which is useful if you want a cheaper or faster model handling the summary. You can also choose to fall back to the chat adapter if the override fails — by default, a failure simply skips that round and notifies you.
+The summary is added to the chat as a new user message, and the chat is submitted so the LLM can carry on from where it left off.
 
-The summary is appended to the chat as a new user message and tagged so future compactions can identify and replace it. The chat is automatically submitted so the LLM has a chance to respond to the summarised context and restart the agentic loop.
+Compaction can use a cheaper or faster adapter than the chat itself. If that adapter fails, the round is skipped and the error is logged, unless you've set `fallback_to_chat_adapter`, in which case it retries with the chat's adapter. See [Configuring Context Management](/configuration/context-management) for both options.
 
-#### Server-Side Compaction
+### Server-Side Compaction
 
-If you're using the `openai_responses` or `anthropic` adapters, then CodeCompanion will use their native server-side compaction capabilities. Please see the [OpenAI compaction documentation](https://developers.openai.com/api/docs/guides/compaction) and [Anthropic compaction documentation](https://platform.claude.com/docs/en/build-with-claude/compaction) for more information. Editing still runs client-side for these adapters since it produces tokens-over-the-wire savings independent of what the server does.
+For models that support it, the `anthropic` and `openai` adapters hand context management to the provider and CodeCompanion's own editing and compaction are turned off:
 
-#### Manual Triggers
+| Adapter | Server-side features |
+|---|---|
+| `anthropic` | [Context editing](https://platform.claude.com/docs/en/build-with-claude/context-editing) and [compaction](https://platform.claude.com/docs/en/build-with-claude/compaction) |
+| `openai` | [Compaction](https://developers.openai.com/api/docs/guides/compaction) |
 
-Compaction can also be triggered manually via the [`/compact`](/usage/chat-buffer/slash-commands#compact) slash command, regardless of where the token count sits. Editing has no manual equivalent — it runs automatically when the threshold is crossed.
+Both use your thresholds, but the compaction trigger is never set below 50,000 tokens. To keep CodeCompanion in charge, see [Disabling Compaction](/configuration/adapters-http#disabling-compaction).
+
+### Manual Triggers
+
+The [/compact](/usage/chat-buffer/slash-commands#compact) slash command compacts the conversation straight away, wherever the token count sits, and ignores `min_token_savings`. Editing has no manual equivalent.

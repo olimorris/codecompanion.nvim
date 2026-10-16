@@ -1,7 +1,7 @@
 local adapter_utils = require("codecompanion.adapters.utils")
 local get_models = require("codecompanion.adapters.http.ollama.get_models")
 local log = require("codecompanion.utils.log")
-local openai = require("codecompanion.adapters.http.openai")
+local openai = require("codecompanion.adapters.http.openai_legacy")
 local tags = require("codecompanion.interactions.shared.tags")
 
 ---@class CodeCompanion.HTTPAdapter.Ollama: CodeCompanion.HTTPAdapter
@@ -198,29 +198,14 @@ return {
         return {
           role = self.roles.tool or "tool",
           tool_name = tool_call["function"]["name"],
+          tools = {
+            call_id = adapter_utils.pairing_id(tool_call),
+          },
           content = output,
           opts = { visible = false },
         }
       end,
     },
-    inline_output = function(self, data, context)
-      if self.opts.stream then
-        return log:error("Inline output is not supported for non-streaming models")
-      end
-
-      if data and data ~= "" then
-        local ok, json = pcall(vim.json.decode, data.body, { luanil = { object = true } })
-
-        if not ok then
-          log:error("Error decoding JSON: %s", data.body)
-          return { status = "error", output = json }
-        end
-
-        if json.message.content then
-          return { status = "success", output = json.message.content }
-        end
-      end
-    end,
 
     ---Form the reasoning output that is stored in the chat buffer
     ---@param self CodeCompanion.HTTPAdapter

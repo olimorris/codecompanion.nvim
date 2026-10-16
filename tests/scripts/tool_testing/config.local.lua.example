@@ -42,7 +42,7 @@ M.adapters = {
     timeout = 30000,
   },
   {
-    name = "openai_responses",
+    name = "openai",
     enabled = true,
     models = {
       "gpt-5.4-mini",

@@ -40,7 +40,7 @@ T["Gemini CLI adapter"]["only sends fresh user messages to the LLM"] = function(
     },
   }
 
-  h.eq(output, adapter.handlers.form_messages(adapter, messages))
+  h.eq(output, adapter.handlers.request.build_messages(adapter, { messages = messages }))
 end
 
 T["Gemini CLI adapter"]["can form multiple messages to be sent"] = function()
@@ -68,7 +68,7 @@ T["Gemini CLI adapter"]["can form multiple messages to be sent"] = function()
     },
   }
 
-  h.eq(output, adapter.handlers.form_messages(adapter, messages))
+  h.eq(output, adapter.handlers.request.build_messages(adapter, { messages = messages }))
 end
 
 return T

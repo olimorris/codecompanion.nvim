@@ -120,7 +120,7 @@ local function bind_multi_select(prompt)
   -- Ensure the summary message is on its own line
   local function clear_include_line()
     if prompt.include_line then
-      prompt.chat:update_buf_line(prompt.include_line, "")
+      prompt.chat:update_buf_line({ line_number = prompt.include_line, content = "" })
     end
   end
 
@@ -131,7 +131,10 @@ local function bind_multi_select(prompt)
       return prompt.finish(#selected > 0 and table.concat(selected, ", ") or nil)
     end
     if prompt.include_line then
-      prompt.chat:update_buf_line(prompt.include_line, include_prompt(prompt.options[option_index].label))
+      prompt.chat:update_buf_line({
+        line_number = prompt.include_line,
+        content = include_prompt(prompt.options[option_index].label),
+      })
     end
   end
 

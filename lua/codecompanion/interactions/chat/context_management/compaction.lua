@@ -381,7 +381,7 @@ function M.compact(chat, opts)
   chat.ui:lock_buf()
 
   local message = "Compacting the chat..."
-  chat:_set_status("compacting", message)
+  chat:_set_status({ key = "compacting", message = message })
   utils.fire("ChatCompacting", { bufnr = chat.bufnr, id = chat.id })
   utils.notify(message)
 
