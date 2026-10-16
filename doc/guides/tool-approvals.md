@@ -17,8 +17,8 @@ Out of the box, every chat buffer starts in _Ask_ mode and the built-in tools be
 | `read_file`, `grep_search`, `memory` | Asks | - |
 | `run_command` | Asks, for each command | - |
 | `delete_file` | Asks, for each file | - |
-| `create_file`, `insert_edit_into_file` | Runs | Asks you to confirm the change |
-| `file_search`, `get_changed_files`, `get_diagnostics`, `fetch_webpage`, `web_search` | Runs | - |
+| `create_file`, `edit_file` | Runs | Asks you to confirm the change |
+| `file_search`, `get_changed_files`, `get_diagnostics`, `fetch_webpage`, `search_help`, `web_search` | Runs | - |
 
 Approvals are remembered per chat buffer. Approving a tool in one chat doesn't approve it anywhere else.
 
@@ -37,7 +37,7 @@ For `run_command` and `delete_file`, **Always accept only covers that exact comm
 
 <img src="https://github.com/user-attachments/assets/c5bcd1e9-f243-4282-8bcb-fcc180d339b6" alt="Approval for run_command tool" />
 
-After `create_file` or `insert_edit_into_file` produces a change, you're asked to confirm it. Small diffs are shown in the chat buffer and larger ones open in a floating window, which `gv` opens on demand. The same `g1` to `g4` keymaps apply, except that Cancel only discards this change. Always accept here means later edits from that tool in this chat are written without a diff.
+After `create_file` or `edit_file` produces a change, you're asked to confirm it. Small diffs are shown in the chat buffer and larger ones open in a floating window, which `gv` opens on demand. The same `g1` to `g4` keymaps apply, except that Cancel only discards this change. Always accept here means later edits from that tool in this chat are written without a diff.
 
 These keymaps are shared across CodeCompanion and can be changed under `interactions.shared.keymaps`. See [Keymaps](/keymaps).
 
@@ -51,7 +51,7 @@ Press `gty` in the chat buffer to choose a mode for that chat:
 | Auto | Everything except `run_command`, which asks unless the command is on its safe list, and protected tools such as `delete_file` |
 | YOLO | Everything |
 
-Auto mode also skips the confirmation after an edit, so changes are written straight to disk. [Code Review](/usage/code-review) is the way to check them afterwards. In Auto and YOLO, tool results are always sent back to the LLM, whatever [auto submit](/configuration/tools#auto-submit-recursion) is set to.
+Auto mode also skips the confirmation after an edit, so changes are written straight to disk. Use [Code Review](/usage/code-review) to check them afterwards.
 
 <img src="https://github.com/user-attachments/assets/d43aedaa-797e-4e45-928b-6dd44063a8a5" alt="Approval modes" />
 
@@ -106,7 +106,7 @@ require("codecompanion").setup({
   interactions = {
     chat = {
       tools = {
-        ["insert_edit_into_file"] = {
+        ["edit_file"] = {
           opts = {
             require_confirmation_after = false,
           },
@@ -124,14 +124,14 @@ require("codecompanion").setup({
 
 :::
 
-`insert_edit_into_file` treats files that are open in Neovim differently from those that aren't. To be asked before the LLM edits a file you don't have open, but not a buffer you do:
+`edit_file` treats files that are open in Neovim differently from those that aren't. To be asked before the LLM edits a file you don't have open, but not a buffer you do:
 
 ```lua
 require("codecompanion").setup({
   interactions = {
     chat = {
       tools = {
-        ["insert_edit_into_file"] = {
+        ["edit_file"] = {
           opts = {
             require_approval_before = {
               buffer = false,
@@ -214,7 +214,7 @@ require("codecompanion").setup({
 })
 ```
 
-A command judged safe is remembered for the rest of the chat, as if you'd pressed `g1`. The judge only runs in Auto mode, and never for a protected tool. It's worth it when you want Auto mode for long tasks but can't predict which commands the LLM will need. See [LLM Judge](/configuration/tools#llm-judge) to choose its adapter and system prompt, and [Background Model](/guides/background-model) for the background interaction it uses.
+A command judged safe is remembered for the rest of the chat, as if you'd pressed `g1`. The judge only runs in Auto mode, and never for a protected tool. Use it when you want Auto mode for long tasks but can't predict which commands the LLM needs. See [LLM Judge](/configuration/tools#llm-judge) to choose its adapter and system prompt, and [Background Model](/guides/background-model) for the background interaction it uses.
 
 ### Running a Prompt Unattended
 
@@ -268,7 +268,7 @@ require("codecompanion").setup({
 
 ### Resetting a Chat
 
-Press `gtx` in the chat buffer to forget everything you've approved in it. This also returns the chat to the mode set by `approval_mode`.
+Press `gtx` in the chat buffer to forget everything you've approved in it. This also returns the chat to the default mode in `interactions.chat.tools.opts.approval_mode`.
 
 ## Notifications
 

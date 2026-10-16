@@ -315,7 +315,7 @@ return {
     success = function(self, stdout, meta)
       local chat = meta.tools.chat
       local llm_output = vim.iter(stdout):flatten():join("\n")
-      chat:add_tool_output(self, llm_output, "")
+      chat:add_tool_output(self, { content = llm_output, display = false })
     end,
 
     ---@param self CodeCompanion.Tool.GetDiagnostics
@@ -325,7 +325,7 @@ return {
       local chat = meta.tools.chat
       local errors = vim.iter(stderr):flatten():join("\n")
       log:debug("[Get Diagnostics Tool] Error output: %s", stderr)
-      chat:add_tool_output(self, errors)
+      chat:add_tool_output(self, { content = errors })
     end,
 
     ---Rejection message back to the LLM

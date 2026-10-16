@@ -23,7 +23,7 @@ function M.get_prompt_aliases()
 end
 
 ---Create and show a diff in a floating window
----@param args { from_lines: string[], to_lines: string[], ft: string, banner?: string, skip_default_keymaps?: boolean, chat_bufnr?: number, inline?: boolean, tool_name?: string, title?: string, diff_id: number, marker_add?: string, marker_delete?: string, bufnr?: number, keymaps?: { on_accept?: fun(diff_ui: CodeCompanion.DiffUI), on_always_accept?: fun(diff_ui: CodeCompanion.DiffUI), on_reject?: fun(diff_ui: CodeCompanion.DiffUI) } }
+---@param args { from_lines: string[], to_lines: string[], ft: string, banner?: string, skip_default_keymaps?: boolean, chat_bufnr?: number, hunk_actions?: boolean, inline?: boolean, tool_name?: string, title?: string, diff_id: number, marker_add?: string, marker_delete?: string, bufnr?: number, keymaps?: { on_accept?: fun(diff_ui: CodeCompanion.DiffUI), on_always_accept?: fun(diff_ui: CodeCompanion.DiffUI), on_reject?: fun(diff_ui: CodeCompanion.DiffUI) } }
 ---@return CodeCompanion.DiffUI
 function M.show_diff(args)
   local bufnr = args.bufnr
@@ -54,6 +54,7 @@ function M.show_diff(args)
     banner = args.banner,
     chat_bufnr = args.chat_bufnr,
     diff_id = args.diff_id,
+    hunk_actions = args.hunk_actions,
     inline = args.inline or false,
     keymaps = args.keymaps,
     skip_default_keymaps = args.skip_default_keymaps,

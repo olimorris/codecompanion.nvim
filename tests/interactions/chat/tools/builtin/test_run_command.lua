@@ -10,6 +10,10 @@ local T = new_set({
       child.lua([[
         h = require('tests.helpers')
         chat, tools = h.setup_chat_buffer()
+        -- End the loop after the tools, as the follow-up request would never be answered
+        require("codecompanion.interactions.chat.agent_loop").after_tools = function(tools)
+          tools:reset()
+        end
 
         _G.output = nil
       ]])

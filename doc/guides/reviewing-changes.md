@@ -112,7 +112,7 @@ The branch is compared against where it left your default branch, which is taken
 
 ## Listing Changed Files
 
-If you just want to know which files were touched, run:
+To see which files were touched:
 
 ```
 :CodeCompanionChat Changes

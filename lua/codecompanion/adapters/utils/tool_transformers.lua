@@ -82,7 +82,8 @@ M.to_new_openai = function(schema, opts)
   opts = vim.tbl_extend("force", { strict_mode = false }, opts or {})
 
   if opts.strict_mode and not schema["function"].parameters.strict then
-    schema = M.enforce_strictness(schema)
+    -- The schema is the tool's own table, shared with every chat and adapter in the session
+    schema = M.enforce_strictness(vim.deepcopy(schema))
   end
 
   local function_def = schema["function"]

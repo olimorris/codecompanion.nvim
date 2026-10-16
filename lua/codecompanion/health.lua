@@ -24,6 +24,7 @@ M.parsers = {
 M.libraries = {
   { name = "curl" },
   { name = "file", optional = true }, -- used to guess mimetype for multimodal.
+  { name = "markitdown", optional = true }, -- used to fetch webpages
   { name = "rg", optional = true },
   { name = "sqlite3", optional = true }, -- used to read Copilot tokens from the SQLite database
 }
@@ -52,8 +53,8 @@ local function parser_available(filetype)
 end
 
 function M.check()
-  if vim.fn.has("nvim-0.11") == 0 then
-    error("codecompanion.nvim requires Neovim 0.11+")
+  if vim.fn.has("nvim-0.12") == 0 then
+    error("codecompanion.nvim requires Neovim 0.12+")
   end
 
   local log = require("codecompanion.utils.log")

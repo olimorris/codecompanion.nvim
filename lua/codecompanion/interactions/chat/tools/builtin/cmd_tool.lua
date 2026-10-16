@@ -63,7 +63,7 @@ local function cmd_tool(spec)
         local llm_output = fmt("There was an error running the `%s` command:\n%s", cmd_string, content)
         local user_output = fmt("`%s` error\n%s", cmd_string, content)
 
-        chat:add_tool_output(self, llm_output, user_output)
+        chat:add_tool_output(self, { content = llm_output, display = user_output })
       end
     end,
 
@@ -94,9 +94,12 @@ local function cmd_tool(spec)
       if stdout then
         local output = vim.iter(stdout[#stdout]):flatten():join("\n")
         local content = fmt("`%s`\n%s", spec.build_cmd(self.args), markdown.form_codeblock(output))
-        return chat:add_tool_output(self, content, "")
+        return chat:add_tool_output(self, { content = content, display = false })
       end
-      return chat:add_tool_output(self, fmt("There was no output from the %s tool", spec.name), "")
+      return chat:add_tool_output(self, {
+        content = fmt("There was no output from the %s tool", spec.name),
+        display = false,
+      })
     end,
   }
 

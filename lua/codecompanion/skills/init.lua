@@ -60,19 +60,17 @@ function M.list()
     return {}
   end
 
+  -- Skipping hidden dirs stops a cloned repo's `.git` from being walked on every scan
+  local scan_opts = { patterns = SKILL_FILE, max_depth = config.skills.opts.depth, follow = true, skip_hidden = true }
+
   -- Later dirs take precedence, so a project skill overrides a personal one of the same name
   local by_name = {}
   for _, configured_dir in ipairs(config.skills.dirs or {}) do
     local dir = vim.fs.abspath(vim.fs.normalize(configured_dir))
-    if files.is_dir(dir) then
-      for entry in vim.fs.dir(dir) do
-        local skill_file = vim.fs.joinpath(dir, entry, SKILL_FILE)
-        if files.exists(skill_file) then
-          local skill = parse_skill(skill_file)
-          if skill then
-            by_name[skill.name] = skill
-          end
-        end
+    for _, skill_file in ipairs(files.scan_dir(dir, scan_opts)) do
+      local skill = parse_skill(skill_file)
+      if skill then
+        by_name[skill.name] = skill
       end
     end
   end
@@ -186,10 +184,10 @@ local function add_skill(chat, skill)
     skill.path
   )
 
-  chat:add_context({ role = config.constants.SYSTEM_ROLE, content = content }, "skills", id, {
-    path = skill.path,
-    tag = tags.SKILLS,
-  })
+  chat:add_context(
+    { role = config.constants.SYSTEM_ROLE, content = content },
+    { source = "skills", id = id, path = skill.path, tag = tags.SKILLS }
+  )
 end
 
 ---@param chat CodeCompanion.Chat
@@ -219,6 +217,32 @@ function M.autoload(chat, names)
   end
 
   M.add_to_chat(chat, M.resolve(names))
+end
+
+---The full instructions of the named skills and groups, as messages
+---@param names string[]|fun(): string[]
+---@return { role: string, content: string }[]
+function M.get_messages(names)
+  if type(names) == "function" then
+    names = names()
+  end
+  if not names or vim.tbl_isempty(names) then
+    return {}
+  end
+
+  return vim
+    .iter(M.resolve(names))
+    :map(function(skill)
+      local ok, content = pcall(files.read, skill.path)
+      if not ok then
+        return log:error("[Skills] Could not read the `%s` skill: %s", skill.name, content)
+      end
+      return {
+        role = config.constants.USER_ROLE,
+        content = fmt("Follow the `%s` skill:\n\n---\n%s\n---", skill.name, content),
+      }
+    end)
+    :totable()
 end
 
 return M

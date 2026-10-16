@@ -195,7 +195,7 @@ export default withMermaid(
               collapsed: true,
               items: [
                 {
-                  text: "Agents/Tools",
+                  text: "Agents and Tools",
                   link: "/usage/chat-buffer/agents-tools",
                 },
                 {
@@ -250,11 +250,11 @@ export default withMermaid(
             { text: "Rules", link: "/configuration/rules" },
             { text: "Skills", link: "/configuration/skills" },
             { text: "System Prompt", link: "/configuration/system-prompt" },
-            { text: "Others", link: "/configuration/others" },
+            { text: "Other Options", link: "/configuration/others" },
           ],
         },
         {
-          text: "Extending the Plugin",
+          text: "Extending",
           collapsed: true,
           items: [
             { text: "Adapters", link: "/extending/adapters" },

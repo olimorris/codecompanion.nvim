@@ -140,7 +140,7 @@ function Interactions:chat()
     return self:workflow()
   end
 
-  local prompts = self.selected.prompts
+  local prompts = self.selected.prompts or {}
 
   if prompts.n ~= nil or prompts.v ~= nil then
     local mode = self.buffer_context.is_visual and "v" or "n"
@@ -152,7 +152,8 @@ function Interactions:chat()
     messages = self.evaluate_prompts(prompts, self.buffer_context)
   end
 
-  if not messages or #messages == 0 then
+  -- A prompt with no messages opens a blank chat, but one whose messages were all filtered out is a mistake
+  if #messages == 0 and not vim.tbl_isempty(prompts) then
     return log:warn("No messages to submit")
   end
 
@@ -289,7 +290,7 @@ function Interactions:workflow()
             end
             chat:add_buf_message(val)
             if val.opts and val.opts.adapter and val.opts.adapter.name then
-              chat:change_adapter(val.opts.adapter.name, val.opts.adapter.model)
+              chat:change_adapter({ adapter = val.opts.adapter.name, model = val.opts.adapter.model })
             end
           end,
           data = event_data,

@@ -39,36 +39,28 @@ return {
     },
   },
   handlers = {
-    ---@param self CodeCompanion.ACPAdapter
-    ---@return boolean
-    setup = function(self)
-      return true
-    end,
-
-    ---Manually handle authentication
-    ---@param self CodeCompanion.ACPAdapter
-    ---@return boolean
-    auth = function(self)
-      local token = self.env_replaced.CLAUDE_CODE_OAUTH_TOKEN
-      if token and token ~= "" then
-        vim.env.CLAUDE_CODE_OAUTH_TOKEN = token
+    lifecycle = {
+      ---@param self CodeCompanion.ACPAdapter
+      ---@return boolean
+      setup = function(self)
         return true
-      end
-      return false
-    end,
+      end,
 
-    ---@param self CodeCompanion.ACPAdapter
-    ---@param messages table
-    ---@param capabilities table
-    ---@return table
-    form_messages = function(self, messages, capabilities)
-      return helpers.form_messages(self, messages, capabilities)
-    end,
+      ---Manually handle authentication
+      ---@param self CodeCompanion.ACPAdapter
+      ---@return boolean
+      auth = function(self)
+        local token = self.env_replaced.CLAUDE_CODE_OAUTH_TOKEN
+        if token and token ~= "" then
+          vim.env.CLAUDE_CODE_OAUTH_TOKEN = token
+          return true
+        end
+        return false
+      end,
+    },
 
-    ---Function to run when the request has completed. Useful to catch errors
-    ---@param self CodeCompanion.ACPAdapter
-    ---@param code number
-    ---@return nil
-    on_exit = function(self, code) end,
+    request = {
+      build_messages = helpers.build_messages,
+    },
   },
 }

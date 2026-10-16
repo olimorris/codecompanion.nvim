@@ -1,0 +1,15 @@
+# Storage design
+
+This document describes how the service stores and serves data. It is written for engineers who are on call for the service and need to understand its behaviour quickly.
+
+## Caching
+
+Every request first checks the in-memory cache before it reaches the database, which keeps the median response time under ten milliseconds for the endpoints that matter most. The cache is keyed on the tenant, the resource type and the resource id, so two tenants can never read each other's entries even when their ids collide. Writes go to the database first and only then update the cache, which means a crash between the two steps leaves a stale entry rather than a missing one. Entries are evicted after 300 seconds unless they are refreshed by a read. We chose a fixed lifetime over an LRU policy because the working set is small and predictable, and because a fixed lifetime makes the behaviour easy to reason about during an incident. If the cache process restarts, the service keeps serving requests straight from the database until the cache warms up again, which usually takes less than a minute under normal load. Operators can flush a single tenant's entries from the admin console without affecting anyone else.
+
+## Sessions
+
+Sessions are stored in the same database as everything else and are never cached, because a stale session is a security problem rather than a performance one. A session expires after 300 seconds unless it is refreshed by a read of any authenticated endpoint, and the client is expected to renew it in the background. Revoking a session takes effect on the very next request.
+
+## Backups
+
+Backups run every night at 02:00 UTC and are kept for thirty days.

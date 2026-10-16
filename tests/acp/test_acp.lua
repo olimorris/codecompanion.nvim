@@ -271,6 +271,34 @@ T["ACP Connection"]["session/new stores config options metadata"] = function()
   h.eq(result.models.availableModels[1].modelId, "claude-opus")
 end
 
+T["ACP Connection"]["use_session restores the model of the session it switches back to"] = function()
+  local result = child.lua([[
+    local connection = create_init_connection()
+    local function model_option(current)
+      return {
+        {
+          type = "select",
+          id = "model",
+          name = "Model",
+          category = "model",
+          currentValue = current,
+          options = { { value = "opus", name = "Opus" }, { value = "haiku", name = "Haiku" } },
+        },
+      }
+    end
+
+    connection:use_session("first")
+    connection:_apply_config_options(model_option("opus"))
+    connection:use_session("second")
+    connection:_apply_config_options(model_option("haiku"))
+    connection:use_session("first")
+
+    return connection:get_models().currentModelId
+  ]])
+
+  h.eq("opus", result)
+end
+
 T["ACP Connection"]["falls back to session/new if session/load fails"] = function()
   local result = child.lua([[
     local calls = {}

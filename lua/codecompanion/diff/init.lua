@@ -40,7 +40,7 @@ local CONSTANTS = {
     algorithm = "minimal",
     ctxlen = 0,
     indent_heuristic = false,
-    interhunkctxlen = 4,
+    interhunkctxlen = 0,
     linematch = 0,
     result_type = "indices",
   },

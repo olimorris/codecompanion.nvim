@@ -84,7 +84,7 @@ require("codecompanion").setup({
 
 This works for agents too, such as `{ name = "claude_code", model = "opus" }`. For an agent's mode and other options, see [Choosing a Default Model and Mode](/guides/coding-with-an-agent#choosing-a-default-model-and-mode).
 
-Press `ga` in a chat buffer to see which models an adapter offers. Copilot, Anthropic, Mistral, OpenRouter and Ollama fetch the list from the provider, so it matches what your account can use. The others list a fixed set, but any model name the provider accepts will work. See [Changing the Default Model](/configuration/adapters-http#changing-the-default-model) to set a model on the adapter itself rather than per interaction.
+Press `ga` in a chat buffer to see which models an adapter offers. Copilot, Anthropic, Mistral, OpenRouter, Hugging Face, Novita, Ollama and `openai_compatible` fetch the list from the provider, so it matches what your account can use. The others list a fixed set, but any model name the provider accepts works. See [Changing the Default Model](/configuration/adapters-http#changing-the-default-model) to set a model on the adapter itself rather than per interaction.
 
 ## Mixing Adapters
 
@@ -119,11 +119,11 @@ require("codecompanion").setup({
 })
 ```
 
-**Any interaction you leave unset stays on `copilot`**, and fails without it. See [Using a Cheaper Model for Background Tasks](/guides/background-model) for the background interaction.
+**Any interaction you leave unset stays on `copilot`**, and fails without it. See [Running Background Tasks on a Cheaper Model](/guides/background-model) for the background interaction.
 
 ## Switching in a Chat
 
-Press `ga` in a chat buffer to pick a different adapter, then a model. **Once the LLM has called a tool or returned reasoning, you can only change the model, not the adapter** - start a new chat instead.
+Press `ga` in a chat buffer to pick a different adapter, then a model. **Once the LLM has called a tool or returned reasoning, you can only change the model, not the adapter.** Start a new chat instead.
 
 <img src="https://github.com/user-attachments/assets/49094ea5-efa5-4490-ba5c-2d4b080d42c4" alt="Adapter picker" />
 
@@ -140,20 +140,20 @@ For an ACP adapter, `command=` picks one of the adapter's commands instead of a 
 
 ## Hiding Adapters
 
-The `ga` picker and command completion list every preset. To remove ones you'll never use:
+The `ga` picker and command completion list every preset. To remove the ones you never use:
 
 ```lua
 require("codecompanion").setup({
   adapters = {
     http = {
       opts = {
-        hidden = { azure_openai = true, githubmodels = true, huggingface = true, novita = true },
+        hidden = { azure_openai = true, huggingface = true, novita = true },
       },
     },
   },
 })
 ```
 
-Hidden adapters can still be set in your config and resolved by name. Your list is merged with the default one, which already hides the web search adapters.
+Hidden adapters can still be set in your config and resolved by name. Your list is merged with the default one, which already hides `duckduckgo`, `jina`, `markitdown` and `tavily`.
 
 To show only the adapters you've defined yourself, set `show_presets = false` under `adapters.http.opts` or `adapters.acp.opts`. See [Hiding Adapters](/configuration/adapters-http#hiding-adapters) and [Hiding Preset Adapters](/configuration/adapters-acp#hiding-preset-adapters).

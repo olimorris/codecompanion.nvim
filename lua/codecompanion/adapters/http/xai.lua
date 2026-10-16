@@ -1,4 +1,4 @@
-local openai = require("codecompanion.adapters.http.openai")
+local openai = require("codecompanion.adapters.http.openai_legacy")
 
 ---@class CodeCompanion.HTTPAdapter.xAI: CodeCompanion.HTTPAdapter
 return {
@@ -44,9 +44,6 @@ return {
     end,
     chat_output = function(self, data)
       return openai.handlers.chat_output(self, data)
-    end,
-    inline_output = function(self, data, context)
-      return openai.handlers.inline_output(self, data, context)
     end,
     on_exit = function(self, data)
       return openai.handlers.on_exit(self, data)

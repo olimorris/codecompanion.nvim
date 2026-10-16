@@ -98,11 +98,12 @@ end
 ---@param path string The path to check
 ---@return number|nil Buffer number if found, nil otherwise
 function M.get_bufnr_from_path(path)
-  local normalized_path = vim.fn.fnamemodify(path, ":p")
+  -- Neovim stores buffer names with symlinks resolved, e.g. /private/var for /var on macOS
+  local normalized_path = vim.fn.resolve(vim.fn.fnamemodify(path, ":p"))
 
   for _, bufnr in ipairs(api.nvim_list_bufs()) do
     if api.nvim_buf_is_valid(bufnr) and vim.bo[bufnr].buflisted then
-      local buf_path = vim.fn.fnamemodify(api.nvim_buf_get_name(bufnr), ":p")
+      local buf_path = vim.fn.resolve(vim.fn.fnamemodify(api.nvim_buf_get_name(bufnr), ":p"))
       if buf_path == normalized_path then
         return bufnr
       end
