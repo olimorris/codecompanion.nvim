@@ -354,6 +354,19 @@ T["Sessions"]["saves a chat whose adapter resolves its model with a function"] =
   h.eq("test_adapter", child.lua_get([[_G.saved.adapter]]))
 end
 
+T["Sessions"]["saves a chat with a tool whose config holds a function"] = function()
+  child.lua([[
+    require("codecompanion.config").interactions.chat.tools.weather.enabled = function()
+      return true
+    end
+
+    local stem = _G.build_session()
+    _G.restored = _G.sessions.load(stem)
+  ]])
+
+  h.eq(true, child.lua_get([[_G.restored.tool_registry.in_use.weather]]))
+end
+
 T["Sessions"]["restores the model the session was saved with"] = function()
   child.lua([[
     _G.args = _G.serializer.to_chat_args({ adapter = "test_adapter", model = "gpt-4o", messages = {} })
