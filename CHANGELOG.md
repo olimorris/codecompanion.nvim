@@ -1,5 +1,12 @@
 # Changelog
 
+## [20.0.2](https://github.com/olimorris/codecompanion.nvim/compare/v20.0.1...v20.0.2) (2026-10-17)
+
+
+### Bug Fixes
+
+* **chat:** saving sessions with tool context ([#3468](https://github.com/olimorris/codecompanion.nvim/issues/3468)) ([799526f](https://github.com/olimorris/codecompanion.nvim/commit/799526fb35548c26e2dd74c3b282537bb8122a3b)), closes [#3407](https://github.com/olimorris/codecompanion.nvim/issues/3407)
+
 ## [20.0.1](https://github.com/olimorris/codecompanion.nvim/compare/v20.0.0...v20.0.1) (2026-10-17)
 
 
