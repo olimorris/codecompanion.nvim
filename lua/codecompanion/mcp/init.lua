@@ -1,4 +1,5 @@
 local Client = require("codecompanion.mcp.client")
+local adapter_utils = require("codecompanion.adapters.utils")
 local config = require("codecompanion.config")
 local log = require("codecompanion.utils.log")
 
@@ -312,6 +313,26 @@ function M.tool_prefix()
   return CONSTANTS.TOOL_PREFIX
 end
 
+---Convert env vars from a {KEY = "value"} map to ACP's [{name, value}] array format
+---@param env_map table<string, string>
+---@return table[]
+local function convert_env_to_acp_array(env_map)
+  local result = {}
+  for env_name, env_value in pairs(env_map) do
+    table.insert(result, { name = env_name, value = env_value })
+  end
+  return result
+end
+
+---Resolve MCP server environment values before passing them to ACP agents
+---@param env table<string, string>|nil
+---@return table<string, string>
+local function resolve_env(env)
+  local env_adapter = { env = env or {} }
+  adapter_utils.get_env_vars(env_adapter, { timeout = config.adapters.opts.cmd_timeout })
+  return env_adapter.env_replaced
+end
+
 ---Transforms the CodeCompanion MCP configuration into the format expected by an ACP adapter
 ---@return table
 function M.transform_to_acp()
@@ -328,7 +349,7 @@ function M.transform_to_acp()
       name = name,
       command = cfg.cmd[1],
       args = vim.list_slice(cfg.cmd, 2),
-      env = cfg.env or {},
+      env = convert_env_to_acp_array(resolve_env(cfg.env)),
     })
 
     ::continue::
