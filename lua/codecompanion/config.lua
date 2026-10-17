@@ -1419,6 +1419,10 @@ The user is working on a %s machine. Please respond with system specific command
       show_token_count = true, -- Show the token count for each response?
       start_in_insert_mode = false, -- Open the chat buffer in insert mode?
 
+      acp = {
+        max_command_length = 100, -- Characters of an ACP agent's shell command to show (0 for no limit)
+      },
+
       ---The function to display the token count
       ---@param tokens number
       ---@param adapter CodeCompanion.HTTPAdapter|CodeCompanion.ACPAdapter

@@ -262,6 +262,35 @@ T["ACP Formatters"]["execute - keeps a newline INSIDE quotes as a visible escape
   )
 end
 
+T["ACP Formatters"]["execute - truncates a command that is OUTSIDE the length limit"] = function()
+  child.lua([[require("codecompanion.config").display.chat.acp.max_command_length = 20]])
+  h.eq(
+    "Execute: npm run build -- ...",
+    format({
+      toolCallId = "exec-7",
+      kind = "execute",
+      status = "pending",
+      title = "run",
+      rawInput = { command = "npm run build -- --watch" },
+    })
+  )
+end
+
+T["ACP Formatters"]["execute - shows the full command when the length limit is 0"] = function()
+  child.lua([[require("codecompanion.config").display.chat.acp.max_command_length = 0]])
+  local command = "npm run build -- --watch " .. string.rep("--flag ", 30)
+  h.eq(
+    "Execute: " .. vim.trim(command),
+    format({
+      toolCallId = "exec-8",
+      kind = "execute",
+      status = "pending",
+      title = "run",
+      rawInput = { command = command },
+    })
+  )
+end
+
 T["ACP Formatters"]["search - verbose appends content summary"] = function()
   h.eq(
     "Search: Find **/*add_buf_message* — No files found",

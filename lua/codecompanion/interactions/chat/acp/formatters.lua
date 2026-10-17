@@ -18,6 +18,8 @@
 ===============================================================================
 --]]
 
+local config = require("codecompanion.config")
+
 local M = {}
 
 local MAX_TITLE = 60
@@ -151,6 +153,12 @@ local function join_command_lines(command)
   return joined
 end
 
+---@return number
+local function get_max_command_length()
+  local max_length = config.display.chat.acp.max_command_length
+  return max_length == 0 and math.huge or max_length
+end
+
 ---Pull a meaningful command/operation out of a tool call title.
 ---Handles backtick-wrapped commands and strips trailing preview noise
 ---like " => …" or " — …" that some agents append.
@@ -207,7 +215,7 @@ local function build_label(tool_call)
   if tool_call.kind == "execute" then
     local command = tool_call.rawInput and tool_call.rawInput.command
     if type(command) == "string" and command ~= "" then
-      return ("%s: %s"):format(kind, sanitize_text(join_command_lines(command), math.huge))
+      return ("%s: %s"):format(kind, sanitize_text(join_command_lines(command), get_max_command_length()))
     end
     return ("%s: %s"):format(kind, parse_title(tool_call.title))
   end
