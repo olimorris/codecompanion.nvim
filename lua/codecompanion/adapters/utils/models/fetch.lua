@@ -1,4 +1,4 @@
-local Curl = require("plenary.curl")
+local Curl = require("codecompanion.utils.curl")
 local config = require("codecompanion.config")
 local log = require("codecompanion.utils.log")
 local transform = require("codecompanion.adapters.utils.models.transform")
@@ -79,32 +79,31 @@ local function request(spec, adapter, request_opts)
   cache.in_progress = true
   local url = type(spec.url) == "function" and spec.url(adapter, request_opts) or spec.url
 
-  local ok, err = pcall(function()
-    Curl.get(url, {
-      headers = headers,
-      insecure = config.adapters.http.opts.allow_insecure,
-      proxy = config.adapters.http.opts.proxy,
-      callback = vim.schedule_wrap(function(response)
-        cache.in_progress = false
+  local job, err = Curl.get({
+    url = url,
+    headers = headers,
+    insecure = config.adapters.http.opts.allow_insecure,
+    proxy = config.adapters.http.opts.proxy,
+    callback = function(response)
+      cache.in_progress = false
 
-        local decode_ok, json = pcall(vim.json.decode, response and response.body)
-        if not decode_ok or type(json) ~= "table" or not json.data then
-          log:error(
-            "Error parsing the %s response from " .. url .. "\nError: %s",
-            spec.name,
-            response and response.body
-          )
-          return
-        end
+      local decode_ok, json = pcall(vim.json.decode, response.body)
+      if not decode_ok or type(json) ~= "table" or not json.data then
+        log:error("Error parsing the %s response from " .. url .. "\nError: %s", spec.name, response.body)
+        return
+      end
 
-        store(cache, json)
-      end),
-    })
-  end)
+      store(cache, json)
+    end,
+    on_error = function(request_err)
+      cache.in_progress = false
+      log:error("Could not get the %s models from %s\nError: %s", spec.name, url, request_err.message)
+    end,
+  })
 
-  if not ok then
+  if not job then
     cache.in_progress = false
-    log:error("Could not start async request for %s models: %s", spec.name, err)
+    log:error("Could not start async request for %s models: %s", spec.name, err.message)
   end
 end
 
