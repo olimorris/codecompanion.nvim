@@ -2,7 +2,7 @@ local utils = require("codecompanion.utils")
 
 ---@class CodeCompanion.EditedFile
 ---@field path string The absolute path of the edited file
----@field tool string What made the edit (e.g. "insert_edit_into_file", "create_file", "claude_code")
+---@field tool string What made the edit (e.g. "edit_file", "create_file", "claude_code")
 ---@field line? number The first line the edit touched, when known
 ---@field bufnr? number The buffer the edit was made in, when known
 

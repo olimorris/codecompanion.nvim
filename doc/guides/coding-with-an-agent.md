@@ -54,7 +54,7 @@ require("codecompanion").setup({
 
 :::
 
-If `CLAUDE_CODE_OAUTH_TOKEN` is already exported in your shell, you can skip step 3. See [Setup: Claude Code](/configuration/adapters-acp#setup-claude-code) for screenshots of the token flow, and [environment variables](/configuration/adapters-http#environment-variables) for other ways to supply a secret.
+If `CLAUDE_CODE_OAUTH_TOKEN` is already exported in your shell, skip step 3. See [Setup: Claude Code](/configuration/adapters-acp#setup-claude-code) for screenshots of the token flow, and [environment variables](/configuration/adapters-http#environment-variables) for other ways to supply a secret.
 
 For other agents, follow their setup section instead: [Codex](/configuration/adapters-acp#setup-codex), [Gemini CLI](/configuration/adapters-acp#setup-gemini-cli), [OpenCode](/configuration/adapters-acp#setup-opencode), [Copilot CLI](/configuration/adapters-acp#setup-copilot-cli) and [others](/configuration/adapters-acp).
 
@@ -134,11 +134,11 @@ To see which options and values your agent offers, press `gd` in a chat buffer t
 
 ## Changing Model and Mode Mid-Chat
 
-| Keymap / Command | Action |
+| Keymap or Command | Action |
 |---|---|
 | `ga` | Change adapter, then pick a model from the agent's list |
 | `/acp_session_options` | Change any session config option, such as the mode or reasoning level |
-| `/command` | Restart the agent with a different command from the adapter's `commands`, such as Claude Code's `yolo`. This starts a new conversation with the agent |
+| `/command` | Restart the agent with another command from the adapter's `commands`, such as Claude Code's `yolo`, which starts a new conversation |
 
 The current model and option values are marked with `*`.
 
@@ -184,7 +184,7 @@ CodeCompanion changes `\compact` to `/compact` before sending it. Commands are d
 Why does #{buffer} fail on the errors in #{diagnostics}?
 ```
 
-**A buffer or file is shared as its path, and the agent reads it from disk, so save your changes first.** Everything else, such as `#{selection}`, `#{diagnostics}` and `#{terminal}`, is sent as text. `/image` works with agents that accept images, which includes Claude Code.
+**A buffer or file is shared as its path, and the agent reads it from disk, so save your changes first.** Everything else, such as `#{selection}`, `#{diagnostics}` and `#{terminal}`, is sent as text. An image added with `/file` is sent as an image to agents that accept them, which includes Claude Code.
 
 ## Passing MCP Servers to the Agent
 
@@ -243,7 +243,7 @@ require("codecompanion").setup({
 
 :::
 
-With `inherit_from_config`, only the servers in `mcp.opts.default_servers` are passed. The agent starts and runs them itself, so they don't appear in the chat buffer's context. See [Configuring MCP Servers](/configuration/adapters-acp#configuring-mcp-servers) for more.
+With `inherit_from_config`, only the servers in `mcp.opts.default_servers` are passed, and only while `mcp.opts.acp_enabled` is `true`, the default. The agent starts and runs them itself, so they don't appear in the chat buffer's context. See [Configuring MCP Servers](/configuration/adapters-acp#configuring-mcp-servers) for more.
 
 ## Reviewing the Agent's Work
 
@@ -275,5 +275,5 @@ Choose ACP if you want to read, search and yank the conversation like any other 
 - CodeCompanion's own tools, such as `@{files}` and `@{agent}`, aren't offered to an agent. It uses its own
 - CodeCompanion's system prompt isn't sent to the agent
 - CodeCompanion doesn't [compact](/configuration/context-management) an agent's conversation. The agent manages its own context, and `\compact` asks it to
-- `/save` and `/rename` aren't available. The agent keeps its own sessions, which `/resume` lists in a new chat if the agent supports it
-- An agent's plan isn't shown in the chat buffer, and agents can't use a Neovim terminal. See [ACP Support](/agent-client-protocol#current-limitations)
+- `/save`, `/rename` and `/fork` aren't available. The agent keeps its own sessions, which `/resume` lists in a new chat if the agent supports it
+- An agent's plan isn't shown in the chat buffer, and agents can't use a Neovim terminal. See [ACP Support](/agent-client-protocol#limitations)

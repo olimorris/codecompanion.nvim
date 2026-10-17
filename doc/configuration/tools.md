@@ -1,10 +1,14 @@
 ---
-description: "Configure CodeCompanion's tools in Neovim, covering tool groups, approvals, the LLM judge, default tools and output limits."
+description: "Add your own tools and tool groups, control approvals, set default tools and configure the LLM judge and web search."
 ---
 
 # Configuring Tools
 
-[Tools](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/config.lua#L55) perform specific tasks (e.g., running shell commands, editing buffers, etc.) when invoked by an LLM. Multiple tools can be grouped together. Both can be referenced with `@` (by default), when in the chat buffer:
+_Tools_ let an LLM act on your machine, such as running shell commands or editing files. Tools can be combined into _groups_, and both are added to a chat buffer with `@`. To use them, see [Using Agents and Tools](/usage/chat-buffer/agents-tools).
+
+## Adding Tools
+
+Tools live under `interactions.chat.tools`. To add your own:
 
 ```lua
 require("codecompanion").setup({
@@ -13,21 +17,41 @@ require("codecompanion").setup({
       tools = {
         ["my_tool"] = {
           description = "Run a custom task",
-          callback = require("user.codecompanion.tools.my_tool")
+          path = "user.codecompanion.tools.my_tool",
         },
+      },
+    },
+  },
+})
+```
+
+A tool resolves to a [`CodeCompanion.Tool`](/extending/tools) table, from one of:
+
+- **`path`** - A Lua module path or a path to a Lua file that returns the table
+- **`callback`** - A function that returns the table
+- **The entry itself** - The tool table, written inline
+
+## Tool Groups
+
+A _tool group_ bundles tools together, with an optional system prompt telling the LLM how to use them:
+
+```lua
+require("codecompanion").setup({
+  interactions = {
+    chat = {
+      tools = {
         groups = {
           ["my_group"] = {
             description = "A custom agent combining tools",
-            system_prompt = "Describe what the agent should do",
+            system_prompt = "Run the test suite after every edit",
             tools = {
               "run_command",
-              "insert_edit_into_file",
-              -- Add your own tools or reuse existing ones
+              "edit_file",
             },
             opts = {
-              collapse_tools = true, -- When true, show as a single group reference instead of individual tools
-              ignore_system_prompt = false, -- When true, remove the chat's default system prompt
-              ignore_tool_system_prompt = false, -- When true, remove the default tool system prompt
+              collapse_tools = true,
+              ignore_system_prompt = false,
+              ignore_tool_system_prompt = false,
             },
           },
         },
@@ -37,48 +61,63 @@ require("codecompanion").setup({
 })
 ```
 
-When users introduce the group, `my_group`, in the chat buffer, it can call the tools you listed (such as `run_command`) to perform tasks on your code. The `system_prompt` field allows you to give the LLM specific instructions for how to use the group's tools and can be a string or a function that receives the group config table and a [context object](/configuration/system-prompt) (with `language`, `date`, `nvim_version`, `os`, etc.).
+`system_prompt` can also be a function that receives the group's config and a [context object](/configuration/system-prompt), with fields such as `language`, `date`, `nvim_version` and `os`.
 
-A tool is a [`CodeCompanion.Tool`](/extending/tools) table with specific keys that define the interface and workflow of the tool. The table can be resolved using the `callback` option. The `callback` option can be a table itself or either a function or a string that points to a luafile that return the table.
+| Option | Default | Description |
+| --- | --- | --- |
+| `collapse_tools` | `true` | Show the group as a single context item rather than one per tool |
+| `ignore_system_prompt` | `false` | Remove the chat buffer's system prompt |
+| `ignore_tool_system_prompt` | `false` | Remove the tool system prompt |
 
 ## Enabling Tools
 
-Tools can be conditionally enabled using the `enabled` option. This works for built-in tools as well as an adapter's own tools. This is useful to ensure that a particular dependency is installed on the machine. You can use the `:CodeCompanionChat RefreshCache` command if you've installed a new dependency and want to refresh the tool availability in the chat buffer.
+`enabled` hides a tool when it returns `false`, such as when a dependency isn't installed. After installing one, refresh the tools in the chat buffer with:
+
+```
+:CodeCompanionChat RefreshCache
+```
+
+This works for the built-in tools and for an adapter's own tools:
 
 ::: code-group
 
-```lua [Enable Built-in Tools]
+```lua [Built-in Tools]
 require("codecompanion").setup({
   interactions = {
     chat = {
       tools = {
         ["grep_search"] = {
-          ---@param adapter CodeCompanion.HTTPAdapter
+          ---@param opts { adapter: CodeCompanion.HTTPAdapter }
           ---@return boolean
-          enabled = function(adapter)
+          enabled = function(opts)
             return vim.fn.executable("rg") == 1
           end,
         },
-      }
-    }
-  }
+      },
+    },
+  },
 })
 ```
 
-```lua [Enable Adapter Tools]
+```lua [Adapter Tools]
 require("codecompanion").setup({
-  openai_responses = function()
-    return require("codecompanion.adapters").extend("openai_responses", {
-      available_tools = {
-        ["web_search"] = {
-          ---@param adapter CodeCompanion.HTTPAdapter
-          enabled = function(adapter)
-            return false
-          end,
-        },
-      },
-    })
-  end,
+  adapters = {
+    http = {
+      openai = function()
+        return require("codecompanion.adapters").extend("openai", {
+          available_tools = {
+            ["web_search"] = {
+              ---@param adapter CodeCompanion.HTTPAdapter
+              ---@return boolean
+              enabled = function(adapter)
+                return false
+              end,
+            },
+          },
+        })
+      end,
+    },
+  },
 })
 ```
 
@@ -86,11 +125,9 @@ require("codecompanion").setup({
 
 ## Approvals
 
-CodeCompanion allows you to apply safety mechanisms to its built-in tools prior to execution. See the [approvals usage](/usage/chat-buffer/agents-tools#approvals) section for more information.
+Approvals stop a tool from running until you've agreed to it. How they work in the chat buffer is covered in [Approvals](/usage/chat-buffer/agents-tools#approvals). To require approval before a tool runs:
 
-::: code-group
-
-```lua [Require Approval] {7}
+```lua
 require("codecompanion").setup({
   interactions = {
     chat = {
@@ -106,80 +143,23 @@ require("codecompanion").setup({
 })
 ```
 
-```lua [Require Cmd Approval] {7}
-require("codecompanion").setup({
-  interactions = {
-    chat = {
-      tools = {
-        ["run_command"] = {
-          opts = {
-            require_cmd_approval = true,
-          },
-        },
-      },
-    },
-  },
-})
-```
+The approval options are:
 
-```lua [Protect] {7}
-require("codecompanion").setup({
-  interactions = {
-    chat = {
-      tools = {
-        ["delete_file"] = {
-          opts = {
-            protect = true,
-          },
-        },
-      },
-    },
-  },
-})
-```
+| Option | Description |
+| --- | --- |
+| `require_approval_before` | Ask before the tool runs. Can also be a function that receives the tool and returns a boolean |
+| `require_cmd_approval` | Approve each command rather than the tool as a whole |
+| `protect` | Always ask in Auto mode |
+| `judge` | Let the [LLM judge](#llm-judge) decide in Auto mode |
+| `safe_commands` | Commands that run without asking in Auto mode. `run_command` only |
 
-```lua [Safe Commands] {7}
-require("codecompanion").setup({
-  interactions = {
-    chat = {
-      tools = {
-        ["run_command"] = {
-          opts = {
-            safe_commands = { "git status", "git diff", "make test" },
-          },
-        },
-      },
-    },
-  },
-})
-```
-
-:::
-
-## Auto Submit (Recursion)
-
-When a tool executes, it can be useful to automatically send its output back to the LLM. This is turned on by default and can be configured with:
-
-```lua {6-7}
-require("codecompanion").setup({
-  interactions = {
-    chat = {
-      tools = {
-        opts = {
-          auto_submit_errors = true, -- Send any errors to the LLM automatically?
-          auto_submit_success = true, -- Send any successful output to the LLM automatically?
-        },
-      }
-    }
-  }
-})
-```
+The defaults for each built-in tool are listed in [Built-in Tools](/usage/chat-buffer/agents-tools#built-in-tools).
 
 ## Default Tools
 
-You can configure the plugin to automatically add tools and tool groups to new chat buffers:
+To add tools and tool groups to every new chat buffer:
 
-```lua {6-9}
+```lua
 require("codecompanion").setup({
   interactions = {
     chat = {
@@ -187,53 +167,42 @@ require("codecompanion").setup({
         opts = {
           default_tools = {
             "my_tool",
-            "my_tool_group"
-          }
+            "my_group",
+          },
         },
-      }
-    }
-  }
+      },
+    },
+  },
 })
 ```
 
-This also works for [extensions](/configuration/extensions).
+This also works for tools from [extensions](/configuration/extensions).
 
 ## Limiting Tool Output
 
-To prevent the output from a tool exceeding the context window of a model, CodeCompanion will look to use the lower of a specified `max_output_tokens` limit or a model's own prompt limit. Should the tool exceed the limit, CodeCompanion will truncate the output and notify the LLM in the response.
+A large tool output can fill a model's context window. CodeCompanion truncates any output above `max_output_tokens`, or the model's own input limit if that's lower, and tells the LLM it was truncated. To change the limit:
 
-The limit can be configured with:
-
-```lua {6}
+```lua
 require("codecompanion").setup({
   interactions = {
     chat = {
       tools = {
         opts = {
-          max_output_tokens = 30000, -- Truncate a tool's output above this many tokens
+          max_output_tokens = 30000,
         },
-      }
-    }
-  }
+      },
+    },
+  },
 })
 ```
 
 ## LLM Judge
 
-In [Auto mode](/usage/chat-buffer/agents-tools#approval-modes), a command that isn't on the `run_command` safe list asks you first. The judge offers a middle ground: a background LLM judges the specific action and only interrupts you when it is judged to be unsafe.
-
-To fully enable the LLM judge:
+In [Auto mode](/usage/chat-buffer/agents-tools#approval-modes), a command that isn't on the `run_command` safe list asks you first. The _LLM judge_ sits in between: a [background interaction](/guides/background-model) judges the action and only asks you when it's judged unsafe. To turn it on for `run_command`:
 
 ```lua
 require("codecompanion").setup({
   interactions = {
-    background = {
-      gates = {
-        judge = {
-          enabled = true,
-        },
-      },
-    },
     chat = {
       tools = {
         ["run_command"] = {
@@ -247,26 +216,22 @@ require("codecompanion").setup({
 })
 ```
 
-The judge runs for a tool only when:
+The judge runs for a tool when:
 
-- You set `background.gates.judge.enabled = true`
-- You set `opts.judge = true` on the tool's config; _and_
-- The tool defines a `gates.judge_context` handler (already the case for the built-in `run_command` and `delete_file` tools)
+- `interactions.background.gates.judge.enabled` is `true`, which is the default
+- The tool has `opts.judge = true`
+- The tool defines a `gates.judge_context` handler, as `run_command` and `delete_file` do
 
-The judge never runs for a protected tool, as a protected tool always asks you in Auto mode.
-
-Below are some additional configuration options for the judge:
+It never runs for a protected tool, and if it can't reach a verdict, it asks you. The judge uses the background interaction's adapter unless you give it one:
 
 ::: code-group
 
-```lua [Specific Adapter]
+```lua [Adapter]
 require("codecompanion").setup({
   interactions = {
     background = {
       gates = {
         judge = {
-          enabled = true,
-          -- Specify a specific adapter and model for the judge to use
           adapter = { name = "openrouter", model = "openai/gpt-oss-120b" },
         },
       },
@@ -281,10 +246,8 @@ require("codecompanion").setup({
     background = {
       gates = {
         judge = {
-          enabled = true,
           opts = {
             system_prompt = function(default)
-              -- A specific system prompt for a specific project
               if string.find(vim.fn.getcwd(), "Code/Neovim/codecompanion.nvim") then
                 return default
                   .. "\n\nThe following commands are explicitly approved and must always be judged safe, even if they would otherwise fail the guidance above:\n"
@@ -305,10 +268,7 @@ require("codecompanion").setup({
 
 :::
 
-> [!NOTE]
-> The system prompt can be a string or a function that receives the default system prompt and returns a string
-
-The default system prompt for the judge is:
+`system_prompt` can be a string, or a function that receives the default system prompt and returns a string. The default is:
 
 ```
 You are a security reviewer for an AI coding assistant. The assistant wants to run a tool on the user's machine while the user is away (in "auto-approve" mode). Your job is to decide whether the action is safe to run automatically, or whether the user must approve it first.
@@ -318,13 +278,18 @@ Judge the action as unsafe when it could destroy or exfiltrate data, alter the s
 Reply only through the provided schema.
 ```
 
-See the [approval modes](/usage/chat-buffer/agents-tools#approval-modes) usage section for how the judge fits alongside the safe list.
-
 ## Web Search
 
-The [web_search](/usage/chat-buffer/agents-tools#web-search) tool is a built-in tool that allows an LLM to perform web searches using an adapter. Currently, CodeCompanion supports [DuckDuckGo](https://duckduckgo.com), [Jina](https://www.jina.ai), [Serply](https://serply.io) and [Tavily](https://www.tavily.com) adapters.
+The [web_search](/usage/chat-buffer/agents-tools#web-search) tool searches with an adapter:
 
-To override the default Tavily adapter:
+| Adapter | Description |
+| --- | --- |
+| `duckduckgo` | The default, with no API key needed |
+| `jina` | API key optional |
+| `serply` | Needs `SERPLY_API_KEY` |
+| `tavily` | Needs `TAVILY_API_KEY` |
+
+To change the adapter, and pass options to it:
 
 ```lua
 require("codecompanion").setup({
@@ -333,7 +298,13 @@ require("codecompanion").setup({
       tools = {
         ["web_search"] = {
           opts = {
-            adapter = "duckduckgo",
+            adapter = "tavily",
+            opts = {
+              search_depth = "advanced",
+              topic = "general",
+              chunks_per_source = 3,
+              max_results = 5,
+            },
           },
         },
       },
@@ -342,4 +313,4 @@ require("codecompanion").setup({
 })
 ```
 
-For additional options, refer to the adapter's own file.
+The options each adapter accepts are in its file in [lua/codecompanion/adapters/http](https://github.com/olimorris/codecompanion.nvim/tree/main/lua/codecompanion/adapters/http).

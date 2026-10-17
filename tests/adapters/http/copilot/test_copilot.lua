@@ -352,7 +352,7 @@ T["Copilot adapter"]["Streaming"]["can send reasoning opaque back in messages"] 
             _index = 0,
             ["function"] = {
               arguments = '{"dryRun":false,"edits":[{"newText":"    \\"The only limit to our realization of tomorrow will be our doubts of today. - Franklin D. Roosevelt\\",\\n    \\"Talk is cheap. Show me the code. - Linus Torvalds\\",\\n  }","oldText":"    \\"The only limit to our realization of tomorrow will be our doubts of today. - Franklin D. Roosevelt\\",\\n  }","replaceAll":false}],"explanation":"Adding a new quote by Linus Torvalds to the end of the list in quotes.lua.","filepath":"quotes.lua","mode":"append"}',
-              name = "insert_edit_into_file",
+              name = "edit_file",
             },
             id = "call_MHxYMWV1QmRVTng0Znd2b0tyM0Y",
             type = "function",
@@ -378,7 +378,7 @@ T["Copilot adapter"]["Streaming"]["can send reasoning opaque back in messages"] 
         {
           ["function"] = {
             arguments = '{"dryRun":false,"edits":[{"newText":"    \\"The only limit to our realization of tomorrow will be our doubts of today. - Franklin D. Roosevelt\\",\\n    \\"Talk is cheap. Show me the code. - Linus Torvalds\\",\\n  }","oldText":"    \\"The only limit to our realization of tomorrow will be our doubts of today. - Franklin D. Roosevelt\\",\\n  }","replaceAll":false}],"explanation":"Adding a new quote by Linus Torvalds to the end of the list in quotes.lua.","filepath":"quotes.lua","mode":"append"}',
-            name = "insert_edit_into_file",
+            name = "edit_file",
           },
           id = "call_MHxYMWV1QmRVTng0Znd2b0tyM0Y",
           type = "function",
@@ -409,7 +409,7 @@ T["Copilot adapter"]["Streaming"]["drops reasoning and the item id recorded by t
         calls = {
           {
             _index = 0,
-            ["function"] = { arguments = "{}", name = "insert_edit_into_file" },
+            ["function"] = { arguments = "{}", name = "edit_file" },
             id = "fc_0cf9af0f913994140068e2713964448193a723d7191832a56f",
             call_id = "call_MHxYMWV1QmRVTng0Znd2b0tyM0Y",
             type = "function",
@@ -431,7 +431,7 @@ T["Copilot adapter"]["Streaming"]["drops reasoning and the item id recorded by t
       role = "llm",
       tool_calls = {
         {
-          ["function"] = { arguments = "{}", name = "insert_edit_into_file" },
+          ["function"] = { arguments = "{}", name = "edit_file" },
           id = "call_MHxYMWV1QmRVTng0Znd2b0tyM0Y",
           type = "function",
         },
@@ -489,19 +489,6 @@ T["Copilot adapter"]["No Streaming"]["can process tools"] = function()
     },
   }
   h.eq(tool_output, tools)
-end
-
-T["Copilot adapter"]["No Streaming"]["can output for the inline assistant"] = function()
-  local data = vim.fn.readfile("tests/adapters/http/copilot/stubs/copilot_no_streaming.txt")
-  data = table.concat(data, "\n")
-
-  -- Match the format of the actual request
-  local json = { body = data }
-
-  h.eq(
-    "**Dynamic elegance.**\\n\\nWhat specific aspect of Ruby would you like to explore further?",
-    adapter.handlers.inline_output(adapter, json).output
-  )
 end
 
 local token_child = MiniTest.new_child_neovim()
@@ -652,10 +639,10 @@ T["test model selection dialog works with copilot adapter"] = function()
     }
 
     local copilot = require("codecompanion.adapters.http.copilot")
-    local change_adapter = require("codecompanion.interactions.chat.keymaps.change_adapter")
+    local adapter_ui = require("codecompanion.adapters.ui")
 
     -- Test that get_models_list returns models for selection dialog
-    local models_list = change_adapter.list_http_models(copilot)
+    local models_list = adapter_ui.list_http_models(copilot)
 
     -- Return test results
     return {

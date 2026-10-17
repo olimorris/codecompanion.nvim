@@ -15,11 +15,7 @@ local shared = require("codecompanion.adapters.shared")
 ---@field env? table Environment variables which can be referenced in the parameters
 ---@field env_replaced? table Replacement of environment variables with their actual values
 ---@field parameters? table The parameters to pass to the request
----@field handlers table Functions which link the output from the request to CodeCompanion
----@field handlers.setup? fun(self: CodeCompanion.ACPAdapter): boolean
----@field handlers.auth? fun(self: CodeCompanion.ACPAdapter): boolean Manually handle authentication
----@field handlers.on_exit? fun(self: CodeCompanion.ACPAdapter, data: table): table|nil
----@field handlers.teardown? fun(self: CodeCompanion.ACPAdapter): any
+---@field handlers CodeCompanion.ACPAdapter.Handlers Functions which link the output from the request to CodeCompanion
 ---@field protocol? table Implement the ACP protocol in the adapter
 ---@field protocol.authenticate? fun(self: CodeCompanion.ACPAdapter): nil Authenticate with the adapter via ACP
 ---@field protocol.new_session? fun(self: CodeCompanion.ACPAdapter): nil Start a new ACP session with the adapter
@@ -28,8 +24,92 @@ local shared = require("codecompanion.adapters.shared")
 ---@field protocol.agent_state? fun(self: CodeCompanion.ACPAdapter): nil TODO: To be implemented
 ---@field protocol.session_update? fun(self: CodeCompanion.ACPAdapter): nil TODO: To be implemented
 
+---@class CodeCompanion.ACPAdapter.Handlers.Lifecycle
+---@field setup? fun(self: CodeCompanion.ACPAdapter): boolean
+---@field auth? fun(self: CodeCompanion.ACPAdapter): boolean Manually handle authentication
+---@field on_exit? fun(self: CodeCompanion.ACPAdapter, args: { code: number }): nil
+---@field teardown? fun(self: CodeCompanion.ACPAdapter): nil
+
+---@class CodeCompanion.ACPAdapter.Handlers.Request
+---@field build_messages? fun(self: CodeCompanion.ACPAdapter, args: { messages: table, capabilities: table }): table
+
+---@class CodeCompanion.ACPAdapter.Handlers
+---@field lifecycle? CodeCompanion.ACPAdapter.Handlers.Lifecycle
+---@field request? CodeCompanion.ACPAdapter.Handlers.Request
+---@field setup? fun(self: CodeCompanion.ACPAdapter): boolean (Deprecated: use lifecycle.setup)
+---@field auth? fun(self: CodeCompanion.ACPAdapter): boolean (Deprecated: use lifecycle.auth)
+---@field form_messages? fun(self: CodeCompanion.ACPAdapter, messages: table, capabilities: table): table (Deprecated: use request.build_messages)
+---@field on_exit? fun(self: CodeCompanion.ACPAdapter, code: number): nil (Deprecated: use lifecycle.on_exit)
+---@field teardown? fun(self: CodeCompanion.ACPAdapter): nil (Deprecated: use lifecycle.teardown)
+
+local FLAT_NAMES = {
+  build_messages = "form_messages",
+}
+
+---The order that flat handlers take their arguments in
+local LEGACY_ARGUMENTS = {
+  build_messages = { "messages", "capabilities" },
+  on_exit = { "code" },
+}
+
+---Find a handler, preferring a flat one from the user's config over the built-in nested one
+---@param adapter CodeCompanion.ACPAdapter
+---@param name string
+---@return function|nil handler, boolean is_flat
+local function find_handler(adapter, name)
+  local handlers = adapter.handlers
+  if not handlers then
+    return nil, false
+  end
+
+  local flat = handlers[FLAT_NAMES[name] or name]
+  if type(flat) == "function" then
+    return flat, true
+  end
+
+  for _, category in ipairs({ "lifecycle", "request" }) do
+    if handlers[category] and handlers[category][name] then
+      return handlers[category][name], false
+    end
+  end
+
+  return nil, false
+end
+
 ---@class CodeCompanion.ACPAdapter
 local Adapter = {}
+
+---@param adapter CodeCompanion.ACPAdapter
+---@param name string
+---@return function|nil
+function Adapter.get_handler(adapter, name)
+  return (find_handler(adapter, name))
+end
+
+---Call a handler, unpacking the args into positional arguments for flat handlers
+---@param adapter CodeCompanion.ACPAdapter
+---@param name string
+---@param args? table
+---@return any|nil
+function Adapter.call_handler(adapter, name, args)
+  args = args or {}
+
+  local handler, is_flat = find_handler(adapter, name)
+  if not handler then
+    return nil
+  end
+
+  if not is_flat then
+    return handler(adapter, args)
+  end
+
+  local order = LEGACY_ARGUMENTS[name] or {}
+  local positional = {}
+  for i, key in ipairs(order) do
+    positional[i] = args[key]
+  end
+  return handler(adapter, unpack(positional, 1, #order))
+end
 
 ---@return CodeCompanion.ACPAdapter
 function Adapter.new(args)

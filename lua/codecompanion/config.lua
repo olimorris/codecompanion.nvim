@@ -17,15 +17,14 @@ local defaults = {
       copilot = "copilot",
       deepseek = "deepseek",
       gemini = "gemini",
-      gemini_interactions = "gemini_interactions",
-      githubmodels = "githubmodels",
+      gemini_legacy = "gemini_legacy",
       huggingface = "huggingface",
       kimi = "kimi",
       novita = "novita",
       mistral = "mistral",
       ollama = "ollama",
       openai = "openai",
-      openai_responses = "openai_responses",
+      openai_legacy = "openai_legacy",
       openrouter = "openrouter",
       xai = "xai",
       -- web_search adapters --------------------------------------------------
@@ -55,6 +54,7 @@ local defaults = {
       copilot_acp = "copilot_acp",
       gemini_cli = "gemini_cli",
       goose = "goose",
+      kilocode = "kilocode",
       kimi_cli = "kimi_cli",
       kiro = "kiro",
       mistral_vibe = "mistral_vibe",
@@ -71,7 +71,7 @@ local defaults = {
   constants = constants,
   interactions = {
     opts = {
-      date_format = "%A, %d %B %Y", -- The date format to use in system prompts
+      date_format = "%A, %d %B %Y", -- The date format to use in system prompts and prompt library placeholders
 
       watcher = {
         enabled = true, -- Reload buffers when an agent modifies files on disk
@@ -145,14 +145,14 @@ Follow the JSON schema carefully and include ALL required properties.
 Always output valid JSON when using a tool.
 Use tools to take actions rather than asking the user to do it manually.
 If you say you'll take an action, go ahead and do it.
-Never say the name of a tool to a user — e.g. say "I'll edit the file" not "I'll use the insert_edit_into_file tool".
+Never say the name of a tool to a user - e.g. say "I'll edit the file" not "I'll use the edit_file tool".
 Prefer calling multiple tools in parallel when possible.
 Use file paths given by the user or by tool output.
 </toolUseInstructions>
 <outputFormatting>
 Use proper Markdown formatting. Wrap filenames and symbols in backticks.
 Code block examples must use four backticks with the language ID.
-If you are providing code changes, use the insert_edit_into_file tool (if available) instead of printing a code block.
+If you are providing code changes, use the edit_file tool (if available) instead of printing a code block.
 </outputFormatting>
 <additionalContext>
 All non-code text responses must be written in the %s language.
@@ -172,11 +172,11 @@ The user is working on a %s machine. Please respond with system specific command
               "ask_questions",
               "create_file",
               "delete_file",
+              "edit_file",
               "file_search",
               "get_changed_files",
               "get_diagnostics",
               "grep_search",
-              "insert_edit_into_file",
               "read_file",
               "run_command",
             },
@@ -192,10 +192,10 @@ The user is working on a %s machine. Please respond with system specific command
             tools = {
               "create_file",
               "delete_file",
+              "edit_file",
               "file_search",
               "get_changed_files",
               "grep_search",
-              "insert_edit_into_file",
               "read_file",
             },
             opts = {
@@ -227,11 +227,23 @@ The user is working on a %s machine. Please respond with system specific command
             require_cmd_approval = true,
           },
         },
+        ["edit_file"] = {
+          path = "interactions.chat.tools.builtin.edit_file",
+          description = "Edit an existing file by replacing exact text",
+          opts = {
+            require_approval_before = { -- Require approval before the tool is executed?
+              buffer = false, -- For editing buffers in Neovim
+              file = false, -- For editing files in the current working directory
+            },
+            require_confirmation_after = true, -- Require confirmation from the user before accepting the edit?
+            file_size_limit_mb = 2, -- Files larger than this are not edited
+          },
+        },
         ["fetch_webpage"] = {
           path = "interactions.chat.tools.builtin.fetch_webpage",
           description = "Fetches content from a webpage",
           opts = {
-            adapter = "jina", -- jina, markitdown
+            adapter = "markitdown", -- jina, markitdown
           },
         },
         ["file_search"] = {
@@ -263,18 +275,6 @@ The user is working on a %s machine. Please respond with system specific command
             max_results = 100,
             respect_gitignore = true,
             require_approval_before = true,
-          },
-        },
-        ["insert_edit_into_file"] = {
-          path = "interactions.chat.tools.builtin.insert_edit_into_file",
-          description = "Robustly edit existing files with multiple automatic fallback interactions",
-          opts = {
-            require_approval_before = { -- Require approval before the tool is executed?
-              buffer = false, -- For editing buffers in Neovim
-              file = false, -- For editing files in the current working directory
-            },
-            require_confirmation_after = true, -- Require confirmation from the user before accepting the edit?
-            file_size_limit_mb = 2, -- Maximum file size in MB
           },
         },
         ["memory"] = {
@@ -315,7 +315,7 @@ The user is working on a %s machine. Please respond with system specific command
           path = "interactions.chat.tools.builtin.web_search",
           description = "Search the web for information",
           opts = {
-            adapter = "tavily", -- tavily, duckduckgo, jina, serply
+            adapter = "duckduckgo", -- tavily, duckduckgo, serply
             opts = {
               -- Tavily options
               search_depth = "advanced",
@@ -329,8 +329,6 @@ The user is working on a %s machine. Please respond with system specific command
           ---The approval mode every chat buffer starts in
           ---@type CodeCompanion.Tools.ApprovalMode
           approval_mode = "ask",
-          auto_submit_errors = true, -- Send any errors to the LLM automatically?
-          auto_submit_success = true, -- Send any successful output to the LLM automatically?
           max_output_tokens = 30000, -- Truncate a tool's output above this many tokens, or the model's limit if lower
           notify_on_approval = true, -- Notify the user when a tool requires approval?,
 
@@ -358,25 +356,27 @@ The user is working on a %s machine. Please respond with system specific command
             ---@return string
             prompt = function(args)
               return [[<instructions>
-You are a highly sophisticated automated coding agent with expert-level knowledge across many different programming languages and frameworks.
-The user will ask a question, or ask you to perform a task, and it may require lots of research to answer correctly. There is a selection of tools that let you perform actions or retrieve helpful context to answer the user's question.
+The user will ask a question, or ask you to perform a task, and it may require research to answer correctly. There is a selection of tools that let you perform actions or retrieve helpful context to answer the user's question.
 You will be given some context and attachments along with the user prompt. You can use them if they are relevant to the task, and ignore them if not.
-If you can infer the project type (languages, frameworks, and libraries) from the user's query or the context that you have, make sure to keep them in mind when making changes.
-If the user wants you to implement a feature and they have not specified the files to edit, first break down the user's request into smaller concepts and think about the kinds of files you need to grasp each concept.
-If you aren't sure which tool is relevant, you can call multiple tools. You can call tools repeatedly to take actions or gather as much context as needed until you have completed the task fully. Don't give up unless you are sure the request cannot be fulfilled with the tools you have. It's YOUR RESPONSIBILITY to make sure that you have done all you can to collect necessary context.
+If you aren't sure which tool is relevant, you can call multiple tools. You can call tools repeatedly to take actions or gather as much context as needed until you have completed the task fully. Don't give up unless you are sure the request cannot be fulfilled with the tools you have.
 Don't make assumptions about the situation - gather context first, then perform the task or answer the question.
-Think creatively and explore the workspace in order to make a complete fix.
 Don't repeat yourself after a tool call, pick up where you left off.
-NEVER print out a codeblock with a terminal command to run unless the user asked for it.
 You don't need to read a file if it's already provided in context.
 </instructions>
+<codingInstructions>
+Only when the user asks you to write, change or debug code:
+- If you can infer the project type (languages, frameworks, and libraries) from the user's query or the context that you have, keep them in mind when making changes.
+- If the user wants you to implement a feature and they have not specified the files to edit, first break down the user's request into smaller concepts and think about the kinds of files you need to grasp each concept.
+- Think creatively and explore the workspace in order to make a complete fix.
+- NEVER print out a codeblock with a terminal command to run unless the user asked for it.
+</codingInstructions>
 <toolUseInstructions>
 When using a tool, follow the json schema very carefully and make sure to include ALL required properties.
 Always output valid JSON when using a tool.
 If a tool exists to do a task, use the tool instead of asking the user to manually take an action.
 If you say that you will take an action, then go ahead and use the tool to do it. No need to ask permission.
 Never use a tool that does not exist. Use tools using the proper procedure, DO NOT write out a json codeblock with the tool inputs.
-Never say the name of a tool to a user. For example, instead of saying that you'll use the insert_edit_into_file tool, say "I'll edit the file".
+Never say the name of a tool to a user. For example, instead of saying that you'll use the edit_file tool, say "I'll edit the file".
 For maximum efficiency, whenever you need to perform multiple independent operations, invoke all relevant tools simultaneously rather than sequentially.
 When invoking a tool that takes a file path, always use the file path you have been given by the user or by the output of a tool.
 </toolUseInstructions>
@@ -389,7 +389,7 @@ Any code block examples must be wrapped in four backticks with the programming l
 ````
 </example>
 The languageId must be the correct identifier for the programming language, e.g. python, javascript, lua, etc.
-If you are providing code changes, use the insert_edit_into_file tool (if available to you) to make the changes directly instead of printing out a code block with the changes.
+If you are providing code changes, use the edit_file tool (if available to you) to make the changes directly instead of printing out a code block with the changes.
 </outputFormatting>]]
             end,
           },
@@ -455,7 +455,7 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
           path = "interactions.chat.slash_commands.builtin.fetch",
           description = "Insert URL contents",
           opts = {
-            adapter = "jina", -- jina, markitdown
+            adapter = "markitdown", -- jina, markitdown
             cache_path = vim.fn.stdpath("data") .. "/codecompanion/urls",
             provider = providers.pickers, -- telescope|fzf_lua|mini_pick|snacks|default
           },
@@ -485,6 +485,13 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
             provider = providers.pickers, -- telescope|fzf_lua|mini_pick|snacks|default
           },
         },
+        ["file-from-url"] = {
+          path = "interactions.chat.slash_commands.builtin.file_from_url",
+          description = "Insert a file from a URL",
+          opts = {
+            contains_code = true,
+          },
+        },
         ["help"] = {
           path = "interactions.chat.slash_commands.builtin.help",
           description = "Insert content from help tags",
@@ -492,23 +499,6 @@ If you are providing code changes, use the insert_edit_into_file tool (if availa
             contains_code = false,
             max_lines = 128, -- Maximum amount of lines to of the help file to send (NOTE: Each vimdoc line is typically 10 tokens)
             provider = providers.help, -- telescope|fzf_lua|mini_pick|snacks
-          },
-        },
-        ["image"] = {
-          path = "interactions.chat.slash_commands.builtin.image",
-          description = "Insert an image",
-          ---@param opts { adapter: CodeCompanion.HTTPAdapter|CodeCompanion.ACPAdapter }
-          ---@return boolean
-          enabled = function(opts)
-            if opts.adapter and opts.adapter.opts then
-              return opts.adapter.opts.vision == true
-            end
-            return false
-          end,
-          opts = {
-            dirs = {}, -- Directories to search for images
-            filetypes = { "png", "jpg", "jpeg", "gif", "webp" }, -- Filetypes to search for
-            provider = providers.images, -- telescope|snacks|default
           },
         },
         ["mcp"] = {
@@ -873,7 +863,10 @@ The user is working on a %s machine. Please respond with system specific command
     },
     -- INLINE INTERACTION -----------------------------------------------------
     inline = {
-      adapter = "copilot",
+      adapter = {
+        name = "copilot",
+        model = "gpt-5.4-mini",
+      },
       keymaps = {
         stop = {
           callback = "keymaps.stop",
@@ -883,13 +876,6 @@ The user is working on a %s machine. Please respond with system specific command
         },
       },
       editor_context = {
-        ["buffer"] = {
-          path = "interactions.inline.editor_context.buffer",
-          description = "Share the current buffer with the LLM",
-          opts = {
-            contains_code = true,
-          },
-        },
         ["chat"] = {
           path = "interactions.inline.editor_context.chat",
           description = "Share the currently open chat buffer with the LLM",
@@ -904,6 +890,14 @@ The user is working on a %s machine. Please respond with system specific command
             contains_code = true,
           },
         },
+      },
+      display = {
+        input = {
+          height = 2,
+        },
+      },
+      opts = {
+        max_context_tokens = 16000,
       },
     },
     -- CMD INTERACTION --------------------------------------------------------
@@ -1122,14 +1116,14 @@ The user is working on a %s machine. Please respond with system specific command
         },
         accept_change = {
           callback = "keymaps.accept_change",
-          description = "Accept change",
+          description = "Accept all changes",
           index = 2,
           modes = { n = "g2" },
           opts = { nowait = true, noremap = true },
         },
         reject_change = {
           callback = "keymaps.reject_change",
-          description = "Reject change",
+          description = "Reject all changes",
           index = 3,
           modes = { n = "g3" },
           opts = { nowait = true, noremap = true },
@@ -1138,6 +1132,23 @@ The user is working on a %s machine. Please respond with system specific command
           description = "Cancel all pending tool calls",
           modes = { n = "g4" },
           opts = { nowait = true },
+        },
+        accept_hunk = {
+          callback = "keymaps.accept_hunk",
+          description = "Accept the hunk under the cursor (inline only)",
+          modes = { n = "ga" },
+          opts = { nowait = true },
+        },
+        reject_hunk = {
+          callback = "keymaps.reject_hunk",
+          description = "Reject the hunk under the cursor (inline only)",
+          modes = { n = "gr" },
+          opts = { nowait = true },
+        },
+        undo_hunk = {
+          callback = "keymaps.undo_hunk",
+          description = "Undo the last hunk decision (inline only)",
+          modes = { n = "u" },
         },
         next_hunk = {
           callback = "keymaps.next_hunk",
@@ -1148,6 +1159,12 @@ The user is working on a %s machine. Please respond with system specific command
           callback = "keymaps.previous_hunk",
           description = "Go to previous hunk",
           modes = { n = "{" },
+        },
+        show_keymaps = {
+          callback = "keymaps.show_keymaps",
+          description = "Show these keymaps",
+          modes = { n = "?" },
+          visible = false, -- The banner already says it
         },
       },
     },
@@ -1292,6 +1309,11 @@ The user is working on a %s machine. Please respond with system specific command
         ---The default parameters to use when loading buffer rules
         default_params = "diff", -- all|diff
       },
+      inline = {
+        ---The rule groups to send with every inline prompt to an HTTP adapter
+        ---@type string|string[]|fun(): string|string[]
+        autoload = "default",
+      },
 
       show_presets = true, -- Show the preset rules files?
     },
@@ -1307,10 +1329,16 @@ The user is working on a %s machine. Please respond with system specific command
       ".claude/skills",
     },
     opts = {
+      depth = 5, -- How many directories deep to search for a SKILL.md
       chat = {
         enabled = true, -- When false, skills are unavailable and their slash commands are hidden
 
         ---Group or skill names to add to every chat
+        ---@type string[]|fun(): string[]
+        autoload = {},
+      },
+      inline = {
+        ---Group or skill names whose full instructions go with every inline prompt to an HTTP adapter
         ---@type string[]|fun(): string[]
         autoload = {},
       },
@@ -1410,6 +1438,7 @@ The user is working on a %s machine. Please respond with system specific command
 
     diff = {
       enabled = true,
+      show_banner = true, -- Show the hunk count and keymaps above the current hunk, or in a float's winbar
       threshold_for_chat = 6, -- At or below this, always display the diff in the chat buffer
 
       -- Options for any diff windows (extends from floating_window)
@@ -1424,11 +1453,6 @@ The user is working on a %s machine. Please respond with system specific command
 
     icons = {
       warning = " ",
-    },
-
-    inline = {
-      -- If the inline prompt creates a new buffer, how should we display this?
-      layout = "vertical", -- vertical|horizontal|buffer
     },
 
     -- Display options for the input buffer
@@ -1480,6 +1504,10 @@ The user is working on a %s machine. Please respond with system specific command
           },
           description = "Next prompt",
         },
+        change_adapter = {
+          modes = { n = "ga" },
+          description = "Change adapter (inline only)",
+        },
       },
     },
   },
@@ -1487,7 +1515,7 @@ The user is working on a %s machine. Please respond with system specific command
   extensions = {},
   -- GENERAL OPTIONS ----------------------------------------------------------
   opts = {
-    log_level = "ERROR", -- TRACE|DEBUG|ERROR|INFO
+    log_level = "ERROR", -- TRACE|DEBUG|ERROR|WARN|INFO
     language = "English", -- The language used for LLM responses
 
     per_project_config = {

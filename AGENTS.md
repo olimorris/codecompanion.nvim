@@ -7,7 +7,7 @@ This is a Neovim plugin written in Lua, which allows developers to code with LLM
 - `make format` - StyLua (120 cols, 2 spaces). Run before committing.
 - `make test` - full test suite (Mini.Test)
 - `make test_file FILE=path` - targeted tests
-- `make docs` - regenerate vimdoc. Run this after changing any docs pages. Read `VOICE.md` before editing anything in `doc/`
+- `make docs` - regenerate vimdoc. Run this after changing any docs pages. Read `.codecompanion/skills/writing-docs/SKILL.md` before editing anything in `doc/`
 
 ## Code conventions
 
@@ -15,7 +15,7 @@ The full style guide, with worked examples:
 
 @STYLE.md
 
-- **Naming:** snake_case for files/functions, PascalCase for classes, underscore prefix for private functions
+- **Naming:** snake_case for files/functions, PascalCase for classes, underscore prefix for internal functions on a module or class table (`M._diff`), never on a `local function`
 - **Explicit names:** `pattern` not `pat`, `should_include` not `include_ok`
 - **Readable code:** names, variables, and control flow should read like clean English. Avoid generic names like `ctx` - use domain-specific names (`permission`, `request`, `source`)
 - **Plain language:** avoid jargon shortcuts in code, comments, commit messages, and chat. Don't say "no-op" - say what the code actually does ("returns unchanged", "does nothing", "skipped because already edited")
@@ -35,8 +35,10 @@ Core: `lua/codecompanion/`
 
 - **Interactions** (`interactions/`): `chat/`, `inline/`, `cmd.lua`, `init.lua` (workflows)
 - **Adapters** (`adapters/`): `http/` (Anthropic, OpenAI, Copilot, Ollama, Gemini, etc.), `acp/` (Claude Code, Codex, etc.)
-- **Tools** (`interactions/chat/tools/builtin/`): `ask_questions`, `run_command`, `read_file`, `create_file`, `delete_file`, `insert_edit_into_file/`, `grep_search`, `file_search`, `web_search`, `fetch_webpage`, `memory`, `get_changed_files`, `get_diagnostics`, `cmd_tool` (factory for custom command tools)
-- **Slash Commands** (`interactions/chat/slash_commands/builtin/`): `/buffer`, `/command`, `/compact`, `/fetch`, `/file`, `/help`, `/image`, `/mcp`, `/mode`, `/now`, `/rules`, `/symbols`
+- **Harness:** for HTTP adapters, CodeCompanion is the harness - system prompt, tools, approvals, context management and the agent loop. ACP adapters bring their own harness, which is why the built-in tools are HTTP-only
+- **Agent loop** (`interactions/chat/agent_loop.lua`): response → run tools (`tools/orchestrator.lua`) → send output back, repeating until the LLM responds without a tool call. Stop and Cancel end the loop; Reject sends the rejection to the LLM and the loop carries on
+- **Tools** (`interactions/chat/tools/builtin/`): `ask_questions`, `run_command`, `read_file`, `create_file`, `delete_file`, `edit_file/`, `grep_search`, `file_search`, `web_search`, `fetch_webpage`, `memory`, `get_changed_files`, `get_diagnostics`, `cmd_tool` (factory for custom command tools)
+- **Slash Commands** (`interactions/chat/slash_commands/builtin/`): `/acp_session_options`, `/buffer`, `/command`, `/compact`, `/fetch`, `/file`, `/file-from-url`, `/fork`, `/help`, `/mcp`, `/mcp-prompts`, `/now`, `/rename`, `/resume`, `/rules`, `/save`, `/share`, `/skills`, `/skills-group`, `/symbols`
 - **Editor Context** (`interactions/chat/editor_context/`): `buffer`, `buffers`, `diagnostics`, `diff`, `messages`, `quickfix`, `selection`, `terminal`, `viewport`
 - **Config:** `config.lua` - tool groups (`agent`, `files`), adapter defaults, all settings
 - **Entry point:** `plugin/codecompanion.lua` → `lua/codecompanion/init.lua`

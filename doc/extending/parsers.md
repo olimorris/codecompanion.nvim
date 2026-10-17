@@ -1,34 +1,61 @@
 ---
-description: "Create custom rules parsers in CodeCompanion to post-process and transform rules file content before it's shared with an LLM."
+description: "Write your own rules parser to transform a rules file before it's shared with an LLM."
 ---
 
 # Extending with Rules Parsers
 
-In CodeCompanion, parsers act on the contents of a rules file, carrying out some post-processing activities and returning the content back to the rules class.
+A _parser_ processes the contents of a [rules](/configuration/rules) file before it's shared with an LLM. It can rewrite the content, pull out a system prompt or add other files to the chat.
 
-Parsers serve as an excellent way to apply modifications and extract metadata prior to sharing them with an LLM.
+## Writing a Parser
 
-## Structure of a Parser
-
-A parser has limited restrictions. It is simply required to return a function that the _rules_ class can execute, passing in the file to be processed as a parameter:
+A parser is a module that returns a function. The function receives the rules file and returns a table with a `content` key:
 
 ```lua
----@class CodeCompanion.Chat.Rules.Parser
----@field content string The content of the rules file
----@field meta? { included_files: string[] } The filename of the rules file
-
 ---@param file CodeCompanion.Chat.Rules.ProcessedFile
 ---@return CodeCompanion.Chat.Rules.Parser
 return function(file)
-  -- Your logic
+  return { content = file.content or "" }
 end
 ```
 
-As an output, the function must return a table containing a `content` key.
+The `file` table has:
 
-## Processing Files
+| Field | Description |
+| --- | --- |
+| `content` | The file's contents |
+| `path` | The file's full path, or relative to the current working directory if it's inside it |
+| `filename` | The file's name, without its directory |
+| `name` | The path as written in your rules config, or the full path for a file found in a directory |
 
-Parsers may also return a list of files to be shared with the LLM by the _rules_ class. To enable this, ensure that the parser returns a `meta.included_files` array in its output:
+The parser can return:
+
+| Key | Description |
+| --- | --- |
+| `content` | The text to share with the LLM. Required |
+| `system_prompt` | Text to add as a system message |
+| `meta.included_files` | Files to add to the chat as context |
+
+If a parser errors, the file's original content is shared instead.
+
+## Registering a Parser
+
+Add it under `rules.parsers`, as a module path or a function that returns the parser:
+
+```lua
+require("codecompanion").setup({
+  rules = {
+    parsers = {
+      my_parser = "my_config.rules.my_parser",
+    },
+  },
+})
+```
+
+Then apply it to a rules group or file by name, as shown in [Applying Parsers](/configuration/rules#applying-parsers).
+
+## Including Files
+
+To add other files to the chat, return them in `meta.included_files`:
 
 ```lua
 {
@@ -38,11 +65,11 @@ Parsers may also return a list of files to be shared with the LLM by the _rules_
       ".codecompanion/acp/acp_json_schema.json",
       "./lua/codecompanion/acp/init.lua",
       "./lua/codecompanion/adapters/acp/claude_code.lua",
-      "./lua/codecompanion/adapters/acp/helpers.lua",
-      "./lua/codecompanion/acp/prompt_builder.lua",
-      "./lua/codecompanion/interactions/chat/acp/handler.lua",
-      "./lua/codecompanion/interactions/chat/acp/request_permission.lua",
     },
   },
 }
 ```
+
+Relative paths are resolved against the current working directory. A file that's open in a buffer is added as a buffer, and a file that's already in the chat isn't added again.
+
+The built-in `claude` parser does this for every line that starts with `@`, such as `@AGENTS.md`.

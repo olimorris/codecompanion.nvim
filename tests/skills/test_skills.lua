@@ -18,13 +18,16 @@ T["Skills"] = new_set({
 })
 
 ---@param dirs string[]
-local function list_skills(dirs)
+---@param opts? { depth?: number }
+local function list_skills(dirs, opts)
+  opts = opts or {}
   return child.lua(string.format(
     [[
-      package.loaded["codecompanion.config"] = { skills = { dirs = %s } }
+      package.loaded["codecompanion.config"] = { skills = { dirs = %s, opts = { depth = %d } } }
       return require("codecompanion.skills").list()
     ]],
-    vim.inspect(dirs)
+    vim.inspect(dirs),
+    opts.depth or 5
   ))
 end
 
@@ -55,6 +58,22 @@ T["Skills"]["a later dir overrides a skill with the same name"] = function()
   h.eq(2, #skills)
   h.eq("house-style", skills[1].name)
   h.eq("Lua conventions from the project directory", skills[1].description)
+end
+
+T["Skills"]["discovers a skill INSIDE the depth limit and NOT one outside it or in a hidden dir"] = function()
+  local skills = list_skills({ "tests/stubs/skills/nested" })
+
+  h.eq(1, #skills)
+  h.eq("within-limit", skills[1].name)
+  h.expect_match(skills[1].path, "tests/stubs/skills/nested/a/b/c/d/within%-limit/SKILL%.md$")
+end
+
+T["Skills"]["a configured depth discovers a skill OUTSIDE the default limit"] = function()
+  local skills = list_skills({ "tests/stubs/skills/nested" }, { depth = 6 })
+
+  h.eq(2, #skills)
+  h.eq("outside-limit", skills[1].name)
+  h.eq("within-limit", skills[2].name)
 end
 
 T["Skills"]["keeps discovering when a configured dir doesn't exist"] = function()

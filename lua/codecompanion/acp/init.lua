@@ -20,6 +20,7 @@
 
 local METHODS = require("codecompanion.acp.methods")
 local PromptBuilder = require("codecompanion.acp.prompt_builder")
+local acp_adapter = require("codecompanion.adapters.acp")
 local adapter_utils = require("codecompanion.adapters.utils")
 local async = require("codecompanion.utils.async")
 local config = require("codecompanion.config")
@@ -54,6 +55,7 @@ local uv = vim.uv
 ---@field _loading_session boolean|nil
 ---@field _on_session_update function|nil
 ---@field _config_options table[] Raw configOptions from the agent
+---@field _session_config_options table<string, table[]> The configOptions of each session, restored when switching back to it
 ---@field _in_flight table<string, CodeCompanion.ACP.Connection.InFlight> Establishment steps currently underway
 ---@field _pending_callbacks table<number, function> Async callbacks keyed by request ID
 ---@field _rpc_log? { path: string, write: fun(data: string) } Per-connection log capturing raw JSON-RPC traffic
@@ -105,6 +107,7 @@ function Connection.new(args)
     _in_flight = {},
     _initialized = false,
     _pending_callbacks = {},
+    _session_config_options = {},
     _state = { handle = nil, id_gen = jsonrpc.IdGenerator.new(), line_buffer = jsonrpc.LineBuffer.new() },
   }, { __index = Connection }) ---@cast self CodeCompanion.ACP.Connection
 
@@ -250,13 +253,8 @@ end
 ---@return boolean success
 function Connection:_authenticate()
   -- Allow adapters to handle authentication themselves
-  if
-    not self._authenticated
-    and self.adapter_modified
-    and self.adapter_modified.handlers
-    and self.adapter_modified.handlers.auth
-  then
-    local ok, result = pcall(self.adapter_modified.handlers.auth, self.adapter_modified)
+  if not self._authenticated and self.adapter_modified and acp_adapter.get_handler(self.adapter_modified, "auth") then
+    local ok, result = pcall(acp_adapter.call_handler, self.adapter_modified, "auth")
     if not ok then
       log:error("[acp::_authenticate] Adapter auth hook failed: %s", result)
       return false
@@ -318,6 +316,14 @@ function Connection:ensure_session()
   end
 
   return self:_open_session()
+end
+
+---Prompt through a different session on this connection, or a new one when `session_id` is nil
+---@param session_id? string
+---@return nil
+function Connection:use_session(session_id)
+  self.session_id = session_id
+  self._config_options = self._session_config_options[session_id] or {}
 end
 
 ---Create or load the session, announcing it to listeners
@@ -486,8 +492,8 @@ function Connection:start_agent_process()
   local adapter = self:prepare_adapter()
   self.adapter_modified = adapter
 
-  if adapter.handlers and adapter.handlers.setup then
-    if not adapter.handlers.setup(adapter) then
+  if acp_adapter.get_handler(adapter, "setup") then
+    if not acp_adapter.call_handler(adapter, "setup") then
       log:error("[acp::start_agent_process] Adapter setup failed")
       return false
     end
@@ -852,6 +858,12 @@ function Connection:handle_fs_write_file_request(id, params)
     return self:send_error(id, "invalid params", jsonrpc.errors.INVALID_PARAMS)
   end
 
+  -- An agent can write without asking for permission first
+  local handlers = self._active_prompt and self._active_prompt.handlers
+  if handlers and handlers.write_text_file_request and not handlers.write_text_file_request({ path = path }) then
+    return self:send_error(id, ("fs/write_text_file rejected for %s"):format(path))
+  end
+
   local fs = require("codecompanion.interactions.chat.acp.fs")
   local ok, err = fs.write_text_file(path, content)
   if ok then
@@ -888,6 +900,9 @@ end
 ---@param config_options table[] Array of SessionConfigOption
 function Connection:_apply_config_options(config_options)
   self._config_options = config_options
+  if self.session_id then
+    self._session_config_options[self.session_id] = config_options
+  end
 end
 
 ---Find a config option by category
@@ -929,8 +944,8 @@ end
 function Connection:handle_process_exit(code, signal)
   log:debug("[acp] Process exited (code=%s, signal=%s)", code, signal)
 
-  if self.adapter_modified and self.adapter_modified.handlers and self.adapter_modified.handlers.on_exit then
-    self.adapter_modified.handlers.on_exit(self.adapter_modified, code)
+  if self.adapter_modified then
+    acp_adapter.call_handler(self.adapter_modified, "on_exit", { code = code })
   end
 
   -- Fire any pending async callbacks so coroutines don't hang

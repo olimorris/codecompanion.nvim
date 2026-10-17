@@ -1,38 +1,38 @@
 ---
-description: "Examples and community recipes for extending CodeCompanion's UI in Neovim — including progress spinners with Fidget.nvim and custom status line integrations."
+description: "Recipes for showing CodeCompanion's progress and chat metadata in Neovim with Fidget.nvim, lualine.nvim and heirline.nvim."
 ---
 
-# Extending the UI
+# Extending with UI Recipes
 
-Below are some examples of how you can extend CodeCompanion and modify the user interface to suit your needs.
+CodeCompanion fires [events](/usage/events) and exposes [chat metadata](/usage/ui) rather than changing your UI itself. These recipes, many from the community, use them to show progress and chat details in Neovim.
 
-## Progress updates with Fidget.nvim by [@jessevdp](https://github.com/jessevdp)
+## Fidget.nvim Progress Updates
 
 <p align="center">
 <video controls muted title="Progress updates with Fidget.nvim" src="https://github.com/user-attachments/assets/f1419889-7b62-46f2-ba73-98327a1b378b"></video>
 </p>
 
-As per the discussion over at [#813](https://github.com/olimorris/codecompanion.nvim/discussions/813).
+By [@jessevdp](https://github.com/jessevdp). See discussion [#813](https://github.com/olimorris/codecompanion.nvim/discussions/813) for the code.
 
-## Inline spinner with Fidget.nvim by [@yuhua99](https://github.com/yuhua99)
+## Fidget.nvim Inline Spinner
 
 <p align="center">
 <img src="https://github.com/user-attachments/assets/aafb706f-b04f-42e6-b58e-ad30366ee532" alt="Inline spinner" />
 </p>
 
-As per the comment on [#640](https://github.com/olimorris/codecompanion.nvim/discussions/640#discussioncomment-12866279).
+By [@yuhua99](https://github.com/yuhua99). See [this comment](https://github.com/olimorris/codecompanion.nvim/discussions/640#discussioncomment-12866279) on discussion #640 for the code.
 
-## Status column extmarks with the inline interaction by [@lucobellic](https://github.com/lucobellic)
+## Status Column Extmarks
 
 <p align="center">
   <img src="https://github.com/user-attachments/assets/1daa7409-414e-4f4c-91fe-cd9c3ed0640e" alt="Status column extmarks" />
 </p>
 
-As per the discussion over at [#1297](https://github.com/olimorris/codecompanion.nvim/discussions/1297).
+By [@lucobellic](https://github.com/lucobellic), for the inline interaction. See discussion [#1297](https://github.com/olimorris/codecompanion.nvim/discussions/1297) for the code.
 
-## Lualine.nvim integration
+## Lualine.nvim
 
-The plugin can be integrated with lualine.nvim to show an icon in the statusline when a request is being sent to an LLM:
+To show a spinner in [lualine.nvim](https://github.com/nvim-lualine/lualine.nvim) while a request is running:
 
 ```lua
 local M = require("lualine.component"):extend()
@@ -86,11 +86,9 @@ end
 return M
 ```
 
-## Heirline.nvim integration
+## Heirline.nvim
 
-The plugin can also be integrated into [heirline.nvim](https://github.com/rebelot/heirline.nvim) to show an icon when a request is being sent to an LLM and also to show useful meta information about the chat buffer.
-
-In the video at the top of this page, you can see the fidget spinner alongside the heirline.nvim integration below:
+The first video on this page shows this recipe alongside the Fidget.nvim progress updates. To show an icon in [heirline.nvim](https://github.com/rebelot/heirline.nvim) while a request is running, along with the buffer that `#{buffer}` shares and the chat's token and cycle counts:
 
 ```lua
 local CodeCompanion = {
@@ -204,3 +202,5 @@ local CodeCompanionStats = {
 }
 
 ```
+
+`RightSlantStart` and `RightSlantEnd` are separator components from your own heirline.nvim config.

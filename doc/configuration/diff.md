@@ -1,16 +1,20 @@
 ---
-description: "Configure CodeCompanion's built-in diff engine in Neovim, covering the chat buffer threshold, floating window size and word level highlights."
+description: "Choose when CodeCompanion shows a diff, where it appears and how it's highlighted."
 ---
 
 # Configuring the Diff
 
 <img src="https://github.com/user-attachments/assets/8d80ed10-12f2-4c0b-915f-63b70797a6ca" alt="Diff"/>
 
-CodeCompanion has a built-in diff engine that's leveraged throughout the plugin. If you utilize the `insert_edit_into_file` tool or use an ACP adapter, then the plugin will update files and buffers, displaying the changes in a floating window.
+CodeCompanion shows a _diff_ before the `edit_file` tool, an ACP agent or the [inline interaction](/usage/inline) changes a file, so you can accept or reject it.
 
-For small changes, the diff is shown directly in the chat buffer. This can be controlled by `threshold_for_chat`, which corresponds to the size of the diff in terms of changed lines. For larger changes, the diff will automatically open in a floating window when the chat buffer is active. Or, you will be prompted to view the diff manually (`gv` by default).
+How a diff from the chat buffer appears depends on its size:
 
-There are a number of configuration options available to you:
+- **Small** - at or below `threshold_for_chat` changed lines, it's shown in the chat buffer
+- **Larger** - it opens in a floating window if the chat buffer is active
+- **Otherwise** - you're asked to approve the change, and can press `gv` to view the diff
+
+This can be configured with:
 
 ::: code-group
 
@@ -19,10 +23,7 @@ require("codecompanion").setup({
   display = {
     diff = {
       enabled = true,
-
-      -- At or below this diff size, always display the diff in the chat buffer
-      threshold_for_chat = 6,
-
+      threshold_for_chat = 6, -- Set to 0 to always use the floating window
       word_highlights = {
         additions = true,
         deletions = true,
@@ -32,11 +33,10 @@ require("codecompanion").setup({
 })
 ```
 
-```lua [Window Opts] {5-17}
+```lua [Window]
 require("codecompanion").setup({
   display = {
     diff = {
-      enabled = true,
       window = {
         ---@return number|fun(): number
         width = function()
@@ -50,13 +50,13 @@ require("codecompanion").setup({
           number = true,
         },
       },
-      word_highlights = {
-        additions = true,
-        deletions = true,
-      },
     },
   },
 })
 ```
 
 :::
+
+With `enabled = false`, the `edit_file` tool and the inline interaction apply changes without a diff. ACP agents always show one. The diff window inherits any option you don't set from `display.chat.floating_window`, described in [Configuring the Chat Buffer UI](/configuration/ui#layout). A `width` or `height` below 1 is a share of the editor's size.
+
+The keymaps for accepting and rejecting changes are under `interactions.shared.keymaps`. See [Keymaps](/configuration/chat-buffer#keymaps).

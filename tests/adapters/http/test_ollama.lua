@@ -115,6 +115,13 @@ T["Ollama adapter"]["it can form messages with tools"] = function()
   h.eq(output, adapter.handlers.form_messages(adapter, messages))
 end
 
+T["Ollama adapter"]["pairs a tool result with its tool call"] = function()
+  local tool_call = { id = "call_1", ["function"] = { name = "weather", arguments = {} } }
+  local result = adapter.handlers.tools.output_response(adapter, tool_call, "15 degrees")
+
+  h.eq("call_1", result.tools.call_id)
+end
+
 T["Ollama adapter"]["it can form tools to be sent to the API"] = function()
   local weather = require("tests.interactions.chat.tools.builtin.stubs.weather").schema
   local tools = { weather = { weather } }
@@ -333,16 +340,6 @@ T["Ollama adapter"]["No Streaming"]["can process tools"] = function()
   -- }
   --
   -- h.eq(formatted_tools, adapter.handlers.tools.format_tool_calls(adapter, tools))
-end
-
-T["Ollama adapter"]["No Streaming"]["can output for the inline assistant"] = function()
-  local data = vim.fn.readfile("tests/adapters/http/stubs/ollama_no_streaming.txt")
-  data = table.concat(data, "\n")
-
-  -- Match the format of the actual request
-  local json = { body = data }
-
-  h.eq("Dynamic Scripting language", adapter.handlers.inline_output(adapter, json).output)
 end
 
 T["Ollama adapter"]["OLLAMA_HOST"] = new_set()

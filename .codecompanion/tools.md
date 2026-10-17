@@ -10,6 +10,12 @@ In the CodeCompanion plugin, tools can be leveraged by an LLM to execute lua fun
 
 This is the entry point for the tool system. If an LLM's response includes a function call (or tool call) then this file is triggered which in turns add tools to a queue before calling the orchestrator
 
+### Agent Loop
+
+@./lua/codecompanion/interactions/chat/agent_loop.lua
+
+Decides what happens after each LLM response: run the requested tools, then send their output back to the LLM. The loop ends when the LLM responds without a tool call, or the user stops or cancels
+
 ### Orchestrator
 
 @./lua/codecompanion/interactions/chat/tools/orchestrator.lua

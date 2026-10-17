@@ -110,7 +110,7 @@ return {
       local chat = meta.tools.chat
       local display_path = vim.fn.fnamemodify(self.args.filepath, ":.")
 
-      chat:add_tool_output(self, fmt([[Deleted file `%s`]], display_path), "")
+      chat:add_tool_output(self, { content = fmt([[Deleted file `%s`]], display_path), display = false })
     end,
 
     ---@param self CodeCompanion.Tool.DeleteFile
@@ -122,7 +122,7 @@ return {
       log:debug("[Delete File Tool] Error output: %s", stderr)
 
       local error_output = fmt([[%s]], errors)
-      chat:add_tool_output(self, error_output)
+      chat:add_tool_output(self, { content = error_output })
     end,
 
     ---Rejection message back to the LLM

@@ -1,5 +1,41 @@
 # Changelog
 
+## [20.0.0](https://github.com/olimorris/codecompanion.nvim/compare/v19.27.0...v20.0.0) (2026-10-16)
+
+
+### ⚠ BREAKING CHANGES
+
+* **inline:** new inline interaction ([#3437](https://github.com/olimorris/codecompanion.nvim/issues/3437))
+* **chat:** functions use tables for params ([#3435](https://github.com/olimorris/codecompanion.nvim/issues/3435))
+* **adapters:** enforce params as table args ([#3434](https://github.com/olimorris/codecompanion.nvim/issues/3434))
+* **tools:** make the agentic loop explicit ([#3432](https://github.com/olimorris/codecompanion.nvim/issues/3432))
+* **adapters:** change openai and gemini defaults amongst others ([#3431](https://github.com/olimorris/codecompanion.nvim/issues/3431))
+* drop support for nvim-0.11 ([#3429](https://github.com/olimorris/codecompanion.nvim/issues/3429))
+* **tools:** new `edit_file` tool ([#3427](https://github.com/olimorris/codecompanion.nvim/issues/3427))
+
+### Features
+
+* add date to context ([#3449](https://github.com/olimorris/codecompanion.nvim/issues/3449)) ([b325b2a](https://github.com/olimorris/codecompanion.nvim/commit/b325b2a9697492003348e53193c3509ba49b88ac))
+* **chat:** support non-coding prompts in the prompt library ([#3450](https://github.com/olimorris/codecompanion.nvim/issues/3450)) ([e4722c3](https://github.com/olimorris/codecompanion.nvim/commit/e4722c3a43123178732eec5e4339c5a14f5758cc))
+* **inline:** new inline interaction ([#3437](https://github.com/olimorris/codecompanion.nvim/issues/3437)) ([0a3ff59](https://github.com/olimorris/codecompanion.nvim/commit/0a3ff5998ab78815a1992047a4b868edcc584420))
+* **tools:** new `edit_file` tool ([#3427](https://github.com/olimorris/codecompanion.nvim/issues/3427)) ([bb56cb6](https://github.com/olimorris/codecompanion.nvim/commit/bb56cb6ccf758e6467b781a888c65ccb665247c1))
+
+
+### Bug Fixes
+
+* **chat:** make title ignores PDF documents ([#3445](https://github.com/olimorris/codecompanion.nvim/issues/3445)) ([82920d7](https://github.com/olimorris/codecompanion.nvim/commit/82920d73d4017b8963da341053b582e75f376060))
+* **skills:** search for nested skills ([#3441](https://github.com/olimorris/codecompanion.nvim/issues/3441)) ([eb25883](https://github.com/olimorris/codecompanion.nvim/commit/eb2588370a01a5d196a4392d5e417bc141bd0775))
+* **tools:** cleaner output API ([#3452](https://github.com/olimorris/codecompanion.nvim/issues/3452)) ([8a1b496](https://github.com/olimorris/codecompanion.nvim/commit/8a1b496c752d6ce2376220d9a6a45afd5b4728e1))
+
+
+### Code Refactoring
+
+* **adapters:** change openai and gemini defaults amongst others ([#3431](https://github.com/olimorris/codecompanion.nvim/issues/3431)) ([e97d060](https://github.com/olimorris/codecompanion.nvim/commit/e97d060eafd276086d8391dacc4d8f8f65021608))
+* **adapters:** enforce params as table args ([#3434](https://github.com/olimorris/codecompanion.nvim/issues/3434)) ([4715ac0](https://github.com/olimorris/codecompanion.nvim/commit/4715ac06c94dedc4e971f17daf3069393ea32fa4))
+* **chat:** functions use tables for params ([#3435](https://github.com/olimorris/codecompanion.nvim/issues/3435)) ([c871336](https://github.com/olimorris/codecompanion.nvim/commit/c87133647486d4b1735fcde57feb7cbd2b2b2f5e))
+* drop support for nvim-0.11 ([#3429](https://github.com/olimorris/codecompanion.nvim/issues/3429)) ([174862f](https://github.com/olimorris/codecompanion.nvim/commit/174862fb26ab4a3daf2bc2bee211b89e59386e47))
+* **tools:** make the agentic loop explicit ([#3432](https://github.com/olimorris/codecompanion.nvim/issues/3432)) ([9ecfb6f](https://github.com/olimorris/codecompanion.nvim/commit/9ecfb6f18612c7cc3b239049b10f2a86826d0595))
+
 ## [19.27.0](https://github.com/olimorris/codecompanion.nvim/compare/v19.26.0...v19.27.0) (2026-10-01)
 
 

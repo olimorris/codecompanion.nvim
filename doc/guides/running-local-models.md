@@ -140,7 +140,7 @@ Tools such as `@{files}` and `@{agent}` only work with models that support tool 
 ollama show qwen3:8b
 ```
 
-Models listing `tools` include `qwen3`, `qwen3-coder`, `gpt-oss`, `devstral` and `llama3.1`. Support alone isn't enough, though. Smaller models often call the wrong tool, pass malformed arguments or stop halfway through a task, so for `@{agent}` a model of 20B parameters or more is a sensible starting point. See [Tools](/usage/chat-buffer/agents-tools) for what each tool does.
+Models listing `tools` include `qwen3`, `qwen3-coder`, `gpt-oss`, `devstral` and `llama3.1`. Support alone isn't enough. Smaller models often call the wrong tool, pass malformed arguments or stop halfway through a task, so for `@{agent}` a model of 20B parameters or more is a sensible starting point. See [Tools](/usage/chat-buffer/agents-tools) for what each tool does.
 
 ### Models That Need One System Prompt
 
@@ -169,11 +169,11 @@ require("codecompanion").setup({
 })
 ```
 
-For an `openai_compatible` adapter, call `require("codecompanion.adapters.http.openai").handlers.form_messages` in the same way.
+For an `openai_compatible` adapter, call `require("codecompanion.adapters.http.openai_compatible").handlers.form_messages` in the same way.
 
 ## Keeping It Fast
 
-A local model is limited by your hardware, so these schema options are worth knowing:
+A local model is limited by your hardware. These schema options help:
 
 | Option | Effect |
 |---|---|
@@ -228,7 +228,7 @@ require("codecompanion").setup({
 })
 ```
 
-Compaction also runs on the chat's model by default. To send it to a smaller one, see [Using a Cheaper Model for Background Tasks](/guides/background-model).
+Compaction also runs on the chat's model by default. To send it to a smaller one, see [Running Background Tasks on a Cheaper Model](/guides/background-model).
 
 ## Other Local Servers
 
@@ -236,7 +236,7 @@ llama.cpp, LM Studio, vLLM and similar servers speak the OpenAI API, so they con
 
 ## Limitations
 
-- Opening a chat asks Ollama for its models. If Ollama isn't running or can't be reached, you'll see an error, and each request waits up to 3 seconds before giving up
+- Opening a chat asks Ollama for its models. If Ollama isn't running or can't be reached, you see an error, and opening the chat waits up to 3 seconds before giving up
 - Without a `model` set, the model CodeCompanion picks isn't predictable
 - CodeCompanion doesn't merge system messages for you. Models whose templates need a single system message fail once tools are added, until you use the [workaround above](#models-that-need-one-system-prompt)
 - Whether a model can use tools comes from Ollama. A model that reports `tools` can still be too small to use them reliably
