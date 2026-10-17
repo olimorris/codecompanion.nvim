@@ -12,11 +12,12 @@ local CONSTANTS = {
   STOPPED_ICON = "○",
 }
 
----Build picker entries for configured MCP servers
+---Build picker entries for configured servers and registered tool groups
 ---@return table[]
 local function build_items()
   local items = {}
   local status = mcp.get_status()
+  local _, registered_groups = mcp.get_registered_tools()
 
   for name, server in pairs(status) do
     local icon = server.started and CONSTANTS.STARTED_ICON or CONSTANTS.STOPPED_ICON
@@ -28,7 +29,25 @@ local function build_items()
       name = name,
       display = display,
       text = display,
+      type = "configured",
     })
+  end
+
+  for group_name, group in pairs(registered_groups) do
+    local server_name = group_name:sub(#mcp.tool_prefix() + 1)
+    if not status[server_name] then
+      local tool_count = #group.tools
+      local display = fmt("%s %s (registered, tools: %d)", CONSTANTS.STARTED_ICON, server_name, tool_count)
+
+      table.insert(items, {
+        default = false,
+        name = server_name,
+        group = group_name,
+        display = display,
+        text = display,
+        type = "registered",
+      })
+    end
   end
 
   return items
@@ -46,6 +65,20 @@ local function toggle_server(selected)
   local status = mcp.get_status()[selected.name]
   local state = status and status.started and "started" or "stopped"
   utils.notify(fmt("MCP server `%s` %s", selected.name, state))
+end
+
+---@param selected { name: string, group: string }
+---@param opts { chat: CodeCompanion.Chat }
+---@return nil
+local function add_registered_group(selected, opts)
+  local chat = opts.chat
+  chat.tools:refresh({ adapter = chat.adapter })
+
+  if not chat.tool_registry:add(selected.group, { config = chat.tools.tools_config }) then
+    return utils.notify(fmt("MCP server `%s` is already enabled", selected.name))
+  end
+
+  utils.notify(fmt("MCP server `%s` enabled", selected.name))
 end
 
 local providers = {
@@ -119,7 +152,8 @@ end
 ---Is the slash command enabled?
 ---@return boolean|boolean,string
 function SlashCommand.enabled()
-  if vim.tbl_isempty(config.mcp.servers or {}) then
+  local _, registered_groups = mcp.get_registered_tools()
+  if vim.tbl_isempty(config.mcp.servers or {}) and vim.tbl_isempty(registered_groups) then
     return false, "[MCP] No servers found in your configuration"
   end
   return true
@@ -136,6 +170,10 @@ end
 ---@param selected { name: string }
 ---@return nil
 function SlashCommand:output(selected)
+  if selected.type == "registered" then
+    return add_registered_group(selected, { chat = self.Chat })
+  end
+
   return toggle_server(selected)
 end
 
