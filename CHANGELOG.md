@@ -1,5 +1,14 @@
 # Changelog
 
+## [20.0.1](https://github.com/olimorris/codecompanion.nvim/compare/v20.0.0...v20.0.1) (2026-10-17)
+
+
+### Bug Fixes
+
+* **acp:** claude code auth when CLAUDE_CODE_OAUTH_TOKEN is unset ([#3443](https://github.com/olimorris/codecompanion.nvim/issues/3443)) ([9284190](https://github.com/olimorris/codecompanion.nvim/commit/9284190b06b3a04c06b05961a3bcc1ead9bd2aac))
+* **adapters:** add kilocode to config ([#3454](https://github.com/olimorris/codecompanion.nvim/issues/3454)) ([aec5346](https://github.com/olimorris/codecompanion.nvim/commit/aec53462a7dadef4af52d36eb8297b6f14c19c08))
+* **chat:** don't read a closed buffer when replacing context tags ([#3467](https://github.com/olimorris/codecompanion.nvim/issues/3467)) ([1361b78](https://github.com/olimorris/codecompanion.nvim/commit/1361b7872b447c91b2d70359dfb86cbf9c247bd2))
+
 ## [20.0.0](https://github.com/olimorris/codecompanion.nvim/compare/v19.27.0...v20.0.0) (2026-10-16)
 
 
