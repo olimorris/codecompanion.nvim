@@ -142,23 +142,21 @@ local function get_copilot_token()
   _token_fetch_in_progress = true
   log:trace("Authorizing GitHub Copilot token")
 
-  local ok, request = pcall(function()
-    return Curl.get({
-      url = "https://api.github.com/copilot_internal/v2/token",
-      headers = {
-        Authorization = "Bearer " .. (M._oauth_token or ""),
-        Accept = "application/json",
-        ["User-Agent"] = "CodeCompanion.nvim",
-      },
-      insecure = config.adapters.http.opts.allow_insecure,
-      proxy = config.adapters.http.opts.proxy,
-    })
-  end)
+  local request, err = Curl.get({
+    url = "https://api.github.com/copilot_internal/v2/token",
+    headers = {
+      Authorization = "Bearer " .. (M._oauth_token or ""),
+      Accept = "application/json",
+      ["User-Agent"] = "CodeCompanion.nvim",
+    },
+    insecure = config.adapters.http.opts.allow_insecure,
+    proxy = config.adapters.http.opts.proxy,
+  })
 
   _token_fetch_in_progress = false
 
-  if not ok then
-    log:error("Copilot Adapter: Could not authorize your GitHub Copilot token: %s", request)
+  if not request then
+    log:error("Copilot Adapter: Could not authorize your GitHub Copilot token: %s", err.message)
     return nil
   end
 

@@ -342,16 +342,10 @@ function Client:send_sync(payload, opts)
     utils.fire("RequestStarted", event_opts)
   end
 
-  local response, err = nil, nil
-  local ok, result = pcall(self.methods[Client.resolve_method(adapter)], request_opts)
-  if not ok then
-    err = { message = tostring(result), stderr = tostring(result) }
-  else
-    response = result
-    if response and response.status and response.status >= 400 then
-      err = { message = string.format([[%d error: ]], response.status), stderr = response, status = response.status }
-      response = nil
-    end
+  local response, err = self.methods[Client.resolve_method(adapter)](request_opts)
+  if response and response.status >= 400 then
+    err = { message = string.format([[%d error: ]], response.status), stderr = response, status = response.status }
+    response = nil
   end
 
   adapters.call_handler(adapter, "on_exit", { data = response or (err and err.stderr) })
@@ -480,7 +474,11 @@ function Client:request(payload, actions, opts)
     end)
   end
 
-  local job = self.methods[Client.resolve_method(adapter)](request_opts)
+  local job, err = self.methods[Client.resolve_method(adapter)](request_opts)
+  if not job then
+    request_opts.on_error(err)
+    return nil
+  end
 
   opts.id = opts.id or math.random(10000000)
   opts.adapter = adapter_event_data(adapter)

@@ -21,6 +21,11 @@ local M = {}
 ---@field callback? fun(response: CodeCompanion.Curl.Response)
 ---@field on_error? fun(err: CodeCompanion.Curl.Error)
 
+---@class CodeCompanion.Curl.Request : CodeCompanion.Curl.Opts
+---@field method "GET"|"POST"
+---@field headers_file string
+---@field args string[]
+
 ---@class CodeCompanion.Curl.Response
 ---@field status number
 ---@field headers string[]
@@ -36,34 +41,33 @@ local M = {}
 ---@field args string[]
 ---@field shutdown fun()
 
----@param opts CodeCompanion.Curl.Opts
----@param headers_file string
+---@param request CodeCompanion.Curl.Request
 ---@return string[]
-local function build_args(opts, headers_file)
-  local args = { "curl", "-sSL", "--dump-header", headers_file, "--request", opts.method }
+local function build_args(request)
+  local args = { "curl", "-sSL", "--dump-header", request.headers_file, "--request", request.method }
 
-  if opts.compressed then
+  if request.compressed then
     table.insert(args, "--compressed")
   end
-  if opts.insecure then
+  if request.insecure then
     table.insert(args, "--insecure")
   end
-  if opts.proxy then
-    vim.list_extend(args, { "--proxy", opts.proxy })
+  if request.proxy then
+    vim.list_extend(args, { "--proxy", request.proxy })
   end
-  for name, value in pairs(opts.headers or {}) do
+  for name, value in pairs(request.headers or {}) do
     vim.list_extend(args, { "--header", name .. ": " .. tostring(value) })
   end
-  if opts.body_file then
-    vim.list_extend(args, { "--data-binary", "@" .. opts.body_file })
-  elseif opts.body then
+  if request.body_file then
+    vim.list_extend(args, { "--data-binary", "@" .. request.body_file })
+  elseif request.body then
     vim.list_extend(args, { "--data-binary", "@-" })
   end
-  if opts.output then
-    vim.list_extend(args, { "--output", opts.output })
+  if request.output then
+    vim.list_extend(args, { "--output", request.output })
   end
-  vim.list_extend(args, opts.raw or {})
-  table.insert(args, opts.url)
+  vim.list_extend(args, request.raw or {})
+  table.insert(args, request.url)
 
   return args
 end
@@ -82,7 +86,7 @@ local function read_headers(headers_file)
   for _, line in ipairs(vim.split(content, "\r?\n")) do
     local code = line:match("^HTTP/%S+%s+(%d+)")
     if code then
-      status = tonumber(code)
+      status = tonumber(code) --[[@as number]]
     elseif line ~= "" then
       table.insert(headers, line)
     end
@@ -91,46 +95,52 @@ local function read_headers(headers_file)
   return status, headers
 end
 
----@param opts CodeCompanion.Curl.Opts
----@param result vim.SystemCompleted
----@param headers_file string
----@param body string
+---@param opts { request: CodeCompanion.Curl.Request, result: vim.SystemCompleted }
 ---@return CodeCompanion.Curl.Response|nil, CodeCompanion.Curl.Error|nil
-local function to_response(opts, result, headers_file, body)
+local function build_response(opts)
+  local request, result = opts.request, opts.result
+
   if result.code ~= 0 or result.signal ~= 0 then
-    files.delete(headers_file)
+    files.delete(request.headers_file)
     local stderr = result.stderr or ""
-    return nil,
-      {
-        message = fmt(
-          "%s %s - curl error exit_code=%d signal=%d stderr=%s",
-          opts.method,
-          opts.url,
-          result.code,
-          result.signal,
-          stderr
-        ),
-        stderr = stderr,
-        exit = result.code,
-      }
+    local message = fmt(
+      "%s %s - curl error exit_code=%d signal=%d stderr=%s",
+      request.method,
+      request.url,
+      result.code,
+      result.signal,
+      stderr
+    )
+    return nil, { message = message, stderr = stderr, exit = result.code }
   end
 
-  local status, headers = read_headers(headers_file)
-  return { status = status, headers = headers, body = body, exit = result.code }
+  local status, headers = read_headers(request.headers_file)
+  return { status = status, headers = headers, body = result.stdout or "", exit = result.code }
+end
+
+---@param request CodeCompanion.Curl.Request
+---@param opts { system_opts: vim.SystemOpts, on_exit?: fun(result: vim.SystemCompleted) }
+---@return vim.SystemObj|nil, CodeCompanion.Curl.Error|nil
+local function spawn(request, opts)
+  local ok, process = pcall(vim.system, request.args, opts.system_opts, opts.on_exit)
+  if not ok then
+    local message = fmt("%s %s - could not start curl: %s", request.method, request.url, process)
+    return nil, { message = message, stderr = tostring(process), exit = -1 }
+  end
+  return process
 end
 
 ---Collect stdout and pass each complete line to `on_line` on the main loop
----@param chunks string[]
----@param on_line? fun(err: nil, line: string)
+---@param opts { chunks: string[], on_line?: fun(err: nil, line: string) }
 ---@return fun(err?: string, chunk?: string)
-local function read_stdout(chunks, on_line)
+local function read_stdout(opts)
   local partial = ""
 
   return function(_, chunk)
     if chunk then
-      table.insert(chunks, chunk)
+      table.insert(opts.chunks, chunk)
     end
-    if not on_line then
+    if not opts.on_line then
       return
     end
 
@@ -143,39 +153,50 @@ local function read_stdout(chunks, on_line)
 
     vim.schedule(function()
       for _, line in ipairs(lines) do
-        on_line(nil, line)
+        opts.on_line(nil, line)
       end
     end)
   end
 end
 
----@param opts CodeCompanion.Curl.Opts
----@param args string[]
----@param headers_file string
----@return CodeCompanion.Curl.Job
-local function request_async(opts, args, headers_file)
+---@param opts { request: CodeCompanion.Curl.Request, result: vim.SystemCompleted }
+local function finish_async(opts)
+  local request = opts.request
+  local response, err = build_response(opts)
+  if err and request.on_error then
+    return request.on_error(err)
+  elseif err then
+    return log:error("[curl] %s", err.message)
+  end
+  if request.callback then
+    request.callback(response)
+  end
+end
+
+---@param request CodeCompanion.Curl.Request
+---@return CodeCompanion.Curl.Job|nil, CodeCompanion.Curl.Error|nil
+local function request_async(request)
   local chunks = {}
 
-  local process = vim.system(args, {
-    stdin = opts.body,
-    stdout = read_stdout(chunks, opts.stream),
-    timeout = opts.timeout,
-  }, function(result)
-    vim.schedule(function()
-      local response, err = to_response(opts, result, headers_file, table.concat(chunks))
-      if err and opts.on_error then
-        return opts.on_error(err)
-      elseif err then
-        return log:error("[curl] %s", err.message)
-      end
-      if opts.callback then
-        opts.callback(response)
-      end
-    end)
-  end)
+  local process, err = spawn(request, {
+    system_opts = {
+      stdin = request.body,
+      stdout = read_stdout({ chunks = chunks, on_line = request.stream }),
+      timeout = request.timeout,
+    },
+    on_exit = function(result)
+      result.stdout = table.concat(chunks)
+      vim.schedule(function()
+        finish_async({ request = request, result = result })
+      end)
+    end,
+  })
+  if not process then
+    return nil, err
+  end
 
   return {
-    args = args,
+    args = request.args,
     shutdown = function()
       if not process:is_closing() then
         process:kill("sigterm")
@@ -184,43 +205,39 @@ local function request_async(opts, args, headers_file)
   }
 end
 
----@param opts CodeCompanion.Curl.Opts
----@param args string[]
----@param headers_file string
----@return CodeCompanion.Curl.Response
-local function request_sync(opts, args, headers_file)
-  local result = vim.system(args, { stdin = opts.body }):wait(opts.timeout or 10000)
-  local response, err = to_response(opts, result, headers_file, result.stdout or "")
-  if err then
-    error(err.message)
+---@param request CodeCompanion.Curl.Request
+---@return CodeCompanion.Curl.Response|nil, CodeCompanion.Curl.Error|nil
+local function request_sync(request)
+  local process, err = spawn(request, { system_opts = { stdin = request.body } })
+  if not process then
+    return nil, err
   end
-  return response
+  return build_response({ request = request, result = process:wait(request.timeout or 10000) })
 end
 
 ---Make a request, blocking until it completes unless a `callback` or `stream` is given
 ---@param opts CodeCompanion.Curl.Opts
----@return CodeCompanion.Curl.Response|CodeCompanion.Curl.Job
+---@return CodeCompanion.Curl.Response|CodeCompanion.Curl.Job|nil, CodeCompanion.Curl.Error|nil
 function M.request(opts)
-  opts = vim.tbl_extend("force", { method = "GET" }, opts)
-  opts.method = opts.method:upper()
+  local request = vim.tbl_extend("force", { method = "GET" }, opts) --[[@as CodeCompanion.Curl.Request]]
+  request.method = request.method:upper()
+  request.headers_file = vim.fn.tempname() .. ".headers"
+  request.args = build_args(request)
 
-  local headers_file = vim.fn.tempname() .. ".headers"
-  local args = build_args(opts, headers_file)
-
-  if opts.callback or opts.stream then
-    return request_async(opts, args, headers_file)
+  if request.callback or request.stream then
+    return request_async(request)
   end
-  return request_sync(opts, args, headers_file)
+  return request_sync(request)
 end
 
 ---@param opts CodeCompanion.Curl.Opts
----@return CodeCompanion.Curl.Response|CodeCompanion.Curl.Job
+---@return CodeCompanion.Curl.Response|CodeCompanion.Curl.Job|nil, CodeCompanion.Curl.Error|nil
 function M.get(opts)
   return M.request(vim.tbl_extend("force", opts, { method = "GET" }))
 end
 
 ---@param opts CodeCompanion.Curl.Opts
----@return CodeCompanion.Curl.Response|CodeCompanion.Curl.Job
+---@return CodeCompanion.Curl.Response|CodeCompanion.Curl.Job|nil, CodeCompanion.Curl.Error|nil
 function M.post(opts)
   return M.request(vim.tbl_extend("force", opts, { method = "POST" }))
 end

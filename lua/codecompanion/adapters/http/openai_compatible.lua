@@ -44,22 +44,18 @@ local function get_models(self, opts)
 
   local headers = adapter_utils.set_env_vars(adapter, adapter.headers) or {}
 
-  local ok, response, json
-
-  ok, response = pcall(function()
-    return Curl.get({
-      url = url,
-      headers = headers,
-      insecure = config.adapters.http.opts.allow_insecure,
-      proxy = config.adapters.http.opts.proxy,
-    })
-  end)
-  if not ok then
-    log:error("Could not get the OpenAI compatible models from " .. url .. ".\nError: %s", response)
+  local response, err = Curl.get({
+    url = url,
+    headers = headers,
+    insecure = config.adapters.http.opts.allow_insecure,
+    proxy = config.adapters.http.opts.proxy,
+  })
+  if not response then
+    log:error("Could not get the OpenAI compatible models from " .. url .. ".\nError: %s", err.message)
     return {}
   end
 
-  ok, json = pcall(vim.json.decode, response.body)
+  local ok, json = pcall(vim.json.decode, response.body)
   if not ok then
     log:error("Could not parse the response from " .. url)
     return {}

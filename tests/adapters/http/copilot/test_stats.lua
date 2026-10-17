@@ -42,7 +42,7 @@ local T = new_set({
         package.loaded["codecompanion.utils.curl"] = {
           get = function()
             if _G.fail_request then
-              error("network error")
+              return nil, { message = "network error", stderr = "network error", exit = 7 }
             end
             return { status = 200, body = vim.json.encode(_G.mock_stats) }
           end,

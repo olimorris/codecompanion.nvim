@@ -27,21 +27,19 @@ local function get_statistics()
 
   local oauth_token = token.fetch({ force = true }).oauth_token
 
-  local ok, response = pcall(function()
-    return Curl.get({
-      url = "https://api.github.com/copilot_internal/user",
-      headers = {
-        Authorization = "Bearer " .. oauth_token,
-        Accept = "*/*",
-        ["User-Agent"] = "CodeCompanion.nvim",
-      },
-      insecure = config.adapters.http.opts.allow_insecure,
-      proxy = config.adapters.http.opts.proxy,
-    })
-  end)
+  local response, err = Curl.get({
+    url = "https://api.github.com/copilot_internal/user",
+    headers = {
+      Authorization = "Bearer " .. oauth_token,
+      Accept = "*/*",
+      ["User-Agent"] = "CodeCompanion.nvim",
+    },
+    insecure = config.adapters.http.opts.allow_insecure,
+    proxy = config.adapters.http.opts.proxy,
+  })
 
-  if not ok then
-    log:error("Copilot Adapter: Could not get stats: %s", response)
+  if not response then
+    log:error("Copilot Adapter: Could not get stats: %s", err.message)
     return nil
   end
 

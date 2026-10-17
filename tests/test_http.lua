@@ -298,11 +298,10 @@ end
 
 T["send_sync returns error when curl call fails"] = function()
   local result = child.lua([[
-    -- Override POST to simulate a thrown error in curl
     _G.Client.static.methods.post = {
       default = function(opts)
         _G.__calls.post = _G.__calls.post + 1
-        error("curl failed")
+        return nil, { message = "curl failed", stderr = "curl failed", exit = 7 }
       end,
     }
 

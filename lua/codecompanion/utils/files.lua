@@ -296,7 +296,7 @@ function M.download(url, opts)
   local extension = url:gsub("[?#].*$", ""):match("/[^/]+%.(%w+)$")
   local path = fn.tempname() .. (extension and ("." .. extension) or "")
 
-  require("codecompanion.utils.curl").get({
+  local job, err = require("codecompanion.utils.curl").get({
     url = url,
     insecure = http_opts.allow_insecure,
     proxy = http_opts.proxy,
@@ -307,10 +307,13 @@ function M.download(url, opts)
       end
       opts.callback(nil, { path = path, mimetype = get_content_type(response.headers) })
     end,
-    on_error = function(err)
-      opts.callback(err.message)
+    on_error = function(request_err)
+      opts.callback(request_err.message)
     end,
   })
+  if not job then
+    opts.callback(err.message)
+  end
 end
 
 ---Convert a glob pattern to a Lua pattern

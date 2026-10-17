@@ -18,15 +18,13 @@ local function get_models(self, opts)
 
   local url = "https://api.novita.ai/v3/openai/models"
 
-  local ok, response = pcall(function()
-    return Curl.get({
-      url = url,
-      insecure = config.adapters.http.opts.allow_insecure,
-      proxy = config.adapters.http.opts.proxy,
-    })
-  end)
-  if not ok then
-    log:error("Could not get the Novita models from " .. url .. "\nError: %s", response)
+  local response, err = Curl.get({
+    url = url,
+    insecure = config.adapters.http.opts.allow_insecure,
+    proxy = config.adapters.http.opts.proxy,
+  })
+  if not response then
+    log:error("Could not get the Novita models from " .. url .. "\nError: %s", err.message)
     return {}
   end
 
