@@ -139,7 +139,7 @@ function ToolRegistry:add_single_tool(tool, opts)
 
   local is_adapter_tool = tool_config._adapter_tool == true
   if is_adapter_tool then
-    add_context(self.chat, id, opts)
+    add_context(self.chat, id, { visible = opts.visible })
     add_system_prompt(self.chat, tool_config, id)
     add_schema(self, {
       schema = {
@@ -157,7 +157,7 @@ function ToolRegistry:add_single_tool(tool, opts)
       return nil
     end
 
-    add_context(self.chat, id, opts)
+    add_context(self.chat, id, { visible = opts.visible })
     add_system_prompt(self.chat, resolved_tool, id)
     add_schema(self, resolved_tool, id)
     self.in_use[tool] = true
