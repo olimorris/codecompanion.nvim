@@ -1,3 +1,4 @@
+local api = vim.api
 local buf_utils = require("codecompanion.utils.buffers")
 local chat_helpers = require("codecompanion.interactions.chat.helpers")
 local config = require("codecompanion.config")
@@ -145,6 +146,15 @@ function EditorContext:cli_render()
   }
 end
 
+---@param bufnr number
+---@return string|nil
+local function get_buffer_path(bufnr)
+  if not api.nvim_buf_is_valid(bufnr) then
+    return nil
+  end
+  return buf_utils.get_info(bufnr).path
+end
+
 ---Replace the editor context in the message
 ---@param prefix string
 ---@param message string
@@ -152,41 +162,29 @@ end
 ---@return string
 function EditorContext.replace(prefix, message, bufnr)
   local result = message
+  local default_path = get_buffer_path(bufnr)
+
+  local function get_buffer_replacement(target)
+    local found_bufnr = EditorContext._find_buffer(target)
+    local path = (found_bufnr and get_buffer_path(found_bufnr)) or default_path
+    if not path then
+      return nil
+    end
+    return "file `" .. path .. "` (with buffer number: " .. (found_bufnr or bufnr) .. ")"
+  end
 
   -- Handle #{buffer:filename}{param} - display option with parameters
-  local display = prefix .. "{buffer:([^}]*)}{[^}]*}"
-  result = result:gsub(display, function(target)
-    local found_bufnr = EditorContext._find_buffer(target)
-    if found_bufnr then
-      local path = buf_utils.get_info(found_bufnr).path
-      return "file `" .. path .. "` (with buffer number: " .. found_bufnr .. ")"
-    else
-      -- Fallback to original behavior if buffer not found
-      local path = buf_utils.get_info(bufnr).path
-      return "file `" .. path .. "` (with buffer number: " .. bufnr .. ")"
-    end
-  end)
+  result = result:gsub(prefix .. "{buffer:([^}]*)}{[^}]*}", get_buffer_replacement)
 
   -- Handle #{buffer:filename} - Just display option
-  local display_option_pattern = prefix .. "{buffer:([^}]*)}"
-  result = result:gsub(display_option_pattern, function(target)
-    local found_bufnr = EditorContext._find_buffer(target)
-    if found_bufnr then
-      local path = buf_utils.get_info(found_bufnr).path
-      return "file `" .. path .. "` (with buffer number: " .. found_bufnr .. ")"
-    else
-      -- Fallback to original behavior if buffer not found
-      local path = buf_utils.get_info(bufnr).path
-      return "file `" .. path .. "` (with buffer number: " .. bufnr .. ")"
-    end
-  end)
+  result = result:gsub(prefix .. "{buffer:([^}]*)}", get_buffer_replacement)
 
   -- Finally handle #{buffer}
-  local path = buf_utils.get_info(bufnr).path
-  local replacement = "file `" .. path .. "` (with buffer number: " .. bufnr .. ")"
-
-  result = result:gsub(prefix .. "{buffer}{[^}]*}", replacement)
-  result = result:gsub(prefix .. "{buffer}", replacement)
+  if default_path then
+    local replacement = "file `" .. default_path .. "` (with buffer number: " .. bufnr .. ")"
+    result = result:gsub(prefix .. "{buffer}{[^}]*}", replacement)
+    result = result:gsub(prefix .. "{buffer}", replacement)
+  end
 
   return result
 end
