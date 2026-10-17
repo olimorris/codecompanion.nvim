@@ -24,7 +24,7 @@ local function download(opts)
   return child.lua(
     [[
     local opts = ...
-    require("plenary.curl").get = function(_, request)
+    require("codecompanion.utils.curl").get = function(request)
       if opts.file then
         vim.uv.fs_copyfile(opts.file, request.output)
       end
@@ -107,7 +107,7 @@ T["File from URL"]["hands a webpage to the fetch slash command"] = function()
         return { output = function(_, url) fetched = url end }
       end,
     }
-    require("plenary.curl").get = function(_, request)
+    require("codecompanion.utils.curl").get = function(request)
       request.callback({ status = 200, headers = { "content-type: text/html; charset=utf-8" } })
     end
 

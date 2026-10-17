@@ -376,7 +376,7 @@ T["Ollama get_models"] = new_set({
 T["Ollama get_models"]["choices() extracts context_window into meta"] = function()
   local result = child.lua([[
     local get_models = require("codecompanion.adapters.http.ollama.get_models")
-    local Curl = require("plenary.curl")
+    local Curl = require("codecompanion.utils.curl")
 
     local tags_body = vim.json.encode({
       models = { { name = "llama3.1:latest" } },
@@ -396,12 +396,12 @@ T["Ollama get_models"]["choices() extracts context_window into meta"] = function
       },
     })
 
-    Curl.get = function(url, opts)
+    Curl.get = function(opts)
       if opts.callback then
         opts.callback({ status = 200, body = tags_body })
       end
     end
-    Curl.post = function(url, opts)
+    Curl.post = function(opts)
       if opts.callback then
         opts.callback({ status = 200, body = show_body })
       end
@@ -428,7 +428,7 @@ end
 T["Ollama get_models"]["choices() extracts capabilities into opts"] = function()
   local result = child.lua([[
     local get_models = require("codecompanion.adapters.http.ollama.get_models")
-    local Curl = require("plenary.curl")
+    local Curl = require("codecompanion.utils.curl")
 
     local tags_body = vim.json.encode({
       models = { { name = "qwq:latest" } },
@@ -448,12 +448,12 @@ T["Ollama get_models"]["choices() extracts capabilities into opts"] = function()
       },
     })
 
-    Curl.get = function(url, opts)
+    Curl.get = function(opts)
       if opts.callback then
         opts.callback({ status = 200, body = tags_body })
       end
     end
-    Curl.post = function(url, opts)
+    Curl.post = function(opts)
       if opts.callback then
         opts.callback({ status = 200, body = show_body })
       end
@@ -480,7 +480,7 @@ end
 T["Ollama get_models"]["choices() handles missing model_info gracefully"] = function()
   local result = child.lua([[
     local get_models = require("codecompanion.adapters.http.ollama.get_models")
-    local Curl = require("plenary.curl")
+    local Curl = require("codecompanion.utils.curl")
 
     local tags_body = vim.json.encode({
       models = { { name = "custom:latest" } },
@@ -492,12 +492,12 @@ T["Ollama get_models"]["choices() handles missing model_info gracefully"] = func
       },
     })
 
-    Curl.get = function(url, opts)
+    Curl.get = function(opts)
       if opts.callback then
         opts.callback({ status = 200, body = tags_body })
       end
     end
-    Curl.post = function(url, opts)
+    Curl.post = function(opts)
       if opts.callback then
         opts.callback({ status = 200, body = show_body })
       end

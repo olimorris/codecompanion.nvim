@@ -500,7 +500,7 @@ T["Token initialization"] = new_set({
       -- Resolving the adapter fetches tokens and models in the background. None of
       -- these tests need a response, so answer every request with nothing
       token_child.lua([[
-        require("plenary.curl").get = function() return {} end
+        require("codecompanion.utils.curl").get = function() return {} end
       ]])
     end,
     post_once = token_child.stop,

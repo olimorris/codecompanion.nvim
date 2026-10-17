@@ -359,6 +359,40 @@ T["send_sync merges structured output schema into the request body"] = function(
   h.eq(result.response_format.json_schema.name, "weather")
 end
 
+T["send_sync DOES NOT ask for a stream when the adapter streams"] = function()
+  local result = child.lua([[
+    local captured_body
+    _G.Client.static.methods.encode = {
+      default = function(tbl) captured_body = tbl; return vim.json.encode(tbl) end,
+    }
+    _G.Client.static.methods.post = {
+      default = function(opts)
+        return { status = 200, headers = {}, body = "ok", exit = 0 }
+      end,
+    }
+
+    local adapter = __make_adapter({
+      opts = { method = "POST", stream = true },
+      handlers = {
+        setup = function(self)
+          if self.opts.stream then
+            self.parameters = { stream = true }
+          end
+          return true
+        end,
+        form_parameters = function(self, params) return params end,
+      },
+    })
+
+    Client.new({ adapter = adapter }):send_sync({ messages = {}, tools = {} }, { silent = true, timeout = 100 })
+
+    return { stream = captured_body.stream or vim.NIL, adapter_still_streams = adapter.opts.stream }
+  ]])
+
+  h.eq(result.stream, vim.NIL)
+  h.eq(result.adapter_still_streams, true)
+end
+
 T["merge_body deep-merges colliding body keys from different handlers"] = function()
   -- Regression: OpenAI Responses maps `verbosity` to body.text while structured
   -- output writes to text.format. A shallow merge silently dropped the latter.

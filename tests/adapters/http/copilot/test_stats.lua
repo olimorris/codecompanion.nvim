@@ -39,8 +39,8 @@ local T = new_set({
         _G.notify_args = {}
 
         -- Stub dependencies before requiring subject module
-        package.loaded["plenary.curl"] = {
-          get = function(_, _)
+        package.loaded["codecompanion.utils.curl"] = {
+          get = function()
             if _G.fail_request then
               error("network error")
             end

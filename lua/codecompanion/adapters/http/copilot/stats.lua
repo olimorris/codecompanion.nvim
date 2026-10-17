@@ -1,4 +1,4 @@
-local Curl = require("plenary.curl")
+local Curl = require("codecompanion.utils.curl")
 
 local config = require("codecompanion.config")
 local log = require("codecompanion.utils.log")
@@ -28,8 +28,8 @@ local function get_statistics()
   local oauth_token = token.fetch({ force = true }).oauth_token
 
   local ok, response = pcall(function()
-    return Curl.get("https://api.github.com/copilot_internal/user", {
-      sync = true,
+    return Curl.get({
+      url = "https://api.github.com/copilot_internal/user",
       headers = {
         Authorization = "Bearer " .. oauth_token,
         Accept = "*/*",

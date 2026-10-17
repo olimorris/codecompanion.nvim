@@ -1,4 +1,4 @@
-local Curl = require("plenary.curl")
+local Curl = require("codecompanion.utils.curl")
 local config = require("codecompanion.config")
 local log = require("codecompanion.utils.log")
 local openai = require("codecompanion.adapters.http.openai_legacy")
@@ -23,8 +23,8 @@ local function get_models(adapter)
     ["User-Agent"] = "CodeCompanion.nvim",
   }
   local ok, response = pcall(function()
-    return Curl.get(url, {
-      sync = true,
+    return Curl.get({
+      url = url,
       headers = headers,
       insecure = config.adapters.http.opts.allow_insecure,
       proxy = config.adapters.http.opts.proxy,

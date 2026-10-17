@@ -1,4 +1,4 @@
-local Curl = require("plenary.curl")
+local Curl = require("codecompanion.utils.curl")
 local config = require("codecompanion.config")
 local log = require("codecompanion.utils.log")
 local transform = require("codecompanion.adapters.utils.models.transform")
@@ -80,11 +80,12 @@ local function request(spec, adapter, request_opts)
   local url = type(spec.url) == "function" and spec.url(adapter, request_opts) or spec.url
 
   local ok, err = pcall(function()
-    Curl.get(url, {
+    Curl.get({
+      url = url,
       headers = headers,
       insecure = config.adapters.http.opts.allow_insecure,
       proxy = config.adapters.http.opts.proxy,
-      callback = vim.schedule_wrap(function(response)
+      callback = function(response)
         cache.in_progress = false
 
         local decode_ok, json = pcall(vim.json.decode, response and response.body)
@@ -98,7 +99,11 @@ local function request(spec, adapter, request_opts)
         end
 
         store(cache, json)
-      end),
+      end,
+      on_error = function(err)
+        cache.in_progress = false
+        log:error("Could not get the %s models from %s\nError: %s", spec.name, url, err.message)
+      end,
     })
   end)
 
