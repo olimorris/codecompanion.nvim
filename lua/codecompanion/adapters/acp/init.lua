@@ -54,9 +54,10 @@ local LEGACY_ARGUMENTS = {
 
 ---Find a handler, preferring a flat one from the user's config over the built-in nested one
 ---@param adapter CodeCompanion.ACPAdapter
----@param name string
+---@param opts { name: string }
 ---@return function|nil handler, boolean is_flat
-local function find_handler(adapter, name)
+local function find_handler(adapter, opts)
+  local name = opts.name
   local handlers = adapter.handlers
   if not handlers then
     return nil, false
@@ -83,7 +84,7 @@ local Adapter = {}
 ---@param name string
 ---@return function|nil
 function Adapter.get_handler(adapter, name)
-  return (find_handler(adapter, name))
+  return (find_handler(adapter, { name = name }))
 end
 
 ---Call a handler, unpacking the args into positional arguments for flat handlers
@@ -94,7 +95,7 @@ end
 function Adapter.call_handler(adapter, name, args)
   args = args or {}
 
-  local handler, is_flat = find_handler(adapter, name)
+  local handler, is_flat = find_handler(adapter, { name = name })
   if not handler then
     return nil
   end

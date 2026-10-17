@@ -56,14 +56,14 @@ local function start_request(cli)
 end
 
 ---@param cli CodeCompanion.CLI
----@param status "success"|"cancelled"
+---@param opts { status: "success"|"cancelled" }
 ---@return nil
-local function finish_request(cli, status)
+local function finish_request(cli, opts)
   if not cli.request_id then
     return
   end
 
-  utils.fire("RequestFinished", vim.tbl_extend("force", build_request_payload(cli), { status = status }))
+  utils.fire("RequestFinished", vim.tbl_extend("force", build_request_payload(cli), { status = opts.status }))
   cli.request_id = nil
 end
 
@@ -282,7 +282,7 @@ end
 ---@return nil
 function CLI:close()
   self.provider:stop()
-  finish_request(self, "cancelled")
+  finish_request(self, { status = "cancelled" })
 
   pcall(api.nvim_del_augroup_by_id, self.aug)
 
@@ -350,7 +350,7 @@ function CLI.hook(opts)
     if opts.event == "submitted" then
       start_request(cli)
     elseif opts.event == "done" then
-      finish_request(cli, "success")
+      finish_request(cli, { status = "success" })
     end
   end)
 

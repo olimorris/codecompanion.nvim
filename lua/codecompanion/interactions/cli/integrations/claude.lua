@@ -18,10 +18,11 @@ local HOOKS = {
 }
 
 ---@param value any
----@param indent? string Carried through the recursion, not for callers
+---@param opts? { indent?: string }
 ---@return string
-local function encode(value, indent)
-  indent = indent or ""
+local function encode(value, opts)
+  opts = opts or {}
+  local indent = opts.indent or ""
 
   if type(value) ~= "table" then
     return vim.json.encode(value)
@@ -34,7 +35,7 @@ local function encode(value, indent)
       return "[]"
     end
     local items = vim.tbl_map(function(item)
-      return child .. encode(item, child)
+      return child .. encode(item, { indent = child })
     end, value)
     return "[\n" .. table.concat(items, ",\n") .. "\n" .. indent .. "]"
   end
@@ -48,7 +49,7 @@ local function encode(value, indent)
   table.sort(keys)
 
   local pairs_out = vim.tbl_map(function(key)
-    return string.format("%s%s: %s", child, vim.json.encode(key), encode(value[key], child))
+    return string.format("%s%s: %s", child, vim.json.encode(key), encode(value[key], { indent = child }))
   end, keys)
 
   return "{\n" .. table.concat(pairs_out, ",\n") .. "\n" .. indent .. "}"

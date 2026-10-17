@@ -24,14 +24,13 @@ local CONSTANTS = {
 }
 
 ---Set the LLM role based on the adapter
----@param role string|function
----@param adapter table
+---@param opts { role: string|function, adapter: table }
 ---@return string
-local function set_llm_role(role, adapter)
-  if type(role) == "function" then
-    return role(adapter)
+local function set_llm_role(opts)
+  if type(opts.role) == "function" then
+    return opts.role(opts.adapter)
   end
-  return role
+  return opts.role
 end
 
 ---@class CodeCompanion.Chat.UI
@@ -373,7 +372,7 @@ end
 function UI:set_header(tbl, role)
   -- If the role is the LLM then we need to swap this out for a user func
   if type(role) == "function" then
-    role = set_llm_role(role, self.adapter)
+    role = set_llm_role({ role = role, adapter = self.adapter })
   end
 
   table.insert(tbl, self:format_header(role))
@@ -416,7 +415,7 @@ function UI:render(context, messages, opts)
           self:set_header(lines, self.roles.user)
         end
         if msg.role == config.constants.LLM_ROLE and last_set_role ~= config.constants.LLM_ROLE then
-          self:set_header(lines, set_llm_role(self.roles.llm, self.adapter))
+          self:set_header(lines, set_llm_role({ role = self.roles.llm, adapter = self.adapter }))
         end
 
         if msg._meta and msg._meta.tag == tags.TOOL_OUTPUT then
@@ -498,7 +497,7 @@ function UI:render_headers()
 
   local separator = config.display.chat.separator
   local lines = api.nvim_buf_get_lines(self.chat_bufnr, 0, -1, false)
-  local llm_role = set_llm_role(self.roles.llm, self.adapter)
+  local llm_role = set_llm_role({ role = self.roles.llm, adapter = self.adapter })
 
   for line, content in ipairs(lines) do
     if content:match("^## " .. vim.pesc(self.roles.user)) or content:match("^## " .. vim.pesc(llm_role)) then

@@ -5,14 +5,12 @@ local markdown = require("codecompanion.utils.markdown")
 local fmt = string.format
 
 ---Search the current working directory for files matching the glob pattern.
----@param action { query: string, max_results: number }
----@param opts table
+---@param opts { action: { query: string, max_results: number }, max_results?: number }
 ---@return { status: "success"|"error", data: string }
-local function search(action, opts)
-  opts = opts or {}
-  local query = action.query
+local function search(opts)
+  local query = opts.action.query
 
-  local max_results = action.max_results or opts.max_results or 500 -- Default limit to prevent overwhelming results
+  local max_results = opts.action.max_results or opts.max_results or 500 -- Default limit to prevent overwhelming results
 
   if not query or query == "" then
     return {
@@ -71,7 +69,8 @@ return {
     ---@param input? any The output from the previous function call
     ---@return { status: "success"|"error", data: string }
     function(self, args, input)
-      return search(args, self.tool.opts)
+      local tool_opts = self.tool.opts or {}
+      return search({ action = args, max_results = tool_opts.max_results })
     end,
   },
   schema = {

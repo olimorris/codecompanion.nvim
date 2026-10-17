@@ -16,33 +16,33 @@ local function resolve_local_file(path)
 end
 
 ---@param chat CodeCompanion.Chat
----@param path string
+---@param opts { path: string }
 ---@return string|nil
-local function attach_file(chat, path)
+local function attach_file(chat, opts)
   local slash_command = require("codecompanion.interactions.shared.slash_commands.file").new({
     Chat = chat,
     config = config.interactions.chat.slash_commands.file,
   })
-  if slash_command:output({ path = path }) then
-    return vim.fn.fnamemodify(path, ":.")
+  if slash_command:output({ path = opts.path }) then
+    return vim.fn.fnamemodify(opts.path, ":.")
   end
 end
 
 ---@param chat CodeCompanion.Chat
----@param url string
+---@param opts { url: string }
 ---@return string|nil
-local function attach_url(chat, url)
+local function attach_url(chat, opts)
   chat:_set_status({ key = "fetching", message = "Resolving URL..." })
   vim.cmd("redraw")
 
   local attached = require("codecompanion.interactions.chat.slash_commands.builtin.fetch").fetch_sync({
     cache = false,
     chat = chat,
-    url = url,
+    url = opts.url,
   })
 
   chat:_set_status({ key = "fetching", message = attached and "Resolved..." or "Could not resolve URL" })
-  return attached and url or nil
+  return attached and opts.url or nil
 end
 
 ---Attach any files or URLs that the user has linked to in their message
@@ -61,7 +61,7 @@ function M.attach(opts)
     local source = path or context_path.destination:match("^https?://.+")
     if source then
       if attached[source] == nil then
-        attached[source] = (path and attach_file(chat, path) or attach_url(chat, source)) or false
+        attached[source] = (path and attach_file(chat, { path = path }) or attach_url(chat, { url = source })) or false
       end
 
       local replacement = attached[source]

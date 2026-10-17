@@ -275,14 +275,13 @@ return {
       }
 
       ---Helper to create any tool data
-      ---@param tool table
-      ---@param index number
-      ---@param id string
+      ---@param opts { tool: table, index: number, id: string }
       ---@return table
-      local function create_tool_data(tool, index, id)
+      local function create_tool_data(opts)
+        local tool = opts.tool
         local tool_data = {
-          _index = index,
-          id = id,
+          _index = opts.index,
+          id = opts.id,
           type = tool.type,
           ["function"] = {
             name = tool["function"]["name"],
@@ -330,10 +329,10 @@ return {
                 end
 
                 if not found then
-                  table.insert(tools, create_tool_data(tool, tool_index, id))
+                  table.insert(tools, create_tool_data({ tool = tool, index = tool_index, id = id }))
                 end
               else
-                table.insert(tools, create_tool_data(tool, i, id))
+                table.insert(tools, create_tool_data({ tool = tool, index = i, id = id }))
               end
             end
           end

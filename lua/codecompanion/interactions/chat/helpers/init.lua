@@ -319,14 +319,13 @@ function M.format_file_for_llm(path, opts)
 end
 
 ---Add line numbers with an offset to content
----@param content string
----@param start_line number The starting line number
+---@param opts { content: string, start_line: number }
 ---@return string
-local function add_line_numbers_from(content, start_line)
+local function add_line_numbers_from(opts)
   local formatted = {}
-  local lines = vim.split(content, "\n")
+  local lines = vim.split(opts.content, "\n")
   for i, line in ipairs(lines) do
-    table.insert(formatted, fmt("%d |%s", start_line + i - 1, line))
+    table.insert(formatted, fmt("%d |%s", opts.start_line + i - 1, line))
   end
 
   return table.concat(formatted, "\n")
@@ -343,7 +342,7 @@ function M.format_viewport_range_for_llm(bufnr, range)
   local start_line, end_line = range[1], range[2]
 
   local buffer_content = buf_utils.get_content(bufnr, { start_line - 1, end_line })
-  local numbered_content = add_line_numbers_from(buffer_content, start_line)
+  local numbered_content = add_line_numbers_from({ content = buffer_content, start_line = start_line })
 
   local content = markdown.form_codeblock(numbered_content, { ft = info.filetype })
 

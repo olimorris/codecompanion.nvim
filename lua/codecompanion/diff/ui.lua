@@ -72,10 +72,10 @@ local function build_banner_text(opts)
 end
 
 ---Show banner in the diff buffer
----@param bufnr number
----@param opts { banner?: string, current_hunk: number, hunks: number, inline?: boolean, namespace: number, line?: number, overwrite?: boolean }
+---@param opts { bufnr: number, banner?: string, current_hunk: number, hunks: number, inline?: boolean, namespace: number, line?: number, overwrite?: boolean }
 ---@return number The namespace ID used for the banner extmark
-local function banner_virt_text(bufnr, opts)
+local function banner_virt_text(opts)
+  local bufnr = opts.bufnr
   local ns_id = api.nvim_create_namespace("codecompanion_diff_ui_" .. tostring(opts.namespace))
 
   if opts.overwrite then
@@ -104,13 +104,13 @@ local function banner_virt_text(bufnr, opts)
 end
 
 ---The row to show the banner below, so it sits just above the hunk or, at the top of the buffer, just below it
----@param bufnr number
----@param hunk CodeCompanion.diff.Hunk
+---@param opts { hunk: CodeCompanion.diff.Hunk, bufnr: number }
 ---@return number
-local function get_banner_row(bufnr, hunk)
+local function get_banner_row(opts)
+  local hunk = opts.hunk
   -- Deleted lines are drawn above the line after them, or below the last line
   local first_row = hunk.to_count == 0 and hunk.pos[1] + 1 or hunk.pos[1]
-  local line_count = api.nvim_buf_line_count(bufnr)
+  local line_count = api.nvim_buf_line_count(opts.bufnr)
   if first_row >= line_count then
     return line_count - 1
   end
@@ -167,14 +167,13 @@ function DiffUI:previous_hunk(line)
 end
 
 ---Replace `count` lines from `start`, where a count of 0 inserts after `start` as in a unified diff
----@param lines string[]
----@param opts { start: number, count: number, replacement: string[] }
+---@param opts { lines: string[], start: number, count: number, replacement: string[] }
 ---@return string[]
-local function splice(lines, opts)
+local function splice(opts)
   local first = opts.count == 0 and opts.start + 1 or opts.start
-  local result = vim.list_slice(lines, 1, first - 1)
+  local result = vim.list_slice(opts.lines, 1, first - 1)
   vim.list_extend(result, opts.replacement)
-  return vim.list_extend(result, vim.list_slice(lines, first + opts.count))
+  return vim.list_extend(result, vim.list_slice(opts.lines, first + opts.count))
 end
 
 ---The hunk under the cursor, or the one last navigated to
@@ -203,10 +202,11 @@ function DiffUI:resolve_hunk(index, opts)
   local from_lines, to_lines = self.diff.from.lines, self.diff.to.lines
   if opts.accept then
     local accepted = vim.list_slice(to_lines, hunk.to_start, hunk.to_start + hunk.to_count - 1)
-    from_lines = splice(from_lines, { start = hunk.from_start, count = hunk.from_count, replacement = accepted })
+    from_lines =
+      splice({ lines = from_lines, start = hunk.from_start, count = hunk.from_count, replacement = accepted })
   else
     local original = vim.list_slice(from_lines, hunk.from_start, hunk.from_start + hunk.from_count - 1)
-    to_lines = splice(to_lines, { start = hunk.to_start, count = hunk.to_count, replacement = original })
+    to_lines = splice({ lines = to_lines, start = hunk.to_start, count = hunk.to_count, replacement = original })
   end
 
   if vim.deep_equal(from_lines, to_lines) then
@@ -285,16 +285,14 @@ function DiffUI:close()
 end
 
 ---Set a single keymap for the diff buffer
----@param mode string
----@param lhs string
----@param handler { callback: function, desc: string }
+---@param opts { mode: string, lhs: string, handler: { callback: function, desc: string } }
 ---@return nil
-function DiffUI:_set_keymap(mode, lhs, handler)
-  vim.keymap.set(mode, lhs, function()
-    handler.callback(self)
+function DiffUI:_set_keymap(opts)
+  vim.keymap.set(opts.mode, opts.lhs, function()
+    opts.handler.callback(self)
   end, {
     buffer = self.bufnr,
-    desc = handler.desc,
+    desc = opts.handler.desc,
     silent = true,
     nowait = true,
   })
@@ -315,18 +313,18 @@ function DiffUI:setup_keymaps(opts)
       local handler = keymaps[name]
       if handler and (self.hunk_actions or not handler.hunk_action) then
         for mode, lhs in pairs(keymap.modes) do
-          self:_set_keymap(mode, lhs, handler)
+          self:_set_keymap({ mode = mode, lhs = lhs, handler = handler })
         end
       end
     end
   else
     -- Provide minimal navigation controls when skipping defaults
-    self:_set_keymap("n", shared_keymaps.next_hunk.modes.n, keymaps.next_hunk)
-    self:_set_keymap("n", shared_keymaps.previous_hunk.modes.n, keymaps.previous_hunk)
+    self:_set_keymap({ mode = "n", lhs = shared_keymaps.next_hunk.modes.n, handler = keymaps.next_hunk })
+    self:_set_keymap({ mode = "n", lhs = shared_keymaps.previous_hunk.modes.n, handler = keymaps.previous_hunk })
   end
 
   if not self.inline then
-    self:_set_keymap("n", "q", keymaps.close_window)
+    self:_set_keymap({ mode = "n", lhs = "q", handler = keymaps.close_window })
   end
 end
 
@@ -459,10 +457,11 @@ end
 ---@param bufnr number
 ---@return nil
 function DiffUI:apply_inline(diff, bufnr)
-  local function slice(lines, start_index, count)
+  ---@param opts { lines: string[], start_index: number, count: number }
+  local function slice(opts)
     local out = {}
-    for i = 0, count - 1 do
-      out[#out + 1] = lines[start_index + i]
+    for i = 0, opts.count - 1 do
+      out[#out + 1] = opts.lines[opts.start_index + i]
     end
     return out
   end
@@ -495,12 +494,12 @@ function DiffUI:apply_inline(diff, bufnr)
     local deleted_lines = {}
 
     if from_count > 0 then
-      deleted_lines = slice(diff.from.lines, from_start, from_count)
+      deleted_lines = slice({ lines = diff.from.lines, start_index = from_start, count = from_count })
       api.nvim_buf_set_lines(bufnr, from_index, from_index + from_count, false, {})
     end
 
     if to_count > 0 then
-      local added_lines = slice(diff.to.lines, to_start, to_count)
+      local added_lines = slice({ lines = diff.to.lines, start_index = to_start, count = to_count })
       api.nvim_buf_set_lines(bufnr, from_index, from_index, false, added_lines)
       for j = 0, to_count - 1 do
         pcall(api.nvim_buf_set_extmark, bufnr, self.ns, from_index + j, 0, {
@@ -576,11 +575,11 @@ local function show_in_float(opts)
 end
 
 ---Create and configure the diff window
----@param diff CC.Diff
----@param opts { cfg: CodeCompanion.WindowOpts, float: boolean, inline?: boolean, title?: string }
+---@param opts { diff: CC.Diff, cfg: CodeCompanion.WindowOpts, float: boolean, inline?: boolean, title?: string }
 ---@return number bufnr
 ---@return number|nil winnr
-local function create_diff_display(diff, opts)
+local function create_diff_display(opts)
+  local diff = opts.diff
   local bufnr, winnr
 
   if opts.float then
@@ -634,9 +633,10 @@ local function setup_banner(diff_ui, opts)
     end
 
     local hunk = diff_ui.diff.hunks[diff_ui.current_hunk]
-    local target_line = opts.inline and hunk and get_banner_row(bufnr, hunk) or nil
+    local target_line = opts.inline and hunk and get_banner_row({ hunk = hunk, bufnr = bufnr }) or nil
 
-    local ns_id = banner_virt_text(bufnr, {
+    local ns_id = banner_virt_text({
+      bufnr = bufnr,
       banner = opts.banner,
       current_hunk = diff_ui.current_hunk,
       hunks = diff_ui.hunks,
@@ -680,10 +680,10 @@ end
 
 ---Set up window close handler
 ---@param diff_ui CodeCompanion.DiffUI
----@param group number Autocommand group ID
----@param skip_default_keymaps boolean
-local function setup_close_handler(diff_ui, group, skip_default_keymaps)
+---@param opts { group: number, skip_default_keymaps: boolean }
+local function setup_close_handler(diff_ui, opts)
   local bufnr = diff_ui.bufnr
+  local group = opts.group
 
   -- Clean up on window/buffer close
   api.nvim_create_autocmd({ "WinClosed", "BufDelete" }, {
@@ -695,7 +695,7 @@ local function setup_close_handler(diff_ui, group, skip_default_keymaps)
   })
 
   -- Auto-reject on premature close (only if using default keymaps)
-  if not skip_default_keymaps then
+  if not opts.skip_default_keymaps then
     vim.api.nvim_clear_autocmds({ buffer = bufnr, event = "WinClosed" })
     api.nvim_create_autocmd("WinClosed", {
       group = group,
@@ -708,10 +708,10 @@ local function setup_close_handler(diff_ui, group, skip_default_keymaps)
   end
 end
 
----@param diff CC.Diff
----@param opts CodeCompanion.DiffUIOptions|{ bufnr: number, winnr?: number }
+---@param opts CodeCompanion.DiffUIOptions|{ diff: CC.Diff, bufnr: number, winnr?: number }
 ---@return CodeCompanion.DiffUI
-local function create_diff_ui(diff, opts)
+local function create_diff_ui(opts)
+  local diff = opts.diff
   local diff_id = opts.diff_id or math.random(10000000)
 
   return setmetatable({
@@ -759,16 +759,14 @@ function M.show(diff, opts)
   local cfg = vim.tbl_deep_extend("force", config.display.chat.floating_window or {}, config.display.diff.window or {})
 
   local bufnr, winnr =
-    create_diff_display(diff, { float = is_float, inline = is_inline, title = opts.title, cfg = cfg })
+    create_diff_display({ diff = diff, float = is_float, inline = is_inline, title = opts.title, cfg = cfg })
 
-  local diff_ui = create_diff_ui(
-    diff,
-    vim.tbl_extend("force", opts, {
-      bufnr = bufnr,
-      inline = opts.inline or not is_float,
-      winnr = winnr,
-    })
-  )
+  local diff_ui = create_diff_ui(vim.tbl_extend("force", opts, {
+    diff = diff,
+    bufnr = bufnr,
+    inline = opts.inline or not is_float,
+    winnr = winnr,
+  }))
 
   if is_inline then
     diff_ui:start_undo_block()
@@ -796,7 +794,7 @@ function M.show(diff, opts)
     })
   end
 
-  setup_close_handler(diff_ui, group, opts.skip_default_keymaps or false)
+  setup_close_handler(diff_ui, { group = group, skip_default_keymaps = opts.skip_default_keymaps or false })
 
   return diff_ui
 end

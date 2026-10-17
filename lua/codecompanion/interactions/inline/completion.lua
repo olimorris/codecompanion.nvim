@@ -69,14 +69,16 @@ local function extract_next_line(text)
 end
 
 ---Validate that cursor is within the completion range
----@param item table The completion item
----@param cursor_row number The current cursor row (0-indexed)
----@param cursor_col number The current cursor column (0-indexed)
+---@param opts { item: table, cursor_row: number, cursor_col: number }
 ---@return boolean valid Whether the completion is valid
-local function validate_completion(item, cursor_row, cursor_col)
+local function validate_completion(opts)
+  local item = opts.item
   if not item.range then
     return true
   end
+
+  local cursor_row = opts.cursor_row
+  local cursor_col = opts.cursor_col
 
   local start_row = item.range.start.row
   local start_col = item.range.start.col
@@ -116,18 +118,16 @@ local function get_insert_text(item)
 end
 
 ---Get the new text by removing the existing buffer text prefix
----@param item table The completion item
----@param text string The full completion text
----@param cursor_row number The current cursor row (0-indexed)
----@param cursor_col number The current cursor column (0-indexed)
+---@param opts { text: string, item: table, cursor_row: number, cursor_col: number }
 ---@return string new_text The text after removing existing prefix
-local function get_new_text(item, text, cursor_row, cursor_col)
+local function get_new_text(opts)
+  local text = opts.text
   local bufnr = api.nvim_get_current_buf()
-  local start_row = item.range.start.row
-  local start_col = item.range.start.col
+  local start_row = opts.item.range.start.row
+  local start_col = opts.item.range.start.col
 
   -- Use cursor position instead of range.end_ to handle auto-pairs
-  local existing_lines = api.nvim_buf_get_text(bufnr, start_row, start_col, cursor_row, cursor_col, {})
+  local existing_lines = api.nvim_buf_get_text(bufnr, start_row, start_col, opts.cursor_row, opts.cursor_col, {})
   local existing_text = table.concat(existing_lines, "\n")
 
   if vim.startswith(text, existing_text) then
@@ -138,14 +138,13 @@ local function get_new_text(item, text, cursor_row, cursor_col)
 end
 
 ---Insert text at cursor (replacing to range end) and move cursor to the end
----@param text string The text to insert
----@param cursor_row number The current cursor row (0-indexed)
----@param cursor_col number The current cursor column (0-indexed)
----@param end_row number The range end row (0-indexed)
----@param end_col number The range end column (0-indexed)
-local function insert_and_move_cursor(text, cursor_row, cursor_col, end_row, end_col)
+---@param opts { text: string, cursor_row: number, cursor_col: number, end_row: number, end_col: number }
+local function insert_and_move_cursor(opts)
+  local text = opts.text
+  local cursor_row = opts.cursor_row
+  local cursor_col = opts.cursor_col
   local lines = vim.split(text, "\n", { plain = true })
-  api.nvim_buf_set_text(0, cursor_row, cursor_col, end_row, end_col, lines)
+  api.nvim_buf_set_text(0, cursor_row, cursor_col, opts.end_row, opts.end_col, lines)
 
   -- Move cursor to the end of the inserted text
   local new_row, new_col
@@ -175,7 +174,7 @@ local function accept_partial(extract_fn)
       local cursor_row = cursor[1] - 1 -- Convert to 0-indexed
       local cursor_col = cursor[2]
 
-      if not validate_completion(item, cursor_row, cursor_col) then
+      if not validate_completion({ item = item, cursor_row = cursor_row, cursor_col = cursor_col }) then
         return
       end
 
@@ -184,7 +183,7 @@ local function accept_partial(extract_fn)
         return
       end
 
-      local new_text = get_new_text(item, text, cursor_row, cursor_col)
+      local new_text = get_new_text({ text = text, item = item, cursor_row = cursor_row, cursor_col = cursor_col })
 
       local extracted = extract_fn(new_text)
       if not extracted then
@@ -192,9 +191,13 @@ local function accept_partial(extract_fn)
         return
       end
 
-      local end_row = item.range.end_.row
-      local end_col = item.range.end_.col
-      insert_and_move_cursor(extracted, cursor_row, cursor_col, end_row, end_col)
+      insert_and_move_cursor({
+        text = extracted,
+        cursor_row = cursor_row,
+        cursor_col = cursor_col,
+        end_row = item.range.end_.row,
+        end_col = item.range.end_.col,
+      })
       accepted = true
     end,
   })

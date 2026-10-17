@@ -453,10 +453,11 @@ function Connection:_establish_session()
     session_args.mcpServers = require("codecompanion.mcp").transform_to_acp()
   end
 
-  local function apply_session_metadata(session_data, source)
-    if session_data.configOptions then
-      self:_apply_config_options(session_data.configOptions)
-      log:debug("[acp::_establish_session] %s config options applied", source)
+  ---@param opts { session_data: table, source: string }
+  local function apply_session_metadata(opts)
+    if opts.session_data.configOptions then
+      self:_apply_config_options(opts.session_data.configOptions)
+      log:debug("[acp::_establish_session] %s config options applied", opts.source)
     end
   end
 
@@ -466,7 +467,7 @@ function Connection:_establish_session()
       vim.tbl_extend("force", session_args, { sessionId = self.session_id })
     )
     if loaded_session then
-      apply_session_metadata(loaded_session, "Loaded session")
+      apply_session_metadata({ session_data = loaded_session, source = "Loaded session" })
     else
       can_load = false
     end
@@ -479,7 +480,7 @@ function Connection:_establish_session()
       return false
     end
     self.session_id = new_session.sessionId
-    apply_session_metadata(new_session, "New session")
+    apply_session_metadata({ session_data = new_session, source = "New session" })
   end
 
   log:debug("[acp] Session established: %s", self.session_id)

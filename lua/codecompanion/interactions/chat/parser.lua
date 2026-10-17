@@ -28,11 +28,10 @@ local function context_path_query()
   return cached_context_path_query
 end
 
----@param root TSNode
----@param row number
+---@param opts { root: TSNode, row: number }
 ---@return TSNode|nil
-local function get_enclosing_fence(root, row)
-  local node = root:descendant_for_range(row, 0, row, 0)
+local function get_enclosing_fence(opts)
+  local node = opts.root:descendant_for_range(opts.row, 0, opts.row, 0)
 
   while node do
     if node:type() == "fenced_code_block" then
@@ -114,10 +113,10 @@ end
 
 ---If user messages cannot be found by Tree-sitter, attempt to recover them by reading the buffer directly
 ---@param chat CodeCompanion.Chat
----@param start_range number
+---@param opts { start_range: number }
 ---@return { content: string }|nil
-local function recover_messages(chat, start_range)
-  local lines = vim.api.nvim_buf_get_lines(chat.bufnr, start_range, -1, false) -- start_range is 1-based
+local function recover_messages(chat, opts)
+  local lines = vim.api.nvim_buf_get_lines(chat.bufnr, opts.start_range, -1, false) -- start_range is 1-based
 
   while lines[1] and vim.trim(lines[1]) == "" do
     table.remove(lines, 1)
@@ -130,7 +129,7 @@ local function recover_messages(chat, start_range)
     return nil
   end
 
-  log:debug("[chat::parser] Recovered %d line(s) of user message from row %d", #lines, start_range)
+  log:debug("[chat::parser] Recovered %d line(s) of user message from row %d", #lines, opts.start_range)
 
   return { content = content }
 end
@@ -163,25 +162,24 @@ function M.messages(chat, start_range)
 
   -- Handle the case of a header being buried in a markdown code block
   local full_root = chat.parsers.markdown:parse({ 0, -1 })[1]:root()
-  if not get_enclosing_fence(full_root, start_range - 1) then
+  if not get_enclosing_fence({ root = full_root, row = start_range - 1 }) then
     return nil
   end
 
-  return recover_messages(chat, start_range)
+  return recover_messages(chat, { start_range = start_range })
 end
 
 ---If headers cannot be found by Tree-sitter, attempt to recover them
 ---@param chat CodeCompanion.Chat
----@param root TSNode
----@param from_row number
+---@param opts { root: TSNode, from_row: number }
 ---@return number|nil
-local function recover_headers(chat, root, from_row)
-  local lines = vim.api.nvim_buf_get_lines(chat.bufnr, from_row, -1, false)
+local function recover_headers(chat, opts)
+  local lines = vim.api.nvim_buf_get_lines(chat.bufnr, opts.from_row, -1, false)
   for i = #lines, 1, -1 do
     local heading = lines[i]:match("^##%s+(.-)%s*$")
     if heading and helpers.format_role(heading) == config.interactions.chat.roles.user then
-      local row = from_row + i - 1
-      local fence = get_enclosing_fence(root, row)
+      local row = opts.from_row + i - 1
+      local fence = get_enclosing_fence({ root = opts.root, row = row })
       if fence and is_unclosed(fence) then
         return row
       end
@@ -212,7 +210,7 @@ function M.headers(chat)
 
   -- Without this, a heading inside an unclosed fence would take precedence over a chat header
   if not ends_with_user_header then
-    local recovered = recover_headers(chat, root, last_match and (last_match:range() + 1) or 0)
+    local recovered = recover_headers(chat, { root = root, from_row = last_match and (last_match:range() + 1) or 0 })
     if recovered then
       return recovered
     end

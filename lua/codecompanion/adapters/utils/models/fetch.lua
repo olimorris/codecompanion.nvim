@@ -43,12 +43,12 @@ local function fresh(cache)
 end
 
 ---Parse the API response into model choices and cache them
----@param cache table
----@param json table
+---@param opts { cache: table, json: table }
 ---@return nil
-local function store(cache, json)
+local function store(opts)
+  local cache = opts.cache
   local models = {}
-  for _, model in ipairs(json.data) do
+  for _, model in ipairs(opts.json.data) do
     local id, choice = cache.transform(model)
     if id then
       models[id] = choice
@@ -60,11 +60,10 @@ local function store(cache, json)
 end
 
 ---Kick off a non-blocking request for the model list, unless one is already running
----@param spec CodeCompanion.Adapter.ModelFetcher.Spec
----@param adapter CodeCompanion.HTTPAdapter
----@param request_opts? CodeCompanion.Adapter.ModelFetcher.RequestOpts
+---@param opts { spec: CodeCompanion.Adapter.ModelFetcher.Spec, adapter: CodeCompanion.HTTPAdapter, request_opts?: CodeCompanion.Adapter.ModelFetcher.RequestOpts }
 ---@return nil
-local function request(spec, adapter, request_opts)
+local function request(opts)
+  local spec, adapter, request_opts = opts.spec, opts.adapter, opts.request_opts
   local cache = cache_for(spec)
   if fresh(cache) or cache.in_progress then
     return
@@ -97,7 +96,7 @@ local function request(spec, adapter, request_opts)
           return
         end
 
-        store(cache, json)
+        store({ cache = cache, json = json })
       end),
     })
   end)
@@ -109,25 +108,23 @@ local function request(spec, adapter, request_opts)
 end
 
 ---Block until the model list is available, or the request times out
----@param spec CodeCompanion.Adapter.ModelFetcher.Spec
----@param adapter CodeCompanion.HTTPAdapter
----@param request_opts? CodeCompanion.Adapter.ModelFetcher.RequestOpts
+---@param opts { spec: CodeCompanion.Adapter.ModelFetcher.Spec, adapter: CodeCompanion.HTTPAdapter, request_opts?: CodeCompanion.Adapter.ModelFetcher.RequestOpts }
 ---@return table<string, CodeCompanion.Adapter.ModelChoice>
-local function wait(spec, adapter, request_opts)
-  local cache = cache_for(spec)
+local function wait(opts)
+  local cache = cache_for(opts.spec)
   local models = fresh(cache)
   if models then
     return models
   end
 
-  request(spec, adapter, request_opts)
+  request(opts)
 
   local ok = vim.wait(CONSTANTS.TIMEOUT, function()
     return fresh(cache) ~= nil
   end, CONSTANTS.POLL_INTERVAL)
 
   if not ok then
-    log:error("Timeout waiting for %s models", spec.name)
+    log:error("Timeout waiting for %s models", opts.spec.name)
     return {}
   end
 
@@ -144,11 +141,11 @@ function M.get(spec, adapter, request_opts)
 
   -- Blocking
   if request_opts and request_opts.async == false then
-    return wait(spec, adapter, request_opts)
+    return wait({ spec = spec, adapter = adapter, request_opts = request_opts })
   end
 
   -- Async
-  request(spec, adapter, request_opts)
+  request({ spec = spec, adapter = adapter, request_opts = request_opts })
   return fresh(cache) or {}
 end
 

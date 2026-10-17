@@ -34,13 +34,11 @@ local CONSTANTS = {
 local M = {}
 
 ---Run a git command in the repo, returning the finished process
----@param root string
----@param args string[]
----@param env? table<string, string>
+---@param opts { root: string, args: string[], env?: table<string, string> }
 ---@return vim.SystemCompleted|nil
-local function run(root, args, env)
+local function run(opts)
   local ok, result = pcall(function()
-    return vim.system(vim.list_extend({ "git" }, args), { cwd = root, env = env, text = true }):wait()
+    return vim.system(vim.list_extend({ "git" }, opts.args), { cwd = opts.root, env = opts.env, text = true }):wait()
   end)
 
   if not ok then
@@ -51,12 +49,10 @@ local function run(root, args, env)
 end
 
 ---Run a git command in the repo, returning trimmed stdout or nil on failure
----@param root string
----@param args string[]
----@param env? table<string, string>
+---@param opts { root: string, args: string[], env?: table<string, string> }
 ---@return string|nil
-local function git(root, args, env)
-  local result = run(root, args, env)
+local function git(opts)
+  local result = run(opts)
   if not result or result.code ~= 0 then
     return nil
   end
@@ -72,7 +68,7 @@ local git_dirs = {}
 ---@return string|nil
 local function git_dir(root)
   if not git_dirs[root] then
-    git_dirs[root] = git(root, { "rev-parse", "--absolute-git-dir" })
+    git_dirs[root] = git({ root = root, args = { "rev-parse", "--absolute-git-dir" } })
   end
 
   return git_dirs[root]
@@ -91,30 +87,28 @@ local function ref_for(root)
 end
 
 ---Point the stable alias ref at the baseline in use, for gitsigns/diffview
----@param root string
----@param ref string
+---@param opts { root: string, ref: string }
 ---@return nil
-local function sync_alias(root, ref)
-  if ref ~= CONSTANTS.REF_ALIAS then
-    git(root, { "update-ref", CONSTANTS.REF_ALIAS, ref })
+local function sync_alias(opts)
+  if opts.ref ~= CONSTANTS.REF_ALIAS then
+    git({ root = opts.root, args = { "update-ref", CONSTANTS.REF_ALIAS, opts.ref } })
   end
 end
 
 ---Copy the user's index to seed CodeCompanion's, the basis for the baseline snapshot
----@param root string
----@param index string
+---@param opts { root: string, index: string }
 ---@return nil
-local function seed(root, index)
-  if vim.uv.fs_stat(index) then
+local function seed(opts)
+  if vim.uv.fs_stat(opts.index) then
     return
   end
 
-  local dir = git_dir(root)
+  local dir = git_dir(opts.root)
   if not dir then
     return
   end
 
-  vim.uv.fs_copyfile(vim.fs.joinpath(dir, "index"), index)
+  vim.uv.fs_copyfile(vim.fs.joinpath(dir, "index"), opts.index)
 end
 
 ---Did the git command abort?
@@ -127,18 +121,17 @@ local function aborted(result)
 end
 
 ---Add the worktree to an index, returning a tree
----@param root string
----@param index string
+---@param opts { root: string, index: string }
 ---@return string|nil
-local function write_tree(root, index)
-  local env = { GIT_INDEX_FILE = index }
+local function write_tree(opts)
+  local env = { GIT_INDEX_FILE = opts.index }
 
   -- Skip the paths that git can't index
-  if aborted(run(root, { "add", "--all", "--ignore-errors", "." }, env)) then
+  if aborted(run({ root = opts.root, args = { "add", "--all", "--ignore-errors", "." }, env = env })) then
     return nil
   end
 
-  return git(root, { "write-tree" }, env)
+  return git({ root = opts.root, args = { "write-tree" }, env = env })
 end
 
 ---Discard an index, allowing it to be rebuilt later
@@ -167,18 +160,18 @@ local function write_worktree(root)
   end
 
   local index = vim.fs.joinpath(dir, CONSTANTS.INDEX_NAME)
-  seed(root, index)
+  seed({ root = root, index = index })
 
-  local tree = write_tree(root, index)
+  local tree = write_tree({ root = root, index = index })
   if tree then
     return tree
   end
 
   log:info("[Code Review] Rebuilding `%s`", index)
   discard(index)
-  seed(root, index)
+  seed({ root = root, index = index })
 
-  return write_tree(root, index)
+  return write_tree({ root = root, index = index })
 end
 
 ---Summarise the first changed line in a hunk so it can be displayed to the user
@@ -277,7 +270,7 @@ end
 ---@param root string
 ---@return string|nil
 function M.get_branch(root)
-  local branch = git(root, { "branch", "--show-current" })
+  local branch = git({ root = root, args = { "branch", "--show-current" } })
   if not branch or branch == "" then
     return nil
   end
@@ -316,7 +309,7 @@ end
 ---@param root string
 ---@return string|nil
 function M.get(root)
-  local sha = git(root, { "rev-parse", "--quiet", "--verify", ref_for(root) })
+  local sha = git({ root = root, args = { "rev-parse", "--quiet", "--verify", ref_for(root) } })
   if not sha or sha == "" then
     return nil
   end
@@ -329,17 +322,17 @@ end
 ---@return string|nil
 function M.fork_point(root)
   local candidates = { "main", "master" }
-  local configured = git(root, { "config", "--get", "init.defaultBranch" })
+  local configured = git({ root = root, args = { "config", "--get", "init.defaultBranch" } })
   if configured then
     table.insert(candidates, 1, configured)
   end
-  local remote = git(root, { "symbolic-ref", "--quiet", "--short", "refs/remotes/origin/HEAD" })
+  local remote = git({ root = root, args = { "symbolic-ref", "--quiet", "--short", "refs/remotes/origin/HEAD" } })
   if remote then
     table.insert(candidates, 1, remote)
   end
 
   for _, branch in ipairs(candidates) do
-    local fork_point = git(root, { "merge-base", "HEAD", branch })
+    local fork_point = git({ root = root, args = { "merge-base", "HEAD", branch } })
     if fork_point then
       return fork_point
     end
@@ -352,11 +345,11 @@ end
 ---@return boolean
 function M.set(root, commit)
   local ref = ref_for(root)
-  if not git(root, { "update-ref", ref, commit }) then
+  if not git({ root = root, args = { "update-ref", ref, commit } }) then
     return false
   end
 
-  sync_alias(root, ref)
+  sync_alias({ root = root, ref = ref })
   return true
 end
 
@@ -366,15 +359,20 @@ end
 function M.snapshot(root)
   local ref = ref_for(root)
   local tree = write_worktree(root)
-  local commit = tree and git(root, { "commit-tree", tree, "-m", "CodeCompanion review baseline" }, CONSTANTS.IDENTITY)
-  local updated = commit and git(root, { "update-ref", ref, commit })
+  local commit = tree
+    and git({
+      root = root,
+      args = { "commit-tree", tree, "-m", "CodeCompanion review baseline" },
+      env = CONSTANTS.IDENTITY,
+    })
+  local updated = commit and git({ root = root, args = { "update-ref", ref, commit } })
 
   if not updated then
     log:info("[Code Review] Could not snapshot the review baseline")
     return nil
   end
 
-  sync_alias(root, ref)
+  sync_alias({ root = root, ref = ref })
   return commit
 end
 
@@ -382,7 +380,7 @@ end
 ---@param root string
 ---@return boolean
 function M.worktree_matches(root)
-  local tree = git(root, { "rev-parse", "--quiet", "--verify", ref_for(root) .. "^{tree}" })
+  local tree = git({ root = root, args = { "rev-parse", "--quiet", "--verify", ref_for(root) .. "^{tree}" } })
   if not tree or tree == "" then
     return false
   end
@@ -400,18 +398,21 @@ function M.diff(root)
   end
 
   local ref = ref_for(root)
-  sync_alias(root, ref)
+  sync_alias({ root = root, ref = ref })
 
   -- Split the same way as the review window's `vim.diff`, or its rows can't be matched to these hunks
-  local output = git(root, {
-    "diff",
-    "--no-color",
-    "--no-ext-diff",
-    "--unified=0",
-    "--diff-algorithm=" .. diff.LINE_OPTS.algorithm,
-    diff.LINE_OPTS.indent_heuristic and "--indent-heuristic" or "--no-indent-heuristic",
-    ref,
-    worktree,
+  local output = git({
+    root = root,
+    args = {
+      "diff",
+      "--no-color",
+      "--no-ext-diff",
+      "--unified=0",
+      "--diff-algorithm=" .. diff.LINE_OPTS.algorithm,
+      diff.LINE_OPTS.indent_heuristic and "--indent-heuristic" or "--no-indent-heuristic",
+      ref,
+      worktree,
+    },
   })
   if not output or output == "" then
     return {}

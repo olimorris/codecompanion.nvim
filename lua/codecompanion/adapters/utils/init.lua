@@ -214,17 +214,16 @@ local function is_env_var(var)
 end
 
 ---Run the command in the environment variable
----@param var string
----@param timeout number
+---@param opts { var: string, timeout: number }
 ---@return string|nil
-local function run_cmd(var, timeout)
+local function run_cmd(opts)
   log:trace("[Adapters] Detected cmd in environment variable")
 
-  local cmd = var:sub(5)
+  local cmd = opts.var:sub(5)
 
   local shell_cmd = require("codecompanion.utils.os").build_shell_command(cmd)
 
-  local obj = vim.system(shell_cmd, { text = true, timeout = timeout })
+  local obj = vim.system(shell_cmd, { text = true, timeout = opts.timeout })
   if not obj then
     return log:error("[Adapters] Could not execute cmd: %s", cmd)
   end
@@ -253,13 +252,13 @@ end
 
 ---Get the schema value
 ---@param adapter table
----@param var string
+---@param opts { var: string }
 ---@return string|nil
-local function get_schema(adapter, var)
-  log:trace("Fetching variable from schema: %s", var)
+local function get_schema(adapter, opts)
+  log:trace("Fetching variable from schema: %s", opts.var)
 
   local keys = {}
-  for key in var:gmatch("[^%.]+") do
+  for key in opts.var:gmatch("[^%.]+") do
     table.insert(keys, key)
   end
 
@@ -283,9 +282,10 @@ end
 
 ---Replace a variable with its value e.g. "${var}" -> "value"
 ---@param adapter table
----@param str string
+---@param opts { str: string }
 ---@return string
-local function replace_var(adapter, str)
+local function replace_var(adapter, opts)
+  local str = opts.str
   if type(str) ~= "string" then
     return str
   end
@@ -315,7 +315,7 @@ function M.get_env_vars(adapter, args)
   for k, v in pairs(env_vars) do
     if type(v) == "string" and is_cmd(v) then
       local timeout = (args and args.timeout) or 5000
-      adapter.env_replaced[k] = run_cmd(v, timeout)
+      adapter.env_replaced[k] = run_cmd({ var = v, timeout = timeout })
     elseif type(v) == "string" and is_file(v) then
       adapter.env_replaced[k] = read_file(v)
     elseif type(v) == "string" and is_env_var(v) then
@@ -323,7 +323,7 @@ function M.get_env_vars(adapter, args)
     elseif type(v) == "function" then
       adapter.env_replaced[k] = v(adapter)
     else
-      local schema = get_schema(adapter, v)
+      local schema = get_schema(adapter, { var = v })
       if schema then
         adapter.env_replaced[k] = schema
       else
@@ -343,14 +343,14 @@ function M.set_env_vars(adapter, object)
   local obj_copy = vim.deepcopy(object)
 
   if type(obj_copy) == "string" then
-    return replace_var(adapter, obj_copy)
+    return replace_var(adapter, { str = obj_copy })
   elseif type(obj_copy) == "table" then
     local replaced = {}
     for k, v in pairs(obj_copy) do
       if type(v) == "string" then
-        replaced[k] = replace_var(adapter, v)
+        replaced[k] = replace_var(adapter, { str = v })
       elseif type(v) == "function" then
-        replaced[k] = replace_var(adapter, v(adapter))
+        replaced[k] = replace_var(adapter, { str = v(adapter) })
       else
         replaced[k] = v
       end

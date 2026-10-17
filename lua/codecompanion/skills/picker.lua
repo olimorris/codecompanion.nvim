@@ -18,12 +18,11 @@ local function pad(name, width)
 end
 
 ---Map a picker's chosen display string back to its item
----@param items table[]
----@param display string
+---@param opts { items: table[], display: string }
 ---@return table|nil
-local function find_by_display(items, display)
-  return vim.iter(items):find(function(item)
-    return item.display == display
+local function find_by_display(opts)
+  return vim.iter(opts.items):find(function(item)
+    return item.display == opts.display
   end)
 end
 
@@ -172,7 +171,7 @@ function M.build(opts)
       })
 
       local source = mini_pick:display(function(selected)
-        return find_by_display(items, selected)
+        return find_by_display({ items = items, display = selected })
       end)
       source.source.items = vim.tbl_map(function(item)
         return item.display
@@ -180,7 +179,7 @@ function M.build(opts)
 
       if opts.preview then
         source.source.preview = function(buf_id, display)
-          local item = find_by_display(items, display)
+          local item = find_by_display({ items = items, display = display })
           return mini_pick.provider.default_preview(buf_id, item.path)
         end
       end
@@ -206,13 +205,13 @@ function M.build(opts)
       })
 
       local display = fzf:display(function(selected)
-        return find_by_display(items, selected)
+        return find_by_display({ items = items, display = selected })
       end)
 
       if opts.preview then
         local previewer = require("fzf-lua.previewer.builtin").buffer_or_file:extend()
         function previewer:entry_to_file(entry)
-          local item = find_by_display(items, entry)
+          local item = find_by_display({ items = items, display = entry })
           return { path = item and item.path }
         end
         -- fzf-lua's `tbl_deep_extend` merge with its defaults drops the class metatable; `_ctor` survives it

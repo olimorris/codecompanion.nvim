@@ -95,12 +95,13 @@ end
 
 ---Add the answer summary to the chat buffer
 ---@param chat CodeCompanion.Chat
----@param answer string|nil
-local function add_summary(chat, answer)
+---@param opts? { answer?: string }
+local function add_summary(chat, opts)
+  opts = opts or {}
   local icons = config.display.chat.icons
-  if answer then
+  if opts.answer then
     return chat:add_buf_message(
-      { content = fmt("%sYou answered: %s\n\n---\n", icons.tool_success, answer) },
+      { content = fmt("%sYou answered: %s\n\n---\n", icons.tool_success, opts.answer) },
       { _icon_info = { has_icon = true, status = "completed" } }
     )
   end
@@ -206,7 +207,7 @@ function M.ask(chat, opts)
     end
     resolved = true
     overrides:restore()
-    add_summary(chat, answer)
+    add_summary(chat, { answer = answer })
     utils.fire("ToolQuestionAnswered", {
       answer = answer,
       bufnr = bufnr,

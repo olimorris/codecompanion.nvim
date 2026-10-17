@@ -35,15 +35,15 @@ function Filter.create_filter(config)
   end
 
   ---Evaluate if an item should be enabled
-  ---@param item_config table The item configuration
-  ---@param opts table Options passed to the enabled function
+  ---@param opts { item_config: table, enabled_opts: table }
   ---@return boolean
-  local function evaluate_enabled(item_config, opts)
+  local function evaluate_enabled(opts)
+    local item_config = opts.item_config
     local is_enabled = true
 
     if item_config.enabled ~= nil then
       if type(item_config.enabled) == "function" then
-        local ok, result = pcall(item_config.enabled, opts)
+        local ok, result = pcall(item_config.enabled, opts.enabled_opts)
         if ok then
           -- Convert result to boolean (handles nil -> false)
           is_enabled = result and true or false
@@ -59,20 +59,20 @@ function Filter.create_filter(config)
   end
 
   ---Get enabled items from the cache or compute them
-  ---@param items_cfg table The items configuration
-  ---@param opts? table Options to pass to enabled functions
+  ---@param opts { items_cfg: table, enabled_opts?: table }
   ---@return table<string, boolean> Map of item names to enabled status
-  local function get_enabled_items(items_cfg, opts)
-    opts = opts or {}
+  local function get_enabled_items(opts)
+    local items_cfg = opts.items_cfg
+    local enabled_opts = opts.enabled_opts or {}
 
     -- Create a cache key that includes both config and adapter state
     -- Use a simplified adapter representation to ensure reliable hashing
     local adapter_key = nil
-    if opts.adapter then
+    if enabled_opts.adapter then
       adapter_key = {
-        name = opts.adapter.name,
-        type = opts.adapter.type,
-        opts = opts.adapter.opts,
+        name = enabled_opts.adapter.name,
+        type = enabled_opts.adapter.type,
+        opts = enabled_opts.adapter.opts,
       }
     end
 
@@ -104,7 +104,7 @@ function Filter.create_filter(config)
       end
 
       if not should_skip then
-        local is_enabled = evaluate_enabled(item_config, opts)
+        local is_enabled = evaluate_enabled({ item_config = item_config, enabled_opts = enabled_opts })
         _cache[item_name] = is_enabled
       end
     end
@@ -123,7 +123,7 @@ function Filter.create_filter(config)
       merged_config = config.pre_filter(items_cfg)
     end
 
-    local enabled_items = get_enabled_items(merged_config, opts)
+    local enabled_items = get_enabled_items({ items_cfg = merged_config, enabled_opts = opts })
     local filtered_cfg = vim.deepcopy(merged_config)
 
     -- Remove disabled items
@@ -150,7 +150,7 @@ function Filter.create_filter(config)
   ---@param opts? table
   ---@return boolean
   function Filter.is_enabled(item_name, items_cfg, opts)
-    local enabled_items = get_enabled_items(items_cfg, opts)
+    local enabled_items = get_enabled_items({ items_cfg = items_cfg, enabled_opts = opts })
     return enabled_items[item_name] == true
   end
 
