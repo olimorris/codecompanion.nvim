@@ -474,18 +474,14 @@ function Client:request(payload, actions, opts)
     end)
   end
 
-  local job, err = self.methods[Client.resolve_method(adapter)](request_opts)
-  if not job then
-    request_opts.on_error(err)
-    return nil
-  end
-
   opts.id = opts.id or math.random(10000000)
   opts.adapter = adapter_event_data(adapter)
 
   if not opts.silent then
     utils.fire("RequestStarted", opts)
   end
+
+  local job = self.methods[Client.resolve_method(adapter)](request_opts)
 
   if job and job.args then
     log:debug("Request:\n%s", job.args)

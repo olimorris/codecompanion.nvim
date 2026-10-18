@@ -79,7 +79,7 @@ local function request(spec, adapter, request_opts)
   cache.in_progress = true
   local url = type(spec.url) == "function" and spec.url(adapter, request_opts) or spec.url
 
-  local job, err = Curl.get({
+  Curl.get({
     url = url,
     headers = headers,
     insecure = config.adapters.http.opts.allow_insecure,
@@ -95,16 +95,11 @@ local function request(spec, adapter, request_opts)
 
       store(cache, json)
     end,
-    on_error = function(request_err)
+    on_error = function(err)
       cache.in_progress = false
-      log:error("Could not get the %s models from %s\nError: %s", spec.name, url, request_err.message)
+      log:error("Could not get the %s models from %s\nError: %s", spec.name, url, err.message)
     end,
   })
-
-  if not job then
-    cache.in_progress = false
-    log:error("Could not start async request for %s models: %s", spec.name, err.message)
-  end
 end
 
 ---Block until the model list is available, or the request times out

@@ -6,20 +6,20 @@ local fmt = string.format
 local M = {}
 
 ---@class CodeCompanion.Curl.Opts
----@field url string
----@field method? "GET"|"POST"
----@field headers? table<string, string>
 ---@field body? string
 ---@field body_file? string
----@field output? string
----@field raw? string[]
----@field insecure? boolean
----@field proxy? string
----@field compressed? boolean
----@field timeout? number
----@field stream? fun(err: nil, line: string)
 ---@field callback? fun(response: CodeCompanion.Curl.Response)
+---@field compressed? boolean
+---@field headers? table<string, string>
+---@field insecure? boolean
+---@field method? "GET"|"POST"
 ---@field on_error? fun(err: CodeCompanion.Curl.Error)
+---@field output? string
+---@field proxy? string
+---@field raw? string[]
+---@field stream? fun(err: nil, line: string)
+---@field timeout? number
+---@field url string
 
 ---@class CodeCompanion.Curl.Request : CodeCompanion.Curl.Opts
 ---@field method "GET"|"POST"
@@ -159,22 +159,28 @@ local function read_stdout(opts)
   end
 end
 
+---@param opts { request: CodeCompanion.Curl.Request, err: CodeCompanion.Curl.Error }
+local function report_error(opts)
+  if opts.request.on_error then
+    return opts.request.on_error(opts.err)
+  end
+  log:error("[curl] %s", opts.err.message)
+end
+
 ---@param opts { request: CodeCompanion.Curl.Request, result: vim.SystemCompleted }
 local function finish_async(opts)
-  local request = opts.request
   local response, err = build_response(opts)
-  if err and request.on_error then
-    return request.on_error(err)
-  elseif err then
-    return log:error("[curl] %s", err.message)
+  if err then
+    return report_error({ request = opts.request, err = err })
   end
-  if request.callback then
-    request.callback(response)
+  ---@cast response CodeCompanion.Curl.Response
+  if opts.request.callback then
+    opts.request.callback(response)
   end
 end
 
 ---@param request CodeCompanion.Curl.Request
----@return CodeCompanion.Curl.Job|nil, CodeCompanion.Curl.Error|nil
+---@return CodeCompanion.Curl.Job
 local function request_async(request)
   local chunks = {}
 
@@ -192,15 +198,17 @@ local function request_async(request)
     end,
   })
   if not process then
-    return nil, err
+    ---@cast err CodeCompanion.Curl.Error
+    vim.schedule(function()
+      report_error({ request = request, err = err })
+    end)
+    return { args = request.args, shutdown = function() end }
   end
 
   return {
     args = request.args,
     shutdown = function()
-      if not process:is_closing() then
-        process:kill("sigterm")
-      end
+      process:kill("sigterm")
     end,
   }
 end
