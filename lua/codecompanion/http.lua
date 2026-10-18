@@ -52,13 +52,12 @@ local function write_headers_file(headers)
   return path
 end
 
----@param paths string[]
----@param status? string
-local function delete_temp_files(paths, status)
-  if status == "error" or not vim.tbl_contains({ "ERROR", "INFO" }, config.opts.log_level) then
+---@param opts { paths: string[], status?: string }
+local function delete_temp_files(opts)
+  if opts.status == "error" or not vim.tbl_contains({ "ERROR", "INFO" }, config.opts.log_level) then
     return
   end
-  for _, path in ipairs(paths) do
+  for _, path in ipairs(opts.paths) do
     files.delete(path)
   end
 end
@@ -120,11 +119,10 @@ end
 
 ---Build and encode the request body from the adapter handlers and payload
 ---@param self CodeCompanion.HTTPClient
----@param adapter CodeCompanion.HTTPAdapter
----@param payload CodeCompanion.HTTPPayload
+---@param opts { adapter: CodeCompanion.HTTPAdapter, payload: CodeCompanion.HTTPPayload }
 ---@return string
-local function encode_body(self, adapter, payload)
-  return self.methods.encode(Client.merge_body(adapter, payload))
+local function encode_body(self, opts)
+  return self.methods.encode(Client.merge_body(opts.adapter, opts.payload))
 end
 
 ---Assemble the curl args shared by every request, plus the adapter's headers file
@@ -322,7 +320,7 @@ function Client:send_sync(payload, opts)
     return nil, { message = msg, stderr = msg }
   end
 
-  local body_file = write_body_file(encode_body(self, adapter, payload))
+  local body_file = write_body_file(encode_body(self, { adapter = adapter, payload = payload }))
   local raw, headers_file = Client.build_curl_args(adapter)
 
   local request_opts = {
@@ -355,7 +353,7 @@ function Client:send_sync(payload, opts)
     utils.fire("RequestFinished", event_opts)
   end
 
-  delete_temp_files({ body_file, headers_file }, err and "error" or "success")
+  delete_temp_files({ paths = { body_file, headers_file }, status = err and "error" or "success" })
   return response, err
 end
 
@@ -388,7 +386,7 @@ function Client:request(payload, actions, opts)
     return log:error("Failed to setup adapter")
   end
 
-  local body_file = write_body_file(encode_body(self, adapter, payload))
+  local body_file = write_body_file(encode_body(self, { adapter = adapter, payload = payload }))
   log:info("Request body file: %s", body_file)
 
   local response = log.new_response_file()
@@ -432,7 +430,7 @@ function Client:request(payload, actions, opts)
         if not opts.silent then
           utils.fire("RequestFinished", opts)
         end
-        delete_temp_files({ body_file, headers_file, response.path }, opts.status)
+        delete_temp_files({ paths = { body_file, headers_file, response.path }, status = opts.status })
         if self.user_args.event then
           if not opts.silent then
             utils.fire(self.user_args.event, opts)

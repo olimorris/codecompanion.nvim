@@ -216,12 +216,11 @@ local function get_client(adapter)
 end
 
 ---Find a message in the table that has a specific tool call ID
----@param id string
----@param messages CodeCompanion.Chat.Messages
+---@param opts { messages: CodeCompanion.Chat.Messages, id: string }
 ---@return table|nil
-local function find_tool_call(id, messages)
-  for _, msg in ipairs(messages) do
-    if msg.tools and msg.tools.call_id and msg.tools.call_id == id then
+local function find_tool_call(opts)
+  for _, msg in ipairs(opts.messages) do
+    if msg.tools and msg.tools.call_id and msg.tools.call_id == opts.id then
       return msg
     end
   end
@@ -1923,7 +1922,7 @@ function Chat:add_tool_output(tool, opts)
   })
 
   -- Ensure that tool output is merged if it has the same tool call ID
-  local existing = find_tool_call(tool_call.id, self.messages)
+  local existing = find_tool_call({ messages = self.messages, id = tool_call.id })
   if existing then
     if existing.content ~= "" then
       existing.content = existing.content .. "\n\n" .. output.content

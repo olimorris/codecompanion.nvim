@@ -10,19 +10,17 @@ local CONSTANTS = {
 }
 
 ---Check a message for any parameters that have been given to the context
----@param message table
----@param ctx string
----@param target? string If provided, look for params after this specific target
+---@param opts { message: table, ctx: string, target?: string }
 ---@return string|nil
-local function find_params(message, ctx, target)
+local function find_params(opts)
   local pattern
-  if target then
-    pattern = CONSTANTS.PREFIX .. "{" .. ctx .. ":" .. vim.pesc(target) .. "}{([^}]*)}"
+  if opts.target then
+    pattern = CONSTANTS.PREFIX .. "{" .. opts.ctx .. ":" .. vim.pesc(opts.target) .. "}{([^}]*)}"
   else
-    pattern = CONSTANTS.PREFIX .. "{" .. ctx .. "}{([^}]*)}"
+    pattern = CONSTANTS.PREFIX .. "{" .. opts.ctx .. "}{([^}]*)}"
   end
 
-  local params = message.content:match(pattern)
+  local params = opts.message.content:match(pattern)
   if params then
     log:trace("Params found for editor context: %s", params)
     return params
@@ -39,20 +37,18 @@ end
 
 ---Create an editor context module instance
 ---@param interaction CodeCompanion.Chat|{buffer_context: CodeCompanion.BufferContext}
----@param ctx_config table
----@param params? string
----@param target? string
----@param interaction_type? "chat"|"cli"
+---@param opts { ctx_config: table, params?: string, target?: string, interaction_type?: "chat"|"cli" }
 ---@return table
-local function create_module(interaction, ctx_config, params, target, interaction_type)
-  interaction_type = interaction_type or "chat"
+local function create_module(interaction, opts)
+  local ctx_config = opts.ctx_config
+  local interaction_type = opts.interaction_type or "chat"
 
   local init = {
     Chat = interaction_type == "chat" and interaction or nil,
     buffer_context = interaction.buffer_context,
     config = ctx_config,
-    params = params or (ctx_config.opts and ctx_config.opts.default_params),
-    target = target,
+    params = opts.params or (ctx_config.opts and ctx_config.opts.default_params),
+    target = opts.target,
   }
 
   if ctx_config.path then
@@ -105,20 +101,18 @@ function EditorContext.new(interaction)
 end
 
 ---Creates a regex pattern to match editor context in a message
----@param ctx string The editor context name to create a pattern for
----@param include_params? boolean Whether to include parameters in the pattern
----@param include_display_option? boolean Whether to include display options in the pattern
+---@param opts { ctx: string, include_params?: boolean, include_display_option?: boolean }
 ---@return string The compiled regex pattern
-function EditorContext:_pattern(ctx, include_params, include_display_option)
-  local base_pattern = CONSTANTS.PREFIX .. "{" .. ctx
+function EditorContext:_pattern(opts)
+  local base_pattern = CONSTANTS.PREFIX .. "{" .. opts.ctx
 
-  if include_display_option then
+  if opts.include_display_option then
     base_pattern = base_pattern .. ":[^}]*"
   end
 
   base_pattern = base_pattern .. "}"
 
-  if include_params then
+  if opts.include_params then
     base_pattern = base_pattern .. "{[^}]*}"
   end
 
@@ -183,10 +177,10 @@ function EditorContext:parse(chat, message)
 
       -- Check for regular params
       if ctx_config.opts and ctx_config.opts.has_params then
-        params = find_params(message, ctx, target)
+        params = find_params({ message = message, ctx = ctx, target = target })
       end
 
-      local module = create_module(chat, ctx_config, params, target)
+      local module = create_module(chat, { ctx_config = ctx_config, params = params, target = target })
       chat_render(module)
 
       ::continue::
@@ -219,10 +213,11 @@ function EditorContext:replace(message, bufnr)
     end
 
     -- Generic replacement: replace all forms of #{ctx...} with the ctx name
-    message = regex.replace(message, self:_pattern(ctx, true, true), ctx)
-    message = regex.replace(message, self:_pattern(ctx, false, true), ctx)
-    message = regex.replace(message, self:_pattern(ctx, true), ctx)
-    message = vim.trim(regex.replace(message, self:_pattern(ctx), ctx))
+    message =
+      regex.replace(message, self:_pattern({ ctx = ctx, include_params = true, include_display_option = true }), ctx)
+    message = regex.replace(message, self:_pattern({ ctx = ctx, include_display_option = true }), ctx)
+    message = regex.replace(message, self:_pattern({ ctx = ctx, include_params = true }), ctx)
+    message = vim.trim(regex.replace(message, self:_pattern({ ctx = ctx }), ctx))
 
     ::continue::
   end
@@ -255,10 +250,11 @@ function EditorContext:replace_cli(message, buffer_context)
     local escaped_ctx = vim.pesc(ctx)
 
     ---Resolve a single editor context match via cli_render()
-    ---@param target? string
-    ---@param params? string
+    ---@param opts? { target?: string, params?: string }
     ---@return string The inline label to substitute in place of the tag
-    local function resolve_match(target, params)
+    local function resolve_match(opts)
+      opts = opts or {}
+      local params = opts.params
       if (ctx_config.opts and ctx_config.opts.contains_code) and not config.can_send_code() then
         return ""
       end
@@ -270,7 +266,10 @@ function EditorContext:replace_cli(message, buffer_context)
       end
 
       local interaction = { buffer_context = buffer_context }
-      local module = create_module(interaction, ctx_config, params, target, "cli")
+      local module = create_module(
+        interaction,
+        { ctx_config = ctx_config, params = params, target = opts.target, interaction_type = "cli" }
+      )
 
       if not module.cli_render then
         return ""
@@ -299,15 +298,15 @@ function EditorContext:replace_cli(message, buffer_context)
 
     -- #{ctx:target}{params}
     message = message:gsub(prefix .. "{" .. escaped_ctx .. ":([^}]*)}{([^}]*)}", function(target, params)
-      return resolve_match(target, params)
+      return resolve_match({ target = target, params = params })
     end)
     -- #{ctx:target}
     message = message:gsub(prefix .. "{" .. escaped_ctx .. ":([^}]*)}", function(target)
-      return resolve_match(target)
+      return resolve_match({ target = target })
     end)
     -- #{ctx}{params}
     message = message:gsub(prefix .. "{" .. escaped_ctx .. "}{([^}]*)}", function(params)
-      return resolve_match(nil, params)
+      return resolve_match({ params = params })
     end)
     -- #{ctx}
     message = message:gsub(prefix .. "{" .. escaped_ctx .. "}", function()

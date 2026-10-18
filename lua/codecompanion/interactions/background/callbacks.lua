@@ -12,12 +12,10 @@ function M.resolve(path)
 end
 
 ---Execute an action
----@param action_config { path: string, adapter?: CodeCompanion.HTTPAdapter|string }
----@param chat CodeCompanion.Chat The chat instance
----@param opts? { deregister: fun() }
+---@param opts { action_config: { path: string, adapter?: CodeCompanion.HTTPAdapter|string }, chat: CodeCompanion.Chat, deregister?: fun() }
 ---@return nil
-local function execute_action(action_config, chat, opts)
-  local path = action_config.path
+local function execute_action(opts)
+  local path = opts.action_config.path
   local action = M.resolve(path)
   if not action then
     return log:error("[background::callbacks] File `%s` could not be found", path)
@@ -29,7 +27,7 @@ local function execute_action(action_config, chat, opts)
   -- Per-action adapter overrides the shared background adapter
   local Background = require("codecompanion.interactions.background")
   local background = Background.new({
-    adapter = action_config.adapter or config.interactions.background.adapter,
+    adapter = opts.action_config.adapter or config.interactions.background.adapter,
   })
 
   if not background then
@@ -38,7 +36,7 @@ local function execute_action(action_config, chat, opts)
 
   -- Don't block the main thread
   vim.schedule(function()
-    local ok, result = pcall(action.request, background, chat, { deregister = opts and opts.deregister })
+    local ok, result = pcall(action.request, background, opts.chat, { deregister = opts.deregister })
     if not ok then
       log:debug("[background::callbacks] Error executing action %s: %s", path, result)
     end
@@ -62,7 +60,9 @@ function M.register_chat_callbacks(chat)
         local action_config = type(action) == "string" and { path = action } or action
         local callback
         callback = function(c)
-          execute_action(action_config, c, {
+          execute_action({
+            action_config = action_config,
+            chat = c,
             deregister = function()
               c:remove_callback(event, callback)
             end,

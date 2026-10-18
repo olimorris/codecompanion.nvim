@@ -36,13 +36,15 @@ end
 local action_previewer = previewers.new_buffer_previewer({
   define_preview = function(self, entry)
     local width = vim.api.nvim_win_get_width(self.state.winid) - 4
-    entry.preview_command(entry, self.state.bufnr, width)
+    entry.preview_command({ entry = entry, bufnr = self.state.bufnr, width = width })
     vim.api.nvim_buf_set_option(self.state.bufnr, "filetype", "markdown")
   end,
 })
 
-local function preview_command(entry, bufnr, width)
-  vim.api.nvim_buf_call(bufnr, function()
+---@param opts { entry: table, bufnr: number, width: number }
+local function preview_command(opts)
+  local entry = opts.entry
+  vim.api.nvim_buf_call(opts.bufnr, function()
     local preview = entry.value.description
 
     if entry.value.prompts and entry.value.prompts[1] then
@@ -55,10 +57,10 @@ local function preview_command(entry, bufnr, width)
     if preview == "[No messages]" then -- for open chats
       preview = vim.api.nvim_buf_get_lines(entry.value.bufnr, 0, -1, false)
     else
-      preview = wrap_text_to_table(preview, width)
+      preview = wrap_text_to_table(preview, opts.width)
     end
 
-    vim.api.nvim_buf_set_lines(bufnr, 0, -1, true, preview)
+    vim.api.nvim_buf_set_lines(opts.bufnr, 0, -1, true, preview)
   end)
 end
 

@@ -84,11 +84,11 @@ local function split_lines(content)
 end
 
 ---Slice the requested line range out of a file's contents
----@param action table The arguments from the LLM's tool call
----@param lines string[] Every line in the file
+---@param opts { action: table, lines: string[] }
 ---@return {status: "success", data: table} | {status: "error", data: string}
-local function extract_range(action, lines)
-  local line_count = #lines
+local function extract_range(opts)
+  local action = opts.action
+  local line_count = #opts.lines
   local range, error_msg = resolve_range({
     start_line = action.start_line,
     end_line = action.end_line,
@@ -101,7 +101,7 @@ local function extract_range(action, lines)
   end
 
   local range_label = format_range(range)
-  local content = table.concat(lines, "\n", range.start_line + 1, range.end_line + 1)
+  local content = table.concat(opts.lines, "\n", range.start_line + 1, range.end_line + 1)
   return {
     status = "success",
     data = {
@@ -134,7 +134,7 @@ return {
           return cb(on_error({ filepath = path, message = error_msg }))
         end
 
-        cb(extract_range(args, split_lines(content)))
+        cb(extract_range({ action = args, lines = split_lines(content) }))
       end)
     end,
   },

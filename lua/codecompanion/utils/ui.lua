@@ -340,13 +340,12 @@ M.get_editor_height = function()
   return editor_height
 end
 
----@param items table
----@param format function
+---@param opts { items: table, format: function }
 ---@return table
-local function get_max_lengths(items, format)
+local function get_max_lengths(opts)
   local max_lengths = {}
-  for _, item in ipairs(items) do
-    local formatted = format(item)
+  for _, item in ipairs(opts.items) do
+    local formatted = opts.format(item)
     for i, field in ipairs(formatted) do
       local field_length = string.len(field)
       max_lengths[i] = math.max(max_lengths[i] or 0, field_length)
@@ -373,14 +372,13 @@ local function pad_string(str, max_length, padding)
   end
 end
 
----@param item table
----@param max_lengths table
+---@param opts { item: table, max_lengths: table }
 ---@return string
-local function pad_item(item, max_lengths)
+local function pad_item(opts)
   local padded_item = {}
-  for i, field in ipairs(item) do
-    if max_lengths[i] then -- Skip padding if there's no max length for this field
-      padded_item[i] = pad_string(field, max_lengths[i])
+  for i, field in ipairs(opts.item) do
+    if opts.max_lengths[i] then -- Skip padding if there's no max length for this field
+      padded_item[i] = pad_string(field, opts.max_lengths[i])
     else
       padded_item[i] = field
     end
@@ -394,14 +392,14 @@ end
 function M.action_palette_selector(items, opts)
   log:trace("Opening selector")
 
-  local max_lengths = get_max_lengths(items, opts.format)
+  local max_lengths = get_max_lengths({ items = items, format = opts.format })
 
   local select_opts = {
     prompt = opts.prompt,
     kind = "codecompanion.nvim",
     format_item = function(item)
       local formatted = opts.format(item)
-      return pad_item(formatted, max_lengths)
+      return pad_item({ item = formatted, max_lengths = max_lengths })
     end,
   }
 

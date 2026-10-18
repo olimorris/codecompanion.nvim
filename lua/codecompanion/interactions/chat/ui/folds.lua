@@ -54,16 +54,15 @@ function Folds.fold_text()
     return vim.fn.foldtext()
   end
 
-  return Folds._format_fold_text(fold_data.content, fold_data.type)
+  return Folds._format_fold_text({ content = fold_data.content, fold_type = fold_data.type })
 end
 
 ---Format fold text based on type
----@param content string
----@param fold_type "tool"|"context"|"reasoning"
----@param opts? table
+---@param opts { content: string, fold_type: "tool"|"context"|"reasoning", show_icon_only?: boolean }
 ---@return table[]
-function Folds._format_fold_text(content, fold_type, opts)
-  opts = opts or {}
+function Folds._format_fold_text(opts)
+  local content = opts.content
+  local fold_type = opts.fold_type
   local chunks = {}
   local icons = config.display.chat.icons
 
@@ -98,9 +97,9 @@ function Folds._format_fold_text(content, fold_type, opts)
 end
 
 ---Delete a fold exactly at the specified line, without affecting outer folds
----@param bufnr number
----@param line number  -- 0-based start line of the exact fold to remove
-function Folds:_delete(bufnr, line)
+---@param opts { bufnr: number, line: number }
+function Folds:_delete(opts)
+  local bufnr, line = opts.bufnr, opts.line
   local ok, err = pcall(function()
     api.nvim_buf_call(bufnr, function()
       local lnum = line + 1
@@ -128,11 +127,9 @@ function Folds:_delete(bufnr, line)
 end
 
 ---Create a new fold
----@param bufnr number
----@param start_row number (0-based)
----@param end_row number (0-based)
----@param fold_config CodeCompanion.Chat.UI.FoldConfig
-function Folds:_create(bufnr, start_row, end_row, fold_config)
+---@param opts { bufnr: number, start_row: number, end_row: number, fold_config: CodeCompanion.Chat.UI.FoldConfig }
+function Folds:_create(opts)
+  local bufnr, start_row, end_row, fold_config = opts.bufnr, opts.start_row, opts.end_row, opts.fold_config
   if start_row >= end_row then
     return
   end
@@ -154,7 +151,11 @@ function Folds:_create(bufnr, start_row, end_row, fold_config)
 
   if ns_to_use then
     api.nvim_buf_set_extmark(bufnr, ns_to_use, start_row, 0, {
-      virt_text = self._format_fold_text(fold_config.content or "", fold_config.type, { show_icon_only = true }),
+      virt_text = self._format_fold_text({
+        content = fold_config.content or "",
+        fold_type = fold_config.type,
+        show_icon_only = true,
+      }),
       virt_text_pos = "inline",
       priority = 200,
     })
@@ -193,8 +194,8 @@ function Folds:recreate(bufnr, start_row, end_row, fold_config)
     api.nvim_buf_clear_namespace(bufnr, ns, start_row, end_row + 1)
   end
 
-  self:_delete(bufnr, start_row)
-  self:_create(bufnr, start_row, end_row, fold_config)
+  self:_delete({ bufnr = bufnr, line = start_row })
+  self:_create({ bufnr = bufnr, start_row = start_row, end_row = end_row, fold_config = fold_config })
 
   api.nvim_buf_call(bufnr, function()
     api.nvim_win_set_cursor(0, cursor_pos)
@@ -215,16 +216,21 @@ function Folds:create_tool_fold(bufnr, start_row, end_row, foldtext)
   if start_row == end_row then
     -- Still add the extmark for visual indication
     api.nvim_buf_set_extmark(bufnr, CONSTANTS.NS_FOLD_TOOLS, start_row, 0, {
-      virt_text = self._format_fold_text(foldtext, "tool", { show_icon_only = true }),
+      virt_text = self._format_fold_text({ content = foldtext, fold_type = "tool", show_icon_only = true }),
       virt_text_pos = "inline",
       priority = 200,
     })
     return
   end
 
-  self:_create(bufnr, start_row, end_row, {
-    type = "tool",
-    content = foldtext,
+  self:_create({
+    bufnr = bufnr,
+    start_row = start_row,
+    end_row = end_row,
+    fold_config = {
+      type = "tool",
+      content = foldtext,
+    },
   })
 end
 

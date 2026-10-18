@@ -12,12 +12,11 @@ local fmt = string.format
 local M = {}
 
 ---Recursively expand rules groups (supports groups of groups)
----@param picker_items string[] Flat output list to mutate
----@param group_path string Display name path (e.g. "parent/child")
----@param group_cfg table Group config to expand
----@param parent_cfg? { parser?: any, opts?: table, description?: string } Inherited values from parent
+---@param opts { group_cfg: table, picker_items: string[], group_path: string, parent_cfg?: { parser?: any, opts?: table, description?: string } }
 ---@return nil
-local function expand_rules_group(picker_items, group_path, group_cfg, parent_cfg)
+local function expand_rules_group(opts)
+  local group_cfg = opts.group_cfg
+  local parent_cfg = opts.parent_cfg
   local inherited = {
     parser = group_cfg.parser or (parent_cfg and parent_cfg.parser or nil),
     opts = vim.tbl_extend("force", parent_cfg and parent_cfg.opts or {}, group_cfg.opts or {}),
@@ -28,8 +27,8 @@ local function expand_rules_group(picker_items, group_path, group_cfg, parent_cf
 
   -- If this group holds a list of files, add it as a selectable picker item
   if utils.is_array(files) then
-    table.insert(picker_items, {
-      name = group_path,
+    table.insert(opts.picker_items, {
+      name = opts.group_path,
       description = inherited.description,
       opts = inherited.opts or {},
       parser = inherited.parser,
@@ -41,8 +40,13 @@ local function expand_rules_group(picker_items, group_path, group_cfg, parent_cf
   -- Otherwise, recurse into subgroups
   for subgroup_name, subgroup_config in pairs(files) do
     if type(subgroup_config) == "table" then
-      local child_path = group_path .. "/" .. subgroup_name
-      expand_rules_group(picker_items, child_path, subgroup_config, inherited)
+      local child_path = opts.group_path .. "/" .. subgroup_name
+      expand_rules_group({
+        group_cfg = subgroup_config,
+        picker_items = opts.picker_items,
+        group_path = child_path,
+        parent_cfg = inherited,
+      })
     end
   end
 end
@@ -79,7 +83,7 @@ function M.list(chat)
         })
       else
         -- If the rules contains multiple groups
-        expand_rules_group(picker_items, name, cfg, nil)
+        expand_rules_group({ group_cfg = cfg, picker_items = picker_items, group_path = name })
       end
     end
     ::continue::

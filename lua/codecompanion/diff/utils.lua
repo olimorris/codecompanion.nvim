@@ -28,11 +28,10 @@ local function _scratch_buf(content)
 end
 
 ---Get Tree-sitter highlights as extmarks
----@param source string|number
----@param opts? { ft: string, start_row?: number, end_row?: number }
+---@param opts { source: string|number, ft?: string, start_row?: number, end_row?: number }
 ---@return { row: number, col: number, end_col: number, priority: number, conceal: string|boolean|nil, hl_group: string }[]|nil
-local function _ts_highlight(source, opts)
-  opts = opts or {}
+local function _ts_highlight(opts)
+  local source = opts.source
   assert(type(source) == "number" or opts.ft, "Either bufnr or ft should be specified")
 
   local bufnr = type(source) == "number" and source or _scratch_buf(source --[[@as string]])
@@ -105,7 +104,7 @@ function M.create_vl(source, opts)
       and api.nvim_buf_get_lines(source, opts.start_row or 0, opts.end_row or -1, false)
     or vim.split(source --[[@as string]], "\n")
 
-  local extmarks = _ts_highlight(source, opts)
+  local extmarks = _ts_highlight({ source = source, ft = opts.ft, start_row = opts.start_row, end_row = opts.end_row })
   if not extmarks then
     -- If there's no tree-sitter highlighting, still apply the hl
     return vim.tbl_map(function(line)

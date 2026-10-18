@@ -50,10 +50,10 @@ local function map_tool_calls(messages)
 end
 
 ---Edit tool result messages older than the keep_cycles window
----@param messages CodeCompanion.Chat.Messages
----@param opts CodeCompanion.Chat.ContextManagement.Editing.Opts
+---@param opts { messages: CodeCompanion.Chat.Messages, current_cycle: integer, exclude_tools?: string[], keep_cycles: integer }
 ---@return number Number of messages cleared
-local function tool_results(messages, opts)
+local function tool_results(opts)
+  local messages = opts.messages
   local exclude = {}
   for _, name in ipairs(opts.exclude_tools or {}) do
     exclude[name] = true
@@ -92,7 +92,7 @@ end
 ---@return CodeCompanion.Chat.Messages messages
 ---@return number Number of messages cleared
 function M.apply(messages, opts)
-  local cleared = tool_results(messages, opts)
+  local cleared = tool_results(vim.tbl_extend("force", opts, { messages = messages }))
   return messages, cleared
 end
 

@@ -159,9 +159,10 @@ end
 
 ---Tell the chat a skill exists and give it the tools to load it on demand
 ---@param chat CodeCompanion.Chat
----@param skill CodeCompanion.Skill
+---@param opts { skill: CodeCompanion.Skill }
 ---@return nil
-local function add_skill(chat, skill)
+local function add_skill(chat, opts)
+  local skill = opts.skill
   local id = get_skill_id(skill)
   if chat_helpers.has_context(id, chat.messages) then
     return
@@ -199,7 +200,7 @@ function M.add_to_chat(chat, skills)
   end
 
   vim.iter(skills):each(function(skill)
-    add_skill(chat, skill)
+    add_skill(chat, { skill = skill })
   end)
 end
 

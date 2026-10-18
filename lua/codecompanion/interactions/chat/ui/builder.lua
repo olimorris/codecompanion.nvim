@@ -98,11 +98,10 @@ function Builder.new(args)
 end
 
 ---Do we need to render a role header before this message?
----@param data { role?: string }
----@param opts { force_role?: boolean }
+---@param opts { role?: string, force_role?: boolean }
 ---@return boolean
-function Builder:_needs_header(data, opts)
-  return data.role ~= nil and (data.role ~= self.state.last_role or opts.force_role == true)
+function Builder:_needs_header(opts)
+  return opts.role ~= nil and (opts.role ~= self.state.last_role or opts.force_role == true)
 end
 
 ---Map a message's wire type to its logical block type, defaulting to prose
@@ -127,7 +126,7 @@ end
 function Builder:add_message(data, opts)
   opts = opts or {}
 
-  local role_changed = self:_needs_header(data, opts)
+  local role_changed = self:_needs_header({ role = data.role, force_role = opts.force_role })
 
   local content = data.content
   if content and opts.status then
@@ -197,7 +196,7 @@ function Builder:add_message(data, opts)
     write.trailing_blanks = lines[2] == BLANK and 0 or 1
   end
 
-  return self:_write(lines, opts, write)
+  return self:_write(vim.tbl_extend("force", opts, write, { lines = lines }))
 end
 
 ---Trim or pad the buffer's trailing blank lines
@@ -229,15 +228,14 @@ function Builder:_set_trailing_blanks(n)
 end
 
 ---Write the assembled lines to the buffer and finalise icons, folds and headers
----@param lines string[]
----@param opts table The original message opts
----@param write { role_changed: boolean, content_start?: number, fold_info?: table, leaving_reasoning?: boolean, trailing_blanks?: number }
+---@param opts { lines: string[], role_changed: boolean, content_start?: number, fold_info?: table, leaving_reasoning?: boolean, trailing_blanks?: number, insert_at?: number, status?: string, _icon_info?: table, virt_text_pos?: string }
 ---@return number insert_line 1-based line after the write
 ---@return number|nil icon_id
-function Builder:_write(lines, opts, write)
+function Builder:_write(opts)
+  local lines = opts.lines
   self.chat.ui:unlock_buf()
-  if write.trailing_blanks and not opts.insert_at then
-    self:_set_trailing_blanks(write.trailing_blanks)
+  if opts.trailing_blanks and not opts.insert_at then
+    self:_set_trailing_blanks(opts.trailing_blanks)
   end
   local last_line, last_column = self.chat.ui:last()
 
@@ -247,9 +245,15 @@ function Builder:_write(lines, opts, write)
 
   api.nvim_buf_set_text(self.chat.bufnr, insert_line, column, insert_line, column, lines)
 
-  local icon_id = self:_apply_icon(insert_line, opts, write.content_start)
+  local icon_id = self:_apply_icon({
+    insert_line = insert_line,
+    status = opts.status,
+    _icon_info = opts._icon_info,
+    virt_text_pos = opts.virt_text_pos,
+    content_start = opts.content_start,
+  })
 
-  if write.role_changed then
+  if opts.role_changed then
     self.state.current_section_start = insert_line
     -- The write's first blank merges into the existing last line, so only the
     -- second blank costs a row before the header
@@ -257,15 +261,15 @@ function Builder:_write(lines, opts, write)
     self.chat.ui:render_headers()
   end
 
-  if write.fold_info then
-    local fold_start = insert_line + write.fold_info.start_offset
-    local fold_end = insert_line + write.fold_info.end_offset
+  if opts.fold_info then
+    local fold_start = insert_line + opts.fold_info.start_offset
+    local fold_end = insert_line + opts.fold_info.end_offset
     vim.schedule(function()
-      self.chat.ui.folds:create_tool_fold(self.chat.bufnr, fold_start, fold_end, write.fold_info.first_line)
+      self.chat.ui.folds:create_tool_fold(self.chat.bufnr, fold_start, fold_end, opts.fold_info.first_line)
     end)
   end
 
-  if write.leaving_reasoning and config.display.chat.fold_reasoning then
+  if opts.leaving_reasoning and config.display.chat.fold_reasoning then
     local range_start = self.state.current_section_start or 0
     vim.schedule(function()
       self.chat.ui.folds:create_reasoning_fold(self.chat, range_start, insert_line)
@@ -282,19 +286,17 @@ function Builder:_write(lines, opts, write)
 end
 
 ---Place a tool status icon on the block's first content line, if one is requested
----@param insert_line number 0-based line where the write began
----@param opts { status?: string, _icon_info?: table, virt_text_pos?: string }
----@param content_start? number Lines preceding the content within this write
+---@param opts { insert_line: number, status?: string, _icon_info?: table, virt_text_pos?: string, content_start?: number }
 ---@return number|nil icon_id
-function Builder:_apply_icon(insert_line, opts, content_start)
+function Builder:_apply_icon(opts)
   local info = opts._icon_info
   local status = (info and info.has_icon and info.status) or opts.status
   if not status then
     return nil
   end
 
-  local offset = (content_start or 0) + ((info and info.line_offset) or 0)
-  return Icons.apply(self.chat.bufnr, insert_line + offset, status, { virt_text_pos = opts.virt_text_pos })
+  local offset = (opts.content_start or 0) + ((info and info.line_offset) or 0)
+  return Icons.apply(self.chat.bufnr, opts.insert_line + offset, status, { virt_text_pos = opts.virt_text_pos })
 end
 
 ---Update a specific line in the chat buffer

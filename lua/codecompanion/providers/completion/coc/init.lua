@@ -9,15 +9,15 @@ local callbacks_cache = {}
 
 --- Transforms CodeCompanion completion items into coc.nvim-compatible completion items.
 --- The completion items are modified in place!
---- @param opt table Trigger context from coc.nvim.
---- @param complete_items table CodeCompanion completion items.
+--- @param opts { complete_items: table, trigger: table }
 --- @return table coc.nvim-compatible completion items.
-local function transform_complete_items(opt, complete_items)
-  for _, item in ipairs(complete_items) do
+local function transform_complete_items(opts)
+  local trigger = opts.trigger
+  for _, item in ipairs(opts.complete_items) do
     -- Populate standard Vim completion-items fields (see :h complete-items).
-    if opt.triggerCharacter == triggers.mappings.editor_context then
+    if trigger.triggerCharacter == triggers.mappings.editor_context then
       item.word = string.format("{%s}", item.label:sub(2))
-    elseif opt.triggerCharacter == triggers.mappings.tools then
+    elseif trigger.triggerCharacter == triggers.mappings.tools then
       item.word = string.format("{%s}", item.label:sub(2))
     else
       item.word = item.label:sub(2)
@@ -39,9 +39,9 @@ local function transform_complete_items(opt, complete_items)
 
     -- Context to be used by CodeCompanion later
     item.context = {
-      bufnr = opt.bufnr,
-      input = opt.input,
-      cursor = { row = opt.linenr, col = opt.colnr },
+      bufnr = trigger.bufnr,
+      input = trigger.input,
+      cursor = { row = trigger.linenr, col = trigger.colnr },
     }
 
     -- Cache callback function pointers.
@@ -53,21 +53,19 @@ local function transform_complete_items(opt, complete_items)
     item.label = nil
   end
 
-  return complete_items
+  return opts.complete_items
 end
 
 --- Deletes text from the start position to the cursor position.
---- @param bufnr number Buffer number
---- @param start table Start position
---- @param start_offset number Start offset
-local function delete_text_to_cursor(bufnr, start, start_offset)
+--- @param opts { bufnr: number, start: table, start_offset: number }
+local function delete_text_to_cursor(opts)
   local cursor = vim.api.nvim_win_get_cursor(0)
 
   -- Convert from 1-based to 0-based indices.
   local range = {
     start = {
-      line = start.row - 1,
-      character = start.col - 1 + start_offset,
+      line = opts.start.row - 1,
+      character = opts.start.col - 1 + opts.start_offset,
     },
     ["end"] = {
       line = cursor[1] - 1,
@@ -75,7 +73,7 @@ local function delete_text_to_cursor(bufnr, start, start_offset)
     },
   }
 
-  vim.lsp.util.apply_text_edits({ { newText = "", range = range } }, bufnr, "utf-8")
+  vim.lsp.util.apply_text_edits({ { newText = "", range = range } }, opts.bufnr, "utf-8")
 end
 
 --- @class coc.Source
@@ -104,13 +102,16 @@ function M.complete(opt)
   local complete_items
 
   if opt.triggerCharacter == triggers.mappings.acp_slash_commands then
-    complete_items = transform_complete_items(opt, completion.acp_commands(opt.bufnr))
+    complete_items = transform_complete_items({ complete_items = completion.acp_commands(opt.bufnr), trigger = opt })
   elseif opt.triggerCharacter == triggers.mappings.slash_commands then
-    complete_items = transform_complete_items(opt, completion.slash_commands(completion.interaction_type()))
+    complete_items = transform_complete_items({
+      complete_items = completion.slash_commands(completion.interaction_type()),
+      trigger = opt,
+    })
   elseif opt.triggerCharacter == triggers.mappings.tools then
-    complete_items = transform_complete_items(opt, completion.tools())
+    complete_items = transform_complete_items({ complete_items = completion.tools(), trigger = opt })
   elseif opt.triggerCharacter == triggers.mappings.editor_context then
-    complete_items = transform_complete_items(opt, completion.editor_context())
+    complete_items = transform_complete_items({ complete_items = completion.editor_context(), trigger = opt })
   else
     complete_items = {}
   end
@@ -135,7 +136,7 @@ function M.execute(opt)
 
   -- Remove the keyword from the chat buffer.
   local start = opt.context.cursor
-  delete_text_to_cursor(bufnr, start, -1)
+  delete_text_to_cursor({ bufnr = bufnr, start = start, start_offset = -1 })
 
   opt.label = opt.abbr -- Necessary for command execution
   opt.info = nil -- No longer needed

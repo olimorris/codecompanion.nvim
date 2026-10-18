@@ -54,24 +54,23 @@ end
 
 ---Add context about the tool in the chat buffer
 ---@param chat CodeCompanion.Chat The chat buffer
----@param id string The id of the tool
----@param opts? table Optional parameters for the context_item
+---@param opts { id: string, visible?: boolean }
 ---@return nil
-local function add_context(chat, id, opts)
+local function add_context(chat, opts)
   chat.context:add({
     source = "tool",
     name = "tool",
-    id = id,
-    opts = opts,
+    id = opts.id,
+    opts = { visible = opts.visible },
   })
 end
 
 ---Add the tool's system prompt to the chat buffer
 ---@param chat CodeCompanion.Chat The chat buffer
----@param tool table the resolved tool
----@param id string The id of the tool
+---@param opts { tool: table, id: string }
 ---@return nil
-local function add_system_prompt(chat, tool, id)
+local function add_system_prompt(chat, opts)
+  local tool = opts.tool
   if tool and tool.system_prompt then
     local system_prompt
     if type(tool.system_prompt) == "function" then
@@ -81,18 +80,17 @@ local function add_system_prompt(chat, tool, id)
     end
     chat:add_message(
       { role = config.constants.SYSTEM_ROLE, content = system_prompt },
-      { visible = false, _meta = { tag = tags.TOOL }, context = { id = id } }
+      { visible = false, _meta = { tag = tags.TOOL }, context = { id = opts.id } }
     )
   end
 end
 
 ---Add the tool's schema to the chat buffer
 ---@param self CodeCompanion.Chat.ToolRegistry The registry object
----@param tool table The resolved tool
----@param id string The id of the tool
+---@param opts { tool: table, id: string }
 ---@return nil
-local function add_schema(self, tool, id)
-  self.schemas[id] = tool.schema
+local function add_schema(self, opts)
+  self.schemas[opts.id] = opts.tool.schema
 end
 
 ---Add a tool or group to the chat buffer
@@ -139,17 +137,20 @@ function ToolRegistry:add_single_tool(tool, opts)
 
   local is_adapter_tool = tool_config._adapter_tool == true
   if is_adapter_tool then
-    add_context(self.chat, id, { visible = opts.visible })
-    add_system_prompt(self.chat, tool_config, id)
+    add_context(self.chat, { id = id, visible = opts.visible })
+    add_system_prompt(self.chat, { tool = tool_config, id = id })
     add_schema(self, {
-      schema = {
-        name = tool,
-        description = tool_config.description or "",
-        _meta = {
-          adapter_tool = true,
+      tool = {
+        schema = {
+          name = tool,
+          description = tool_config.description or "",
+          _meta = {
+            adapter_tool = true,
+          },
         },
       },
-    }, id)
+      id = id,
+    })
     self.in_use[tool] = true
   else
     local resolved_tool = self.chat.tools.resolve(tool_config)
@@ -157,9 +158,9 @@ function ToolRegistry:add_single_tool(tool, opts)
       return nil
     end
 
-    add_context(self.chat, id, { visible = opts.visible })
-    add_system_prompt(self.chat, resolved_tool, id)
-    add_schema(self, resolved_tool, id)
+    add_context(self.chat, { id = id, visible = opts.visible })
+    add_system_prompt(self.chat, { tool = resolved_tool, id = id })
+    add_schema(self, { tool = resolved_tool, id = id })
     self.in_use[tool] = true
     self:add_tool_system_prompt()
   end
@@ -213,7 +214,7 @@ function ToolRegistry:add_group(group, opts)
   end
 
   if collapse_tools then
-    add_context(self.chat, gid)
+    add_context(self.chat, { id = gid })
   end
   local added_tools = {}
   for _, tool in ipairs(group_config.tools) do

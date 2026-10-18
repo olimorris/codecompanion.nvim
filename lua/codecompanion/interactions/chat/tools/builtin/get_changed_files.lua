@@ -5,9 +5,10 @@ local markdown = require("codecompanion.utils.markdown")
 
 local fmt = string.format
 
----@param state string
+---@param opts { state: string, max_lines: number }
 ---@return string[]|nil, string|nil
-local function get_git_diff(state, opts)
+local function get_git_diff(opts)
+  local state = opts.state
   local cmd, desc
   if state == "staged" then
     cmd = { "git", "diff", "--cached" }
@@ -38,15 +39,14 @@ local function get_git_diff(state, opts)
 end
 
 ---Get changed files in the current working directory based on the git state.
----@param action {source_control_state?: string[]}
----@param opts {max_lines: number}
+---@param opts { action: {source_control_state?: string[]}, max_lines: number }
 ---@return {status: "success"|"error", data: string}
-local function get_changed_files(action, opts)
-  local states = action.source_control_state or { "unstaged", "staged", "merge-conflicts" }
+local function get_changed_files(opts)
+  local states = opts.action.source_control_state or { "unstaged", "staged", "merge-conflicts" }
   local output = {}
 
   for _, state in ipairs(states) do
-    local result, desc = get_git_diff(state, opts)
+    local result, desc = get_git_diff({ state = state, max_lines = opts.max_lines })
     if desc then
       if state == "merge-conflicts" then
         if result and #result > 0 then
@@ -97,7 +97,7 @@ return {
     ---@param args table
     ---@param input? any
     function(self, args, input)
-      return get_changed_files(args, self.tool.opts)
+      return get_changed_files({ action = args, max_lines = self.tool.opts.max_lines })
     end,
   },
   schema = {

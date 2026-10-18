@@ -15,16 +15,16 @@ local function model_choices(self)
 end
 
 ---@param self CodeCompanion.HTTPAdapter
----@param parameter string
+---@param opts { parameter: string }
 ---@return boolean
-local function model_supports(self, parameter)
+local function model_supports(self, opts)
   local cached_models = fetch_models.get(models_source, self)
   local model = cached_models[self.schema.model.default]
   if not model then
     return false
   end
 
-  return model.opts.supported_parameters[parameter] or false
+  return model.opts.supported_parameters[opts.parameter] or false
 end
 
 ---@class CodeCompanion.HTTPAdapter.OpenRouter: CodeCompanion.HTTPAdapter
@@ -338,7 +338,7 @@ return {
         return (choices and choices.reasoning and choices.reasoning.default) or "medium"
       end,
       enabled = function(self)
-        return model_supports(self, "reasoning")
+        return model_supports(self, { parameter = "reasoning" })
       end,
       desc = "Constrains effort on reasoning for reasoning models. Reducing reasoning effort can result in faster responses and fewer tokens used on reasoning in a response. Not all efforts are supported by every model.",
       ---@param self CodeCompanion.HTTPAdapter
@@ -358,7 +358,7 @@ return {
       optional = true,
       default = 1,
       enabled = function(self)
-        return model_supports(self, "temperature")
+        return model_supports(self, { parameter = "temperature" })
       end,
       desc = "This setting influences the variety in the model’s responses. Lower values lead to more predictable and typical responses, while higher values encourage more diverse and less common responses. At 0, the model always gives the same response for a given input.",
       validate = function(n)
@@ -372,7 +372,7 @@ return {
       optional = true,
       default = 1,
       enabled = function(self)
-        return model_supports(self, "top_p")
+        return model_supports(self, { parameter = "top_p" })
       end,
       desc = "This setting limits the model’s choices to a percentage of likely tokens: only the top tokens whose probabilities add up to P. A lower value makes the model’s responses more predictable, while the default setting allows for a full range of token choices. Think of it like a dynamic Top-K.",
       validate = function(n)
@@ -386,7 +386,7 @@ return {
       optional = true,
       default = 0,
       enabled = function(self)
-        return model_supports(self, "top_k")
+        return model_supports(self, { parameter = "top_k" })
       end,
       desc = "This limits the model’s choice of tokens at each step, making it choose from a smaller set. A value of 1 means the model will always pick the most likely next token, leading to predictable results. By default this setting is disabled, making the model to consider all choices.",
       validate = function(n)
@@ -400,7 +400,7 @@ return {
       optional = true,
       default = 0,
       enabled = function(self)
-        return model_supports(self, "min_p")
+        return model_supports(self, { parameter = "min_p" })
       end,
       desc = "Represents the minimum probability for a token to be considered, relative to the probability of the most likely token. (The value changes depending on the confidence level of the most probable token.) If your Min-P is set to 0.1, that means it will only allow for tokens that are at least 1/10th as probable as the best possible option.",
       validate = function(n)
@@ -414,7 +414,7 @@ return {
       optional = true,
       default = nil,
       enabled = function(self)
-        return model_supports(self, "stop")
+        return model_supports(self, { parameter = "stop" })
       end,
       subtype = {
         type = "string",
@@ -431,7 +431,7 @@ return {
       optional = true,
       default = 0,
       enabled = function(self)
-        return model_supports(self, "presence_penalty")
+        return model_supports(self, { parameter = "presence_penalty" })
       end,
       desc = "Adjusts how often the model repeats specific tokens already used in the input. Higher values make such repetition less likely, while negative values do the opposite. Token penalty does not scale with the number of occurrences. Negative values will encourage token reuse.",
       validate = function(n)
@@ -445,7 +445,7 @@ return {
       optional = true,
       default = 0,
       enabled = function(self)
-        return model_supports(self, "frequency_penalty")
+        return model_supports(self, { parameter = "frequency_penalty" })
       end,
       desc = "This setting aims to control the repetition of tokens based on how often they appear in the input. It tries to use less frequently those tokens that appear more in the input, proportional to how frequently they occur. Token penalty scales with the number of occurrences. Negative values will encourage token reuse.",
       validate = function(n)
