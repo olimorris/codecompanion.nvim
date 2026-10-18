@@ -1,4 +1,4 @@
-*codecompanion.txt*         For NVIM v0.11        Last change: 2026 October 16
+*codecompanion.txt*         For NVIM v0.11        Last change: 2026 October 18
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -4913,6 +4913,8 @@ Slash commands add context to the chat buffer and act on the chat itself. Type
   -skills-group                       Add a group of skills
 
   -symbols                            Add a symbolic outline of a file
+
+  -tools                              Add tools and tool groups
   -----------------------------------------------------------------------
 Some commands only appear for one type of adapter. The section for each command
 says which.
@@ -5228,6 +5230,14 @@ listed in the queries directory
 
 It works with the default picker, Telescope, fzf-lua, mini.pick and Snacks, and
 several files can be selected at once.
+
+
+/TOOLS ~
+
+The `tools` slash command adds |codecompanion-usage-chat-buffer-agents-tools|
+to the chat buffer without leaving an `@{tool}` reference in your message.
+Depending on your picker, several can be selected at once. Tools already in the
+chat aren't listed. It only appears for HTTP adapters.
 
 
 CLI                                                  *codecompanion-usage-cli*

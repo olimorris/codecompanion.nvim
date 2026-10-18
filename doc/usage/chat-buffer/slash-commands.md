@@ -35,6 +35,7 @@ Slash commands add context to the chat buffer and act on the chat itself. Type `
 | [/skills](#skills) | Add skills |
 | [/skills-group](#skills-group) | Add a group of skills |
 | [/symbols](#symbols) | Add a symbolic outline of a file |
+| [/tools](#tools) | Add tools and tool groups |
 
 Some commands only appear for one type of adapter. The section for each command says which.
 
@@ -281,3 +282,7 @@ The _skills-group_ slash command adds a [group](/configuration/skills#groups) of
 The _symbols_ slash command uses Tree-sitter to build a symbolic outline of a file, sharing its structure with the LLM for fewer tokens than the full content. The queries come from aerial.nvim, and the supported filetypes are listed in the [queries directory](https://github.com/olimorris/codecompanion.nvim/tree/main/queries).
 
 It works with the default picker, Telescope, fzf-lua, mini.pick and Snacks, and several files can be selected at once.
+
+## /tools
+
+The _tools_ slash command adds [tools and tool groups](/usage/chat-buffer/agents-tools) to the chat buffer without leaving an `@{tool}` reference in your message. Depending on your picker, several can be selected at once. Tools already in the chat aren't listed. It only appears for HTTP adapters.
