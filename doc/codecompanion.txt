@@ -1,4 +1,4 @@
-*codecompanion.txt*         For NVIM v0.11        Last change: 2026 October 16
+*codecompanion.txt*         For NVIM v0.11        Last change: 2026 October 18
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -97,7 +97,7 @@ FEATURES                                      *codecompanion-welcome-features*
 -  Copilot Chat <https://github.com/features/copilot> meets Zed AI <https://zed.dev/blog/zed-ai>, in Neovim
 -  Run |codecompanion-usage-cli| like Claude Code and Codex alongside your code
 -  LLMs from Anthropic <https://platform.claude.com/docs/en/about-claude/models/overview>, DeepSeek <https://www.deepseek.com>, Gemini <https://ai.google.dev/gemini-api/docs/models>, GitHub Copilot <https://github.com/features/copilot>, Hugging Face <https://huggingface.co/>, Kimi <https://platform.kimi.ai>, Mistral <https://mistral.ai/>, Novita <https://novita.ai/>, Ollama <https://ollama.com/>, OpenAI <https://developers.openai.com/api/docs/models>, Azure OpenAI, OpenRouter <https://openrouter.ai/> and xAI <https://docs.x.ai/developers/models> out of the box, or |codecompanion-extending-adapters|
--  Agents over the |codecompanion-agent-client-protocol|, including Auggie <https://docs.augmentcode.com/cli/overview>, Cagent <https://github.com/docker/cagent>, Claude Code <https://docs.anthropic.com/en/docs/claude-code/overview>, Cline <https://docs.cline.bot/home>, Codex <https://openai.com/codex>, Copilot CLI <https://github.com/features/copilot/cli>, Cursor CLI <https://cursor.com/docs/cli/overview>, Gemini CLI <https://github.com/google-gemini/gemini-cli>, Goose <https://block.github.io/goose/>, Kilo Code <https://kilo.ai>, Kimi CLI <https://github.com/MoonshotAI/kimi-cli>, Kiro <https://kiro.dev/cli/>, Mistral Vibe <https://github.com/mistralai/mistral-vibe> and OpenCode <https://opencode.ai>
+-  Agents over the |codecompanion-agent-client-protocol|, including Auggie <https://docs.augmentcode.com/cli/overview>, Cagent <https://github.com/docker/cagent>, Claude Code <https://docs.anthropic.com/en/docs/claude-code/overview>, Cline <https://docs.cline.bot/home>, Codex <https://openai.com/codex>, Copilot CLI <https://github.com/features/copilot/cli>, Cursor CLI <https://cursor.com/docs/cli/overview>, Gemini CLI <https://github.com/google-gemini/gemini-cli>, Goose <https://block.github.io/goose/>, Grok Build <https://github.com/xai-org/grok-build>, Kilo Code <https://kilo.ai>, Kimi CLI <https://github.com/MoonshotAI/kimi-cli>, Kiro <https://kiro.dev/cli/>, Mistral Vibe <https://github.com/mistralai/mistral-vibe> and OpenCode <https://opencode.ai>
 -  |codecompanion-configuration-adapters-http-community-adapters|, contributed and supported by users
 -  |codecompanion-usage-code-review| to comment on, accept or revert an agent's changes
 -  |codecompanion-model-context-protocol| servers
@@ -6147,6 +6147,8 @@ BUILT-IN ADAPTERS ~
 
   goose                   -setup-goose-cli                      goose acp
 
+  grok                    -setup-grok-build                     grok agent stdio
+
   kilocode                -setup-kilo-code                      kilo acp
 
   kimi_cli                -setup-kimi-cli                       kimi acp
@@ -6574,6 +6576,14 @@ SETUP: GOOSE CLI ~
 
 Install <https://goose-docs.ai/docs/getting-started/installation/> and set up
 Goose <https://goose-docs.ai/> CLI, then select the `goose` adapter.
+
+
+SETUP: GROK BUILD ~
+
+Install Grok Build <https://github.com/xai-org/grok-build> by following its
+official installation instructions, then run `grok login` in your terminal.
+Select the `grok` adapter in your chat buffer. CodeCompanion supports Grok
+Build's interactive questions and plan review requests.
 
 
 SETUP: KILO CODE ~
