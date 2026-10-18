@@ -22,7 +22,7 @@ local function get_models(adapter)
   local headers = {
     ["User-Agent"] = "CodeCompanion.nvim",
   }
-  local response, err = Curl.get({
+  local response, err = Curl.get_sync({
     url = url,
     headers = headers,
     insecure = config.adapters.http.opts.allow_insecure,

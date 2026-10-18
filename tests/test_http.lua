@@ -72,6 +72,13 @@ local T = new_set({
             return { args = "mocked args", shutdown = function() end }
           end,
         }
+        _G.Client.static.methods.post_sync = {
+          default = function(opts)
+            _G.__calls.post = _G.__calls.post + 1
+            _G.__last_request_opts = opts
+            return { status = 200, headers = {}, body = "", exit = 0 }
+          end,
+        }
       ]])
     end,
     post_once = child.stop,
@@ -274,7 +281,7 @@ end
 T["send_sync returns response on success"] = function()
   local result = child.lua([[
     -- Override POST to return a synchronous success response
-    _G.Client.static.methods.post = {
+    _G.Client.static.methods.post_sync = {
       default = function(opts)
         _G.__calls.post = _G.__calls.post + 1
         return { status = 200, headers = { "OK" }, body = "ok", exit = 0 }
@@ -301,7 +308,7 @@ end
 T["send_sync returns error on HTTP status >= 400"] = function()
   local result = child.lua([[
     -- Override POST to return a synchronous 500 response
-    _G.Client.static.methods.post = {
+    _G.Client.static.methods.post_sync = {
       default = function(opts)
         _G.__calls.post = _G.__calls.post + 1
         return { status = 500, headers = { "ERR" }, body = "boom", exit = 0 }
@@ -325,7 +332,7 @@ end
 
 T["send_sync returns error when curl call fails"] = function()
   local result = child.lua([[
-    _G.Client.static.methods.post = {
+    _G.Client.static.methods.post_sync = {
       default = function(opts)
         _G.__calls.post = _G.__calls.post + 1
         return nil, { message = "curl failed", stderr = "curl failed", exit = 7 }
@@ -353,7 +360,7 @@ T["send_sync merges structured output schema into the request body"] = function(
     _G.Client.static.methods.encode = {
       default = function(tbl) captured_body = tbl; return vim.json.encode(tbl) end,
     }
-    _G.Client.static.methods.post = {
+    _G.Client.static.methods.post_sync = {
       default = function(opts)
         return { status = 200, headers = {}, body = "ok", exit = 0 }
       end,
@@ -391,7 +398,7 @@ T["send_sync DOES NOT ask for a stream when the adapter streams"] = function()
     _G.Client.static.methods.encode = {
       default = function(tbl) captured_body = tbl; return vim.json.encode(tbl) end,
     }
-    _G.Client.static.methods.post = {
+    _G.Client.static.methods.post_sync = {
       default = function(opts)
         return { status = 200, headers = {}, body = "ok", exit = 0 }
       end,
@@ -459,14 +466,14 @@ T["send_sync returns error when adapter does not support structured outputs"] = 
   h.expect_contains("does not support structured outputs", result.err_message)
 end
 
-T["handles nil data with captured stream error"] = function()
+T["reports an error streamed with a 200 status"] = function()
   local result = child.lua([[
     _G.Client.static.methods.post = {
       default = function(opts)
         if opts.stream then
-          opts.stream(nil, '{"error": {"message": "Insufficient credits"}}')
+          opts.stream('{"error": {"message": "Insufficient credits"}}')
         end
-        opts.callback(nil)
+        opts.callback({ status = 200, headers = {}, body = '{"error": {"message": "Insufficient credits"}}', exit = 0 })
         return { args = "mocked args", shutdown = function() end }
       end,
     }

@@ -40,7 +40,7 @@ local T = new_set({
 
         -- Stub dependencies before requiring subject module
         package.loaded["codecompanion.utils.curl"] = {
-          get = function()
+          get_sync = function()
             if _G.fail_request then
               return nil, { message = "network error", stderr = "network error", exit = 7 }
             end

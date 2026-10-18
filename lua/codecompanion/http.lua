@@ -25,6 +25,8 @@ Client.static = {}
 Client.static.methods = {
   post = { default = Curl.post },
   get = { default = Curl.get },
+  post_sync = { default = Curl.post_sync },
+  get_sync = { default = Curl.get_sync },
   encode = { default = vim.json.encode },
   schedule = { default = vim.schedule },
   schedule_wrap = { default = vim.schedule_wrap },
@@ -340,7 +342,7 @@ function Client:send_sync(payload, opts)
     utils.fire("RequestStarted", event_opts)
   end
 
-  local response, err = self.methods[Client.resolve_method(adapter)](request_opts)
+  local response, err = self.methods[Client.resolve_method(adapter) .. "_sync"](request_opts)
   if response and response.status >= 400 then
     err = { message = string.format([[%d error: ]], response.status), stderr = response, status = response.status }
     response = nil
@@ -422,7 +424,7 @@ function Client:request(payload, actions, opts)
         if data and data.status and data.status >= 400 then
           opts.status = "error"
           actions.callback({ message = string.format([[%d error: ]], data.status), stderr = data }, nil)
-        elseif not data and stream_error_body then
+        elseif stream_error_body then
           opts.status = "error"
           actions.callback({ message = "Request failed", stderr = stream_error_body }, nil)
         end
@@ -454,7 +456,7 @@ function Client:request(payload, actions, opts)
     request_opts["compressed"] = adapter.opts.compress or false
 
     -- This will be called multiple times until the stream is finished
-    request_opts["stream"] = self.methods.schedule_wrap(function(_, data)
+    request_opts["stream"] = self.methods.schedule_wrap(function(data)
       if data and data ~= "" then
         response.write(data)
         if data:match('^%s*{"error"') or data:match('^%s*{"type"%s*:%s*"error"') then
