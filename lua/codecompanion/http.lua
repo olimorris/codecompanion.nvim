@@ -1,4 +1,4 @@
-local Curl = require("plenary.curl")
+local Curl = require("codecompanion.utils.curl")
 
 local adapter_utils = require("codecompanion.adapters.utils")
 local adapters = require("codecompanion.adapters")
@@ -79,9 +79,16 @@ local function transform_static_methods(opts)
 end
 
 ---@param self CodeCompanion.HTTPClient
+---@param opts? { stream?: boolean }
 ---@return CodeCompanion.HTTPAdapter|nil adapter, table|nil err
-local function prepare_adapter(self)
+local function prepare_adapter(self, opts)
+  opts = opts or {}
   local adapter = vim.deepcopy(self.adapter)
+
+  -- Must happen before setup, or adapters still put `stream: true` in the request body
+  if opts.stream ~= nil and adapter.opts then
+    adapter.opts.stream = opts.stream
+  end
 
   local ok = adapters.call_handler(adapter, "setup")
   if ok == false then
@@ -301,14 +308,10 @@ end
 function Client:send_sync(payload, opts)
   opts = opts or {}
 
-  local adapter, prepare_err = prepare_adapter(self)
+  -- Turn streaming off so we don't have to handle malformed JSON chunks
+  local adapter, prepare_err = prepare_adapter(self, { stream = false })
   if not adapter then
     return nil, prepare_err
-  end
-
-  -- Turn streaming off so we don't have to handle malformed JSON chunks
-  if adapter.opts then
-    adapter.opts.stream = false
   end
 
   if payload.structured_output and not adapters.get_handler(adapter, "build_structured_output") then
@@ -321,7 +324,7 @@ function Client:send_sync(payload, opts)
   local raw, headers_file = Client.build_curl_args(adapter)
 
   local request_opts = {
-    body = body_file,
+    body_file = body_file,
     insecure = config.adapters.http.opts.allow_insecure,
     proxy = config.adapters.http.opts.proxy,
     raw = raw,
@@ -337,16 +340,10 @@ function Client:send_sync(payload, opts)
     utils.fire("RequestStarted", event_opts)
   end
 
-  local response, err = nil, nil
-  local ok, result = pcall(self.methods[Client.resolve_method(adapter)], request_opts)
-  if not ok then
-    err = { message = tostring(result), stderr = tostring(result) }
-  else
-    response = result
-    if response and response.status and response.status >= 400 then
-      err = { message = string.format([[%d error: ]], response.status), stderr = response, status = response.status }
-      response = nil
-    end
+  local response, err = self.methods[Client.resolve_method(adapter)](request_opts)
+  if response and response.status >= 400 then
+    err = { message = string.format([[%d error: ]], response.status), stderr = response, status = response.status }
+    response = nil
   end
 
   adapters.call_handler(adapter, "on_exit", { data = response or (err and err.stderr) })
@@ -368,7 +365,7 @@ end
 ---@param payload CodeCompanion.HTTPPayload
 ---@param actions CodeCompanion.HTTPAdapter.RequestActions
 ---@param opts? table Options that can be passed to the request
----@return table|nil The Plenary job
+---@return CodeCompanion.Curl.Job|nil
 function Client:request(payload, actions, opts)
   -- Check if the adapter has a custom request function and use it instead
   if
@@ -401,7 +398,7 @@ function Client:request(payload, actions, opts)
   local stream_error_body = nil
 
   local request_opts = {
-    body = body_file,
+    body_file = body_file,
     insecure = config.adapters.http.opts.allow_insecure,
     proxy = config.adapters.http.opts.proxy,
     raw = raw,
@@ -454,7 +451,6 @@ function Client:request(payload, actions, opts)
   if adapter.opts and adapter.opts.stream then
     local has_started_steaming = false
 
-    -- Turn off plenary's default compression
     request_opts["compressed"] = adapter.opts.compress or false
 
     -- This will be called multiple times until the stream is finished
@@ -476,14 +472,14 @@ function Client:request(payload, actions, opts)
     end)
   end
 
-  local job = self.methods[Client.resolve_method(adapter)](request_opts)
-
   opts.id = opts.id or math.random(10000000)
   opts.adapter = adapter_event_data(adapter)
 
   if not opts.silent then
     utils.fire("RequestStarted", opts)
   end
+
+  local job = self.methods[Client.resolve_method(adapter)](request_opts)
 
   if job and job.args then
     log:debug("Request:\n%s", job.args)

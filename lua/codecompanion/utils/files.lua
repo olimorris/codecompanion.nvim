@@ -296,19 +296,20 @@ function M.download(url, opts)
   local extension = url:gsub("[?#].*$", ""):match("/[^/]+%.(%w+)$")
   local path = fn.tempname() .. (extension and ("." .. extension) or "")
 
-  require("plenary.curl").get(url, {
+  require("codecompanion.utils.curl").get({
+    url = url,
     insecure = http_opts.allow_insecure,
     proxy = http_opts.proxy,
     output = path,
-    callback = vim.schedule_wrap(function(response)
+    callback = function(response)
       if response.status ~= 200 then
         return opts.callback(fmt("Could not download %s (HTTP status %d)", url, response.status))
       end
       opts.callback(nil, { path = path, mimetype = get_content_type(response.headers) })
-    end),
-    on_error = vim.schedule_wrap(function(err)
+    end,
+    on_error = function(err)
       opts.callback(err.message)
-    end),
+    end,
   })
 end
 

@@ -190,6 +190,33 @@ T["invokes on_error callback with error"] = function()
   h.eq(result.err_received, "boom")
 end
 
+T["pairs RequestStarted and RequestFinished with adapter data when curl cannot start"] = function()
+  local events = child.lua([[
+    _G.Client.static.methods.post = {
+      default = function(opts)
+        opts.on_error({ message = "could not start curl", stderr = "ENOENT", exit = -1 })
+        return { args = "mocked args", shutdown = function() end }
+      end,
+    }
+
+    local events = {}
+    vim.api.nvim_create_autocmd("User", {
+      pattern = { "CodeCompanionRequestStarted", "CodeCompanionRequestFinished" },
+      callback = function(args)
+        table.insert(events, { event = args.match, adapter = args.data.adapter and args.data.adapter.name or vim.NIL })
+      end,
+    })
+
+    Client.new({ adapter = __make_adapter() }):request({ messages = {}, tools = {} }, { callback = function() end }, {})
+    return events
+  ]])
+
+  h.eq(events, {
+    { event = "CodeCompanionRequestStarted", adapter = "TestAdapter" },
+    { event = "CodeCompanionRequestFinished", adapter = "TestAdapter" },
+  })
+end
+
 T["calls done then emits error callback for HTTP status >= 400"] = function()
   local result = child.lua([[
     -- Override POST to simulate a non-streaming 500 response
@@ -298,11 +325,10 @@ end
 
 T["send_sync returns error when curl call fails"] = function()
   local result = child.lua([[
-    -- Override POST to simulate a thrown error in curl
     _G.Client.static.methods.post = {
       default = function(opts)
         _G.__calls.post = _G.__calls.post + 1
-        error("curl failed")
+        return nil, { message = "curl failed", stderr = "curl failed", exit = 7 }
       end,
     }
 
@@ -357,6 +383,40 @@ T["send_sync merges structured output schema into the request body"] = function(
   h.eq(result.err_is_nil, true)
   h.eq(result.response_format.type, "json_schema")
   h.eq(result.response_format.json_schema.name, "weather")
+end
+
+T["send_sync DOES NOT ask for a stream when the adapter streams"] = function()
+  local result = child.lua([[
+    local captured_body
+    _G.Client.static.methods.encode = {
+      default = function(tbl) captured_body = tbl; return vim.json.encode(tbl) end,
+    }
+    _G.Client.static.methods.post = {
+      default = function(opts)
+        return { status = 200, headers = {}, body = "ok", exit = 0 }
+      end,
+    }
+
+    local adapter = __make_adapter({
+      opts = { method = "POST", stream = true },
+      handlers = {
+        setup = function(self)
+          if self.opts.stream then
+            self.parameters = { stream = true }
+          end
+          return true
+        end,
+        form_parameters = function(self, params) return params end,
+      },
+    })
+
+    Client.new({ adapter = adapter }):send_sync({ messages = {}, tools = {} }, { silent = true, timeout = 100 })
+
+    return { stream = captured_body.stream or vim.NIL, adapter_still_streams = adapter.opts.stream }
+  ]])
+
+  h.eq(result.stream, vim.NIL)
+  h.eq(result.adapter_still_streams, true)
 end
 
 T["merge_body deep-merges colliding body keys from different handlers"] = function()

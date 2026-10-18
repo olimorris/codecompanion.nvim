@@ -1,4 +1,4 @@
-local Curl = require("plenary.curl")
+local Curl = require("codecompanion.utils.curl")
 local adapter_utils = require("codecompanion.adapters.utils")
 local config = require("codecompanion.config")
 local log = require("codecompanion.utils.log")
@@ -78,7 +78,8 @@ local function fetch_models(adapter)
   local headers = build_headers(adapter)
 
   pcall(function()
-    Curl.get(url .. "/api/tags", {
+    Curl.get({
+      url = url .. "/api/tags",
       headers = headers,
       insecure = config.adapters.http.opts.allow_insecure,
       proxy = config.adapters.http.opts.proxy,
@@ -98,7 +99,8 @@ local function fetch_models(adapter)
         local pending = {}
 
         for _, model_obj in ipairs(json.models) do
-          pending[model_obj.name] = Curl.post(url .. "/api/show", {
+          pending[model_obj.name] = Curl.post({
+            url = url .. "/api/show",
             body = vim.json.encode({ model = model_obj.name }),
             headers = headers,
             insecure = config.adapters.http.opts.allow_insecure,
