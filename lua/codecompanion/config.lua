@@ -624,6 +624,22 @@ If you are providing code changes, use the edit_file tool (if available to you) 
             provider = providers.pickers, -- telescope|fzf_lua|mini_pick|snacks|default
           },
         },
+        ["tools"] = {
+          path = "interactions.chat.slash_commands.builtin.tools",
+          description = "Add tools to the chat",
+          ---@param opts { adapter: CodeCompanion.HTTPAdapter|CodeCompanion.ACPAdapter }
+          ---@return boolean
+          enabled = function(opts)
+            if opts.adapter and opts.adapter.type == "http" then
+              return true
+            end
+            return false
+          end,
+          opts = {
+            contains_code = false,
+            provider = providers.pickers, -- telescope|fzf_lua|mini_pick|snacks|default
+          },
+        },
         opts = {
           acp = {
             enabled = true, -- Enable ACP command completion

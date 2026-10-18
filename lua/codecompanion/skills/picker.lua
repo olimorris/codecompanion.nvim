@@ -208,6 +208,7 @@ function M.build(opts)
       local display = fzf:display(function(selected)
         return find_by_display(items, selected)
       end)
+      display.fzf_opts = { ["--multi"] = true }
 
       if opts.preview then
         local previewer = require("fzf-lua.previewer.builtin").buffer_or_file:extend()
