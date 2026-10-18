@@ -5,7 +5,7 @@ description: "Edit code directly in a Neovim buffer with CodeCompanion's inline 
 # Using the Inline Interaction
 
 <p align="center">
-  <video controls muted title="Inline interaction demo" src="https://github.com/user-attachments/assets/dcddcb85-cba0-4017-9723-6e6b7f080fee"></video>
+  <video controls muted title="Inline interaction demo" src="https://github.com/user-attachments/assets/942f2868-db57-4a33-86f8-1dbfe904df07"></video>
 </p>
 
 As per the [Getting Started](/getting-started#editing-inline) guide, the inline interaction lets the LLM edit the current buffer directly. Run `:CodeCompanion <your prompt>` to let it edit the whole buffer, or make a visual selection first to limit its edits to those lines. Running `:CodeCompanion` on its own opens an input box to write your prompt in, with the adapter and model that will answer in its title.
