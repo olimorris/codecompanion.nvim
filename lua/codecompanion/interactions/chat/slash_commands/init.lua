@@ -61,7 +61,7 @@ function SlashCommands:set_provider(SlashCommand, providers)
     end
     return providers[SlashCommand.config.opts.provider](SlashCommand) --[[@type function]]
   end
-  return providers["default"] --[[@type function]]
+  return providers["default"](SlashCommand)
 end
 
 ---Execute the selected slash command

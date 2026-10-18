@@ -1,10 +1,11 @@
+local files_utils = require("codecompanion.utils.files")
+local log = require("codecompanion.utils.log")
 local utils = require("codecompanion.utils")
 
----@class CodeCompanion.Skills.PickerItem
+---@class CodeCompanion.SlashCommand.PickerItem
 ---@field name string
 ---@field description? string
----@field skills string[] The skill names the selection resolves to
----@field path? string Absolute path to the skill's SKILL.md, when it can be previewed
+---@field path? string Absolute path to a file to preview
 
 local M = {}
 
@@ -37,10 +38,14 @@ local function name_column(items)
   return math.min(width, MAX_NAME_COLUMN)
 end
 
----Build the pickers for a list of selectable skills or groups
----@param opts { prompt: string, empty_message: string, preview: boolean, items: fun(): CodeCompanion.Skills.PickerItem[] }
+---Build the pickers for a list of named items
+---@param opts { prompt: string, empty_message: string, preview: boolean, output?: fun(SlashCommand: CodeCompanion.SlashCommand, item: table), items: fun(): CodeCompanion.SlashCommand.PickerItem[] }
 ---@return table<string, fun(SlashCommand: CodeCompanion.SlashCommand)>
-function M.build(opts)
+function M.list(opts)
+  local output = opts.output or function(SlashCommand, item)
+    return SlashCommand:output(item)
+  end
+
   ---@return table[]|nil, number
   local function get_items()
     local items = opts.items()
@@ -79,7 +84,7 @@ function M.build(opts)
         if not selected then
           return
         end
-        return SlashCommand:output(selected)
+        return output(SlashCommand, selected)
       end)
     end,
 
@@ -96,7 +101,7 @@ function M.build(opts)
       snacks = snacks.new({
         title = opts.prompt .. ": ",
         output = function(selection)
-          return SlashCommand:output(selection)
+          return output(SlashCommand, selection)
         end,
       })
 
@@ -132,7 +137,7 @@ function M.build(opts)
       telescope = telescope.new({
         title = opts.prompt,
         output = function(selection)
-          return SlashCommand:output(selection.value)
+          return output(SlashCommand, selection.value)
         end,
       })
 
@@ -167,7 +172,7 @@ function M.build(opts)
       mini_pick = mini_pick.new({
         title = opts.prompt,
         output = function(selected)
-          return SlashCommand:output(selected)
+          return output(SlashCommand, selected)
         end,
       })
 
@@ -201,7 +206,7 @@ function M.build(opts)
       fzf = fzf.new({
         title = opts.prompt,
         output = function(selected)
-          return SlashCommand:output(selected)
+          return output(SlashCommand, selected)
         end,
       })
 
@@ -230,6 +235,153 @@ function M.build(opts)
         end, items),
         display
       )
+    end,
+  }
+end
+
+---The directories to search in, always led by the current working directory
+---@param SlashCommand CodeCompanion.SlashCommand
+---@return string[]
+local function get_search_dirs(SlashCommand)
+  local dirs = { vim.fn.getcwd() }
+
+  local configured = SlashCommand.config.opts and SlashCommand.config.opts.dirs or {}
+  for _, dir in ipairs(configured) do
+    local path = vim.fs.abspath(vim.fs.normalize(dir))
+    if files_utils.is_dir(path) then
+      table.insert(dirs, path)
+    else
+      log:warn("`%s` is not a directory. Skipping", dir)
+    end
+  end
+
+  return dirs
+end
+
+---Every file in the given directories, for pickers that can only search one at a time
+---@param dirs string[]
+---@return string[]
+local function scan_dirs(dirs)
+  local files = {}
+  for _, dir in ipairs(dirs) do
+    vim.list_extend(files, files_utils.scan_dir(dir, { max_depth = 10 }))
+  end
+
+  return files
+end
+
+---@param SlashCommand CodeCompanion.SlashCommand
+---@param path string
+---@return nil
+local function output_file(SlashCommand, path)
+  path = vim.fs.normalize(vim.fs.abspath(path))
+  return SlashCommand:output({ path = path, relative_path = vim.fn.fnamemodify(path, ":.") })
+end
+
+---Build the pickers for selecting files from the search directories
+---@param opts { prompt: string }
+---@return table<string, fun(SlashCommand: CodeCompanion.SlashCommand)>
+function M.files(opts)
+  return {
+    ---The default provider
+    ---@param SlashCommand CodeCompanion.SlashCommand
+    ---@return nil
+    default = function(SlashCommand)
+      local default = require("codecompanion.providers.slash_commands.default")
+      return default
+        .new({
+          output = function(selection)
+            return output_file(SlashCommand, selection.path)
+          end,
+          SlashCommand = SlashCommand,
+          title = opts.prompt,
+        })
+        :find_files({ dirs = get_search_dirs(SlashCommand) })
+        :display()
+    end,
+
+    ---The Snacks.nvim provider
+    ---@param SlashCommand CodeCompanion.SlashCommand
+    ---@return nil
+    snacks = function(SlashCommand)
+      local snacks = require("codecompanion.providers.slash_commands.snacks")
+      snacks = snacks.new({
+        title = opts.prompt .. ": ",
+        output = function(selection)
+          return output_file(SlashCommand, vim.fs.joinpath(selection.cwd, selection.file))
+        end,
+      })
+
+      snacks.provider.picker.pick({
+        source = "files",
+        prompt = snacks.title,
+        confirm = snacks:display(),
+        dirs = get_search_dirs(SlashCommand),
+        main = { file = false, float = true },
+      })
+    end,
+
+    ---The Telescope provider
+    ---@param SlashCommand CodeCompanion.SlashCommand
+    ---@return nil
+    telescope = function(SlashCommand)
+      local telescope = require("codecompanion.providers.slash_commands.telescope")
+      telescope = telescope.new({
+        title = opts.prompt,
+        output = function(selection)
+          return output_file(SlashCommand, selection.path)
+        end,
+      })
+
+      telescope.provider.find_files({
+        prompt_title = telescope.title,
+        attach_mappings = telescope:display(),
+        hidden = true,
+        search_dirs = get_search_dirs(SlashCommand),
+      })
+    end,
+
+    ---The Mini.Pick provider
+    ---@param SlashCommand CodeCompanion.SlashCommand
+    ---@return nil
+    mini_pick = function(SlashCommand)
+      local mini_pick = require("codecompanion.providers.slash_commands.mini_pick")
+      mini_pick = mini_pick.new({
+        title = opts.prompt,
+        output = function(selection)
+          return output_file(SlashCommand, selection.path)
+        end,
+      })
+
+      local display = mini_pick:display(function(selected)
+        return { path = selected }
+      end)
+
+      local dirs = get_search_dirs(SlashCommand)
+      if #dirs == 1 then
+        return mini_pick.provider.builtin.files({}, display)
+      end
+
+      return mini_pick.provider.start(vim.tbl_deep_extend("force", display, { source = { items = scan_dirs(dirs) } }))
+    end,
+
+    ---The fzf-lua provider
+    ---@param SlashCommand CodeCompanion.SlashCommand
+    ---@return nil
+    fzf_lua = function(SlashCommand)
+      local fzf = require("codecompanion.providers.slash_commands.fzf_lua")
+      fzf = fzf.new({
+        title = opts.prompt,
+        output = function(selection)
+          return output_file(SlashCommand, selection.path)
+        end,
+      })
+
+      local display = fzf:display(function(selected, fzf_opts)
+        return { path = fzf.provider.path.entry_to_file(selected, fzf_opts).path }
+      end)
+
+      fzf.provider.files(vim.tbl_extend("force", display, { search_paths = get_search_dirs(SlashCommand) }))
     end,
   }
 end

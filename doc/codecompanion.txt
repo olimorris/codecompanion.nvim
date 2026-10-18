@@ -5122,7 +5122,7 @@ whether to trim it to that many lines around the tag.
 
 The `mcp` slash command starts and stops |codecompanion-configuration-mcp|
 servers. **This applies globally, so starting or stopping a server affects
-every chat buffer**. It works with `vim.ui.select` and Snacks.
+every chat buffer**. Depending on your picker, several can be toggled at once.
 
 
 /MCP-PROMPTS ~

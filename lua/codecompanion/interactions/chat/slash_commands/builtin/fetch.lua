@@ -5,6 +5,7 @@ local client = require("codecompanion.http")
 local config = require("codecompanion.config")
 local hash_utils = require("codecompanion.utils.hash")
 local log = require("codecompanion.utils.log")
+local picker = require("codecompanion.providers.slash_commands.picker")
 local utils = require("codecompanion.utils")
 
 local fmt = string.format
@@ -36,12 +37,9 @@ local function get_cached_files()
       local file = Path:new(f):read()
       local content = vim.json.decode(file)
       return {
-        path = f,
         content = content.data,
-        filename = vim.fn.fnamemodify(f, ":t"),
         url = content.url,
         timestamp = content.timestamp,
-        display = string.format("[%s] %s", utils.make_relative(content.timestamp), content.url),
       }
     end)
     :totable()
@@ -91,180 +89,24 @@ local function output(chat, data, opts)
   return utils.notify(fmt("Added `%s` to the chat", data.url))
 end
 
-local providers = {
-  ---The default provider
-  ---@param SlashCommand CodeCompanion.SlashCommand
-  ---@return nil
-  default = function(SlashCommand)
-    local cached_files = get_cached_files()
-
-    if #cached_files == 0 then
-      return utils.notify("No cached URLs found", vim.log.levels.WARN)
-    end
-
-    local default = require("codecompanion.providers.slash_commands.default")
-    return default
-      .new({
-        output = function(selection)
-          return output(SlashCommand.Chat, selection)
-        end,
-        SlashCommand = SlashCommand,
-      })
-      :urls(cached_files)
-      :display()
+local providers = picker.list({
+  prompt = "Select a cached URL",
+  empty_message = "No cached URLs found",
+  preview = false,
+  output = function(SlashCommand, item)
+    return output(SlashCommand.Chat, item)
   end,
-  ---The snacks.nvim provider
-  ---@param SlashCommand CodeCompanion.SlashCommand
-  ---@return nil
-  snacks = function(SlashCommand)
-    local cached_files = get_cached_files()
-
-    if #cached_files == 0 then
-      return utils.notify("No cached URLs found", vim.log.levels.WARN)
-    end
-
-    local snacks = require("codecompanion.providers.slash_commands.snacks")
-    snacks = snacks.new({
-      output = function(selection)
-        return output(SlashCommand.Chat, selection)
-      end,
-    })
-
-    -- Transform cached files into picker items
-    local items = vim.tbl_map(function(file)
+  items = function()
+    return vim.tbl_map(function(file)
       return {
-        text = file.display,
-        file = file.path,
-        url = file.url,
-        content = file.content,
-        timestamp = file.timestamp,
-      }
-    end, cached_files)
-
-    snacks.provider.picker.pick({
-      title = "Cached URLs",
-      items = items,
-      prompt = snacks.title,
-      format = function(item, _)
-        local display_text = item.text
-        return { { display_text } }
-      end,
-      confirm = snacks:display(),
-      main = { file = false, float = true },
-    })
-  end,
-  ---The Telescope provider
-  ---@param SlashCommand CodeCompanion.SlashCommand
-  ---@return nil
-  telescope = function(SlashCommand)
-    local cached_files = get_cached_files()
-
-    if #cached_files == 0 then
-      return utils.notify("No cached URLs found", vim.log.levels.WARN)
-    end
-
-    local telescope = require("codecompanion.providers.slash_commands.telescope")
-    telescope = telescope.new({
-      output = function(selection)
-        return output(SlashCommand.Chat, selection)
-      end,
-    })
-
-    local pickers = require("telescope.pickers")
-    local finders = require("telescope.finders")
-
-    local function create_finder()
-      return finders.new_table({
-        results = cached_files,
-        entry_maker = function(entry)
-          return {
-            value = entry,
-            content = entry.content,
-            url = entry.url,
-            ordinal = entry.display,
-            display = entry.display,
-            filename = entry.path,
-          }
-        end,
-      })
-    end
-
-    pickers
-      .new({
-        finder = create_finder(),
-        attach_mappings = telescope:display(),
-      })
-      :find()
-  end,
-  ---The Mini.Pick provider
-  ---@param SlashCommand CodeCompanion.SlashCommand
-  ---@return nil
-  mini_pick = function(SlashCommand)
-    local cached_files = get_cached_files()
-
-    if #cached_files == 0 then
-      return utils.notify("No cached URLs found", vim.log.levels.WARN)
-    end
-
-    local mini_pick = require("codecompanion.providers.slash_commands.mini_pick")
-    mini_pick = mini_pick.new({
-      output = function(selected)
-        return output(SlashCommand.Chat, selected)
-      end,
-    })
-
-    local items = vim.tbl_map(function(file)
-      return {
-        text = file.display,
+        name = utils.make_relative(file.timestamp),
+        description = file.url,
         url = file.url,
         content = file.content,
       }
-    end, cached_files)
-
-    mini_pick.provider.start({
-      source = vim.tbl_deep_extend(
-        "force",
-        mini_pick:display(function(picked_item)
-          return picked_item
-        end).source,
-        {
-          items = items,
-        }
-      ),
-    })
+    end, get_cached_files())
   end,
-  ---The FZF-Lua provider
-  ---@param SlashCommand CodeCompanion.SlashCommand
-  ---@return nil
-  fzf_lua = function(SlashCommand)
-    local cached_files = get_cached_files()
-
-    if #cached_files == 0 then
-      return utils.notify("No cached URLs found", vim.log.levels.WARN)
-    end
-
-    local fzf = require("codecompanion.providers.slash_commands.fzf_lua")
-    fzf = fzf.new({
-      output = function(selected)
-        return output(SlashCommand.Chat, selected)
-      end,
-    })
-
-    local items = vim.tbl_map(function(file)
-      return file.display
-    end, cached_files)
-
-    local transformer_fn = function(selected, _)
-      for _, file_object in ipairs(cached_files) do
-        if file_object.display == selected then
-          return file_object
-        end
-      end
-    end
-
-    fzf.provider.fzf_exec(items, fzf:display(transformer_fn))
-  end,
-}
+})
 
 ---Determine if the URL has already been cached
 ---@param hash string
@@ -382,14 +224,8 @@ local choice = {
       return SlashCommand:output(url)
     end)
   end,
-  Cache = function(SlashCommand, _)
-    local cached_files = get_cached_files()
-
-    if #cached_files == 0 then
-      return utils.notify("No cached URLs found", vim.log.levels.WARN)
-    end
-
-    return providers[SlashCommand.config.opts.provider](SlashCommand, cached_files)
+  Cache = function(SlashCommand, SlashCommands)
+    return SlashCommands:set_provider(SlashCommand, providers)
   end,
 }
 

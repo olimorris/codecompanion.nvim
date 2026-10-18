@@ -506,7 +506,7 @@ If you are providing code changes, use the edit_file tool (if available to you) 
           description = "Toggle MCP servers",
           opts = {
             contains_code = false,
-            provider = "default", -- snacks|default
+            provider = providers.pickers, -- telescope|fzf_lua|mini_pick|snacks|default
           },
         },
         ["mcp-prompts"] = {
