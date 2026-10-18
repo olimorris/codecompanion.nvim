@@ -92,7 +92,7 @@ local function request(opts)
         return
       end
 
-      store(cache, json)
+      store({ cache = cache, json = json })
     end,
     on_error = function(err)
       cache.in_progress = false
