@@ -42,19 +42,19 @@ M.get_default = function(adapter, defaults)
   return ret
 end
 
----@param schema CodeCompanion.Schema
----@param value any
----@param adapter CodeCompanion.HTTPAdapter
+---@param opts { schema: CodeCompanion.Schema, value: any, adapter: CodeCompanion.HTTPAdapter }
 ---@return boolean
 ---@return nil|string
-local function validate_type(schema, value, adapter)
+local function validate_type(opts)
+  local schema = opts.schema
+  local value = opts.value
   local ptype = schema.type or "string"
   if value == nil then
     return schema.optional
   elseif ptype == "enum" then
     local choices = schema.choices
     if type(choices) == "function" then
-      choices = choices(adapter)
+      choices = choices(opts.adapter)
     end
     local valid = vim.tbl_contains(choices, value)
     if not valid and choices then
@@ -86,13 +86,13 @@ local function validate_type(schema, value, adapter)
   end
 end
 
----@param schema CodeCompanion.Schema
----@param value any
----@param adapter CodeCompanion.HTTPAdapter
+---@param opts { schema: CodeCompanion.Schema, value: any, adapter: CodeCompanion.HTTPAdapter }
 ---@return boolean
 ---@return nil|string
-local function validate_field(schema, value, adapter)
-  local valid, err = validate_type(schema, value, adapter)
+local function validate_field(opts)
+  local schema = opts.schema
+  local value = opts.value
+  local valid, err = validate_type(opts)
   if not valid then
     return valid, err
   end
@@ -109,7 +109,7 @@ end
 M.validate = function(schema, values, adapter)
   local errors = {}
   for k, v in pairs(schema) do
-    local valid, err = validate_field(v, values[k], adapter)
+    local valid, err = validate_field({ schema = v, value = values[k], adapter = adapter })
     if not valid then
       errors[k] = err or string.format("Not a valid %s", v.type)
     end

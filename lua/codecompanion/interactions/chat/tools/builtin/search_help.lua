@@ -29,17 +29,17 @@ local function get_help_docs()
   return from_runtime[1]
 end
 
----@param line string
----@param context { follows_rule: boolean, follows_blank: boolean }
+---@param opts { line: string, follows_rule: boolean, follows_blank: boolean }
 ---@return { level: number, title: string, tag: string? }?
-local function classify_heading(line, context)
+local function classify_heading(opts)
+  local line = opts.line
   local before_tag, tag = line:match("^(.-)%s*%*([%w%-%.%(%)]+)%*%s*$")
   if tag then
     local title = vim.trim(before_tag)
     if title == "" then
       return nil
     end
-    if context.follows_rule and title:match("^%d+%.%s") then
+    if opts.follows_rule and title:match("^%d+%.%s") then
       return { level = 1, title = title:gsub("^%d+%.%s*", ""), tag = tag }
     end
     if title:match("^[%u%d][%u%d%s/%(%)%-'&,%.]*$") then
@@ -56,7 +56,7 @@ local function classify_heading(line, context)
 
   -- Only the blank line stops prose that wrapped onto an all-caps fragment (`URL.`) reading as a heading
   if
-    context.follows_blank
+    opts.follows_blank
     and not line:match("%.$")
     and not line:match("%l")
     and line:match("^[%u%d/#@][%u%d%s/%(%)%-'&,%.:_#@]*$")
@@ -84,7 +84,7 @@ local function scan_headings(lines)
     elseif in_code_block and line:match("^<") then
       in_code_block = false
     elseif not in_code_block then
-      local heading = classify_heading(line, { follows_rule = follows_rule, follows_blank = follows_blank })
+      local heading = classify_heading({ line = line, follows_rule = follows_rule, follows_blank = follows_blank })
       if heading then
         heading.line = number
         table.insert(nodes, heading)
@@ -98,10 +98,11 @@ local function scan_headings(lines)
 end
 
 ---Record the line ranges each heading owns and the breadcrumb that addresses it
----@param nodes table[]
----@param total_lines number
+---@param opts { nodes: table[], total_lines: number }
 ---@return nil
-local function annotate_headings(nodes, total_lines)
+local function annotate_headings(opts)
+  local nodes = opts.nodes
+  local total_lines = opts.total_lines
   for index, node in ipairs(nodes) do
     node.index = index
     node.content_end = nodes[index + 1] and (nodes[index + 1].line - 1) or total_lines
@@ -133,7 +134,7 @@ end
 ---@return table[]
 local function build_outline(lines)
   local nodes = scan_headings(lines)
-  annotate_headings(nodes, #lines)
+  annotate_headings({ nodes = nodes, total_lines = #lines })
   return nodes
 end
 
@@ -166,17 +167,16 @@ local function normalize(needle)
 end
 
 ---Find sections matching a tag or heading path, returning only the best tier of matches
----@param nodes table[]
----@param needle string
+---@param opts { nodes: table[], needle: string }
 ---@return table[]
-local function find_sections(nodes, needle)
-  local wanted = normalize(needle)
+local function find_sections(opts)
+  local wanted = normalize(opts.needle)
   if wanted == "" then
     return {}
   end
 
   local exact, suffix, partial = {}, {}, {}
-  for _, node in ipairs(nodes) do
+  for _, node in ipairs(opts.nodes) do
     local path = normalize(node.path)
     if (node.tag and node.tag:lower() == wanted) or path == wanted or normalize(node.title) == wanted then
       table.insert(exact, node)
@@ -194,21 +194,22 @@ local function find_sections(nodes, needle)
 end
 
 ---Drop the blank lines and chapter rule that bleed in from whatever follows a section
----@param lines string[]
----@param range { first: number, last: number }
+---@param opts { lines: string[], first: number, last: number }
 ---@return number
-local function trim_trailing(lines, range)
-  local last = range.last
-  while last > range.first and (vim.trim(lines[last]) == "" or lines[last]:match("^=+$")) do
+local function trim_trailing(opts)
+  local lines = opts.lines
+  local last = opts.last
+  while last > opts.first and (vim.trim(lines[last]) == "" or lines[last]:match("^=+$")) do
     last = last - 1
   end
   return last
 end
 
----@param nodes table[]
----@param node table
+---@param opts { nodes: table[], node: table }
 ---@return table[]
-local function direct_children(nodes, node)
+local function direct_children(opts)
+  local nodes = opts.nodes
+  local node = opts.node
   local children = {}
   local child_level
   for index = node.index + 1, #nodes do
@@ -224,24 +225,24 @@ local function direct_children(nodes, node)
   return children
 end
 
----@param node table
----@param opts? { indent: boolean }
+---@param opts { node: table, indent?: boolean }
 ---@return string
-local function render_heading(node, opts)
-  local indent = (opts and opts.indent) and string.rep("  ", node.level - 1) or ""
+local function render_heading(opts)
+  local node = opts.node
+  local indent = opts.indent and string.rep("  ", node.level - 1) or ""
   return fmt("%s%s%s", indent, node.title, node.tag and fmt("  |%s|", node.tag) or "")
 end
 
 ---Build the navigable outline of the whole doc or one section
----@param doc table
----@param args { section?: string, max_level?: number }
+---@param args { doc: table, section?: string, max_level?: number }
 ---@return {status: "success"|"error", data: string}
-local function run_outline(doc, args)
+local function run_outline(args)
+  local doc = args.doc
   local scope = doc.nodes
   local header = fmt("Outline of CodeCompanion's help (%d sections)", #doc.nodes)
 
   if args.section and args.section ~= "" then
-    local matches = find_sections(doc.nodes, args.section)
+    local matches = find_sections({ nodes = doc.nodes, needle = args.section })
     if not next(matches) then
       return {
         status = "error",
@@ -262,7 +263,7 @@ local function run_outline(doc, args)
       return node.level <= max_level
     end)
     :map(function(node)
-      return render_heading(node, { indent = true })
+      return render_heading({ node = node, indent = true })
     end)
     :totable()
 
@@ -270,11 +271,12 @@ local function run_outline(doc, args)
 end
 
 ---Render a section and everything nested under it
----@param doc table
----@param node table
+---@param opts { doc: table, node: table }
 ---@return {status: "success", data: string}
-local function render_section(doc, node)
-  local last = trim_trailing(doc.lines, { first = node.line, last = node.subtree_end })
+local function render_section(opts)
+  local doc = opts.doc
+  local node = opts.node
+  local last = trim_trailing({ lines = doc.lines, first = node.line, last = node.subtree_end })
   local body = table.concat(vim.list_slice(doc.lines, node.line, last), "\n")
   return {
     status = "success",
@@ -290,15 +292,16 @@ local function render_section(doc, node)
 end
 
 ---Render a section's introduction and the subsections to read instead of the whole thing
----@param doc table
----@param node table
+---@param opts { doc: table, node: table }
 ---@return {status: "success", data: string}
-local function render_section_summary(doc, node)
-  local intro_last = trim_trailing(doc.lines, { first = node.line, last = node.content_end })
+local function render_section_summary(opts)
+  local doc = opts.doc
+  local node = opts.node
+  local intro_last = trim_trailing({ lines = doc.lines, first = node.line, last = node.content_end })
   local intro = table.concat(vim.list_slice(doc.lines, node.line, intro_last), "\n")
   local children = vim.tbl_map(function(child)
     return fmt("  %s  (%d lines)", child.path, child.subtree_end - child.line + 1)
-  end, direct_children(doc.nodes, node))
+  end, direct_children({ nodes = doc.nodes, node = node }))
 
   return {
     status = "success",
@@ -313,16 +316,15 @@ local function render_section_summary(doc, node)
 end
 
 ---Read a section, falling back to its child outline when it is too long to return whole
----@param doc table
----@param args { section: string }
----@param max_lines number
+---@param args { doc: table, section: string, max_lines: number }
 ---@return {status: "success"|"error", data: string}
-local function run_read(doc, args, max_lines)
+local function run_read(args)
+  local doc = args.doc
   if not args.section or args.section == "" then
     return { status = "error", data = "The `read` command requires a `section` parameter" }
   end
 
-  local matches = find_sections(doc.nodes, args.section)
+  local matches = find_sections({ nodes = doc.nodes, needle = args.section })
   if not next(matches) then
     return {
       status = "error",
@@ -346,10 +348,10 @@ local function run_read(doc, args, max_lines)
   end
 
   local node = matches[1]
-  if (node.subtree_end - node.line + 1) <= max_lines then
-    return render_section(doc, node)
+  if (node.subtree_end - node.line + 1) <= args.max_lines then
+    return render_section({ doc = doc, node = node })
   end
-  return render_section_summary(doc, node)
+  return render_section_summary({ doc = doc, node = node })
 end
 
 ---Build the line matcher for a search, literal by default and a Lua pattern on request
@@ -374,11 +376,10 @@ local function build_matcher(args)
 end
 
 ---Walk the doc collecting matching lines against the section each one sits in
----@param doc table
----@param matches_line fun(line: string): boolean
----@param max_results number
+---@param opts { doc: table, matches_line: fun(line: string): boolean, max_results: number }
 ---@return { sections: table<string, string[]>, order: string[], total: number }
-local function collect_hits(doc, matches_line, max_results)
+local function collect_hits(opts)
+  local doc = opts.doc
   local sections, order, total = {}, {}, 0
   local node_index = 1
 
@@ -386,9 +387,9 @@ local function collect_hits(doc, matches_line, max_results)
     while doc.nodes[node_index + 1] and doc.nodes[node_index + 1].line <= number do
       node_index = node_index + 1
     end
-    if matches_line(line) then
+    if opts.matches_line(line) then
       total = total + 1
-      if total <= max_results then
+      if total <= opts.max_results then
         local node = doc.nodes[node_index]
         local key = node and node.path or "Preamble"
         if not sections[key] then
@@ -404,11 +405,9 @@ local function collect_hits(doc, matches_line, max_results)
 end
 
 ---Search the doc, reporting each hit against the section that contains it
----@param doc table
----@param args { query: string, regex?: boolean }
----@param max_results number
+---@param args { doc: table, query: string, regex?: boolean, max_results: number }
 ---@return {status: "success"|"error", data: string}
-local function run_search(doc, args, max_results)
+local function run_search(args)
   if not args.query or args.query == "" then
     return { status = "error", data = "The `search` command requires a `query` parameter" }
   end
@@ -419,7 +418,7 @@ local function run_search(doc, args, max_results)
     return { status = "error", data = error_msg }
   end
 
-  local hits = collect_hits(doc, matches_line, max_results)
+  local hits = collect_hits({ doc = args.doc, matches_line = matches_line, max_results = args.max_results })
   if hits.total == 0 then
     return {
       status = "success",
@@ -434,7 +433,7 @@ local function run_search(doc, args, max_results)
     return fmt("%s\n%s", key, table.concat(hits.sections[key], "\n"))
   end, hits.order)
 
-  local capped = hits.total > max_results and fmt(" (showing the first %d)", max_results) or ""
+  local capped = hits.total > args.max_results and fmt(" (showing the first %d)", args.max_results) or ""
   return {
     status = "success",
     data = fmt(
@@ -466,13 +465,13 @@ return {
       local command = args.command or "search"
 
       if command == "outline" then
-        return run_outline(doc, args)
+        return run_outline({ doc = doc, section = args.section, max_level = args.max_level })
       end
       if command == "read" then
-        return run_read(doc, args, opts.max_lines or 200)
+        return run_read({ doc = doc, section = args.section, max_lines = opts.max_lines or 200 })
       end
       if command == "search" then
-        return run_search(doc, args, opts.max_results or 50)
+        return run_search({ doc = doc, query = args.query, regex = args.regex, max_results = opts.max_results or 50 })
       end
 
       return { status = "error", data = fmt("Unknown command: %s. Use `search`, `read` or `outline`.", command) }
@@ -569,7 +568,7 @@ return {
         return node.level <= 2
       end)
       :map(function(node)
-        return render_heading(node, { indent = true })
+        return render_heading({ node = node, indent = true })
       end)
       :totable()
 

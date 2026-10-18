@@ -113,28 +113,33 @@ local function add_response(response, lines)
 
 Positional parameters don't scale. Adding one means touching the signature, every call site, and every annotation. An `opts` table absorbs the new parameter in a single place, and call sites that don't care about it stay as they are.
 
-**Default to `opts` alone.** A leading positional is earned, not assumed. It has to be the single subject the function acts on, and it has to be stable enough that it will never be replaced or joined by a sibling - a `Chat`, a payload, the text being wrapped. Everything else goes in `opts`: `Chat:add_message(data, opts)`, `Client:send(payload, opts)`, `M.get_settings_key(chat, opts)`, `markdown.form_codeblock(content, opts)`.
+**Default to `opts` alone.** The one thing that may lead is the object the function operates on: `self`, a `Chat`, or a module's equivalent instance such as a `Background`, `Inline` or `DiffUI`. An object like that will never be replaced or joined by a sibling, so it stays positional: `add_system_prompt(chat, opts)`, `ask_sync(background, opts)`.
+
+Data never leads, even when it's what the function acts on - messages, content, a path, a buffer number, a tool's arguments. Data changes shape and gains siblings, so it goes in `opts`. A function with a single data parameter may take it positionally; once it needs a second, both go in `opts`.
 
 If you are weighing whether an argument qualifies, it doesn't. Put it in `opts`.
 
-The exception is a function whose signature its caller fixes: a `table.sort` comparator, an autocmd or keymap callback, a metamethod, a handler passed to a Neovim or libuv API.
+The exceptions are a trailing `callback`, which may stay positional, and a function whose signature its caller fixes: a `table.sort` comparator, an autocmd or keymap callback, a metamethod, a handler passed to a Neovim or libuv API.
 
 ```lua
 -- ❌ Three positionals, and a fourth means editing every caller
 function add_header(name, start_from, contents)
 
--- ✅ No subject, so `opts` is the only parameter
+-- ✅ No object, so `opts` is the only parameter
 ---@param opts? { name?: string, start_from?: number, contents?: string[] }
 function add_header(opts)
   opts = opts or {}
 
--- ❌ `ft` is data about the block, not a second subject
-function form_codeblock(content, ft)
+-- ❌ `messages` is data, not an object
+local function find_tool_call(messages, id)
 
--- ✅ `content` is the subject and will never be anything else
----@param opts? { ft?: string }
-function form_codeblock(content, opts)
-  opts = opts or {}
+-- ✅
+---@param opts { messages: CodeCompanion.Chat.Messages, id: string }
+local function find_tool_call(opts)
+
+-- ✅ `chat` is the object the function operates on
+---@param opts { tool: string, id: string }
+local function add_system_prompt(chat, opts)
 ```
 
 Normalise an optional table on the first line with `opts = opts or {}`, or with `vim.tbl_extend("force", opts or {}, { ... })` when you're layering defaults over it. Annotate the shape inline on the `@param` - `---@param opts? { auto_submit?: boolean }` - so callers can see the keys without opening the function.

@@ -21,12 +21,11 @@ local function pad(name, width)
 end
 
 ---Map a picker's chosen display string back to its item
----@param items table[]
----@param display string
+---@param opts { items: table[], display: string }
 ---@return table|nil
-local function find_by_display(items, display)
-  return vim.iter(items):find(function(item)
-    return item.display == display
+local function find_by_display(opts)
+  return vim.iter(opts.items):find(function(item)
+    return item.display == opts.display
   end)
 end
 
@@ -60,15 +59,14 @@ local function get_list_items(opts)
 end
 
 ---Give each picker the options it was built with
----@param pickers table<string, fun(SlashCommand: CodeCompanion.SlashCommand, opts: table)>
----@param opts table
+---@param opts { pickers: table<string, fun(SlashCommand: CodeCompanion.SlashCommand, opts: table)>, picker_opts: table }
 ---@return table<string, fun(SlashCommand: CodeCompanion.SlashCommand)>
-local function bind_pickers(pickers, opts)
+local function bind_pickers(opts)
   return vim.tbl_map(function(pick)
     return function(SlashCommand)
-      return pick(SlashCommand, opts)
+      return pick(SlashCommand, opts.picker_opts)
     end
-  end, pickers)
+  end, opts.pickers)
 end
 
 local list_pickers = {}
@@ -185,7 +183,7 @@ function list_pickers.mini_pick(SlashCommand, opts)
   })
 
   local source = mini_pick:display(function(selected)
-    return find_by_display(items, selected)
+    return find_by_display({ items = items, display = selected })
   end)
   source.source.items = vim.tbl_map(function(item)
     return item.display
@@ -193,7 +191,7 @@ function list_pickers.mini_pick(SlashCommand, opts)
 
   if opts.preview then
     source.source.preview = function(buf_id, display)
-      local item = find_by_display(items, display)
+      local item = find_by_display({ items = items, display = display })
       return mini_pick.provider.default_preview(buf_id, item.path)
     end
   end
@@ -219,14 +217,14 @@ function list_pickers.fzf_lua(SlashCommand, opts)
   })
 
   local display = fzf:display(function(selected)
-    return find_by_display(items, selected)
+    return find_by_display({ items = items, display = selected })
   end)
   display.fzf_opts = { ["--multi"] = true }
 
   if opts.preview then
     local previewer = require("fzf-lua.previewer.builtin").buffer_or_file:extend()
     function previewer:entry_to_file(entry)
-      local item = find_by_display(items, entry)
+      local item = find_by_display({ items = items, display = entry })
       return { path = item and item.path }
     end
     -- fzf-lua's `tbl_deep_extend` merge with its defaults drops the class metatable; `_ctor` survives it
@@ -255,7 +253,7 @@ function M.build_list_pickers(opts)
     end,
   }, opts)
 
-  return bind_pickers(list_pickers, opts)
+  return bind_pickers({ pickers = list_pickers, picker_opts = opts })
 end
 
 ---The directories to search in, always led by the current working directory
@@ -403,7 +401,7 @@ end
 ---@param opts { prompt: string }
 ---@return table<string, fun(SlashCommand: CodeCompanion.SlashCommand)>
 function M.build_file_pickers(opts)
-  return bind_pickers(file_pickers, opts)
+  return bind_pickers({ pickers = file_pickers, picker_opts = opts })
 end
 
 return M

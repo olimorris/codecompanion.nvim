@@ -23,10 +23,9 @@ end
 
 ---Add a response to the chat buffer regarding a tool's execution
 ---@param exec CodeCompanion.Tools.Orchestrator
----@param llm_message string
----@param user_message? string
-local send_response_to_chat = function(exec, llm_message, user_message)
-  exec.tools.chat:add_tool_output(exec.tool, { content = llm_message, display = user_message })
+---@param opts { llm_message: string, user_message?: string }
+local send_response_to_chat = function(exec, opts)
+  exec.tools.chat:add_tool_output(exec.tool, { content = opts.llm_message, display = opts.user_message })
 end
 
 ---Execute a shell command with platform-specific handling
@@ -48,10 +47,11 @@ local function execute_shell_command(opts, callback)
 end
 
 ---Converts a cmd-based tool to a function-based tool.
----@param tool CodeCompanion.Tools.Tool
----@param orchestrator CodeCompanion.Tools.Orchestrator
+---@param opts { tool: CodeCompanion.Tools.Tool, orchestrator: CodeCompanion.Tools.Orchestrator }
 ---@return CodeCompanion.Tools.Tool
-local function cmd_to_func_tool(tool, orchestrator)
+local function cmd_to_func_tool(opts)
+  local tool = opts.tool
+  local orchestrator = opts.orchestrator
   local timeout = tool.opts and tool.opts.timeout
 
   tool.cmds = vim
@@ -176,11 +176,10 @@ function Orchestrator:_setup_handlers()
       if self.tool.output and self.tool.output.cancelled then
         self.tool.output.cancelled(self.tool, { cmd = cmd, tools = self.tools })
       else
-        send_response_to_chat(
-          self,
-          fmt("The user cancelled the execution of the %s tool", self.tool.name),
-          fmt("Cancelled `%s`", self.tool.name)
-        )
+        send_response_to_chat(self, {
+          llm_message = fmt("The user cancelled the execution of the %s tool", self.tool.name),
+          user_message = fmt("Cancelled `%s`", self.tool.name),
+        })
       end
     end,
 
@@ -206,7 +205,7 @@ function Orchestrator:_setup_handlers()
           { cmd = cmd, tools = self.tools }
         )
       else
-        send_response_to_chat(self, fmt("Error calling `%s`", self.tool.name))
+        send_response_to_chat(self, { llm_message = fmt("Error calling `%s`", self.tool.name) })
       end
     end,
 
@@ -234,7 +233,7 @@ function Orchestrator:_setup_handlers()
           rejection = rejection .. fmt(': "%s"', opts.reason)
         end
         -- If no handler is set then return a default message
-        send_response_to_chat(self, rejection)
+        send_response_to_chat(self, { llm_message = rejection })
       end
     end,
 
@@ -250,7 +249,7 @@ function Orchestrator:_setup_handlers()
           { cmd = cmd, tools = self.tools }
         )
       else
-        send_response_to_chat(self, fmt("Executed `%s`", self.tool.name))
+        send_response_to_chat(self, { llm_message = fmt("Executed `%s`", self.tool.name) })
       end
     end,
   }
@@ -357,7 +356,7 @@ function Orchestrator:setup_next_tool(input)
   self.handlers.setup() -- Call this early as run_command needs to setup its cmds dynamically
 
   -- Transform cmd-based tools to func-based
-  self.tool = cmd_to_func_tool(self.tool, self)
+  self.tool = cmd_to_func_tool({ tool = self.tool, orchestrator = self })
 
   -- Get the first command to run
   local cmd = self.tool.cmds[1]

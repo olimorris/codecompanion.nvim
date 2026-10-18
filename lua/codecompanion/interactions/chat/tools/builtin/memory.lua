@@ -34,10 +34,10 @@ local function get_allowed_paths(whitelist)
 end
 
 ---Validate and normalize a memory path to prevent directory traversal
----@param path string The path to validate
----@param whitelist? { path: string, as: string }[]
+---@param opts { path: string, whitelist?: { path: string, as: string }[] }
 ---@return string normalized_path
-local function validate_path(path, whitelist)
+local function validate_path(opts)
+  local path = opts.path
   if type(path) ~= "string" or path == "" then
     error("Path must be a non-empty string")
   end
@@ -49,7 +49,7 @@ local function validate_path(path, whitelist)
     error("Path contains invalid characters")
   end
 
-  local allowed = get_allowed_paths(whitelist)
+  local allowed = get_allowed_paths(opts.whitelist)
 
   -- Find which allowed prefix this path matches
   local matched_root
@@ -119,12 +119,11 @@ local function list_directory(root)
 end
 
 ---Shows directory contents or file contents with optional line ranges
----@param path string
----@param view_range? [number, number] The range of lines to view (start_line, end_line)
----@param whitelist? { path: string, as: string }[]
+---@param opts { path: string, view_range?: [number, number], whitelist?: { path: string, as: string }[] }
 ---@return string content
-local function view(path, view_range, whitelist)
-  local normalized_path = validate_path(path, whitelist)
+local function view(opts)
+  local path = opts.path
+  local normalized_path = validate_path({ path = path, whitelist = opts.whitelist })
 
   if not file_utils.exists(normalized_path) then
     error(fmt("Path does not exist: %s", path))
@@ -148,8 +147,8 @@ local function view(path, view_range, whitelist)
     error(err)
   end
 
-  local start_line = view_range and view_range[1] or 1
-  local end_line = view_range and view_range[2] or #lines
+  local start_line = opts.view_range and opts.view_range[1] or 1
+  local end_line = opts.view_range and opts.view_range[2] or #lines
 
   -- Validate line range
   if start_line < 1 then
@@ -180,12 +179,11 @@ local function view(path, view_range, whitelist)
 end
 
 ---Create or overwrite a file with content
----@param path string The file path to create
----@param file_text string The content to write
----@param whitelist? { path: string, as: string }[]
+---@param opts { path: string, file_text?: string, whitelist?: { path: string, as: string }[] }
 ---@return nil
-local function create(path, file_text, whitelist)
-  local normalized_path = validate_path(path, whitelist)
+local function create(opts)
+  local path = opts.path
+  local normalized_path = validate_path({ path = path, whitelist = opts.whitelist })
 
   -- Ensure parent directories exist
   local parent_dir = vim.fn.fnamemodify(normalized_path, ":h")
@@ -194,20 +192,19 @@ local function create(path, file_text, whitelist)
     error(err)
   end
 
-  local create_file = file_utils.write_to_path(normalized_path, file_text or "")
+  local create_file = file_utils.write_to_path(normalized_path, opts.file_text or "")
   if not create_file then
     error(fmt("Failed to create file: %s", path))
   end
 end
 
 ---Replace text in a file
----@param path string The file path
----@param old_str string The text to find
----@param new_str string The text to replace with
----@param whitelist? { path: string, as: string }[]
+---@param opts { path: string, old_str: string, new_str: string, whitelist?: { path: string, as: string }[] }
 ---@return nil
-local function str_replace(path, old_str, new_str, whitelist)
-  local normalized_path = validate_path(path, whitelist)
+local function str_replace(opts)
+  local path = opts.path
+  local old_str = opts.old_str
+  local normalized_path = validate_path({ path = path, whitelist = opts.whitelist })
 
   if not file_utils.exists(normalized_path) then
     error(fmt("File does not exist: %s", path))
@@ -227,7 +224,7 @@ local function str_replace(path, old_str, new_str, whitelist)
   local escaped_old = vim.pesc(old_str)
 
   -- Escape % in replacement string (gsub interprets % as special)
-  local escaped_new = new_str:gsub("%%", "%%%%")
+  local escaped_new = opts.new_str:gsub("%%", "%%%%")
 
   local new_content = content:gsub(escaped_old, escaped_new, 1)
 
@@ -235,13 +232,12 @@ local function str_replace(path, old_str, new_str, whitelist)
 end
 
 ---Insert text at a specific line
----@param path string The file path
----@param insert_line number The line number to insert at (1-indexed)
----@param insert_text string The text to insert
----@param whitelist? { path: string, as: string }[]
+---@param opts { path: string, insert_line: number, insert_text: string, whitelist?: { path: string, as: string }[] }
 ---@return nil
-local function insert(path, insert_line, insert_text, whitelist)
-  local normalized_path = validate_path(path, whitelist)
+local function insert(opts)
+  local path = opts.path
+  local insert_line = opts.insert_line
+  local normalized_path = validate_path({ path = path, whitelist = opts.whitelist })
 
   if not file_utils.exists(normalized_path) then
     error(fmt("File does not exist: %s", path))
@@ -258,20 +254,20 @@ local function insert(path, insert_line, insert_text, whitelist)
     error(fmt("Invalid line number %d for file with %d lines", insert_line, #lines))
   end
 
-  table.insert(lines, insert_line, insert_text)
+  table.insert(lines, insert_line, opts.insert_text)
   local new_content = table.concat(lines, "\n")
   file_utils.write_to_path(normalized_path, new_content)
 end
 
 ---Delete a file or directory
----@param path string The path to delete
----@param whitelist? { path: string, as: string }[]
+---@param opts { path: string, whitelist?: { path: string, as: string }[] }
 ---@return nil
-local function delete(path, whitelist)
-  local normalized_path = validate_path(path, whitelist)
+local function delete(opts)
+  local path = opts.path
+  local normalized_path = validate_path({ path = path, whitelist = opts.whitelist })
 
   -- Prevent deletion of any root directory (memories or whitelisted)
-  local allowed = get_allowed_paths(whitelist)
+  local allowed = get_allowed_paths(opts.whitelist)
   for _, entry in ipairs(allowed) do
     if normalized_path == vim.fs.normalize(entry.root) then
       error(fmt("Cannot delete the root directory: %s", entry.prefix))
@@ -289,13 +285,13 @@ local function delete(path, whitelist)
 end
 
 ---Rename or move a file or directory
----@param old_path string The current path
----@param new_path string The new path
----@param whitelist? { path: string, as: string }[]
+---@param opts { old_path: string, new_path: string, whitelist?: { path: string, as: string }[] }
 ---@return nil
-local function rename(old_path, new_path, whitelist)
-  local normalized_old = validate_path(old_path, whitelist)
-  local normalized_new = validate_path(new_path, whitelist)
+local function rename(opts)
+  local old_path = opts.old_path
+  local new_path = opts.new_path
+  local normalized_old = validate_path({ path = old_path, whitelist = opts.whitelist })
+  local normalized_new = validate_path({ path = new_path, whitelist = opts.whitelist })
 
   if not file_utils.exists(normalized_old) then
     error(fmt("Source path does not exist: %s", old_path))
@@ -339,7 +335,7 @@ return {
         if not args.path then
           return output_msg("error", "The 'view' command requires a 'path' parameter")
         end
-        local ok, output = pcall(view, args.path, args.view_range, whitelist)
+        local ok, output = pcall(view, { path = args.path, view_range = args.view_range, whitelist = whitelist })
         if not ok then
           log:debug("[Memory Tool] View error: %s", output)
           return output_msg("error", output)
@@ -351,7 +347,7 @@ return {
         if not args.path then
           return output_msg("error", "The 'create' command requires a 'path' parameter")
         end
-        local ok, output = pcall(create, args.path, args.file_text, whitelist)
+        local ok, output = pcall(create, { path = args.path, file_text = args.file_text, whitelist = whitelist })
         if not ok then
           log:debug("[Memory Tool] Create error: %s", output)
           return output_msg("error", output)
@@ -366,7 +362,10 @@ return {
         if not args.old_str then
           return output_msg("error", "The 'str_replace' command requires an 'old_str' parameter")
         end
-        local ok, output = pcall(str_replace, args.path, args.old_str, args.new_str or "", whitelist)
+        local ok, output = pcall(
+          str_replace,
+          { path = args.path, old_str = args.old_str, new_str = args.new_str or "", whitelist = whitelist }
+        )
         if not ok then
           log:debug("[Memory Tool] String replace error: %s", output)
           return output_msg("error", output)
@@ -384,7 +383,10 @@ return {
         if not args.insert_text then
           return output_msg("error", "The 'insert' command requires an 'insert_text' parameter")
         end
-        local ok, output = pcall(insert, args.path, args.insert_line, args.insert_text, whitelist)
+        local ok, output = pcall(
+          insert,
+          { path = args.path, insert_line = args.insert_line, insert_text = args.insert_text, whitelist = whitelist }
+        )
         if not ok then
           log:debug("[Memory Tool] Insert error: %s", output)
           return output_msg("error", output)
@@ -396,7 +398,7 @@ return {
         if not args.path then
           return output_msg("error", "The 'delete' command requires a 'path' parameter")
         end
-        local ok, output = pcall(delete, args.path, whitelist)
+        local ok, output = pcall(delete, { path = args.path, whitelist = whitelist })
         if not ok then
           log:debug("[Memory Tool] Delete error: %s", output)
           return output_msg("error", output)
@@ -411,7 +413,7 @@ return {
         if not args.new_path then
           return output_msg("error", "The 'rename' command requires a 'new_path' parameter")
         end
-        local ok, output = pcall(rename, args.old_path, args.new_path, whitelist)
+        local ok, output = pcall(rename, { old_path = args.old_path, new_path = args.new_path, whitelist = whitelist })
         if not ok then
           log:debug("[Memory Tool] Rename error: %s", output)
           return output_msg("error", output)

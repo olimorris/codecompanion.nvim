@@ -9,15 +9,14 @@ local ActionPalette = {}
 local _cached_items = {}
 
 ---Insert prompts into the cached items
----@param prompts table
----@param opts? { is_markdown: boolean }
-local function insert_prompts(prompts, opts)
-  for _, prompt in ipairs(prompts) do
+---@param opts { prompts: table, is_markdown?: boolean }
+local function insert_prompts(opts)
+  for _, prompt in ipairs(opts.prompts) do
     if not prompt.opts then
       prompt.opts = {}
     end
     prompt.opts.type = "prompt"
-    if opts and opts.is_markdown then
+    if opts.is_markdown then
       prompt.opts.is_markdown = true
     end
     if prompt.opts.enabled ~= false then
@@ -68,15 +67,17 @@ function ActionPalette.set_items(context)
 
     -- Add builtin markdown prompts
     if config.display.action_palette.opts.show_preset_prompts then
-      insert_prompts(prompt_library.load_builtins(context), { is_markdown = true })
+      insert_prompts({ prompts = prompt_library.load_builtins(context), is_markdown = true })
     end
 
     -- Add lua prompts from the prompt library
     if config.prompt_library and not vim.tbl_isempty(config.prompt_library) then
       local prompts = prompt_library.resolve(context, config)
-      insert_prompts(vim.tbl_filter(function(p)
-        return p.name ~= "markdown"
-      end, prompts))
+      insert_prompts({
+        prompts = vim.tbl_filter(function(p)
+          return p.name ~= "markdown"
+        end, prompts),
+      })
     end
 
     -- Add user markdown prompts
@@ -86,7 +87,7 @@ function ActionPalette.set_items(context)
         if type(dir) == "function" then
           dir = dir(context)
         end
-        insert_prompts(markdown.load_from_dir(dir, context), { is_markdown = true })
+        insert_prompts({ prompts = markdown.load_from_dir(dir, context), is_markdown = true })
       end
     end
   end

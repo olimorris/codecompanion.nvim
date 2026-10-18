@@ -143,14 +143,14 @@ end
 
 ---Start tracking a chat as a session and write it out
 ---@param chat CodeCompanion.Chat
----@param title string Used until the chat has a title of its own
+---@param opts { title: string }
 ---@return boolean ok
-local function start_session(chat, title)
+local function start_session(chat, opts)
   local created_at = os.time()
   sessions[chat.id] = {
     created_at = created_at,
-    slug = resolve_slug(chat, { title = title, created_at = created_at }),
-    title = title,
+    slug = resolve_slug(chat, { title = opts.title, created_at = created_at }),
+    title = opts.title,
   }
 
   if not write_session(chat) then
@@ -204,7 +204,7 @@ function M.register_chat_callbacks(chat)
         write_session(c)
       end
     elseif autosave_enabled() then
-      start_session(c, get_title_from_message(c) or "Untitled")
+      start_session(c, { title = get_title_from_message(c) or "Untitled" })
     end
   end)
 
@@ -240,7 +240,7 @@ function M.save(chat, opts)
 
   if sessions[chat.id] then
     if opts.title and opts.title ~= "" and opts.title ~= chat.title then
-      M._rename(chat, opts.title)
+      M._rename(chat, { new_title = opts.title })
     end
     if write_session(chat) then
       utils.notify("Session saved: " .. sessions[chat.id].slug)
@@ -255,7 +255,7 @@ function M.save(chat, opts)
     if chat.title ~= title then
       chat:set_title(title)
     end
-    if start_session(chat, title) then
+    if start_session(chat, { title = title }) then
       utils.notify("Session saved: " .. sessions[chat.id].slug)
     end
   end
@@ -372,9 +372,10 @@ end
 
 ---Rename a tracked session by moving its files on disk
 ---@param chat CodeCompanion.Chat
----@param new_title string
+---@param opts { new_title: string }
 ---@return nil
-function M._rename(chat, new_title)
+function M._rename(chat, opts)
+  local new_title = opts.new_title
   local entry = sessions[chat.id]
   if not entry then
     return

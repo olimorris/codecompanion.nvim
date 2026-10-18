@@ -251,13 +251,13 @@ function Rules.add_to_chat_from_config(chat, args)
 end
 
 ---The processed files and the files they include as messages, skipping any already in `seen`
----@param processed CodeCompanion.Chat.Rules.ProcessedFile[]
----@param seen table<string, boolean>
+---@param opts { processed: CodeCompanion.Chat.Rules.ProcessedFile[], seen: table<string, boolean> }
 ---@return { role: string, content: string }[]
-local function make_messages(processed, seen)
+local function make_messages(opts)
+  local seen = opts.seen
   local messages = {}
 
-  for _, processed_file in ipairs(processed) do
+  for _, processed_file in ipairs(opts.processed) do
     if not seen[processed_file.path] then
       seen[processed_file.path] = true
       if processed_file.system_prompt and processed_file.system_prompt ~= "" then
@@ -297,7 +297,7 @@ function Rules.get_messages(autoload)
     local group = config.rules[name]
     if group then
       local rules = Rules.new({ name = name, opts = group.opts, parser = group.parser, files = group.files })
-      vim.list_extend(messages, make_messages(rules:process(), seen))
+      vim.list_extend(messages, make_messages({ processed = rules:process(), seen = seen }))
     else
       log:warn("[Rules] Could not find `%s` rules", name)
     end

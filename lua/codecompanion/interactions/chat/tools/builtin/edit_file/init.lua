@@ -26,10 +26,10 @@ local DESCRIPTION = [[Edit an existing file by replacing an exact string with ne
 ---@field path string
 ---@field write fun(content: string): { error?: string }
 
----@param filepath string
----@param opts { file_size_limit_mb: number }
+---@param opts { filepath: string, file_size_limit_mb: number }
 ---@return { target?: CodeCompanion.Tool.EditFile.Target, error?: string }
-local function open_file_for_editing(filepath, opts)
+local function open_file_for_editing(opts)
+  local filepath = opts.filepath
   local path = file_utils.validate_and_normalize_path(filepath)
   if not path or file_utils.is_dir(path) then
     return { error = fmt("`%s` does not exist. Use the path of an existing file", filepath) }
@@ -78,10 +78,10 @@ local function open_file_for_editing(filepath, opts)
 end
 
 ---Replace the buffer's lines and save it, putting the original lines back if the save fails
----@param bufnr number
----@param opts { lines: string[], original_lines: string[] }
+---@param opts { bufnr: number, lines: string[], original_lines: string[] }
 ---@return { error?: string }
-local function save_buffer(bufnr, opts)
+local function save_buffer(opts)
+  local bufnr = opts.bufnr
   local was_modified = vim.bo[bufnr].modified
   local set_ok, set_err = pcall(api.nvim_buf_set_lines, bufnr, 0, -1, false, opts.lines)
   if not set_ok then
@@ -122,7 +122,11 @@ local function open_buffer_for_editing(bufnr)
         return { error = "the buffer changed after the edit was proposed. Read it again and retry" }
       end
 
-      return save_buffer(bufnr, { lines = vim.split(content, "\n", { plain = true }), original_lines = original_lines })
+      return save_buffer({
+        bufnr = bufnr,
+        lines = vim.split(content, "\n", { plain = true }),
+        original_lines = original_lines,
+      })
     end,
   }
 
@@ -200,7 +204,7 @@ return {
 
       local bufnr = buf_utils.get_bufnr_from_path(args.filepath)
       local opened = bufnr and open_buffer_for_editing(bufnr)
-        or open_file_for_editing(args.filepath, { file_size_limit_mb = self.tool.opts.file_size_limit_mb })
+        or open_file_for_editing({ filepath = args.filepath, file_size_limit_mb = self.tool.opts.file_size_limit_mb })
       if opened.error then
         return opts.output_cb({ status = "error", data = opened.error })
       end

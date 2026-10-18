@@ -50,16 +50,16 @@ function Tools:_pattern(tool)
 end
 
 ---Handle missing or invalid tool errors by reporting them to the LLM
----@param tool table The tool that failed
----@param error_message string The error message
+---@param opts { tool: table, error_message: string }
 ---@return nil
-function Tools:_handle_tool_error(tool, error_message)
+function Tools:_handle_tool_error(opts)
+  local tool = opts.tool
   local name = tool["function"].name
   local tool_call = vim.deepcopy(tool)
   tool_call.name = name
   tool_call.function_call = tool_call
 
-  log:error(error_message)
+  log:error(opts.error_message)
 
   local available_tools_msg = ""
   if self.chat and self.chat.tool_registry and self.chat.tool_registry.in_use then
@@ -215,7 +215,7 @@ function Tools:execute(chat, tools)
       if not resolved_tool then
         -- NOTE: A JSON error has already been reported to the LLM
         if not is_json_error then
-          self:_handle_tool_error(tool, error_msg or "Unknown Error occurred")
+          self:_handle_tool_error({ tool = tool, error_message = error_msg or "Unknown Error occurred" })
         end
       else
         self.tool = resolved_tool --[[@as CodeCompanion.Tools.Tool]]
@@ -356,18 +356,17 @@ function Tools:reset(opts)
 end
 
 ---Load a factory and pass the tool table through it
----@param extends string The factory name
 ---@param tool table The tool table (factory picks what it needs)
 ---@return CodeCompanion.Tools.Tool|nil
-local function resolve_factory(extends, tool)
-  local factory_path = FACTORIES[extends]
+local function resolve_factory(tool)
+  local factory_path = FACTORIES[tool.extends]
   if not factory_path then
-    return log:error("[Tools] Unknown factory: %s", extends)
+    return log:error("[Tools] Unknown factory: %s", tool.extends)
   end
 
   local ok, factory = pcall(require, factory_path)
   if not ok then
-    return log:error("[Tools] Failed to load factory %s: %s", extends, factory)
+    return log:error("[Tools] Failed to load factory %s: %s", tool.extends, factory)
   end
 
   return factory(tool)
@@ -386,14 +385,14 @@ end
 function Tools.resolve(tool)
   -- 1. Factory extension (table in config)
   if tool.extends then
-    return resolve_factory(tool.extends, tool)
+    return resolve_factory(tool)
   end
 
   -- 2. Path-based resolution (module path or file path)
   if type(tool.path) == "string" then
     local resolved = resolve_path(tool.path)
     if resolved and resolved.extends then
-      return resolve_factory(resolved.extends, resolved)
+      return resolve_factory(resolved)
     end
     return resolved
   end
@@ -403,7 +402,7 @@ function Tools.resolve(tool)
     ---@type CodeCompanion.Tools.Unresolved
     local resolved = tool.callback()
     if resolved and resolved.extends then
-      return resolve_factory(resolved.extends, resolved)
+      return resolve_factory(resolved)
     end
     return resolved
   end

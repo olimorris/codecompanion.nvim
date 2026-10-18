@@ -22,9 +22,10 @@ end
 
 ---Ask all questions sequentially in the chat buffer, collecting answers
 ---@param chat CodeCompanion.Chat
----@param questions table Array of question objects
+---@param opts { questions: table }
 ---@param callback fun(answers: table<string, string>) Called with all collected answers
-local function ask_all(chat, questions, callback)
+local function ask_all(chat, opts, callback)
+  local questions = opts.questions
   local answers = {}
   local index = 0
 
@@ -63,7 +64,7 @@ return {
       end
 
       vim.schedule(function()
-        ask_all(self.chat, questions, function(answers)
+        ask_all(self.chat, { questions = questions }, function(answers)
           local response = format_answers(questions, answers)
           if response == "" then
             response = "The user did not provide any answers"

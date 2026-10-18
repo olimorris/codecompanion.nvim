@@ -30,12 +30,11 @@ local function format_argument(argument)
 end
 
 ---Ask for each of the prompt's arguments in turn, stopping if the user cancels
----@param prompt MCP.Prompt
----@param opts { callback: fun(arguments: table<string, string>) }
-local function ask_for_arguments(prompt, opts)
+---@param opts { prompt: MCP.Prompt, callback: fun(arguments: table<string, string>) }
+local function ask_for_arguments(opts)
   -- Without this, a prompt with no arguments sends `[]` and servers expecting an object reject it
   local arguments = vim.empty_dict()
-  local prompt_arguments = prompt.arguments or {}
+  local prompt_arguments = opts.prompt.arguments or {}
 
   local function ask(index)
     local argument = prompt_arguments[index]
@@ -112,7 +111,8 @@ function SlashCommand:execute()
         if not selected then
           return
         end
-        ask_for_arguments(selected.prompt, {
+        ask_for_arguments({
+          prompt = selected.prompt,
           callback = function(arguments)
             self:output(selected, { arguments = arguments })
           end,

@@ -34,11 +34,10 @@ local function build_message(opts)
 end
 
 ---Clean up keymaps set for the approval prompt
----@param bufnr number
----@param choices table
-local function cleanup_keymaps(bufnr, choices)
-  for _, choice in ipairs(choices) do
-    pcall(vim.keymap.del, "n", choice.keymap, { buffer = bufnr })
+---@param opts { bufnr: number, choices: table }
+local function cleanup_keymaps(opts)
+  for _, choice in ipairs(opts.choices) do
+    pcall(vim.keymap.del, "n", choice.keymap, { buffer = opts.bufnr })
   end
 end
 
@@ -75,7 +74,7 @@ function M.request(chat, opts)
       return
     end
     resolved = true
-    cleanup_keymaps(bufnr, opts.choices)
+    cleanup_keymaps({ bufnr = bufnr, choices = opts.choices })
     local is_rejection = labels.is_rejection(choice_label)
     local icons = config.display.chat.icons
     local icon = is_rejection and icons.tool_failure or icons.tool_success

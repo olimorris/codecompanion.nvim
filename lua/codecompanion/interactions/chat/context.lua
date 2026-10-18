@@ -24,16 +24,14 @@ local context_header = "> Context:"
 
 ---Set chat buffer lines while preserving its edit lock
 ---@param chat CodeCompanion.Chat
----@param start_row number
----@param end_row number
----@param lines string[]
-local function set_chat_buffer_lines(chat, start_row, end_row, lines)
+---@param opts { start_row: number, end_row: number, lines: string[] }
+local function set_chat_buffer_lines(chat, opts)
   local was_locked = not vim.bo[chat.bufnr].modifiable
   if was_locked then
     chat.ui:unlock_buf()
   end
 
-  api.nvim_buf_set_lines(chat.bufnr, start_row, end_row, false, lines)
+  api.nvim_buf_set_lines(chat.bufnr, opts.start_row, opts.end_row, false, opts.lines)
 
   if was_locked then
     chat.ui:lock_buf()
@@ -105,9 +103,9 @@ end
 
 ---Add context to the chat buffer
 ---@param chat CodeCompanion.Chat
----@param context CodeCompanion.Chat.ContextItem
----@param row number
-local function add(chat, context, row)
+---@param opts { context: CodeCompanion.Chat.ContextItem, row: number }
+local function add(chat, opts)
+  local context = opts.context
   if not context.opts.visible then
     return
   end
@@ -130,7 +128,7 @@ local function add(chat, context, row)
     table.insert(lines, "")
   end
 
-  set_chat_buffer_lines(chat, row, row, lines)
+  set_chat_buffer_lines(chat, { start_row = opts.row, end_row = opts.row, lines = lines })
 end
 
 ---@class CodeCompanion.Chat.ContextItem
@@ -210,12 +208,12 @@ function Context:add(context)
   if parsed_buffer then
     -- If the context block already exists, add to it
     if parsed_buffer.capture == "context" then
-      add(self.Chat, context, parsed_buffer.end_row - 1)
+      add(self.Chat, { context = context, row = parsed_buffer.end_row - 1 })
       self:create_folds()
 
     -- If there are no context items then add a new block below the heading
     elseif parsed_buffer.capture == "role" then
-      add(self.Chat, context, parsed_buffer.end_row + 1)
+      add(self.Chat, { context = context, row = parsed_buffer.end_row + 1 })
     end
   end
 end
@@ -304,7 +302,7 @@ function Context:render()
   end
   table.insert(lines, "")
 
-  set_chat_buffer_lines(chat, start_row, start_row, lines)
+  set_chat_buffer_lines(chat, { start_row = start_row, end_row = start_row, lines = lines })
   self:create_folds()
 end
 
@@ -316,7 +314,7 @@ function Context:clear_rendered()
     return self
   end
 
-  set_chat_buffer_lines(self.Chat, start_row, end_row + 1, {})
+  set_chat_buffer_lines(self.Chat, { start_row = start_row, end_row = end_row + 1, lines = {} })
 
   return self
 end
