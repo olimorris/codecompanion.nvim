@@ -15,7 +15,7 @@ local CONSTANTS = {
   IMAGE_MIMETYPES = { "image/gif", "image/jpeg", "image/png", "image/webp" },
 }
 
-local providers = picker.files({ prompt = CONSTANTS.PROMPT })
+local providers = picker.build_file_pickers({ prompt = CONSTANTS.PROMPT })
 
 ---@class CodeCompanion.SlashCommand.File: CodeCompanion.SlashCommand
 local SlashCommand = {}

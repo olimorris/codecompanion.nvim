@@ -8,7 +8,7 @@ local CONSTANTS = {
   PROMPT = "Select a group of skills",
 }
 
-local providers = picker.list({
+local providers = picker.build_list_pickers({
   prompt = CONSTANTS.PROMPT,
   empty_message = "No skill groups found",
   preview = false,

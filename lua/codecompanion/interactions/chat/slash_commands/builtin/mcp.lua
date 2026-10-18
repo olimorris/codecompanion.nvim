@@ -47,7 +47,7 @@ local function toggle_server(selected)
   utils.notify(fmt("MCP server `%s` %s", selected.server, state))
 end
 
-local providers = picker.list({
+local providers = picker.build_list_pickers({
   prompt = CONSTANTS.PROMPT,
   empty_message = "No MCP servers configured",
   preview = false,

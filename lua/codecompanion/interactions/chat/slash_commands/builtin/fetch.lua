@@ -89,7 +89,7 @@ local function output(chat, data, opts)
   return utils.notify(fmt("Added `%s` to the chat", data.url))
 end
 
-local providers = picker.list({
+local providers = picker.build_list_pickers({
   prompt = "Select a cached URL",
   empty_message = "No cached URLs found",
   preview = false,

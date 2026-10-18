@@ -48,7 +48,7 @@ end
 ---@param SlashCommands CodeCompanion.SlashCommands
 ---@return nil
 function SlashCommand:execute(SlashCommands)
-  local providers = picker.list({
+  local providers = picker.build_list_pickers({
     prompt = CONSTANTS.PROMPT,
     empty_message = "No tools to add",
     preview = false,

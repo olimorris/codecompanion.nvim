@@ -39,7 +39,7 @@ T["Picker"] = MiniTest.new_set()
 
 T["Picker"]["list outputs every marked item"] = function()
   child.lua([[
-    open_picker(picker.list({
+    open_picker(picker.build_list_pickers({
       prompt = "Select tools",
       empty_message = "No tools",
       preview = false,
@@ -65,7 +65,7 @@ end
 T["Picker"]["list sends the selection to a custom output"] = function()
   child.lua([[
     CUSTOM = {}
-    open_picker(picker.list({
+    open_picker(picker.build_list_pickers({
       prompt = "Select a cached URL",
       empty_message = "No cached URLs",
       preview = false,
@@ -91,7 +91,7 @@ T["Picker"]["list sends the selection to a custom output"] = function()
 end
 
 T["Picker"]["files outputs a path relative to the cwd"] = function()
-  child.lua([[open_picker(picker.files({ prompt = "Select file(s)" }), make_slash_command())]])
+  child.lua([[open_picker(picker.build_file_pickers({ prompt = "Select file(s)" }), make_slash_command())]])
 
   local result = child.lua([[
     get_source().choose(vim.fn.getcwd() .. "/./lua/codecompanion/health.lua")
@@ -116,7 +116,7 @@ T["Picker"]["files searches the cwd AND every configured directory"] = function(
     vim.cmd.cd(root .. "/project")
 
     open_picker(
-      picker.files({ prompt = "Select file(s)" }),
+      picker.build_file_pickers({ prompt = "Select file(s)" }),
       make_slash_command({ dirs = { root .. "/notes", root .. "/missing" } })
     )
   ]])

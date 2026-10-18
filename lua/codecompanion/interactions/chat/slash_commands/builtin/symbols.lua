@@ -33,7 +33,7 @@ local function no_symbols()
   utils.notify("No symbols found in the given file", vim.log.levels.WARN)
 end
 
-local providers = picker.files({ prompt = CONSTANTS.PROMPT })
+local providers = picker.build_file_pickers({ prompt = CONSTANTS.PROMPT })
 
 ---@class CodeCompanion.SlashCommand.Symbols: CodeCompanion.SlashCommand
 local SlashCommand = {}
