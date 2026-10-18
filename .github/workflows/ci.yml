@@ -39,3 +39,35 @@ jobs:
           $NVIM --version
           make test
 
+  curl-windows:
+    if: ${{ !contains(join(github.event.pull_request.labels.*.name, ','), 'autorelease') && !contains(join(github.event.pull_request.labels.*.name, ','), 'ignore-for-release') }}
+    strategy:
+      fail-fast: false
+      matrix:
+        nvim_tag: [nightly, v0.12.0]
+    name: windows-latest / ${{ matrix.nvim_tag }} / curl
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+      - name: Checkout 📋
+        uses: actions/checkout@v6
+
+      - name: Prepare Neovim 🚧
+        env:
+          NVIM_TAG: ${{ matrix.nvim_tag }}
+        run: |
+          bash ./scripts/ci-install.sh
+          git clone --filter=blob:none https://github.com/echasnovski/mini.nvim deps/mini.nvim
+
+      # Git Bash puts its own curl first on PATH, but users get the one Windows ships
+      - name: Run curl tests 🧪
+        run: |
+          export PATH="/c/Windows/System32:$PATH"
+          which curl && curl --version
+          ./nvim-win64/bin/nvim.exe --version
+          ./nvim-win64/bin/nvim.exe --headless --noplugin -u NONE --cmd "set rtp+=.,deps/mini.nvim" \
+            -c "lua require('mini.test').setup(); MiniTest.run_file('tests/utils/test_curl.lua', { collect = { filter_cases = function(case) return case.desc[2] == 'Curl against a local server' end } })"
+

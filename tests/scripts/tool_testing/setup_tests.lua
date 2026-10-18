@@ -82,7 +82,6 @@ end
 print("\nTest 2: Checking dependencies...")
 local deps = {
   "plenary",
-  "plenary.curl",
   "plenary.path",
 }
 
