@@ -1,106 +1,58 @@
 local config = require("codecompanion.config")
 local log = require("codecompanion.utils.log")
 local mcp = require("codecompanion.mcp")
+local picker = require("codecompanion.providers.slash_commands.picker")
 local utils = require("codecompanion.utils")
 
 local fmt = string.format
 
 local CONSTANTS = {
   NAME = "MCP",
-  PROMPT = "Toggle MCP server",
+  PROMPT = "Toggle MCP servers",
   STARTED_ICON = "",
   STOPPED_ICON = "○",
 }
 
----Build picker entries for configured MCP servers
----@return table[]
-local function build_items()
+---@return CodeCompanion.SlashCommand.PickerItem[]
+local function list_servers()
   local items = {}
-  local status = mcp.get_status()
 
-  for name, server in pairs(status) do
+  for name, server in pairs(mcp.get_status()) do
     local icon = server.started and CONSTANTS.STARTED_ICON or CONSTANTS.STOPPED_ICON
     local activity = server.started and (server.ready and "ready" or "starting") or "stopped"
-    local display = fmt("%s %s (%s, tools: %d)", icon, name, activity, server.tool_count or 0)
-
     table.insert(items, {
-      default = server.default,
-      name = name,
-      display = display,
-      text = display,
+      name = fmt("%s %s", icon, name),
+      description = fmt("%s, tools: %d", activity, server.tool_count or 0),
+      server = name,
     })
   end
+
+  table.sort(items, function(a, b)
+    return a.server < b.server
+  end)
 
   return items
 end
 
----Toggle the selected MCP server
----@param selected { name: string }
+---@param selected { server: string }
 ---@return nil
 local function toggle_server(selected)
-  local ok, result = mcp.toggle_server(selected.name)
+  local ok, result = mcp.toggle_server(selected.server)
   if not ok then
     return log:warn(result)
   end
 
-  local status = mcp.get_status()[selected.name]
+  local status = mcp.get_status()[selected.server]
   local state = status and status.started and "started" or "stopped"
-  utils.notify(fmt("MCP server `%s` %s", selected.name, state))
+  utils.notify(fmt("MCP server `%s` %s", selected.server, state))
 end
 
-local providers = {
-  ---The default provider
-  ---@param SlashCommand CodeCompanion.SlashCommand
-  ---@return nil
-  default = function(SlashCommand)
-    local items = build_items()
-    if #items == 0 then
-      return utils.notify("No MCP servers configured", vim.log.levels.WARN)
-    end
-
-    vim.ui.select(items, {
-      kind = "codecompanion.nvim",
-      prompt = CONSTANTS.PROMPT,
-      format_item = function(item)
-        return item.display
-      end,
-    }, function(selected)
-      if not selected then
-        return
-      end
-      return SlashCommand:output(selected)
-    end)
-  end,
-
-  ---The Snacks.nvim provider
-  ---@param SlashCommand CodeCompanion.SlashCommand
-  ---@return nil
-  snacks = function(SlashCommand)
-    local items = build_items()
-    if #items == 0 then
-      return utils.notify("No MCP servers configured", vim.log.levels.WARN)
-    end
-
-    local snacks = require("codecompanion.providers.slash_commands.snacks")
-    snacks = snacks.new({
-      title = CONSTANTS.PROMPT .. ": ",
-      output = function(selection)
-        return SlashCommand:output(selection)
-      end,
-    })
-
-    snacks.provider.picker.pick({
-      title = CONSTANTS.PROMPT,
-      items = items,
-      prompt = snacks.title,
-      format = function(item, _)
-        return { { item.display } }
-      end,
-      confirm = snacks:display(),
-      main = { file = false, float = true },
-    })
-  end,
-}
+local providers = picker.build_list_pickers({
+  prompt = CONSTANTS.PROMPT,
+  empty_message = "No MCP servers configured",
+  preview = false,
+  items = list_servers,
+})
 
 ---@class CodeCompanion.SlashCommand.MCP: CodeCompanion.SlashCommand
 local SlashCommand = {}
@@ -133,7 +85,7 @@ function SlashCommand:execute(SlashCommands)
 end
 
 ---Output from the slash command in the chat buffer
----@param selected { name: string }
+---@param selected { server: string }
 ---@return nil
 function SlashCommand:output(selected)
   return toggle_server(selected)

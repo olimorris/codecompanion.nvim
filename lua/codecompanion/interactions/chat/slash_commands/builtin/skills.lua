@@ -1,4 +1,4 @@
-local picker = require("codecompanion.skills.picker")
+local picker = require("codecompanion.providers.slash_commands.picker")
 local skills = require("codecompanion.skills")
 
 local CONSTANTS = {
@@ -6,7 +6,7 @@ local CONSTANTS = {
   PROMPT = "Select a skill",
 }
 
-local providers = picker.build({
+local providers = picker.build_list_pickers({
   prompt = CONSTANTS.PROMPT,
   empty_message = "No skills found",
   preview = true,

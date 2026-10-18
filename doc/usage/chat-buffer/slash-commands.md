@@ -203,7 +203,7 @@ If a help file is longer than `opts.max_lines` (128 by default), you're asked wh
 
 ## /mcp
 
-The _mcp_ slash command starts and stops [MCP](/configuration/mcp) servers. **This applies globally, so starting or stopping a server affects every chat buffer**. It works with `vim.ui.select` and Snacks.
+The _mcp_ slash command starts and stops [MCP](/configuration/mcp) servers. **This applies globally, so starting or stopping a server affects every chat buffer**. Depending on your picker, several can be toggled at once.
 
 ## /mcp-prompts
 

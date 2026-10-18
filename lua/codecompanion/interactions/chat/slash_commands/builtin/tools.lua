@@ -1,4 +1,4 @@
-local picker = require("codecompanion.skills.picker")
+local picker = require("codecompanion.providers.slash_commands.picker")
 
 local CONSTANTS = {
   NAME = "Tools",
@@ -6,7 +6,7 @@ local CONSTANTS = {
 }
 
 ---@param chat CodeCompanion.Chat
----@return CodeCompanion.Skills.PickerItem[]
+---@return CodeCompanion.SlashCommand.PickerItem[]
 local function list_tools(chat)
   local tools_config = chat.tools:refresh({ adapter = chat.adapter }).tools_config
   local registry = chat.tool_registry
@@ -48,7 +48,7 @@ end
 ---@param SlashCommands CodeCompanion.SlashCommands
 ---@return nil
 function SlashCommand:execute(SlashCommands)
-  local providers = picker.build({
+  local providers = picker.build_list_pickers({
     prompt = CONSTANTS.PROMPT,
     empty_message = "No tools to add",
     preview = false,
