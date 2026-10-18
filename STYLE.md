@@ -115,7 +115,7 @@ Positional parameters don't scale. Adding one means touching the signature, ever
 
 **Default to `opts` alone.** The one thing that may lead is the object the function operates on: `self`, a `Chat`, or a module's equivalent instance such as a `Background`, `Inline` or `DiffUI`. An object like that will never be replaced or joined by a sibling, so it stays positional: `add_system_prompt(chat, opts)`, `ask_sync(background, opts)`.
 
-Data never leads, even when it's what the function acts on - messages, content, a path, a buffer number, a tool's arguments. Data changes shape and gains siblings, so it goes in `opts`.
+Data never leads, even when it's what the function acts on - messages, content, a path, a buffer number, a tool's arguments. Data changes shape and gains siblings, so it goes in `opts`. A function with a single data parameter may take it positionally; once it needs a second, both go in `opts`.
 
 If you are weighing whether an argument qualifies, it doesn't. Put it in `opts`.
 

@@ -17,11 +17,10 @@ local HOOKS = {
   UserPromptSubmit = "submitted",
 }
 
----@param value any
----@param opts? { indent?: string }
+---@param opts { value: any, indent?: string }
 ---@return string
-local function encode(value, opts)
-  opts = opts or {}
+local function encode(opts)
+  local value = opts.value
   local indent = opts.indent or ""
 
   if type(value) ~= "table" then
@@ -35,7 +34,7 @@ local function encode(value, opts)
       return "[]"
     end
     local items = vim.tbl_map(function(item)
-      return child .. encode(item, { indent = child })
+      return child .. encode({ value = item, indent = child })
     end, value)
     return "[\n" .. table.concat(items, ",\n") .. "\n" .. indent .. "]"
   end
@@ -49,7 +48,7 @@ local function encode(value, opts)
   table.sort(keys)
 
   local pairs_out = vim.tbl_map(function(key)
-    return string.format("%s%s: %s", child, vim.json.encode(key), encode(value[key], { indent = child }))
+    return string.format("%s%s: %s", child, vim.json.encode(key), encode({ value = value[key], indent = child }))
   end, keys)
 
   return "{\n" .. table.concat(pairs_out, ",\n") .. "\n" .. indent .. "}"
@@ -126,7 +125,7 @@ function M.install()
     settings.hooks[event] = entries
   end
 
-  local ok, err = pcall(files.write_to_path, path, encode(settings) .. "\n")
+  local ok, err = pcall(files.write_to_path, path, encode({ value = settings }) .. "\n")
   if not ok then
     return false, string.format("Could not write %s: %s", path, err)
   end
