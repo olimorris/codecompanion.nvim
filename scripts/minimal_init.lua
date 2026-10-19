@@ -35,7 +35,7 @@ vim.treesitter.language.register("markdown", "codecompanion")
 -- No test may reach the network. Anything that needs a response must stub the
 -- layer it calls, be that the HTTP client's static methods or the adapter itself
 local curl = require("codecompanion.utils.curl")
-for _, method in ipairs({ "get", "post", "request" }) do
+for _, method in ipairs({ "get", "post", "request", "get_sync", "post_sync", "request_sync" }) do
   curl[method] = function(opts)
     error(string.format("Test attempted a real HTTP request: %s %s", method:upper(), tostring(opts.url)))
   end

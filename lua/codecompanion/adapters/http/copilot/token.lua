@@ -142,7 +142,7 @@ local function get_copilot_token()
   _token_fetch_in_progress = true
   log:trace("Authorizing GitHub Copilot token")
 
-  local request, err = Curl.get({
+  local request, err = Curl.get_sync({
     url = "https://api.github.com/copilot_internal/v2/token",
     headers = {
       Authorization = "Bearer " .. (M._oauth_token or ""),
