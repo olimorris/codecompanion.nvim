@@ -1,5 +1,17 @@
 # Changelog
 
+## [20.1.0](https://github.com/olimorris/codecompanion.nvim/compare/v20.0.1...v20.1.0) (2026-10-19)
+
+
+### Features
+
+* **slash_cmds:** add `tools` slash cmd ([#3473](https://github.com/olimorris/codecompanion.nvim/issues/3473)) ([6387171](https://github.com/olimorris/codecompanion.nvim/commit/6387171a2b44164566a9933e7a119683d034a919))
+
+
+### Bug Fixes
+
+* **chat:** saving sessions with tool context ([#3468](https://github.com/olimorris/codecompanion.nvim/issues/3468)) ([799526f](https://github.com/olimorris/codecompanion.nvim/commit/799526fb35548c26e2dd74c3b282537bb8122a3b)), closes [#3407](https://github.com/olimorris/codecompanion.nvim/issues/3407)
+
 ## [20.0.1](https://github.com/olimorris/codecompanion.nvim/compare/v20.0.0...v20.0.1) (2026-10-17)
 
 
