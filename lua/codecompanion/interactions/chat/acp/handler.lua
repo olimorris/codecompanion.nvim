@@ -5,6 +5,7 @@ local config = require("codecompanion.config")
 local formatter = require("codecompanion.interactions.chat.acp.formatters")
 local log = require("codecompanion.utils.log")
 local markdown = require("codecompanion.utils.markdown")
+local tool_calls = require("codecompanion.interactions.chat.ui.tool_calls")
 local utils = require("codecompanion.utils")
 local watch = require("codecompanion.interactions.shared.watch")
 
@@ -324,6 +325,7 @@ function ACPHandler:process_tool_call(tool_call)
   tool_call = merged
 
   self:track_edits(id, tool_call)
+  self.chat.acp_tool_calls[id] = merged
 
   -- Cache or cleanup
   if tool_call.status == "completed" then
@@ -385,6 +387,9 @@ function ACPHandler:process_tool_call(tool_call)
   })
 
   self.ui_state[id] = { line_number = line_number, icon_id = icon_id }
+  if line_number then
+    tool_calls.mark(self.chat, { line_number = line_number, call_id = id })
+  end
 end
 
 ---Queue a permission request and process when ready

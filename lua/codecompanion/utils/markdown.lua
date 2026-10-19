@@ -14,6 +14,13 @@ local function form_backticks(content)
   return ("`"):rep(math.max(MIN_BACKTICKS, longest + 1))
 end
 
+---Remove the characters that markdown renders as formatting rather than as text
+---@param text string
+---@return string
+function M.strip_formatting(text)
+  return (text:gsub("[`*\\~]", ""))
+end
+
 ---@param content string
 ---@param opts? { ft?: string }
 ---@return string

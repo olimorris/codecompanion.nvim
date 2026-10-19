@@ -4,6 +4,7 @@
 
 ---@class CodeCompanion.Chat
 ---@field acp_connection? CodeCompanion.ACP.Connection The ACP session ID and connection
+---@field acp_tool_calls table<string, table> ACP tool calls by their ID, kept after they complete
 ---@field adapter CodeCompanion.HTTPAdapter|CodeCompanion.ACPAdapter The adapter to use for the chat
 ---@field aug number The ID for the autocmd group
 ---@field buffer_context table The context of the buffer that the chat was initiated from
@@ -29,6 +30,7 @@
 ---@field subscribers table The subscribers to the chat buffer
 ---@field title? string The title of the chat buffer
 ---@field tokens? number|table The tokens reported by the adapter
+---@field tool_call_marks table<number, string> Tool call IDs by the extmark on their summary line
 ---@field tools CodeCompanion.Tools The tools coordinator that executes available tools
 ---@field tool_orchestrator? CodeCompanion.Tools.Orchestrator Coordinates the tools that the LLM has asked to run
 ---@field tool_registry CodeCompanion.Chat.ToolRegistry Methods for handling interactions between the chat buffer and tools
@@ -599,6 +601,7 @@ function Chat.new(args)
 
   local self = setmetatable({
     acp_session_id = args.acp_session_id or nil,
+    acp_tool_calls = {},
     buffer_context = args.buffer_context,
     callbacks = {},
     context_items = {},
@@ -613,6 +616,7 @@ function Chat.new(args)
     session_id = fmt("codecompanion-%d-%d", os.time(), id),
     status = "",
     title = args.title,
+    tool_call_marks = {},
     _last_role = args.last_role or config.constants.USER_ROLE,
     _status = {},
   }, { __index = Chat })
@@ -1897,18 +1901,18 @@ function Chat:update_buf_line(args)
   return self.builder:update_line(args.line_number, args.content, args)
 end
 
----Add the output from a tool to the message history and a message to the UI
+---Add the output from a tool to the message history
 ---@param tool table
----@param opts { content: string, display?: string|false }
+---@param opts { content: string }
 ---@return nil
 function Chat:add_tool_output(tool, opts)
   local tool_call = tool.function_call
   log:debug("Tool output: %s", tool_call)
 
   -- Allow users to modify the tool output before it's added to the message history
-  local tool_output = { tool = tool.name, content = opts.content, display = opts.display }
+  local tool_output = { tool = tool.name, content = opts.content }
   self:dispatch("on_tool_output", tool_output)
-  local content, display = tool_output.content, tool_output.display
+  local content = tool_output.content
 
   local output = adapters.call_handler(self.adapter, "format_response", { tool_call = tool_call, output = content })
   if not output then
@@ -1939,15 +1943,6 @@ function Chat:add_tool_output(tool, opts)
   output._meta = vim.tbl_extend("force", output._meta or {}, {
     estimated_tokens = tokens.calculate(output.content),
   })
-
-  if display ~= false and display ~= "" then
-    self:add_buf_message({
-      role = config.constants.LLM_ROLE,
-      content = (display or content),
-    }, {
-      type = self.MESSAGE_TYPES.TOOL_MESSAGE,
-    })
-  end
 
   if not self:has_orphaned_tool_calls() then
     self:checkpoint()
@@ -2015,6 +2010,8 @@ function Chat:clear()
   self.header_line = 1
   self.messages = {}
   self.context_items = {}
+  self.acp_tool_calls = {}
+  self.tool_call_marks = {}
 
   self.watchers:clear()
   self.tool_registry:clear()

@@ -4,6 +4,7 @@ local adapters = require("codecompanion.adapters")
 local async = require("codecompanion.utils.async")
 local config = require("codecompanion.config")
 local input = require("codecompanion.interactions.shared.input")
+local ui_utils = require("codecompanion.utils.ui")
 local utils = require("codecompanion.utils")
 
 local api = vim.api
@@ -194,13 +195,10 @@ end
 ---@param opts { adapter: CodeCompanion.HTTPAdapter }
 ---@return nil
 function M.show_reply(reply, opts)
-  local _, winnr = vim.lsp.util.open_floating_preview(vim.split(reply, "\n", { plain = true }), "markdown", {
-    border = config.display.input.window.border,
+  local _, winnr = ui_utils.create_hover(vim.split(reply, "\n", { plain = true }), {
     close_events = {},
     focus_id = "codecompanion_inline_reply",
-    max_height = math.floor(vim.o.lines * 0.4),
-    max_width = math.floor(vim.o.columns * 0.6),
-    title = fmt(" %s ", get_adapter_label(opts.adapter)),
+    title = get_adapter_label(opts.adapter),
   })
   -- The float's own `q` mapping only works from inside it
   api.nvim_set_current_win(winnr)

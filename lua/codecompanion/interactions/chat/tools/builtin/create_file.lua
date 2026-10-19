@@ -131,7 +131,7 @@ return {
 
       local llm_output = fmt("Created file `%s` successfully", display_path)
 
-      chat:add_tool_output(self, { content = llm_output, display = false })
+      chat:add_tool_output(self, { content = llm_output })
     end,
 
     ---@param self CodeCompanion.Tool.CreateFile

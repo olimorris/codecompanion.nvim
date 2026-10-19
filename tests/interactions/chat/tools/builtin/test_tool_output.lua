@@ -45,50 +45,6 @@ function tool_call(c)
   ]])
 end
 
----The tool call that's used in the tests
----@param c MiniTest.child
----@param message string The message to add to the chat buffer
----@return nil
-local function set_buffer_contents(c, message)
-  c.lua(string.format(
-    [[
-    local user_message = "%s"
-
-    _G.chat:add_message({
-      role = "user",
-      content = user_message,
-    })
-    _G.chat:add_buf_message({
-      role = "user",
-      content = user_message,
-    })
-
-  ]],
-    message
-  ))
-end
-
----Enabling folding in the chat buffer for tool output.
----@param c MiniTest.child
----@return nil
-local function enable_folds(c)
-  c.lua([[
-    _G.chat, _G.tools = h.setup_chat_buffer({
-      interactions = {
-        chat = {
-          tools = {
-            opts = {
-              folds = {
-                enabled = true,
-              }
-            }
-          }
-        }
-      }
-    })
-  ]])
-end
-
 T["Tool output"]["first call creates one message"] = function()
   tool_call(child)
   local output = child.lua([[
@@ -125,59 +81,6 @@ T["Tool output"]["second call appends to same message"] = function()
 
   h.eq(output.count, 2)
   h.eq(output.content, "Hello!\n\nAgain!")
-end
-
-T["Tool output"]["is displayed and formatted in the chat buffer"] = function()
-  set_buffer_contents(child, "Can you tell me the weather in London?")
-  tool_call(child)
-  child.lua([[
-    h.make_tool_call(_G.chat, _G.tool, "**Weather Tool**: Ran successfully:\nTemperature: 20°C\nCondition: Sunny\nPrecipitation: 0%", {
-      llm_initial_response = "I've found some awesome weather data for you:",
-      llm_final_response = "Let me know if you need anything else!",
-    })
-  ]])
-
-  h.expect_screenshot(
-    child.get_screenshot(),
-    "tests/screenshots/interactions/chat/tools/builtin/tool_output_displayed_formatted"
-  )
-end
-
-T["Tool output"]["Folds"] = new_set()
-
-T["Tool output"]["Folds"]["can be folded"] = function()
-  enable_folds(child)
-  set_buffer_contents(child, "Can you tell me the weather in London?")
-  tool_call(child)
-  child.lua([[
-    --require("tests.log")
-    h.make_tool_call(_G.chat, _G.tool, "**Weather Tool**: Ran successfully:\nTemperature: 20°C\nCondition: Sunny\nPrecipitation: 0%", {
-      llm_initial_response = "I've found some awesome weather data for you:",
-      llm_final_response = "\nLet me know if you need anything else!",
-    })
-  ]])
-
-  h.expect_screenshot(
-    child.get_screenshot(),
-    "tests/screenshots/interactions/chat/tools/builtin/tool_output_folds_can_fold"
-  )
-end
-
-T["Tool output"]["Folds"]["does not fold single line output but applies extmarks"] = function()
-  enable_folds(child)
-  set_buffer_contents(child, "Can you tell me the weather in London?")
-  tool_call(child)
-  child.lua([[
-    --require("tests.log")
-     h.make_tool_call(_G.chat, _G.tool, "**Weather Tool**: Ran successfully", {
-       llm_initial_response = "I've found some awesome weather data for you:",
-     })
-   ]])
-
-  h.expect_screenshot(
-    child.get_screenshot(),
-    "tests/screenshots/interactions/chat/tools/builtin/tool_output_folds_no_fold_single_line"
-  )
 end
 
 return T

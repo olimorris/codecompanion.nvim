@@ -110,7 +110,7 @@ return {
       local chat = meta.tools.chat
       local display_path = vim.fn.fnamemodify(self.args.filepath, ":.")
 
-      chat:add_tool_output(self, { content = fmt([[Deleted file `%s`]], display_path), display = false })
+      chat:add_tool_output(self, { content = fmt([[Deleted file `%s`]], display_path) })
     end,
 
     ---@param self CodeCompanion.Tool.DeleteFile

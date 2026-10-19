@@ -137,11 +137,11 @@ return {
         local files = #data
         local results_msg =
           fmt("Searched files for `%s`, %d results\n%s", query, files, markdown.form_codeblock(output))
-        chat:add_tool_output(self, { content = fmt(llm_output, results_msg), display = false })
+        chat:add_tool_output(self, { content = fmt(llm_output, results_msg) })
       else
         -- No files found - data is a string message
         local no_results_msg = fmt("Searched files for `%s`, no results", query)
-        chat:add_tool_output(self, { content = fmt(llm_output, no_results_msg), display = false })
+        chat:add_tool_output(self, { content = fmt(llm_output, no_results_msg) })
       end
     end,
 

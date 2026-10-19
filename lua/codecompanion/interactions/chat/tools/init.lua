@@ -82,7 +82,6 @@ function Tools:_handle_tool_error(opts)
   self.status = CONSTANTS.STATUS_ERROR
   self.chat:add_tool_output(tool_call, {
     content = string.format("Tool `%s` not found. %s", name, available_tools_msg),
-    display = false,
   })
 end
 
@@ -132,7 +131,6 @@ function Tools:_resolve_and_prepare_tool(tool)
         log:error("Couldn't decode the tool arguments: %s", args)
         self.chat:add_tool_output(prepared_tool, {
           content = string.format('You made an error in calling the %s tool: "%s"', name, decoded),
-          display = false,
         })
         self.status = CONSTANTS.STATUS_ERROR
         return nil, "JSON parsing failed", true -- Special flag to indicate this was handled

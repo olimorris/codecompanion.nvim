@@ -536,7 +536,7 @@ return {
     ---@param stdout string[] The output from the command
     ---@param meta { tools: CodeCompanion.Tools, cmd: table }
     success = function(self, stdout, meta)
-      meta.tools.chat:add_tool_output(self, { content = stdout[1], display = false })
+      meta.tools.chat:add_tool_output(self, { content = stdout[1] })
     end,
 
     ---@param self CodeCompanion.Tool.SearchHelp

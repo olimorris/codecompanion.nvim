@@ -21,6 +21,20 @@ local M = {}
 ---@field height? number Default height if not specified in window
 ---@field winbar? string Winbar text to display at the top of the window
 
+---Open a markdown float at the cursor, sized to its content and no wider than the current window
+---@param lines string[]
+---@param opts { title: string, focus_id: string, close_events?: string[] }
+---@return number, number The buffer and window numbers
+function M.create_hover(lines, opts)
+  return vim.lsp.util.open_floating_preview(lines, "markdown", {
+    -- Neovim drops the title from a float without a border
+    border = vim.o.winborder == "" and "single" or nil,
+    close_events = opts.close_events,
+    focus_id = opts.focus_id,
+    title = string.format(" %s ", opts.title),
+  })
+end
+
 ---Show a table of keymaps from the config in a float
 ---@param keymaps table<string, { modes?: table, description?: string, visible?: boolean }|false>
 ---@param opts { title: string }

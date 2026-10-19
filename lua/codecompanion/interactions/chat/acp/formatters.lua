@@ -8,7 +8,7 @@
 
       Output rules:
         - Always single line (no triple backticks, no newlines)
-        - Label format: "Kind: <target>" (e.g. "Read: config.json")
+        - Label format: "**Kind** <target>" (e.g. "**Read** config.json")
         - When `verbose_output` is set on the adapter, completed calls may
           append " — <summary>" or replace the label entirely (edits)
 -------------------------------------------------------------------------------
@@ -17,6 +17,8 @@
       Oli Morris (https://github.com/olimorris)
 ===============================================================================
 --]]
+
+local markdown = require("codecompanion.utils.markdown")
 
 local M = {}
 
@@ -148,24 +150,21 @@ local function parse_title(title)
   return title ~= "" and title or "Tool call"
 end
 
----Build the "Kind: <target>" label for a tool call.
----Preference order for target: diff path → first location path → parsed title.
+---Find what a tool call acts on: its diff path, then its first location, then its parsed title
 ---@param tool_call table
 ---@return string
-local function build_label(tool_call)
-  local kind = format_kind(tool_call.kind)
-
+local function find_target(tool_call)
   local diff = find_diff(tool_call)
   if diff and type(diff.path) == "string" then
-    return ("%s: %s"):format(kind, relpath(diff.path))
+    return relpath(diff.path)
   end
 
   local location = tool_call.locations and tool_call.locations[1]
   if location and type(location.path) == "string" then
-    return ("%s: %s"):format(kind, relpath(location.path))
+    return relpath(location.path)
   end
 
-  return ("%s: %s"):format(kind, parse_title(tool_call.title))
+  return parse_title(tool_call.title)
 end
 
 ---Build a verbose summary for an edit (replaces the label entirely)
@@ -213,14 +212,14 @@ local function content_summary(tool_call)
   end
 end
 
----Strip backticks and shorten cwd-rooted paths for display in a markdown buffer
+---Strip markdown formatting and shorten cwd-rooted paths for display in a markdown buffer
 ---@param text string
 ---@return string
 local function clean_for_buffer(text)
   if not text or text == "" then
     return text
   end
-  text = text:gsub("`", "")
+  text = markdown.strip_formatting(text)
   local cwd = vim.fn.getcwd()
   if cwd and cwd ~= "" then
     text = text:gsub(vim.pesc(cwd) .. "/", "")
@@ -259,25 +258,23 @@ end
 ---@return string
 function M.tool_message(tool_call, adapter)
   local call = normalize(tool_call)
-  local label = build_label(call)
+  local target = find_target(call)
 
   local verbose = adapter.opts and adapter.opts.verbose_output == true
-  if not verbose or call.status ~= "completed" then
-    return clean_for_buffer(label)
+  if verbose and call.status == "completed" then
+    -- Edits get a custom summary that replaces the label entirely
+    local diff = diff_summary(call)
+    if diff then
+      return clean_for_buffer(diff)
+    end
+
+    local summary = content_summary(call)
+    if summary and summary ~= "" then
+      target = target .. " — " .. summary
+    end
   end
 
-  -- Edits get a custom summary that replaces the label entirely
-  local diff = diff_summary(call)
-  if diff then
-    return clean_for_buffer(diff)
-  end
-
-  local summary = content_summary(call)
-  if summary and summary ~= "" then
-    return clean_for_buffer(label .. " — " .. summary)
-  end
-
-  return clean_for_buffer(label)
+  return ("**%s** %s"):format(format_kind(call.kind), clean_for_buffer(target))
 end
 
 return M

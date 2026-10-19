@@ -100,7 +100,7 @@ return {
         :totable()
       local llm_output = fmt([[%s]], table.concat(content, "\n"))
 
-      chat:add_tool_output(self, { content = llm_output, display = false })
+      chat:add_tool_output(self, { content = llm_output })
     end,
 
     ---@param self CodeCompanion.Tool.WebSearch

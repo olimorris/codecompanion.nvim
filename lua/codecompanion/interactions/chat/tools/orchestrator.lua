@@ -2,9 +2,11 @@ local Approvals = require("codecompanion.interactions.chat.tools.approvals")
 local Queue = require("codecompanion.interactions.chat.tools.runtime.queue")
 local Runner = require("codecompanion.interactions.chat.tools.runtime.runner")
 local agent_loop = require("codecompanion.interactions.chat.agent_loop")
+local tool_calls = require("codecompanion.interactions.chat.ui.tool_calls")
 
 local config = require("codecompanion.config")
 local log = require("codecompanion.utils.log")
+local markdown = require("codecompanion.utils.markdown")
 local os_utils = require("codecompanion.utils.os")
 local ui_utils = require("codecompanion.utils.ui")
 local utils = require("codecompanion.utils")
@@ -23,9 +25,9 @@ end
 
 ---Add a response to the chat buffer regarding a tool's execution
 ---@param exec CodeCompanion.Tools.Orchestrator
----@param opts { llm_message: string, user_message?: string }
+---@param opts { llm_message: string }
 local send_response_to_chat = function(exec, opts)
-  exec.tools.chat:add_tool_output(exec.tool, { content = opts.llm_message, display = opts.user_message })
+  exec.tools.chat:add_tool_output(exec.tool, { content = opts.llm_message })
 end
 
 ---Execute a shell command with platform-specific handling
@@ -178,7 +180,6 @@ function Orchestrator:_setup_handlers()
       else
         send_response_to_chat(self, {
           llm_message = fmt("The user cancelled the execution of the %s tool", self.tool.name),
-          user_message = fmt("Cancelled `%s`", self.tool.name),
         })
       end
     end,
@@ -278,9 +279,9 @@ end
 function Orchestrator:_create_label()
   local ok, cmd_string = pcall(self.output.cmd_string)
   if ok and type(cmd_string) == "string" and cmd_string ~= "" then
-    return fmt("%s: %s", self.tool.name, cmd_string)
+    return fmt("**%s** %s", self.tool.name, markdown.strip_formatting(cmd_string))
   end
-  return self.tool.name
+  return fmt("**%s**", self.tool.name)
 end
 
 ---@return nil
@@ -301,6 +302,7 @@ function Orchestrator:_write_label_to_chat()
   end
 
   self.tool_label = { line_number = line_number, icon_id = icon_id, text = text, status = "failed" }
+  tool_calls.mark(self.tools.chat, { line_number = line_number, call_id = self.tool.function_call.id })
 end
 
 ---Update the label's icon for the tool's final status

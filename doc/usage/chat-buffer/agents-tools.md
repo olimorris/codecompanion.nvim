@@ -31,6 +31,8 @@ The harness runs the _agent loop_:
 
 The loop ends when the LLM responds without asking for a tool, or when you stop the request or cancel a tool. Rejecting a tool doesn't end the loop. The LLM is told you rejected it, along with your reason, and carries on.
 
+Each tool call is summarised on one line in the chat buffer, and its output is never written there. Press `K` on that line to see the arguments the LLM sent, unescaped, and the tool's output in a floating window. Press `K` again to move into the window. For ACP adapters, an agent that sends no arguments shows the tool call's title and locations instead. Details aren't kept when a chat is restored from a session.
+
 The [tool system architecture](/extending/tools#architecture) is outlined in the extending section.
 
 ## Tool Groups

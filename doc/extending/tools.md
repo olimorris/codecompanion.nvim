@@ -348,11 +348,10 @@ output = {
 ```lua
 meta.tools.chat:add_tool_output(self, {
   content = "The result of 6 * 7 is 42",
-  display = "Calculated 6 * 7",
 })
 ```
 
-The first argument is the tool that ran, `self` in an output function. `content` is sent to the LLM. `display` is shown in the chat buffer, `content` is shown when it's `nil`, and `false` or an empty string shows nothing.
+The first argument is the tool that ran, `self` in an output function. `content` is sent to the LLM. The chat buffer shows only the tool's summary line, and `K` on that line shows the full call and its output.
 
 > [!IMPORTANT]
 > If an output function you define doesn't call `add_tool_output`, the LLM receives a stand-in result saying the tool call didn't complete

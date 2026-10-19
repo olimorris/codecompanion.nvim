@@ -863,7 +863,6 @@ T["Chat"]["on_tool_output callback receives correct args"] = function()
       callback_args = {
         tool = args.tool,
         content = args.content,
-        display = args.display,
       }
       args.content = "Modified: " .. args.content
     end)
@@ -880,7 +879,7 @@ T["Chat"]["on_tool_output callback receives correct args"] = function()
         type = "function",
       },
     }
-    chat:add_tool_output(tool, { content = "LLM output", display = "User output" })
+    chat:add_tool_output(tool, { content = "LLM output" })
 
     return {
       callback_args = callback_args,
@@ -890,7 +889,6 @@ T["Chat"]["on_tool_output callback receives correct args"] = function()
 
   h.eq(result.callback_args.tool, "weather")
   h.eq(result.callback_args.content, "LLM output")
-  h.eq(result.callback_args.display, "User output")
   h.eq(result.message_content, "Modified: LLM output")
 end
 
