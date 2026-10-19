@@ -428,6 +428,52 @@ T["ACP Responses"]["dispatches session/request_permission to active prompt"] = f
   h.eq(result.sid, "sess-123")
 end
 
+T["ACP Responses"]["passes unknown requests to the active prompt"] = function()
+  local result = child.lua([[
+    local connection = create_test_connection()
+    connection.session_id = "sess-123"
+    local sent = {}
+    function connection:write_message(data)
+      table.insert(sent, vim.trim(data))
+      return true
+    end
+    local claimed
+    connection._active_prompt = {
+      handle_agent_request = function(_, message)
+        claimed = message.method
+        return true
+      end
+    }
+    local req = vim.json.encode({ jsonrpc = "2.0", id = 7, method = "cursor/create_plan", params = {} })
+    connection:buffer_stdout_and_dispatch(req .. "\n")
+    return { claimed = claimed, sent_count = #sent }
+  ]])
+
+  h.eq(result.claimed, "cursor/create_plan")
+  h.eq(result.sent_count, 0)
+end
+
+T["ACP Responses"]["rejects unknown requests that nobody handles"] = function()
+  local result = child.lua([[
+    local connection = create_test_connection()
+    connection.session_id = "sess-123"
+    local sent = {}
+    function connection:write_message(data)
+      table.insert(sent, vim.trim(data))
+      return true
+    end
+    connection._active_prompt = {
+      handle_agent_request = function() return false end
+    }
+    local req = vim.json.encode({ jsonrpc = "2.0", id = 8, method = "vendor/unknown", params = {} })
+    connection:buffer_stdout_and_dispatch(req .. "\n")
+    return vim.json.decode(sent[#sent])
+  ]])
+
+  h.eq(result.id, 8)
+  h.eq(result.error.code, -32601)
+end
+
 T["ACP Responses"]["_handle_done when stopReason present"] = function()
   local result = child.lua([[
     local connection = create_test_connection()

@@ -772,6 +772,22 @@ function Connection:handle_incoming_request_or_notification(notification)
   if handler then
     return handler(self, notification)
   end
+
+  if self._active_prompt then
+    local handled = self._active_prompt:handle_agent_request(notification)
+    if handled then
+      return
+    end
+  end
+
+  if is_request then
+    log:warn("[acp::handle_incoming_request_or_notification] Unsupported method: %s", notification.method)
+    return self:send_error(
+      notification.id,
+      "method not supported: " .. notification.method,
+      jsonrpc.errors.METHOD_NOT_FOUND
+    )
+  end
 end
 
 ---Send data to the ACP process
