@@ -13,18 +13,35 @@ local CONSTANTS = {
   STOPPED_ICON = "○",
 }
 
+---List configured servers and registered tool groups
 ---@return CodeCompanion.SlashCommand.PickerItem[]
 local function list_servers()
   local items = {}
+  local status = mcp.get_status()
+  local _, registered_groups = mcp.get_registered_tools()
 
-  for name, server in pairs(mcp.get_status()) do
+  for name, server in pairs(status) do
     local icon = server.started and CONSTANTS.STARTED_ICON or CONSTANTS.STOPPED_ICON
     local activity = server.started and (server.ready and "ready" or "starting") or "stopped"
     table.insert(items, {
       name = fmt("%s %s", icon, name),
       description = fmt("%s, tools: %d", activity, server.tool_count or 0),
       server = name,
+      type = "configured",
     })
+  end
+
+  for group_name, group in pairs(registered_groups) do
+    local server_name = group_name:sub(#mcp.tool_prefix() + 1)
+    if not status[server_name] then
+      table.insert(items, {
+        name = fmt("%s %s", CONSTANTS.STARTED_ICON, server_name),
+        description = fmt("registered, tools: %d", #group.tools),
+        server = server_name,
+        group = group_name,
+        type = "registered",
+      })
+    end
   end
 
   table.sort(items, function(a, b)
@@ -45,6 +62,20 @@ local function toggle_server(selected)
   local status = mcp.get_status()[selected.server]
   local state = status and status.started and "started" or "stopped"
   utils.notify(fmt("MCP server `%s` %s", selected.server, state))
+end
+
+---@param selected { server: string, group: string }
+---@param opts { chat: CodeCompanion.Chat }
+---@return nil
+local function add_registered_group(selected, opts)
+  local chat = opts.chat
+  chat.tools:refresh({ adapter = chat.adapter })
+
+  if not chat.tool_registry:add(selected.group, { config = chat.tools.tools_config }) then
+    return utils.notify(fmt("MCP server `%s` is already enabled", selected.server))
+  end
+
+  utils.notify(fmt("MCP server `%s` enabled", selected.server))
 end
 
 local providers = picker.build_list_pickers({
@@ -71,7 +102,8 @@ end
 ---Is the slash command enabled?
 ---@return boolean|boolean,string
 function SlashCommand.enabled()
-  if vim.tbl_isempty(config.mcp.servers or {}) then
+  local _, registered_groups = mcp.get_registered_tools()
+  if vim.tbl_isempty(config.mcp.servers or {}) and vim.tbl_isempty(registered_groups) then
     return false, "[MCP] No servers found in your configuration"
   end
   return true
@@ -85,9 +117,13 @@ function SlashCommand:execute(SlashCommands)
 end
 
 ---Output from the slash command in the chat buffer
----@param selected { server: string }
+---@param selected { server: string, type: string, group?: string }
 ---@return nil
 function SlashCommand:output(selected)
+  if selected.type == "registered" then
+    return add_registered_group(selected, { chat = self.Chat })
+  end
+
   return toggle_server(selected)
 end
 
