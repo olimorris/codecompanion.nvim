@@ -1,4 +1,4 @@
-*codecompanion.txt*         For NVIM v0.11        Last change: 2026 October 19
+*codecompanion.txt*         For NVIM v0.11        Last change: 2026 October 20
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -3705,12 +3705,10 @@ The loop ends when the LLM responds without asking for a tool, or when you stop
 the request or cancel a tool. Rejecting a tool doesn't end the loop. The LLM is
 told you rejected it, along with your reason, and carries on.
 
-Each tool call is summarised on one line in the chat buffer, and its output is
-never written there. Press `K` on that line to see the arguments the LLM sent,
-unescaped, and the tool's output in a floating window. Press `K` again to move
-into the window. For ACP adapters, an agent that sends no arguments shows the
-tool call's title and locations instead. Details aren't kept when a chat is
-restored from a session.
+Each tool call is summarised on one line in the chat buffer. Press `K` on that
+line to see the arguments the LLM sent, and the tool's output in a floating
+window. Press `K` again to move into the window. For ACP adapters, an agent
+that sends no arguments shows the tool call's title and locations instead.
 
 The |codecompanion-extending-tools-architecture| is outlined in the extending
 section.
@@ -13208,6 +13206,11 @@ A tool is a table with these fields:
   name                    string                  The tool's name, matching the schema's function
                                                   name and its key in the config
 
+  kind                    string                  How the tool is labelled in the chat buffer:
+                                                  read, edit, delete, move, search, execute,
+                                                  think, fetch or other. The tool's name is used
+                                                  when it's left out
+
   schema                  table                   The schema the LLM follows to call the tool
 
   cmds                    table                   The commands or functions to run, in order
@@ -13834,6 +13837,10 @@ cover that. Set `extends = "cmd_tool"` to reuse them, and provide:
                                       to run, as a string
 
   system_prompt                       Optional instructions for the LLM
+
+  kind                                Optional. How the tool is labelled
+                                      in the chat buffer, defaulting to
+                                      execute
   -----------------------------------------------------------------------
 `cmd_tool` wraps `schema` in a full schema, runs the command from `build_cmd`
 and shows it in the approval prompt. Your own `handlers` and `output` functions

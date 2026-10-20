@@ -131,6 +131,7 @@ end
 ---@class CodeCompanion.Tool.GrepSearch: CodeCompanion.Tools.Tool
 return {
   name = "grep_search",
+  kind = "search",
   cmds = {
     ---Execute the search commands
     ---@param self CodeCompanion.Tool.GrepSearch

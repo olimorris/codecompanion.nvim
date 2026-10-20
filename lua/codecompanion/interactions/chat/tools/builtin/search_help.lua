@@ -450,6 +450,7 @@ end
 ---@class CodeCompanion.Tool.SearchHelp: CodeCompanion.Tools.Tool
 return {
   name = "search_help",
+  kind = "search",
   cmds = {
     ---@param self CodeCompanion.Tools
     ---@param args table The arguments from the LLM's tool call

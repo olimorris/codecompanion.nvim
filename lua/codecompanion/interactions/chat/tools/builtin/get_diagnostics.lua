@@ -250,6 +250,7 @@ end
 ---@class CodeCompanion.Tool.GetDiagnostics: CodeCompanion.Tools.Tool
 return {
   name = "get_diagnostics",
+  kind = "read",
   cmds = {
     ---Execute the diagnostics commands
     ---@param self CodeCompanion.Tool.GetDiagnostics

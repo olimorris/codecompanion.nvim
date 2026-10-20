@@ -278,7 +278,7 @@ end
 function Orchestrator:_create_label()
   local ok, cmd_string = pcall(self.output.cmd_string)
   return tool_calls.format_summary({
-    name = self.tool.name,
+    kind = self.tool.kind or self.tool.name,
     detail = ok and type(cmd_string) == "string" and cmd_string or nil,
   })
 end

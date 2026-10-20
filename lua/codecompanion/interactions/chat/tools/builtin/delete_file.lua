@@ -49,6 +49,7 @@ end
 ---@class CodeCompanion.Tool.DeleteFile: CodeCompanion.Tools.Tool
 return {
   name = "delete_file",
+  kind = "delete",
   cmds = {
     ---Execute the file commands
     ---@param self CodeCompanion.Tool.DeleteFile

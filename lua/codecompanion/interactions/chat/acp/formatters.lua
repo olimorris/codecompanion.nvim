@@ -85,17 +85,6 @@ function M.extract_text(block)
   return nil
 end
 
----Capitalise an ACP tool kind ("edit" → "Edit", "switch_mode" → "Switch mode")
----@param kind string|nil
----@return string
-local function format_kind(kind)
-  if not kind or kind == "" then
-    return "Tool"
-  end
-  local s = kind:gsub("_", " ")
-  return s:sub(1, 1):upper() .. s:sub(2)
-end
-
 ---Find the first diff content block in a tool call
 ---@param tool_call table
 ---@return table|nil
@@ -251,7 +240,7 @@ function M.tool_message(tool_call, adapter)
     target = diff_summary(call) or (summary and summary ~= "" and target .. " — " .. summary) or target
   end
 
-  return tool_calls.format_summary({ name = format_kind(call.kind), detail = target })
+  return tool_calls.format_summary({ kind = call.kind, detail = target })
 end
 
 return M

@@ -8,6 +8,7 @@ local fmt = string.format
 ---@class CodeCompanion.Tool.WebSearch: CodeCompanion.Tools.Tool
 return {
   name = "web_search",
+  kind = "search",
   cmds = {
     ---@param self CodeCompanion.Tools The Editor tool
     ---@param args table The arguments from the LLM's tool call

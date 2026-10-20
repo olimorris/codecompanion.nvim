@@ -47,6 +47,7 @@ end
 ---@class CodeCompanion.Tool.CreateFile: CodeCompanion.Tools.Tool
 return {
   name = "create_file",
+  kind = "edit",
   cmds = {
     ---Execute the file commands
     ---@param self CodeCompanion.Tools

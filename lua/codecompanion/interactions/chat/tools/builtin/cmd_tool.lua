@@ -103,6 +103,7 @@ local function cmd_tool(spec)
 
   return {
     name = spec.name,
+    kind = spec.kind or "execute",
     cmds = {},
     schema = schema,
     system_prompt = spec.system_prompt,

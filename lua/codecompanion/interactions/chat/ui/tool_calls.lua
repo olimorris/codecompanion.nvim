@@ -12,8 +12,19 @@ local CONSTANTS = {
 ---@class CodeCompanion.Chat.UI.ToolCalls
 local ToolCalls = {}
 
+---Capitalise a tool kind ("edit" → "Edit", "switch_mode" → "Switch mode")
+---@param kind string|nil
+---@return string
+local function format_kind(kind)
+  if not kind or kind == "" then
+    return "Tool"
+  end
+  local words = kind:gsub("_", " ")
+  return words:sub(1, 1):upper() .. words:sub(2)
+end
+
 ---Build the one-line summary of a tool call, shared so HTTP and ACP tool calls look the same
----@param opts { name: string, detail?: string }
+---@param opts { kind: string, detail?: string }
 ---@return string
 function ToolCalls.format_summary(opts)
   local detail = vim.trim(((opts.detail or ""):gsub("%s+", " ")))
@@ -25,9 +36,9 @@ function ToolCalls.format_summary(opts)
   end
 
   if detail == "" then
-    return fmt("**%s**", opts.name)
+    return fmt("**%s**", format_kind(opts.kind))
   end
-  return fmt("**%s** %s", opts.name, detail)
+  return fmt("**%s** %s", format_kind(opts.kind), detail)
 end
 
 ---Mark a tool call's summary line so its details can be opened from the cursor

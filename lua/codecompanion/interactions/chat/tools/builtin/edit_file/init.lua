@@ -192,6 +192,7 @@ end
 ---@class CodeCompanion.Tool.EditFile: CodeCompanion.Tools.Tool
 return {
   name = "edit_file",
+  kind = "edit",
   cmds = {
     ---@param self CodeCompanion.Tools
     ---@param args { filepath: string, old_string: string, new_string: string, replace_all: boolean|string }

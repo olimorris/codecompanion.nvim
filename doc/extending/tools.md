@@ -91,6 +91,7 @@ A tool is a table with these fields:
 | Field | Type | Description |
 | --- | --- | --- |
 | `name` | `string` | The tool's name, matching the schema's function name and its key in the config |
+| `kind` | `string` | How the tool is labelled in the chat buffer: `read`, `edit`, `delete`, `move`, `search`, `execute`, `think`, `fetch` or `other`. The tool's name is used when it's left out |
 | `schema` | `table` | The schema the LLM follows to call the tool |
 | `cmds` | `table` | The commands or functions to run, in order |
 | `system_prompt` | `string\|fun(schema)` | Extra instructions for the LLM |
@@ -608,6 +609,7 @@ Most custom tools run a command on your machine, and the handlers and output fun
 | `schema` | The schema's `properties` and `required`, with `additionalProperties` optional |
 | `build_cmd` | A function that receives the LLM's arguments and returns the command to run, as a string |
 | `system_prompt` | Optional instructions for the LLM |
+| `kind` | Optional. How the tool is labelled in the chat buffer, defaulting to `execute` |
 
 `cmd_tool` wraps `schema` in a full schema, runs the command from `build_cmd` and shows it in the approval prompt. Your own `handlers` and `output` functions replace the matching defaults, and `gates` are passed through. `cmd_tool` doesn't carry over `opts` from the tool table, so set them on the config entry.
 

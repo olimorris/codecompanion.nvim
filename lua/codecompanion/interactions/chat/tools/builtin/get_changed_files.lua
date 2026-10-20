@@ -92,6 +92,7 @@ end
 ---@class CodeCompanion.Tool.GetChangedFiles: CodeCompanion.Tools.Tool
 return {
   name = "get_changed_files",
+  kind = "read",
   cmds = {
     ---@param self CodeCompanion.Tool.GetChangedFiles
     ---@param args table

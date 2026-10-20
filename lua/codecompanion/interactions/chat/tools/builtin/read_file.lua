@@ -119,6 +119,7 @@ end
 ---@class CodeCompanion.Tool.ReadFile: CodeCompanion.Tools.Tool
 return {
   name = "read_file",
+  kind = "read",
   cmds = {
     ---Execute the file commands
     ---@param self CodeCompanion.Tools

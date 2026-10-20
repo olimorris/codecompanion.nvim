@@ -62,6 +62,7 @@ end
 ---@class CodeCompanion.Tool.FileSearch: CodeCompanion.Tools.Tool
 return {
   name = "file_search",
+  kind = "search",
   cmds = {
     ---Execute the search commands
     ---@param self CodeCompanion.Tool.FileSearch
