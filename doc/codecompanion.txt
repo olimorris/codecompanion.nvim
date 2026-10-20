@@ -4261,11 +4261,19 @@ Approvals are kept per chat buffer and per tool. Approving a tool in one chat
 buffer doesn't approve it anywhere else, and approving it once means you're
 asked again next time.
 
+The request shows the tool call's summary line, the same one you see once it
+runs. Press `gv`, or `K` on that line, to see the full call in a floating
+window.
+
 When asked, you choose from:
 
   -----------------------------------------------------------------------
   Keymap                  Choice                  Description
   ----------------------- ----------------------- -----------------------
+  gv                      View                    Show the tool call's
+                                                  arguments in a floating
+                                                  window
+
   g1                      Always accept           Run this tool without
                                                   asking again in this
                                                   chat buffer
@@ -13554,7 +13562,7 @@ Leave an output function out and CodeCompanion uses a default:
   ------------ -----------------------------------------------
   success      Executed and the tool's name
   error        Error calling and the tool's name
-  prompt       Run the "calculator" tool?
+  prompt       The tool call's summary line
   rejected     The user rejected the tool, with their reason
   cancelled    The user cancelled the tool
   cmd_string   The tool's name alone

@@ -2,6 +2,7 @@ local config = require("codecompanion.config")
 local labels = require("codecompanion.interactions.chat.tools.labels")
 local log = require("codecompanion.utils.log")
 local markdown = require("codecompanion.utils.markdown")
+local tool_calls = require("codecompanion.interactions.chat.ui.tool_calls")
 local ui_utils = require("codecompanion.utils.ui")
 local utils = require("codecompanion.utils")
 
@@ -47,17 +48,42 @@ end
 ---@field callback function Called when the user selects this choice
 ---@field preview? boolean When true, the callback fires but the approval prompt stays active (e.g. "View")
 
+---Mark the last line that starts the prompt, so the tool call's details open from it
+---@param chat CodeCompanion.Chat
+---@param opts { prompt: string, call_id: string }
+---@return nil
+local function mark_prompt(chat, opts)
+  local first_line = vim.split(opts.prompt, "\n", { plain = true })[1]
+  local lines = vim.api.nvim_buf_get_lines(chat.bufnr, 0, -1, false)
+  for line_number = #lines, 1, -1 do
+    if lines[line_number] == first_line then
+      return tool_calls.mark(chat, { line_number = line_number, call_id = opts.call_id })
+    end
+  end
+end
+
 ---Request approval from the user via the chat buffer
 ---@param chat CodeCompanion.Chat
----@param opts { id: string|number, title?: string, prompt?: string, name?: string, choices: CodeCompanion.Chat.ApprovalChoice[] }
+---@param opts { id: string|number, title?: string, prompt?: string, name?: string, call_id?: string, choices: CodeCompanion.Chat.ApprovalChoice[] }
 ---@return fun(choice_label: string) on_done Callback to finalize the prompt from external code (e.g. diff keymaps)
 function M.request(chat, opts)
   local bufnr = chat.bufnr
 
   utils.fire("ToolApprovalRequested", { bufnr = bufnr, name = opts.name })
 
+  if opts.call_id then
+    opts.choices = vim.list_extend({
+      labels.choice("view", function()
+        tool_calls.open(chat, { call_id = opts.call_id })
+      end),
+    }, opts.choices)
+  end
+
   local content = build_message(opts)
   chat:add_buf_message({ role = config.constants.LLM_ROLE, content = content })
+  if opts.call_id and opts.prompt then
+    mark_prompt(chat, { prompt = opts.prompt, call_id = opts.call_id })
+  end
 
   if config.interactions.chat.tools.opts.notify_on_approval and not ui_utils.buf_is_active(bufnr) then
     utils.notify("Tool approval required")

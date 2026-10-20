@@ -1,7 +1,7 @@
 local log = require("codecompanion.utils.log")
-local utils = require("codecompanion.utils")
 
 local approvals = require("codecompanion.interactions.chat.tools.approvals")
+local formatter = require("codecompanion.interactions.chat.acp.formatters")
 local labels = require("codecompanion.interactions.chat.tools.labels")
 
 local fmt = string.format
@@ -206,51 +206,47 @@ end
 ---@return CodeCompanion.Chat.ApprovalChoice[]
 local function build_choices(opts)
   local permission = opts.permission
-  local keys = labels.keymaps()
   local choices = {}
 
   if opts.has_diff then
-    table.insert(choices, {
-      keymap = keys.view,
-      label = labels.view,
-      preview = true,
-      callback = function()
+    table.insert(
+      choices,
+      labels.choice("view", function()
         log:debug("[acp::request_permission] Opening diff for review")
         open_diff_view(permission)
-      end,
-    })
+      end)
+    )
   end
 
   for _, opt in ipairs(permission.request.options or {}) do
-    local key = key_for_kind({ kind = opt.kind, keys = keys })
-    if key then
-      table.insert(choices, {
-        keymap = key,
-        label = (ACP_OPTIONS[opt.kind] and ACP_OPTIONS[opt.kind].label) or opt.name,
-        callback = function()
+    local option = ACP_OPTIONS[opt.kind]
+    if option and option.keymap then
+      table.insert(
+        choices,
+        labels.choice(option.keymap, function()
           permission.request.respond(opt.optionId, false)
-        end,
-      })
+        end)
+      )
     end
   end
 
-  table.insert(choices, {
-    keymap = keys.cancel,
-    label = labels.cancel,
-    callback = function()
+  table.insert(
+    choices,
+    labels.choice("cancel", function()
       permission.request.respond(nil, true)
-    end,
-  })
+    end)
+  )
 
   return choices
 end
 
 ---Allow the user to approve from within the chat buffer
----@param opts { permission: table, choices: CodeCompanion.Chat.ApprovalChoice[], title?: string, prompt: string }
+---@param opts { permission: table, choices: CodeCompanion.Chat.ApprovalChoice[], title?: string, prompt: string, call_id?: string }
 local function approve_in_chat(opts)
   local permission = opts.permission
   local approval_prompt = require("codecompanion.interactions.chat.helpers.approval_prompt")
   permission.on_done = approval_prompt.request(permission.chat, {
+    call_id = opts.call_id,
     choices = opts.choices,
     id = permission.request.id,
     name = permission.request.tool_call and permission.request.tool_call.kind or nil,
@@ -323,12 +319,15 @@ function M.confirm(chat, request)
   local choices = build_choices({ permission = permission, has_diff = has_diff })
 
   if not has_diff then
-    local prompt = fmt(
-      "%s: %s",
-      utils.capitalize(tool_call and tool_call.kind or "Permission"),
-      tool_call and tool_call.title or "Agent requested permission"
-    )
-    return approve_in_chat({ permission = permission, choices = choices, prompt = prompt })
+    if not tool_call then
+      return approve_in_chat({ permission = permission, choices = choices, prompt = "Agent requested permission" })
+    end
+    return approve_in_chat({
+      call_id = tool_call.toolCallId,
+      choices = choices,
+      permission = permission,
+      prompt = formatter.tool_message(tool_call, chat.adapter),
+    })
   end
 
   local d = get_diff(tool_call)

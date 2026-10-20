@@ -111,6 +111,30 @@ T["Tool Calls"]["shows the diff of an ACP edit that has no output"] = function()
   }, lines)
 end
 
+T["Tool Calls"]["asks to approve a command on ONE line and views it in FULL"] = function()
+  local result = child.lua([[
+    local command = "bash -c '\n  ls\n  pwd\n'"
+    local handler = require("codecompanion.interactions.chat.acp.handler").new(_G.chat)
+    handler:handle_permission_request({
+      tool_call = { toolCallId = "3", kind = "execute", title = command, rawInput = { command = command } },
+      options = { { optionId = "allow", name = "Allow", kind = "allow_once" } },
+      respond = function() end,
+    })
+
+    vim.api.nvim_set_current_win(_G.chat.ui.winnr)
+    local prompt = vim.fn.getline(vim.fn.search("Execute", "n"))
+    vim.api.nvim_feedkeys("gv", "x", false)
+    for _, winnr in ipairs(vim.api.nvim_tabpage_list_wins(0)) do
+      if vim.api.nvim_win_get_config(winnr).relative ~= "" then
+        return { prompt = prompt, details = vim.api.nvim_buf_get_lines(vim.api.nvim_win_get_buf(winnr), 0, -1, false) }
+      end
+    end
+  ]])
+
+  h.eq("**Execute** bash -c ' ls pwd '", result.prompt)
+  h.eq({ "**command**", "````", "bash -c '", "  ls", "  pwd", "'", "````" }, result.details)
+end
+
 T["Tool Calls"]["escapes markdown in a summary rather than removing it"] = function()
   local summary = child.lua([[
     return require("codecompanion.interactions.chat.ui.tool_calls").format_summary({

@@ -70,7 +70,7 @@ T["no diff -> approval prompt -> return selected option"] = function()
     end
 
     local responded = {}
-    local chat = { bufnr = 0 }
+    local chat = { adapter = {}, bufnr = 0 }
     local request = {
       tool_call = {
         toolCallId = "tc-nodiff",
@@ -111,7 +111,7 @@ T["no diff -> approval prompt -> reject option"] = function()
     end
 
     local responded = {}
-    local chat = { bufnr = 0 }
+    local chat = { adapter = {}, bufnr = 0 }
     local request = {
       tool_call = {
         toolCallId = "tc-nodiff",
@@ -156,7 +156,7 @@ T["diff flow -> approval prompt shows view option"] = function()
       end
     end
 
-    local chat = { bufnr = 0 }
+    local chat = { adapter = {}, bufnr = 0 }
     local request = {
       tool_call = {
         toolCallId = "tc-diff",
@@ -203,7 +203,7 @@ T["diff flow -> view opens diff with keymaps"] = function()
     end
 
     _G.__responded = nil
-    local chat = { bufnr = 0 }
+    local chat = { adapter = {}, bufnr = 0 }
     local request = {
       tool_call = {
         toolCallId = "tc-diff",
@@ -277,7 +277,7 @@ T["diff flow -> accept without viewing responds directly"] = function()
     end
 
     local responded = {}
-    local chat = { bufnr = 0 }
+    local chat = { adapter = {}, bufnr = 0 }
     local request = {
       tool_call = {
         toolCallId = "tc-diff",
@@ -330,7 +330,7 @@ T["diff flow -> empty oldText and newText does not show diff"] = function()
     end
 
     local responded = {}
-    local chat = { bufnr = 0 }
+    local chat = { adapter = {}, bufnr = 0 }
     local request = {
       tool_call = {
         toolCallId = "tc-empty",
@@ -389,7 +389,7 @@ local function confirm_in_mode(opts)
       result.prompted = true
     end
 
-    local chat = { bufnr = 1 }
+    local chat = { adapter = {}, bufnr = 1 }
     require("codecompanion.interactions.chat.tools.approvals"):set_mode(chat.bufnr, { mode = mode })
     require("codecompanion.interactions.chat.acp.request_permission").confirm(chat, {
       tool_call = tool_call,

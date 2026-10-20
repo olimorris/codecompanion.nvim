@@ -287,13 +287,10 @@ end
 function Orchestrator:_write_label_to_chat()
   local text = self:_create_label()
 
-  local ok, line_number, icon_id = pcall(self.tools.chat.add_buf_message, self.tools.chat, {
-    role = config.constants.LLM_ROLE,
-    content = text,
-  }, {
+  local ok, line_number, icon_id = pcall(tool_calls.write, self.tools.chat, {
+    call_id = self.tool.function_call.id,
     status = "in_progress",
-    virt_text_pos = "inline",
-    type = self.tools.chat.MESSAGE_TYPES.TOOL_MESSAGE,
+    summary = text,
   })
 
   if not ok or not line_number then
@@ -301,12 +298,6 @@ function Orchestrator:_write_label_to_chat()
   end
 
   self.tool_label = { line_number = line_number, icon_id = icon_id, text = text, status = "failed" }
-  local call_id = self.tool.function_call.id
-  -- A custom adapter may not give its tool calls an ID, and a nil key would end the tool run with an error
-  if call_id then
-    self.tools.chat.tool_calls.http[call_id] = { call = self.tool.function_call }
-  end
-  tool_calls.mark(self.tools.chat, { line_number = line_number, call_id = call_id })
 end
 
 ---Update the label's icon for the tool's final status
@@ -318,13 +309,11 @@ function Orchestrator:_label_completed()
     return
   end
 
-  pcall(self.tools.chat.update_buf_line, self.tools.chat, {
-    line_number = label.line_number,
-    content = label.text,
-    status = label.status,
+  pcall(tool_calls.update, self.tools.chat, {
     icon_id = label.icon_id,
-    priority = 120,
-    virt_text_pos = "inline",
+    line_number = label.line_number,
+    status = label.status,
+    summary = label.text,
   })
 end
 
@@ -357,6 +346,12 @@ function Orchestrator:setup_next_tool(input)
   -- Get the next tool to run
   self.tool = self.queue:pop()
   self.tool_output = {}
+
+  local call_id = self.tool.function_call.id
+  -- A custom adapter may not give its tool calls an ID, and a nil key would end the tool run with an error
+  if call_id then
+    self.tools.chat.tool_calls.http[call_id] = { call = self.tool.function_call }
+  end
 
   self:_setup_handlers()
   self.handlers.setup() -- Call this early as run_command needs to setup its cmds dynamically
@@ -410,53 +405,37 @@ function Orchestrator:_prompt_for_approval(args)
 
   local prompt = self.output.prompt()
   if prompt == nil or prompt == "" then
-    prompt = ("Run the %q tool?"):format(self.tool.name)
+    prompt = self:_create_label()
   end
   if args.reason and args.reason ~= "" then
     prompt = fmt('%s\nJudge: _"%s"_', prompt, args.reason)
   end
 
   local labels = require("codecompanion.interactions.chat.tools.labels")
-  local keys = labels.keymaps()
   require("codecompanion.interactions.chat.helpers.approval_prompt").request(self.tools.chat, {
+    call_id = self.tool.function_call.id,
     id = self.id,
     name = self.tool.name,
     prompt = prompt,
     choices = {
-      {
-        keymap = keys.always_accept,
-        label = labels.always_accept,
-        callback = function()
-          Approvals:always(self.tools.bufnr, { cmd = self.output.cmd_string(), tool_name = self.tool.name })
-          self:execute_tool({ cmd = cmd, input = input })
-        end,
-      },
-      {
-        keymap = keys.accept,
-        label = labels.accept,
-        callback = function()
-          self:execute_tool({ cmd = cmd, input = input })
-        end,
-      },
-      {
-        keymap = keys.reject,
-        label = labels.reject,
-        callback = function()
-          ui_utils.input({ prompt = fmt("Reason for rejecting `%s`: ", self.tool.name) }, function(i)
-            self.output.rejected(cmd, { reason = i })
-            self:setup_next_tool()
-          end)
-        end,
-      },
-      {
-        keymap = keys.cancel,
-        label = labels.cancel,
-        callback = function()
-          -- Stop queued workflow prompts from auto-submitting once the chat is handed back
-          self.tools.chat:dispatch("on_cancelled")
-          self:cancel()
-        end,
-      },
+      labels.choice("always_accept", function()
+        Approvals:always(self.tools.bufnr, { cmd = self.output.cmd_string(), tool_name = self.tool.name })
+        self:execute_tool({ cmd = cmd, input = input })
+      end),
+      labels.choice("accept", function()
+        self:execute_tool({ cmd = cmd, input = input })
+      end),
+      labels.choice("reject", function()
+        ui_utils.input({ prompt = fmt("Reason for rejecting `%s`: ", self.tool.name) }, function(i)
+          self.output.rejected(cmd, { reason = i })
+          self:setup_next_tool()
+        end)
+      end),
+      labels.choice("cancel", function()
+        -- Stop queued workflow prompts from auto-submitting once the chat is handed back
+        self.tools.chat:dispatch("on_cancelled")
+        self:cancel()
+      end),
     },
   })
 end

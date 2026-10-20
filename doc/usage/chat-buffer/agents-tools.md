@@ -427,10 +427,13 @@ Tools are designed to keep the LLM from making changes that are hard to [recover
 
 Approvals are kept per chat buffer and per tool. Approving a tool in one chat buffer doesn't approve it anywhere else, and approving it once means you're asked again next time.
 
+The request shows the tool call's summary line, the same one you see once it runs. Press `gv`, or `K` on that line, to see the full call in a floating window.
+
 When asked, you choose from:
 
 | Keymap | Choice | Description |
 | --- | --- | --- |
+| `gv` | View | Show the tool call's arguments in a floating window |
 | `g1` | Always accept | Run this tool without asking again in this chat buffer |
 | `g2` | Accept | Run this tool this one time |
 | `g3` | Reject | Don't run the tool, and give the LLM a reason |

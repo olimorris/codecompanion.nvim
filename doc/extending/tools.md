@@ -363,7 +363,7 @@ Leave an output function out and CodeCompanion uses a default:
 | --- | --- |
 | `success` | `Executed` and the tool's name |
 | `error` | `Error calling` and the tool's name |
-| `prompt` | `Run the "calculator" tool?` |
+| `prompt` | The tool call's summary line |
 | `rejected` | The user rejected the tool, with their reason |
 | `cancelled` | The user cancelled the tool |
 | `cmd_string` | The tool's name alone |

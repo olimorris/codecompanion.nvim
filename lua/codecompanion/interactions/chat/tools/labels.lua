@@ -29,4 +29,12 @@ function M.keymaps()
   }
 end
 
+---Build an approval choice with its configured keymap and label
+---@param kind "view"|"always_accept"|"accept"|"reject"|"cancel"
+---@param callback function
+---@return CodeCompanion.Chat.ApprovalChoice
+function M.choice(kind, callback)
+  return { keymap = M.keymaps()[kind], label = M[kind], preview = kind == "view", callback = callback }
+end
+
 return M

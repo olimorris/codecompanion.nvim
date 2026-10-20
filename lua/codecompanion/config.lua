@@ -1113,7 +1113,7 @@ The user is working on a %s machine. Please respond with system specific command
       },
       keymaps = {
         view_diff = {
-          description = "View the proposed diff",
+          description = "View the proposed diff or tool call",
           modes = { n = "gv" },
           opts = { nowait = true },
         },

@@ -351,13 +351,11 @@ function ACPHandler:process_tool_call(tool_call)
   -- existing line rather than adding a new one
   local cached = self.ui_state[id]
   if cached then
-    local update_ok, _, new_icon_id = pcall(self.chat.update_buf_line, self.chat, {
-      line_number = cached.line_number,
-      content = content,
-      status = tool_call.status,
+    local update_ok, _, new_icon_id = pcall(tool_calls.update, self.chat, {
       icon_id = cached.icon_id,
-      priority = 120,
-      virt_text_pos = "inline",
+      line_number = cached.line_number,
+      status = tool_call.status,
+      summary = content,
     })
 
     if update_ok then
@@ -375,21 +373,12 @@ function ACPHandler:process_tool_call(tool_call)
     log:debug("[ACP::Handler] Failed to update tool call line for toolCallId %s", id)
   end
 
-  local line_number, icon_id = self.chat:add_buf_message({
-    role = config.constants.LLM_ROLE,
-    content = content,
-  }, {
+  local line_number, icon_id = tool_calls.write(self.chat, {
+    call_id = id,
     status = tool_call.status or "in_progress",
-    virt_text_pos = "inline",
-    tools = { call_id = id },
-    kind = tool_call.kind,
-    type = self.chat.MESSAGE_TYPES.TOOL_MESSAGE,
+    summary = content,
   })
-
   self.ui_state[id] = { line_number = line_number, icon_id = icon_id }
-  if line_number then
-    tool_calls.mark(self.chat, { line_number = line_number, call_id = id })
-  end
 end
 
 ---Queue a permission request and process when ready
@@ -421,6 +410,10 @@ function ACPHandler:_process_next_permission()
     if cached then
       request.tool_call = merge_tool_call(cached, tool_call)
     end
+  end
+  -- An agent may ask for permission before announcing the tool call, leaving its details empty
+  if type(tool_call) == "table" and tool_call.toolCallId and not self.chat.tool_calls.acp[tool_call.toolCallId] then
+    self.chat.tool_calls.acp[tool_call.toolCallId] = request.tool_call
   end
 
   -- The original respond function is stored so that if the user cancels the request, we can respond as per the spec

@@ -1,3 +1,4 @@
+local config = require("codecompanion.config")
 local markdown = require("codecompanion.utils.markdown")
 local ui_utils = require("codecompanion.utils.ui")
 
@@ -53,6 +54,40 @@ function ToolCalls.mark(chat, opts)
     right_gravity = false,
   })
   chat.tool_call_marks[extmark_id] = opts.call_id
+end
+
+---Write a tool call's summary line to the chat buffer, with its status icon
+---@param chat CodeCompanion.Chat
+---@param opts { summary: string, call_id?: string, status: string }
+---@return number|nil line_number, number|nil icon_id
+function ToolCalls.write(chat, opts)
+  local line_number, icon_id = chat:add_buf_message({
+    role = config.constants.LLM_ROLE,
+    content = opts.summary,
+  }, {
+    status = opts.status,
+    virt_text_pos = "inline",
+    type = chat.MESSAGE_TYPES.TOOL_MESSAGE,
+  })
+  if line_number then
+    ToolCalls.mark(chat, { line_number = line_number, call_id = opts.call_id })
+  end
+  return line_number, icon_id
+end
+
+---Rewrite a tool call's summary line with a new status
+---@param chat CodeCompanion.Chat
+---@param opts { line_number: number, summary: string, status: string, icon_id?: number }
+---@return boolean updated, number|nil icon_id
+function ToolCalls.update(chat, opts)
+  return chat:update_buf_line({
+    line_number = opts.line_number,
+    content = opts.summary,
+    status = opts.status,
+    icon_id = opts.icon_id,
+    priority = 120,
+    virt_text_pos = "inline",
+  })
 end
 
 ---@param bufnr number
@@ -196,18 +231,12 @@ local function format_acp_call(call)
   return lines, call.kind or "Tool Call"
 end
 
----Open a float with the details of the tool call on the cursor's line
+---Open a float with the details of a tool call
 ---@param chat CodeCompanion.Chat
+---@param opts { call_id: string }
 ---@return nil
-function ToolCalls.show(chat)
-  local row = api.nvim_win_get_cursor(0)[1] - 1
-  local marks = api.nvim_buf_get_extmarks(chat.bufnr, CONSTANTS.NS_TOOL_CALLS, { row, 0 }, { row, -1 }, {})
-  if #marks == 0 then
-    return
-  end
-
-  local call_id = chat.tool_call_marks[marks[1][1]]
-
+function ToolCalls.open(chat, opts)
+  local call_id = opts.call_id
   local lines, title
   local acp_call = chat.tool_calls.acp[call_id]
   if acp_call then
@@ -221,6 +250,19 @@ function ToolCalls.show(chat)
   end
 
   ui_utils.create_hover(lines, { title = title, focus_id = "codecompanion_tool_call" })
+end
+
+---Open a float with the details of the tool call on the cursor's line
+---@param chat CodeCompanion.Chat
+---@return nil
+function ToolCalls.show(chat)
+  local row = api.nvim_win_get_cursor(0)[1] - 1
+  local marks = api.nvim_buf_get_extmarks(chat.bufnr, CONSTANTS.NS_TOOL_CALLS, { row, 0 }, { row, -1 }, {})
+  if #marks == 0 then
+    return
+  end
+
+  ToolCalls.open(chat, { call_id = chat.tool_call_marks[marks[1][1]] })
 end
 
 return ToolCalls
