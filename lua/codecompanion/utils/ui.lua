@@ -23,12 +23,12 @@ local M = {}
 
 ---Open a markdown float at the cursor, sized to its content and no wider than the current window
 ---@param lines string[]
----@param opts { title: string, focus_id: string, close_events?: string[] }
+---@param opts { title: string, focus_id: string, border?: string|string[], close_events?: string[] }
 ---@return number, number The buffer and window numbers
 function M.create_hover(lines, opts)
   return vim.lsp.util.open_floating_preview(lines, "markdown", {
     -- Neovim drops the title from a float without a border
-    border = vim.o.winborder == "" and "single" or nil,
+    border = opts.border or (vim.o.winborder == "" and "single" or nil),
     close_events = opts.close_events,
     focus_id = opts.focus_id,
     title = string.format(" %s ", opts.title),

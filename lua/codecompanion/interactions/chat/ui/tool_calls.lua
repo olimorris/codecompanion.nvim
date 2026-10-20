@@ -2,6 +2,7 @@ local markdown = require("codecompanion.utils.markdown")
 local ui_utils = require("codecompanion.utils.ui")
 
 local api = vim.api
+local diff = vim.text.diff or vim.diff
 local fmt = string.format
 
 local CONSTANTS = {
@@ -29,11 +30,12 @@ end
 function ToolCalls.format_summary(opts)
   local detail = vim.trim(((opts.detail or ""):gsub("%s+", " ")))
   detail = detail:gsub(vim.pesc(vim.fn.getcwd()) .. "/", "")
-  detail = markdown.strip_formatting(detail)
 
   if vim.fn.strchars(detail) > CONSTANTS.MAX_DETAIL_LENGTH then
     detail = vim.fn.strcharpart(detail, 0, CONSTANTS.MAX_DETAIL_LENGTH - 3) .. "..."
   end
+  -- Escaping after truncating, so the cut can't separate a backslash from the character it escapes
+  detail = markdown.escape_formatting(detail)
 
   if detail == "" then
     return fmt("**%s**", format_kind(opts.kind))
@@ -59,18 +61,6 @@ function ToolCalls.clear(bufnr)
   api.nvim_buf_clear_namespace(bufnr, CONSTANTS.NS_TOOL_CALLS, 0, -1)
 end
 
----@param opts { messages: CodeCompanion.Chat.Messages, call_id: string }
----@return table|nil
-local function find_http_call(opts)
-  for _, message in ipairs(opts.messages) do
-    for _, call in ipairs(message.tools and message.tools.calls or {}) do
-      if call.id == opts.call_id then
-        return call
-      end
-    end
-  end
-end
-
 ---@param value any
 ---@return string
 local function format_value(value)
@@ -83,11 +73,11 @@ local function format_value(value)
   return tostring(value)
 end
 
----@param lines string[]
----@param value any
+---@param opts { lines: string[], value: any, ft?: string }
 ---@return nil
-local function add_code_block(lines, value)
-  vim.list_extend(lines, vim.split(markdown.form_codeblock(format_value(value)), "\n", { plain = true }))
+local function add_code_block(opts)
+  local codeblock = markdown.form_codeblock(format_value(opts.value), { ft = opts.ft })
+  vim.list_extend(opts.lines, vim.split(codeblock, "\n", { plain = true }))
 end
 
 ---@param arguments string|table|nil
@@ -105,7 +95,7 @@ local function format_arguments(arguments)
 
   local lines = {}
   if type(arguments) ~= "table" or vim.islist(arguments) then
-    add_code_block(lines, arguments)
+    add_code_block({ lines = lines, value = arguments })
     return lines
   end
 
@@ -121,34 +111,28 @@ local function format_arguments(arguments)
       table.insert(lines, "")
     end
     table.insert(lines, fmt("**%s**", key))
-    add_code_block(lines, arguments[key])
+    add_code_block({ lines = lines, value = arguments[key] })
   end
   return lines
 end
 
----@param lines string[]
----@param output any
----@return string[]
-local function add_output(lines, output)
-  if output == nil or output == "" then
-    return lines
+---@param opts { lines: string[], output: any, ft?: string }
+---@return nil
+local function add_output(opts)
+  if opts.output == nil or opts.output == "" then
+    return
   end
-  vim.list_extend(lines, { "", "---", "" })
-  add_code_block(lines, output)
-
-  return lines
+  vim.list_extend(opts.lines, { "", "---", "" })
+  add_code_block({ lines = opts.lines, value = opts.output, ft = opts.ft })
 end
 
----@param call table
----@param messages CodeCompanion.Chat.Messages
+---@param http_tool_call { call: table, output?: string }
 ---@return string[] lines, string title
-local function format_http_call(call, messages)
-  local result = vim.iter(messages):find(function(message)
-    return message.role == "tool" and message.tools and message.tools.call_id == call.id
-  end)
-
+local function format_http_call(http_tool_call)
+  local call = http_tool_call.call
   local lines = format_arguments(call["function"].arguments)
-  return add_output(lines, result and result.content), call["function"].name
+  add_output({ lines = lines, output = http_tool_call.output })
+  return lines, call["function"].name
 end
 
 ---@param call table
@@ -169,23 +153,47 @@ local function get_acp_output(call)
 end
 
 ---@param call table
----@return string[] lines, string title
-local function format_acp_call(call)
-  local title = call.kind or "Tool Call"
-  if type(call.rawInput) == "table" and not vim.tbl_isempty(call.rawInput) then
-    return add_output(format_arguments(call.rawInput), get_acp_output(call)), title
-  end
-
-  local lines = { call.title and (call.title:gsub("\n", " ")) or "No arguments" }
-  for _, location in ipairs(call.locations or {}) do
-    if location.line then
-      table.insert(lines, fmt("Location: %s:%d", location.path, location.line))
-    else
-      table.insert(lines, fmt("Location: %s", location.path))
+---@return string|nil
+local function get_acp_diff(call)
+  local diffs = {}
+  for _, block in ipairs(type(call.content) == "table" and call.content or {}) do
+    if block.type == "diff" then
+      -- A new file arrives with `oldText` as JSON null
+      local old_text = type(block.oldText) == "string" and block.oldText .. "\n" or ""
+      local new_text = type(block.newText) == "string" and block.newText .. "\n" or ""
+      local hunks = diff(old_text, new_text, { result_type = "unified" })
+      table.insert(diffs, fmt("--- %s\n+++ %s\n%s", block.path, block.path, hunks))
     end
   end
 
-  return add_output(lines, get_acp_output(call)), title
+  return #diffs > 0 and table.concat(diffs, "\n") or nil
+end
+
+---@param call table
+---@return string[] lines, string title
+local function format_acp_call(call)
+  local lines
+  if type(call.rawInput) == "table" and not vim.tbl_isempty(call.rawInput) then
+    lines = format_arguments(call.rawInput)
+  else
+    lines = { call.title and (call.title:gsub("\n", " ")) or "No arguments" }
+    for _, location in ipairs(call.locations or {}) do
+      if location.line then
+        table.insert(lines, fmt("Location: %s:%d", location.path, location.line))
+      else
+        table.insert(lines, fmt("Location: %s", location.path))
+      end
+    end
+  end
+
+  local output = get_acp_output(call)
+  if output then
+    add_output({ lines = lines, output = output })
+  else
+    add_output({ lines = lines, output = get_acp_diff(call), ft = "diff" })
+  end
+
+  return lines, call.kind or "Tool Call"
 end
 
 ---Open a float with the details of the tool call on the cursor's line
@@ -201,15 +209,15 @@ function ToolCalls.show(chat)
   local call_id = chat.tool_call_marks[marks[1][1]]
 
   local lines, title
-  local acp_call = chat.acp_tool_calls[call_id]
+  local acp_call = chat.tool_calls.acp[call_id]
   if acp_call then
     lines, title = format_acp_call(acp_call)
   else
-    local http_call = find_http_call({ messages = chat.messages, call_id = call_id })
-    if not http_call then
+    local http_tool_call = chat.tool_calls.http[call_id]
+    if not http_tool_call then
       return
     end
-    lines, title = format_http_call(http_call, chat.messages)
+    lines, title = format_http_call(http_tool_call)
   end
 
   ui_utils.create_hover(lines, { title = title, focus_id = "codecompanion_tool_call" })

@@ -55,4 +55,71 @@ T["Tool Calls"]["DOES NOT open a stale tool call after the buffer is re-rendered
   h.eq(vim.NIL, lines)
 end
 
+T["Tool Calls"]["opens an HTTP tool call after compaction removes it from the messages"] = function()
+  local lines = child.lua([[
+    _G.chat, _G.tools = h.setup_chat_buffer()
+    _G.tools:execute(_G.chat, {
+      { id = "call_1", type = "function", ["function"] = { name = "weather", arguments = { location = "London, UK", units = "celsius" } } },
+    })
+    _G.chat.messages = {}
+
+    vim.api.nvim_set_current_win(_G.chat.ui.winnr)
+    return _G.show_tool_call_on(vim.fn.search("Weather", "n"))
+  ]])
+
+  h.eq({
+    "**location**",
+    "````",
+    "London, UK",
+    "````",
+    "",
+    "**units**",
+    "````",
+    "celsius",
+    "````",
+    "──────────────────────────────────────",
+    "````",
+    "Ran the weather tool The weather in London, UK is 15° celsius",
+    "````",
+  }, lines)
+end
+
+T["Tool Calls"]["shows the diff of an ACP edit that has no output"] = function()
+  local lines = child.lua([[
+    local handler = require("codecompanion.interactions.chat.acp.handler").new(_G.chat)
+    handler:process_tool_call({
+      toolCallId = "2",
+      status = "completed",
+      kind = "edit",
+      title = "Edit new.lua",
+      content = { { type = "diff", path = "new.lua", oldText = vim.NIL, newText = "local x = 1" } },
+    })
+
+    vim.api.nvim_set_current_win(_G.chat.ui.winnr)
+    return _G.show_tool_call_on(vim.fn.search("new.lua", "n"))
+  ]])
+
+  h.eq({
+    "Edit new.lua",
+    "─────────────",
+    "````diff",
+    "--- new.lua",
+    "+++ new.lua",
+    "@@ -0,0 +1 @@",
+    "+local x = 1",
+    "````",
+  }, lines)
+end
+
+T["Tool Calls"]["escapes markdown in a summary rather than removing it"] = function()
+  local summary = child.lua([[
+    return require("codecompanion.interactions.chat.ui.tool_calls").format_summary({
+      kind = "run_command",
+      detail = "ls ~/src/*.lua C:\\src",
+    })
+  ]])
+
+  h.eq("**Run command** ls \\~/src/\\*.lua C:\\\\src", summary)
+end
+
 return T

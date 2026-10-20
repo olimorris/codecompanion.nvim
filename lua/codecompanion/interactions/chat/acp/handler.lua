@@ -325,7 +325,7 @@ function ACPHandler:process_tool_call(tool_call)
   tool_call = merged
 
   self:track_edits(id, tool_call)
-  self.chat.acp_tool_calls[id] = merged
+  self.chat.tool_calls.acp[id] = merged
 
   -- Cache or cleanup
   if tool_call.status == "completed" then

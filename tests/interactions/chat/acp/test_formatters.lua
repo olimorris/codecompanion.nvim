@@ -198,7 +198,7 @@ end
 
 T["ACP Formatters"]["search - verbose appends content summary"] = function()
   h.eq(
-    "**Search** Find /add_buf_message — No files found",
+    "**Search** Find \\`\\*\\*/\\*add_buf_message\\*\\` — No files found",
     format({
       toolCallId = "search-1",
       kind = "search",

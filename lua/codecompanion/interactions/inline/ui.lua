@@ -196,6 +196,7 @@ end
 ---@return nil
 function M.show_reply(reply, opts)
   local _, winnr = ui_utils.create_hover(vim.split(reply, "\n", { plain = true }), {
+    border = config.display.input.window.border,
     close_events = {},
     focus_id = "codecompanion_inline_reply",
     title = get_adapter_label(opts.adapter),

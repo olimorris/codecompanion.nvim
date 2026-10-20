@@ -301,7 +301,12 @@ function Orchestrator:_write_label_to_chat()
   end
 
   self.tool_label = { line_number = line_number, icon_id = icon_id, text = text, status = "failed" }
-  tool_calls.mark(self.tools.chat, { line_number = line_number, call_id = self.tool.function_call.id })
+  local call_id = self.tool.function_call.id
+  -- A custom adapter may not give its tool calls an ID, and a nil key would end the tool run with an error
+  if call_id then
+    self.tools.chat.tool_calls.http[call_id] = { call = self.tool.function_call }
+  end
+  tool_calls.mark(self.tools.chat, { line_number = line_number, call_id = call_id })
 end
 
 ---Update the label's icon for the tool's final status

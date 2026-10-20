@@ -892,6 +892,31 @@ T["Chat"]["on_tool_output callback receives correct args"] = function()
   h.eq(result.message_content, "Modified: LLM output")
 end
 
+T["Chat"]["merges tool output when the call ID DIFFERS from the item ID"] = function()
+  local tool_messages = child.lua([[
+    local chat = _G.chat
+    chat.adapter = require("codecompanion.adapters").resolve("openai")
+
+    local tool = {
+      name = "weather",
+      function_call = {
+        ["function"] = { arguments = "{}", name = "weather" },
+        call_id = "call_1",
+        id = "fc_1",
+        type = "function",
+      },
+    }
+    chat:add_tool_output(tool, { content = "first" })
+    chat:add_tool_output(tool, { content = "second" })
+
+    return vim.iter(chat.messages):filter(function(message) return message.role == "tool" end):map(function(message)
+      return message.content
+    end):totable()
+  ]])
+
+  h.eq({ "first\n\nsecond" }, tool_messages)
+end
+
 T["Chat"]["btw"] = new_set()
 
 T["Chat"]["btw"]["stores the message on the chat object"] = function()

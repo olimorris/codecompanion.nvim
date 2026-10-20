@@ -4,7 +4,6 @@
 
 ---@class CodeCompanion.Chat
 ---@field acp_connection? CodeCompanion.ACP.Connection The ACP session ID and connection
----@field acp_tool_calls table<string, table> ACP tool calls by their ID, kept after they complete
 ---@field adapter CodeCompanion.HTTPAdapter|CodeCompanion.ACPAdapter The adapter to use for the chat
 ---@field aug number The ID for the autocmd group
 ---@field buffer_context table The context of the buffer that the chat was initiated from
@@ -30,6 +29,7 @@
 ---@field subscribers table The subscribers to the chat buffer
 ---@field title? string The title of the chat buffer
 ---@field tokens? number|table The tokens reported by the adapter
+---@field tool_calls { acp: table<string, table>, http: table<string, { call: table, output?: string }> } Tool calls by their ID, kept after they complete and when context management rewrites the messages
 ---@field tool_call_marks table<number, string> Tool call IDs by the extmark on their summary line
 ---@field tools CodeCompanion.Tools The tools coordinator that executes available tools
 ---@field tool_orchestrator? CodeCompanion.Tools.Orchestrator Coordinates the tools that the LLM has asked to run
@@ -601,7 +601,6 @@ function Chat.new(args)
 
   local self = setmetatable({
     acp_session_id = args.acp_session_id or nil,
-    acp_tool_calls = {},
     buffer_context = args.buffer_context,
     callbacks = {},
     context_items = {},
@@ -617,6 +616,7 @@ function Chat.new(args)
     status = "",
     title = args.title,
     tool_call_marks = {},
+    tool_calls = { acp = {}, http = {} },
     _last_role = args.last_role or config.constants.USER_ROLE,
     _status = {},
   }, { __index = Chat })
@@ -1914,6 +1914,11 @@ function Chat:add_tool_output(tool, opts)
   self:dispatch("on_tool_output", tool_output)
   local content = tool_output.content
 
+  local http_tool_call = self.tool_calls.http[tool_call.id]
+  if http_tool_call then
+    http_tool_call.output = http_tool_call.output and (http_tool_call.output .. "\n\n" .. content) or content
+  end
+
   local output = adapters.call_handler(self.adapter, "format_response", { tool_call = tool_call, output = content })
   if not output then
     return log:error("Adapter does not support tool response formatting")
@@ -1926,7 +1931,7 @@ function Chat:add_tool_output(tool, opts)
   })
 
   -- Ensure that tool output is merged if it has the same tool call ID
-  local existing = find_tool_call({ messages = self.messages, id = tool_call.id })
+  local existing = find_tool_call({ messages = self.messages, id = adapter_utils.pairing_id(tool_call) })
   if existing then
     if existing.content ~= "" then
       existing.content = existing.content .. "\n\n" .. output.content
@@ -2010,8 +2015,8 @@ function Chat:clear()
   self.header_line = 1
   self.messages = {}
   self.context_items = {}
-  self.acp_tool_calls = {}
   self.tool_call_marks = {}
+  self.tool_calls = { acp = {}, http = {} }
 
   self.watchers:clear()
   self.tool_registry:clear()
