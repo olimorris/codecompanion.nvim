@@ -77,7 +77,7 @@ end
 
 T["ACP Formatters"]["edit - verbose returns diff summary with +N lines"] = function()
   h.eq(
-    "Edited /Users/test/file.lua (+1 lines)",
+    "**Edit** /Users/test/file.lua (+1 lines)",
     format({
       toolCallId = "edit-1",
       kind = "edit",
@@ -93,7 +93,7 @@ end
 
 T["ACP Formatters"]["edit - verbose returns diff summary with -N lines"] = function()
   h.eq(
-    "Edited /Users/test/file.lua (-2 lines)",
+    "**Edit** /Users/test/file.lua (-2 lines)",
     format({
       toolCallId = "edit-1",
       kind = "edit",
@@ -123,7 +123,7 @@ end
 T["ACP Formatters"]["edit - cwd-relative diff path is shortened"] = function()
   local cwd = child.lua_get("vim.fn.getcwd()")
   h.eq(
-    "Edited quotes.lua (+2 lines)",
+    "**Edit** quotes.lua (+2 lines)",
     format({
       toolCallId = "edit-1",
       kind = "edit",

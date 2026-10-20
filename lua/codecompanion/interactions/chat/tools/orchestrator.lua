@@ -6,7 +6,6 @@ local tool_calls = require("codecompanion.interactions.chat.ui.tool_calls")
 
 local config = require("codecompanion.config")
 local log = require("codecompanion.utils.log")
-local markdown = require("codecompanion.utils.markdown")
 local os_utils = require("codecompanion.utils.os")
 local ui_utils = require("codecompanion.utils.ui")
 local utils = require("codecompanion.utils")
@@ -278,10 +277,10 @@ end
 ---@return string
 function Orchestrator:_create_label()
   local ok, cmd_string = pcall(self.output.cmd_string)
-  if ok and type(cmd_string) == "string" and cmd_string ~= "" then
-    return fmt("**%s** %s", self.tool.name, markdown.strip_formatting(cmd_string))
-  end
-  return fmt("**%s**", self.tool.name)
+  return tool_calls.format_summary({
+    name = self.tool.name,
+    detail = ok and type(cmd_string) == "string" and cmd_string or nil,
+  })
 end
 
 ---@return nil

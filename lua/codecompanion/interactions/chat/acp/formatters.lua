@@ -10,7 +10,7 @@
         - Always single line (no triple backticks, no newlines)
         - Label format: "**Kind** <target>" (e.g. "**Read** config.json")
         - When `verbose_output` is set on the adapter, completed calls may
-          append " — <summary>" or replace the label entirely (edits)
+          append " — <summary>" or, for edits, replace the target with the line count
 -------------------------------------------------------------------------------
     Attribution:
       If you use or distribute this code, please credit:
@@ -18,7 +18,7 @@
 ===============================================================================
 --]]
 
-local markdown = require("codecompanion.utils.markdown")
+local tool_calls = require("codecompanion.interactions.chat.ui.tool_calls")
 
 local M = {}
 
@@ -167,7 +167,7 @@ local function find_target(tool_call)
   return parse_title(tool_call.title)
 end
 
----Build a verbose summary for an edit (replaces the label entirely)
+---Build a verbose summary of an edit's path and line count, which replaces the target
 ---@param tool_call table
 ---@return string|nil
 local function diff_summary(tool_call)
@@ -182,11 +182,11 @@ local function diff_summary(tool_call)
   local delta = #new_lines - #old_lines
 
   if delta > 0 then
-    return ("Edited %s (+%d lines)"):format(path, delta)
+    return ("%s (+%d lines)"):format(path, delta)
   elseif delta < 0 then
-    return ("Edited %s (-%d lines)"):format(path, math.abs(delta))
+    return ("%s (-%d lines)"):format(path, math.abs(delta))
   end
-  return ("Edited %s"):format(path)
+  return path
 end
 
 ---Extract a one-line summary from a tool call's content blocks
@@ -210,21 +210,6 @@ local function content_summary(tool_call)
   if #parts > 0 then
     return table.concat(parts, "; ")
   end
-end
-
----Strip markdown formatting and shorten cwd-rooted paths for display in a markdown buffer
----@param text string
----@return string
-local function clean_for_buffer(text)
-  if not text or text == "" then
-    return text
-  end
-  text = markdown.strip_formatting(text)
-  local cwd = vim.fn.getcwd()
-  if cwd and cwd ~= "" then
-    text = text:gsub(vim.pesc(cwd) .. "/", "")
-  end
-  return text
 end
 
 ---Fill in defaults for missing tool call fields
@@ -262,19 +247,11 @@ function M.tool_message(tool_call, adapter)
 
   local verbose = adapter.opts and adapter.opts.verbose_output == true
   if verbose and call.status == "completed" then
-    -- Edits get a custom summary that replaces the label entirely
-    local diff = diff_summary(call)
-    if diff then
-      return clean_for_buffer(diff)
-    end
-
     local summary = content_summary(call)
-    if summary and summary ~= "" then
-      target = target .. " — " .. summary
-    end
+    target = diff_summary(call) or (summary and summary ~= "" and target .. " — " .. summary) or target
   end
 
-  return ("**%s** %s"):format(format_kind(call.kind), clean_for_buffer(target))
+  return tool_calls.format_summary({ name = format_kind(call.kind), detail = target })
 end
 
 return M

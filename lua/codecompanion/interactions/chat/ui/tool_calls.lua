@@ -1,14 +1,34 @@
+local markdown = require("codecompanion.utils.markdown")
 local ui_utils = require("codecompanion.utils.ui")
 
 local api = vim.api
 local fmt = string.format
 
 local CONSTANTS = {
+  MAX_DETAIL_LENGTH = 100,
   NS_TOOL_CALLS = api.nvim_create_namespace("CodeCompanion-tool_calls"),
 }
 
 ---@class CodeCompanion.Chat.UI.ToolCalls
 local ToolCalls = {}
+
+---Build the one-line summary of a tool call, shared so HTTP and ACP tool calls look the same
+---@param opts { name: string, detail?: string }
+---@return string
+function ToolCalls.format_summary(opts)
+  local detail = vim.trim(((opts.detail or ""):gsub("%s+", " ")))
+  detail = detail:gsub(vim.pesc(vim.fn.getcwd()) .. "/", "")
+  detail = markdown.strip_formatting(detail)
+
+  if vim.fn.strchars(detail) > CONSTANTS.MAX_DETAIL_LENGTH then
+    detail = vim.fn.strcharpart(detail, 0, CONSTANTS.MAX_DETAIL_LENGTH - 3) .. "..."
+  end
+
+  if detail == "" then
+    return fmt("**%s**", opts.name)
+  end
+  return fmt("**%s** %s", opts.name, detail)
+end
 
 ---Mark a tool call's summary line so its details can be opened from the cursor
 ---@param chat CodeCompanion.Chat
@@ -41,35 +61,22 @@ local function find_http_call(opts)
 end
 
 ---@param value any
----@return string[]
+---@return string
 local function format_value(value)
   if type(value) == "table" then
-    return vim.split(vim.json.encode(value, { indent = "  " }), "\n", { plain = true })
+    return vim.json.encode(value, { indent = "  " })
   end
   if value == vim.NIL then
-    return { "null" }
+    return "null"
   end
-  return vim.split(tostring(value), "\n", { plain = true })
+  return tostring(value)
 end
 
 ---@param lines string[]
 ---@param value any
 ---@return nil
 local function add_code_block(lines, value)
-  local value_lines = format_value(value)
-
-  -- A value containing its own code fence would otherwise close the block early
-  local longest_backticks = 2
-  for _, line in ipairs(value_lines) do
-    for backticks in line:gmatch("`+") do
-      longest_backticks = math.max(longest_backticks, #backticks)
-    end
-  end
-  local fence = string.rep("`", longest_backticks + 1)
-
-  table.insert(lines, fence)
-  vim.list_extend(lines, value_lines)
-  table.insert(lines, fence)
+  vim.list_extend(lines, vim.split(markdown.form_codeblock(format_value(value)), "\n", { plain = true }))
 end
 
 ---@param arguments string|table|nil
@@ -117,6 +124,7 @@ local function add_output(lines, output)
   end
   vim.list_extend(lines, { "", "---", "" })
   add_code_block(lines, output)
+
   return lines
 end
 
@@ -127,6 +135,7 @@ local function format_http_call(call, messages)
   local result = vim.iter(messages):find(function(message)
     return message.role == "tool" and message.tools and message.tools.call_id == call.id
   end)
+
   local lines = format_arguments(call["function"].arguments)
   return add_output(lines, result and result.content), call["function"].name
 end
@@ -144,6 +153,7 @@ local function get_acp_output(call)
       table.insert(texts, block.content.text)
     end
   end
+
   return #texts > 0 and table.concat(texts, "\n") or nil
 end
 
@@ -163,6 +173,7 @@ local function format_acp_call(call)
       table.insert(lines, fmt("Location: %s", location.path))
     end
   end
+
   return add_output(lines, get_acp_output(call)), title
 end
 

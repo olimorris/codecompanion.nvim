@@ -43,7 +43,7 @@ T["Tool Calls"]["opens a tool call after its line is updated"] = function()
     return _G.show_tool_call_on(row)
   ]])
 
-  h.eq({ "**path**", "```", "file.lua", "```" }, lines)
+  h.eq({ "**path**", "````", "file.lua", "````" }, lines)
 end
 
 T["Tool Calls"]["DOES NOT open a stale tool call after the buffer is re-rendered"] = function()
