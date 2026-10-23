@@ -8,6 +8,26 @@ CodeCompanion follows [semantic versioning](https://semver.org/), so breaking ch
 
 To upgrade when you're ready rather than when your plugin manager decides, pin CodeCompanion to a version. See the [installation guide](/installation).
 
+## v20.0.1 to v21.0.0
+
+### Chat
+
+Tool output is no longer written to the chat buffer. Each tool call is a single line, and pressing `K` on it shows the call's arguments and output. See [How They Work](/usage/chat-buffer/agents-tools#how-they-work).
+
+These have been removed:
+
+- The `display` key in `add_tool_output`. Only `content` is used
+- `data.display` in the [on_tool_output](/configuration/callbacks#truncating-tool-output) callback
+- `interactions.chat.tools.opts.folds`, as there's no tool output left to fold
+- The `CodeCompanionChatToolText`, `CodeCompanionChatToolSuccess` and `CodeCompanionChatToolFailure` highlight groups
+
+In a tool's output handler:
+
+```lua
+chat:add_tool_output(self, { content = "The result is 42", display = "Calculated 6 * 7" }) -- [!code --]
+chat:add_tool_output(self, { content = "The result is 42" }) -- [!code ++]
+```
+
 ## v19.27.0 to v20.0.0
 
 > [!IMPORTANT]

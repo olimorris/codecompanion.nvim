@@ -1,4 +1,4 @@
-*codecompanion.txt*         For NVIM v0.11        Last change: 2026 October 18
+*codecompanion.txt*         For NVIM v0.11        Last change: 2026 October 20
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -3605,6 +3605,9 @@ are:
   gy                      yank_code                Yank code from the last
                                                    codeblock
 
+  K                       tool_call_details        Show the tool call
+                                                   under the cursor
+
   } {                     next_chat previous_chat  Move to the next or
                                                    previous chat
 
@@ -3701,6 +3704,11 @@ The harness runs the `agent loop`:
 The loop ends when the LLM responds without asking for a tool, or when you stop
 the request or cancel a tool. Rejecting a tool doesn't end the loop. The LLM is
 told you rejected it, along with your reason, and carries on.
+
+Each tool call is summarised on one line in the chat buffer. Press `K` on that
+line to see the arguments the LLM sent, and the tool's output in a floating
+window. Press `K` again to move into the window. For ACP adapters, an agent
+that sends no arguments shows the tool call's title and locations instead.
 
 The |codecompanion-extending-tools-architecture| is outlined in the extending
 section.
@@ -4253,11 +4261,19 @@ Approvals are kept per chat buffer and per tool. Approving a tool in one chat
 buffer doesn't approve it anywhere else, and approving it once means you're
 asked again next time.
 
+The request shows the tool call's summary line, the same one you see once it
+runs. Press `gv`, or `K` on that line, to see the full call in a floating
+window.
+
 When asked, you choose from:
 
   -----------------------------------------------------------------------
   Keymap                  Choice                  Description
   ----------------------- ----------------------- -----------------------
+  gv                      View                    Show the tool call's
+                                                  arguments in a floating
+                                                  window
+
   g1                      Always accept           Run this tool without
                                                   asking again in this
                                                   chat buffer
@@ -5998,25 +6014,17 @@ it until you override it.
   CodeCompanionChatTokens             Virtual text showing the token
                                       count
 
-  CodeCompanionChatFold               Folds, except for tool output
+  CodeCompanionChatFold               Folds
 
   CodeCompanionChatEditorContext      Editor context, such as #{buffer}
 
   CodeCompanionChatTool               Tools, such as @{agent}
 
-  CodeCompanionChatToolText           Tool output, overriding markdown
-                                      rendering
-
   CodeCompanionChatToolPending        A tool waiting to run
 
   CodeCompanionChatToolInProgress     A running tool
 
-  CodeCompanionChatToolSuccess        The summary of a tool that
-                                      succeeded
-
   CodeCompanionChatToolSuccessIcon    The icon of a tool that succeeded
-
-  CodeCompanionChatToolFailure        The summary of a tool that failed
 
   CodeCompanionChatToolFailureIcon    The icon of a tool that failed
   -----------------------------------------------------------------------
@@ -7780,7 +7788,7 @@ EVENTS ~
                           message history         messages,
                                                   reported_tokens
 
-  on_tool_output          Before a tool's output  tool, content, display
+  on_tool_output          Before a tool's output  tool, content
                           is added to the chat    
 
   on_ready                When the chat is ready  -
@@ -7916,9 +7924,8 @@ To stop a message that's over a token limit:
 TRUNCATING TOOL OUTPUT ~
 
 `on_tool_output` fires before a tool's output is added to the chat. `data.tool`
-is the tool's name, `data.content` is the output sent to the LLM and
-`data.display` is what's shown in the chat buffer. Change either to change the
-output:
+is the tool's name and `data.content` is the output sent to the LLM. Change
+`data.content` to change the output:
 
 >lua
     vim.api.nvim_create_autocmd("User", {
@@ -7932,7 +7939,6 @@ output:
           if data.content and tokens.calculate(data.content) > max_tokens then
             local max_chars = max_tokens * 6
             data.content = data.content:sub(1, max_chars) .. "\n\n[Output truncated]"
-            data.display = data.content
             vim.notify(
               string.format("Tool output from '%s' truncated (~%d tokens)", data.tool, max_tokens),
               vim.log.levels.WARN
@@ -9791,7 +9797,7 @@ CodeCompanion gives it:
                     local content = stdout and stdout[#stdout]
                     local output = tool_bridge.format_tool_result_content(content)
                     local msg = string.format("%d + %d = %s", self.args.a, self.args.b, output)
-                    tools.chat:add_tool_output(self, { content = output, display = msg })
+                    tools.chat:add_tool_output(self, { content = msg })
                   end,
                 },
               },
@@ -13208,6 +13214,11 @@ A tool is a table with these fields:
   name                    string                  The tool's name, matching the schema's function
                                                   name and its key in the config
 
+  kind                    string                  How the tool is labelled in the chat buffer:
+                                                  read, edit, delete, move, search, execute,
+                                                  think, fetch or other. The tool's name is used
+                                                  when it's left out
+
   schema                  table                   The schema the LLM follows to call the tool
 
   cmds                    table                   The commands or functions to run, in order
@@ -13535,13 +13546,12 @@ For the calculator:
 >lua
     meta.tools.chat:add_tool_output(self, {
       content = "The result of 6 * 7 is 42",
-      display = "Calculated 6 * 7",
     })
 <
 
 The first argument is the tool that ran, `self` in an output function.
-`content` is sent to the LLM. `display` is shown in the chat buffer, `content`
-is shown when it's `nil`, and `false` or an empty string shows nothing.
+`content` is sent to the LLM. The chat buffer shows only the tool's summary
+line, and `K` on that line shows the full call and its output.
 
 
   [!IMPORTANT] If an output function you define doesn't call `add_tool_output`,
@@ -13552,7 +13562,7 @@ Leave an output function out and CodeCompanion uses a default:
   ------------ -----------------------------------------------
   success      Executed and the tool's name
   error        Error calling and the tool's name
-  prompt       Run the "calculator" tool?
+  prompt       The tool call's summary line
   rejected     The user rejected the tool, with their reason
   cancelled    The user cancelled the tool
   cmd_string   The tool's name alone
@@ -13835,6 +13845,10 @@ cover that. Set `extends = "cmd_tool"` to reuse them, and provide:
                                       to run, as a string
 
   system_prompt                       Optional instructions for the LLM
+
+  kind                                Optional. How the tool is labelled
+                                      in the chat buffer, defaulting to
+                                      execute
   -----------------------------------------------------------------------
 `cmd_tool` wraps `schema` in a full schema, runs the command from `build_cmd`
 and shows it in the approval prompt. Your own `handlers` and `output` functions
@@ -15002,6 +15016,27 @@ and how to update your config.
 
 To upgrade when you're ready rather than when your plugin manager decides, pin
 CodeCompanion to a version. See the |codecompanion-installation|.
+
+
+CHAT
+
+Tool output is no longer written to the chat buffer. Each tool call is a single
+line, and pressing `K` on it shows the call's arguments and output. See
+|codecompanion-usage-chat-buffer-agents-tools-how-they-work|.
+
+These have been removed:
+
+- The `display` key in `add_tool_output`. Only `content` is used
+- `data.display` in the |codecompanion-configuration-callbacks-truncating-tool-output| callback
+- `interactions.chat.tools.opts.folds`, as there's no tool output left to fold
+- The `CodeCompanionChatToolText`, `CodeCompanionChatToolSuccess` and `CodeCompanionChatToolFailure` highlight groups
+
+In a tool's output handler:
+
+>lua
+    chat:add_tool_output(self, { content = "The result is 42", display = "Calculated 6 * 7" }) -- [!code --]
+    chat:add_tool_output(self, { content = "The result is 42" }) -- [!code ++]
+<
 
 
   [!IMPORTANT] The `openai` and `gemini` adapters now use different APIs. If you

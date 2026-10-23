@@ -192,6 +192,7 @@ end
 ---@class CodeCompanion.Tool.EditFile: CodeCompanion.Tools.Tool
 return {
   name = "edit_file",
+  kind = "edit",
   cmds = {
     ---@param self CodeCompanion.Tools
     ---@param args { filepath: string, old_string: string, new_string: string, replace_all: boolean|string }
@@ -282,7 +283,7 @@ return {
     ---@param meta { tools: CodeCompanion.Tools }
     ---@return nil
     success = function(self, stdout, meta)
-      meta.tools.chat:add_tool_output(self, { content = vim.iter(stdout):flatten():join("\n"), display = false })
+      meta.tools.chat:add_tool_output(self, { content = vim.iter(stdout):flatten():join("\n") })
     end,
 
     ---@param self CodeCompanion.Tool.EditFile

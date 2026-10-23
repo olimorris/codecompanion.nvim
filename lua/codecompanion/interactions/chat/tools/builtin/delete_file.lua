@@ -49,6 +49,7 @@ end
 ---@class CodeCompanion.Tool.DeleteFile: CodeCompanion.Tools.Tool
 return {
   name = "delete_file",
+  kind = "delete",
   cmds = {
     ---Execute the file commands
     ---@param self CodeCompanion.Tool.DeleteFile
@@ -110,7 +111,7 @@ return {
       local chat = meta.tools.chat
       local display_path = vim.fn.fnamemodify(self.args.filepath, ":.")
 
-      chat:add_tool_output(self, { content = fmt([[Deleted file `%s`]], display_path), display = false })
+      chat:add_tool_output(self, { content = fmt([[Deleted file `%s`]], display_path) })
     end,
 
     ---@param self CodeCompanion.Tool.DeleteFile

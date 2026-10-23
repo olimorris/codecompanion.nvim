@@ -20,7 +20,7 @@ local T = new_set({
 local function format(tool_call, opts)
   opts = opts or {}
   local adapter = { opts = { verbose_output = opts.verbose == true } }
-  local expr = ("formatters.tool_message(%s, %s)"):format(vim.inspect(tool_call), vim.inspect(adapter))
+  local expr = ("formatters.tool_message(%s)"):format(vim.inspect({ tool_call = tool_call, adapter = adapter }))
   return child.lua_get(expr)
 end
 
@@ -61,7 +61,7 @@ end
 
 T["ACP Formatters"]["edit - non-verbose returns label"] = function()
   h.eq(
-    "Edit: /Users/test/file.lua",
+    "**Edit** /Users/test/file.lua",
     format({
       toolCallId = "edit-1",
       kind = "edit",
@@ -77,7 +77,7 @@ end
 
 T["ACP Formatters"]["edit - verbose returns diff summary with +N lines"] = function()
   h.eq(
-    "Edited /Users/test/file.lua (+1 lines)",
+    "**Edit** /Users/test/file.lua (+1 lines)",
     format({
       toolCallId = "edit-1",
       kind = "edit",
@@ -93,7 +93,7 @@ end
 
 T["ACP Formatters"]["edit - verbose returns diff summary with -N lines"] = function()
   h.eq(
-    "Edited /Users/test/file.lua (-2 lines)",
+    "**Edit** /Users/test/file.lua (-2 lines)",
     format({
       toolCallId = "edit-1",
       kind = "edit",
@@ -109,7 +109,7 @@ end
 
 T["ACP Formatters"]["edit - pending status keeps label even when verbose"] = function()
   h.eq(
-    "Edit: /Users/test/file.lua",
+    "**Edit** /Users/test/file.lua",
     format({
       toolCallId = "edit-1",
       kind = "edit",
@@ -123,7 +123,7 @@ end
 T["ACP Formatters"]["edit - cwd-relative diff path is shortened"] = function()
   local cwd = child.lua_get("vim.fn.getcwd()")
   h.eq(
-    "Edited quotes.lua (+2 lines)",
+    "**Edit** quotes.lua (+2 lines)",
     format({
       toolCallId = "edit-1",
       kind = "edit",
@@ -144,7 +144,7 @@ end
 
 T["ACP Formatters"]["read - non-verbose returns label only"] = function()
   h.eq(
-    "Read: /Users/test/config.json",
+    "**Read** /Users/test/config.json",
     format({
       toolCallId = "read-1",
       kind = "read",
@@ -158,7 +158,7 @@ end
 
 T["ACP Formatters"]["read - verbose appends content summary"] = function()
   h.eq(
-    'Read: /Users/test/config.json — {"name": "test"} formatted',
+    '**Read** /Users/test/config.json - {"name": "test"} formatted',
     format({
       toolCallId = "read-1",
       kind = "read",
@@ -177,7 +177,7 @@ end
 
 T["ACP Formatters"]["execute - parses backtick-wrapped command from title"] = function()
   h.eq(
-    "Execute: ls -la lua/codecompanion/interactions/chat/acp/formatters/",
+    "**Execute** ls -la lua/codecompanion/interactions/chat/acp/formatters/",
     format({
       toolCallId = "exec-1",
       kind = "execute",
@@ -198,7 +198,7 @@ end
 
 T["ACP Formatters"]["search - verbose appends content summary"] = function()
   h.eq(
-    "Search: Find **/*add_buf_message* — No files found",
+    "**Search** Find \\`\\*\\*/\\*add_buf_message\\*\\` - No files found",
     format({
       toolCallId = "search-1",
       kind = "search",
@@ -213,7 +213,7 @@ end
 
 T["ACP Formatters"]["missing kind defaults to 'Other'"] = function()
   h.eq(
-    "Other: doing something",
+    "**Other** doing something",
     format({
       toolCallId = "x-1",
       status = "pending",
@@ -224,7 +224,7 @@ end
 
 T["ACP Formatters"]["snake_case kind is title-cased with space"] = function()
   h.eq(
-    "Switch mode: plan",
+    "**Switch mode** plan",
     format({
       toolCallId = "sm-1",
       kind = "switch_mode",
@@ -236,7 +236,7 @@ end
 
 T["ACP Formatters"]["title with trailing ' => ...' preview is stripped"] = function()
   h.eq(
-    "Fetch: GET /api/users",
+    "**Fetch** GET /api/users",
     format({
       toolCallId = "f-1",
       kind = "fetch",
@@ -246,8 +246,8 @@ T["ACP Formatters"]["title with trailing ' => ...' preview is stripped"] = funct
   )
 end
 
-T["ACP Formatters"]["nil tool_call is normalised to 'Other: Invalid tool call'"] = function()
-  h.eq("Other: Invalid tool call", child.lua_get("formatters.tool_message(nil, { opts = {} })"))
+T["ACP Formatters"]["nil tool_call is normalised to 'Other' and 'Invalid tool call'"] = function()
+  h.eq("**Other** Invalid tool call", child.lua_get("formatters.tool_message({ adapter = { opts = {} } })"))
 end
 
 return T

@@ -539,7 +539,7 @@ return {
         llm_output = fmt("<memoryTool>Renamed %s to %s</memoryTool>", cmd.old_path, cmd.new_path)
       end
 
-      chat:add_tool_output(self, { content = llm_output, display = false })
+      chat:add_tool_output(self, { content = llm_output })
     end,
 
     ---@param self CodeCompanion.Tool.Memory
@@ -558,7 +558,7 @@ return {
 
       log:debug("[Memory Tool] Error output: %s", errors)
 
-      chat:add_tool_output(self, { content = errors, display = fmt("Error: %s", errors) })
+      chat:add_tool_output(self, { content = errors })
     end,
 
     ---Rejection message back to the LLM

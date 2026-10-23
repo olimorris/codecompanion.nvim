@@ -43,15 +43,12 @@ Every group links to a built-in group by default, so your colourscheme styles it
 | `CodeCompanionChatError` | Error messages |
 | `CodeCompanionChatSubtext` | Text under an information, warning or error message |
 | `CodeCompanionChatTokens` | Virtual text showing the token count |
-| `CodeCompanionChatFold` | Folds, except for tool output |
+| `CodeCompanionChatFold` | Folds |
 | `CodeCompanionChatEditorContext` | Editor context, such as `#{buffer}` |
 | `CodeCompanionChatTool` | Tools, such as `@{agent}` |
-| `CodeCompanionChatToolText` | Tool output, overriding markdown rendering |
 | `CodeCompanionChatToolPending` | A tool waiting to run |
 | `CodeCompanionChatToolInProgress` | A running tool |
-| `CodeCompanionChatToolSuccess` | The summary of a tool that succeeded |
 | `CodeCompanionChatToolSuccessIcon` | The icon of a tool that succeeded |
-| `CodeCompanionChatToolFailure` | The summary of a tool that failed |
 | `CodeCompanionChatToolFailureIcon` | The icon of a tool that failed |
 
 **Diffs**

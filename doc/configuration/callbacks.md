@@ -14,7 +14,7 @@ _Callbacks_ run your own code at set points in a chat buffer's lifecycle. They'r
 | `on_before_submit` | Before a message is sent to the LLM. Return `false` to stop it | `adapter` |
 | `on_submitted` | After the message is sent to the LLM | `payload` |
 | `on_checkpoint` | At safe points in the chat, with a mutable message history | `adapter`, `estimated_tokens`, `messages`, `reported_tokens` |
-| `on_tool_output` | Before a tool's output is added to the chat | `tool`, `content`, `display` |
+| `on_tool_output` | Before a tool's output is added to the chat | `tool`, `content` |
 | `on_ready` | When the chat is ready for your next message | - |
 | `on_completed` | When the LLM's response is fully processed. `error` is set when `status` is `"error"` | `status`, `error` |
 | `on_cancelled` | When a request is stopped | - |
@@ -123,7 +123,7 @@ vim.api.nvim_create_autocmd("User", {
 
 ## Truncating Tool Output
 
-`on_tool_output` fires before a tool's output is added to the chat. `data.tool` is the tool's name, `data.content` is the output sent to the LLM and `data.display` is what's shown in the chat buffer. Change either to change the output:
+`on_tool_output` fires before a tool's output is added to the chat. `data.tool` is the tool's name and `data.content` is the output sent to the LLM. Change `data.content` to change the output:
 
 ```lua
 vim.api.nvim_create_autocmd("User", {
@@ -137,7 +137,6 @@ vim.api.nvim_create_autocmd("User", {
       if data.content and tokens.calculate(data.content) > max_tokens then
         local max_chars = max_tokens * 6
         data.content = data.content:sub(1, max_chars) .. "\n\n[Output truncated]"
-        data.display = data.content
         vim.notify(
           string.format("Tool output from '%s' truncated (~%d tokens)", data.tool, max_tokens),
           vim.log.levels.WARN
