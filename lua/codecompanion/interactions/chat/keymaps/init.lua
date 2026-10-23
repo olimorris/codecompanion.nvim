@@ -440,10 +440,11 @@ M.yank_code = {
 M.sync_all = {
   desc = "Sync the context item to share all of its content",
   callback = function(chat)
+    local bufnr = api.nvim_get_current_buf()
     local current_line = vim.api.nvim_win_get_cursor(0)[1]
-    local line = vim.api.nvim_buf_get_lines(chat.bufnr, current_line - 1, current_line, true)[1]
+    local line = vim.api.nvim_buf_get_lines(bufnr, current_line - 1, current_line, true)[1]
 
-    if not vim.startswith(line, "> - ") then
+    if not vim.startswith(line, "> - ") or not vim.bo[bufnr].modifiable then
       return
     end
 
@@ -465,7 +466,7 @@ M.sync_all = {
     -- Update the UI
     local new_line = (state == "synced") and string.format("> - %s", filename)
       or string.format("> - %s%s", icon, filename)
-    api.nvim_buf_set_lines(chat.bufnr, current_line - 1, current_line, true, { new_line })
+    api.nvim_buf_set_lines(bufnr, current_line - 1, current_line, true, { new_line })
 
     -- Update the context items on the chat buffer
     for _, item in ipairs(chat.context_items) do
@@ -480,10 +481,11 @@ M.sync_all = {
 M.sync_diff = {
   desc = "Sync the context item to share its diffs",
   callback = function(chat)
+    local bufnr = api.nvim_get_current_buf()
     local current_line = vim.api.nvim_win_get_cursor(0)[1]
-    local line = vim.api.nvim_buf_get_lines(chat.bufnr, current_line - 1, current_line, true)[1]
+    local line = vim.api.nvim_buf_get_lines(bufnr, current_line - 1, current_line, true)[1]
 
-    if not vim.startswith(line, "> - ") then
+    if not vim.startswith(line, "> - ") or not vim.bo[bufnr].modifiable then
       return
     end
 
@@ -532,7 +534,7 @@ M.sync_diff = {
         end
 
         -- Update only the current line
-        vim.api.nvim_buf_set_lines(chat.bufnr, current_line - 1, current_line, true, { new_line })
+        vim.api.nvim_buf_set_lines(bufnr, current_line - 1, current_line, true, { new_line })
         break
       end
     end
@@ -672,8 +674,7 @@ M.goto_file_under_cursor = {
       if start_pos[1] > end_pos[1] or (start_pos[1] == end_pos[1] and start_pos[2] > end_pos[2]) then
         start_pos, end_pos = end_pos, start_pos
       end
-      local lines =
-        vim.api.nvim_buf_get_text(chat.bufnr, start_pos[2] - 1, start_pos[3] - 1, end_pos[2] - 1, end_pos[3], {})
+      local lines = vim.api.nvim_buf_get_text(0, start_pos[2] - 1, start_pos[3] - 1, end_pos[2] - 1, end_pos[3], {})
       if lines then
         file_name = table.concat(lines)
       end
@@ -715,7 +716,8 @@ M.btw = {
   ---@param chat CodeCompanion.Chat
   set = function(chat)
     local btw_keymap = config.interactions.chat.keymaps._btw
-    if not btw_keymap then
+    -- Submitting from the input already queues a message
+    if not btw_keymap or chat.ui.input then
       return
     end
 

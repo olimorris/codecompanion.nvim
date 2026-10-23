@@ -915,14 +915,14 @@ T["Chat"]["btw"]["ignores empty input"] = function()
   h.eq(vim.NIL, queued)
 end
 
-T["Chat"]["btw"]["last message wins when queued multiple times"] = function()
+T["Chat"]["btw"]["appends messages when queued multiple times"] = function()
   child.lua([[
     chat:btw("first")
     chat:btw("second")
   ]])
 
   local queued = child.lua_get([[chat._btw]])
-  h.eq("second", queued)
+  h.eq("first\n\nsecond", queued)
 end
 
 T["Chat"]["inject"] = new_set()

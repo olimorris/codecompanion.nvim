@@ -34,10 +34,12 @@ local function build_message(opts)
 end
 
 ---Clean up keymaps set for the approval prompt
----@param opts { bufnr: number, choices: table }
+---@param opts { bufnrs: number[], choices: table }
 local function cleanup_keymaps(opts)
-  for _, choice in ipairs(opts.choices) do
-    pcall(vim.keymap.del, "n", choice.keymap, { buffer = opts.bufnr })
+  for _, bufnr in ipairs(opts.bufnrs) do
+    for _, choice in ipairs(opts.choices) do
+      pcall(vim.keymap.del, "n", choice.keymap, { buffer = bufnr })
+    end
   end
 end
 
@@ -74,7 +76,7 @@ function M.request(chat, opts)
       return
     end
     resolved = true
-    cleanup_keymaps({ bufnr = bufnr, choices = opts.choices })
+    cleanup_keymaps({ bufnrs = chat:get_bufnrs(), choices = opts.choices })
     local is_rejection = labels.is_rejection(choice_label)
     local icons = config.display.chat.icons
     local icon = is_rejection and icons.tool_failure or icons.tool_success
@@ -86,25 +88,27 @@ function M.request(chat, opts)
     utils.fire("ToolApprovalFinished", { bufnr = bufnr, choice = choice_label })
   end
 
-  for _, choice in ipairs(opts.choices) do
-    vim.keymap.set("n", choice.keymap, function()
-      if resolved then
-        return
-      end
+  for _, keymap_bufnr in ipairs(chat:get_bufnrs()) do
+    for _, choice in ipairs(opts.choices) do
+      vim.keymap.set("n", choice.keymap, function()
+        if resolved then
+          return
+        end
 
-      if not choice.preview then
-        on_done(choice.label)
-      end
+        if not choice.preview then
+          on_done(choice.label)
+        end
 
-      log:debug("[approval_prompt] User selected: %s", choice.label)
+        log:debug("[approval_prompt] User selected: %s", choice.label)
 
-      choice.callback()
-    end, {
-      buffer = bufnr,
-      desc = choice.label,
-      silent = true,
-      nowait = true,
-    })
+        choice.callback()
+      end, {
+        buffer = keymap_bufnr,
+        desc = choice.label,
+        silent = true,
+        nowait = true,
+      })
+    end
   end
 
   return on_done

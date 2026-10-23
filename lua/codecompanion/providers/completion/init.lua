@@ -86,14 +86,21 @@ api.nvim_create_autocmd("User", {
   end,
 })
 
+---Resolve a chat's input buffer to the chat buffer, which the adapter cache is keyed by
+---@param bufnr number
+---@return number
+local function get_chat_bufnr(bufnr)
+  local chat = require("codecompanion.interactions.chat").buf_get_chat(bufnr)
+  return chat and chat.bufnr or bufnr
+end
+
 ---Return the slash commands to be used for completion
 ---@param interaction? string The interaction type to filter by (defaults to current buffer)
 ---@return table
 function M.slash_commands(interaction)
   interaction = interaction or M.interaction_type()
 
-  local bufnr = api.nvim_get_current_buf()
-  local adapter_info = adapter_cache[bufnr]
+  local adapter_info = adapter_cache[get_chat_bufnr(api.nvim_get_current_buf())]
 
   local filtered_slash_commands = slash_command_filter.filter_enabled_slash_commands(
     config.interactions.chat.slash_commands,
@@ -174,7 +181,7 @@ end
 ---@param bufnr? number Buffer number (defaults to current buffer)
 ---@return table
 function M.acp_commands(bufnr)
-  bufnr = bufnr or api.nvim_get_current_buf()
+  bufnr = get_chat_bufnr(bufnr or api.nvim_get_current_buf())
 
   -- Only show ACP commands if this buffer is using an ACP adapter
   local adapter_info = adapter_cache[bufnr]
@@ -206,8 +213,7 @@ end
 ---Return the tools to be used for completion
 ---@return table
 function M.tools()
-  local bufnr = api.nvim_get_current_buf()
-  local adapter_info = adapter_cache[bufnr]
+  local adapter_info = adapter_cache[get_chat_bufnr(api.nvim_get_current_buf())]
 
   -- Only show tools for HTTP adapters
   if not adapter_info or adapter_info.type == "acp" then

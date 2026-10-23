@@ -42,6 +42,34 @@ require("codecompanion").setup({
 
 The `chat_context` icon is optional and appears at the start of the fold.
 
+## Input
+
+By default, you write your message at the bottom of the chat buffer. To write it in a separate split beneath the chat window instead:
+
+```lua
+require("codecompanion").setup({
+  display = {
+    chat = {
+      input = {
+        layout = "split", -- Can be "buffer" or "split"
+        height = 8, -- lines
+      },
+    },
+  },
+})
+```
+
+With the split, the chat buffer is read-only, so you can scroll through a response and write your next message whilst it streams:
+
+- **Submitting** - Your message is added to the chat buffer under your header
+- **Queueing** - A message sent whilst the LLM is responding is queued and delivered once it's safe to do so. Sending another adds it to the same message. Stopping the response moves the queued message back into the input
+- **Context** - Shared context sits at the top of the input and stays there between messages. It's never folded. Delete a line to remove that item
+- **Keymaps** - Every chat buffer keymap works in both windows. Pressing `i`, `a`, `I`, `A`, `o` or `O` in the chat buffer moves you to the input
+- **Window** - Hiding or closing either window closes both. If you resize the input, that chat keeps the new height until you restart Neovim. New chats open at `height`
+
+> [!NOTE]
+> The split isn't available for the `float` layout, and the chat settings aren't shown at the top of the chat buffer
+
 ## Layout
 
 The `display.chat.window` table sets where the chat buffer opens. The `display.chat.floating_window` table sets the size of the floating windows CodeCompanion opens, such as the [debug window](/usage/chat-buffer/#debug-window) and the [diff](/configuration/diff):

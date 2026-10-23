@@ -193,11 +193,13 @@ function M.ask(chat, opts)
     utils.notify("The LLM has a question for you")
   end
 
-  local overrides = keymaps.Override.new(bufnr)
+  local overrides = vim.tbl_map(keymaps.Override.new, chat:get_bufnrs())
   local resolved = false
 
   local function bind(lhs, callback, desc)
-    overrides:set(lhs, callback, { desc = desc })
+    for _, override in ipairs(overrides) do
+      override:set(lhs, callback, { desc = desc })
+    end
   end
 
   ---@param answer string|nil
@@ -206,7 +208,9 @@ function M.ask(chat, opts)
       return
     end
     resolved = true
-    overrides:restore()
+    for _, override in ipairs(overrides) do
+      override:restore()
+    end
     add_summary(chat, { answer = answer })
     utils.fire("ToolQuestionAnswered", {
       answer = answer,

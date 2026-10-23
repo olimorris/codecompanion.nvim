@@ -1418,6 +1418,12 @@ The user is working on a %s machine. Please respond with system specific command
         opts = {},
       },
 
+      -- Where the user writes their prompt
+      input = {
+        layout = "buffer", -- buffer|split (a split beneath the chat window, ignored for the float layout)
+        height = 8, -- Height of the split
+      },
+
       -- Chat buffer options --------------------------------------------------
       auto_scroll = true, -- Automatically scroll down and place the cursor at the end?
       intro_message = "Welcome to CodeCompanion ✨! Press ? for options",

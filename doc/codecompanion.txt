@@ -1,4 +1,4 @@
-*codecompanion.txt*         For NVIM v0.11        Last change: 2026 October 18
+*codecompanion.txt*         For NVIM v0.11        Last change: 2026 October 23
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -3371,7 +3371,8 @@ The Lua equivalents, `require("codecompanion").chat()` and
 Press `<CR>` or `<C-s>` in normal mode, or `<C-s>` in insert mode, to send your
 message. The response streams back into the buffer. While the LLM is running
 tools, press `gm` to send it a follow-up, which CodeCompanion delivers once
-it's safe to do so.
+it's safe to do so. To write your messages in a separate split instead, see
+|codecompanion-configuration-ui-input|.
 
 
 ACTION PALETTE ~
@@ -8709,6 +8710,37 @@ response. To fold the context into a single line:
 
 The `chat_context` icon is optional and appears at the start of the fold.
 
+
+INPUT ~
+
+By default, you write your message at the bottom of the chat buffer. To write
+it in a separate split beneath the chat window instead:
+
+>lua
+    require("codecompanion").setup({
+      display = {
+        chat = {
+          input = {
+            layout = "split", -- Can be "buffer" or "split"
+            height = 8, -- lines
+          },
+        },
+      },
+    })
+<
+
+With the split, the chat buffer is read-only, so you can scroll through a
+response and write your next message whilst it streams:
+
+- **Submitting** - Your message is added to the chat buffer under your header
+- **Queueing** - A message sent whilst the LLM is responding is queued and delivered once it's safe to do so. Sending another adds it to the same message. Stopping the response moves the queued message back into the input
+- **Context** - Shared context sits at the top of the input and stays there between messages. It's never folded. Delete a line to remove that item
+- **Keymaps** - Every chat buffer keymap works in both windows. Pressing `i`, `a`, `I`, `A`, `o` or `O` in the chat buffer moves you to the input
+- **Window** - Hiding or closing either window closes both. If you resize the input, that chat keeps the new height until you restart Neovim. New chats open at `height`
+
+
+  [!NOTE] The split isn't available for the `float` layout, and the chat settings
+  aren't shown at the top of the chat buffer
 
 LAYOUT ~
 

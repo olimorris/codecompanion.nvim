@@ -89,10 +89,7 @@ function EditorContext:chat_render()
     content = format_all(comments),
   }, { _meta = { source = "editor_context", tag = tags.CODE_REVIEW }, visible = false })
 
-  self.Chat:add_buf_message({
-    role = config.constants.USER_ROLE,
-    content = format_for_buffer(comments),
-  }, { type = self.Chat.MESSAGE_TYPES.USER_MESSAGE })
+  self.Chat:add_to_prompt(format_for_buffer(comments))
 end
 
 ---Replace the editor context tag in the message
