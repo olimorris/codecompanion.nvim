@@ -237,7 +237,7 @@ function M.tool_message(tool_call, adapter)
   local verbose = adapter.opts and adapter.opts.verbose_output == true
   if verbose and call.status == "completed" then
     local summary = content_summary(call)
-    target = diff_summary(call) or (summary and summary ~= "" and target .. " — " .. summary) or target
+    target = diff_summary(call) or (summary and summary ~= "" and target .. " - " .. summary) or target
   end
 
   return tool_calls.format_summary({ kind = call.kind, detail = target })

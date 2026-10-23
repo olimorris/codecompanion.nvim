@@ -418,20 +418,20 @@ function Orchestrator:_prompt_for_approval(args)
     name = self.tool.name,
     prompt = prompt,
     choices = {
-      labels.choice("always_accept", function()
+      labels.build_choice("always_accept", function()
         Approvals:always(self.tools.bufnr, { cmd = self.output.cmd_string(), tool_name = self.tool.name })
         self:execute_tool({ cmd = cmd, input = input })
       end),
-      labels.choice("accept", function()
+      labels.build_choice("accept", function()
         self:execute_tool({ cmd = cmd, input = input })
       end),
-      labels.choice("reject", function()
+      labels.build_choice("reject", function()
         ui_utils.input({ prompt = fmt("Reason for rejecting `%s`: ", self.tool.name) }, function(i)
           self.output.rejected(cmd, { reason = i })
           self:setup_next_tool()
         end)
       end),
-      labels.choice("cancel", function()
+      labels.build_choice("cancel", function()
         -- Stop queued workflow prompts from auto-submitting once the chat is handed back
         self.tools.chat:dispatch("on_cancelled")
         self:cancel()

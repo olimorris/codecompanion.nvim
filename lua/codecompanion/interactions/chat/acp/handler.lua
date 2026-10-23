@@ -411,9 +411,10 @@ function ACPHandler:_process_next_permission()
       request.tool_call = merge_tool_call(cached, tool_call)
     end
   end
-  -- An agent may ask for permission before announcing the tool call, leaving its details empty
-  if type(tool_call) == "table" and tool_call.toolCallId and not self.chat.tool_calls.acp[tool_call.toolCallId] then
-    self.chat.tool_calls.acp[tool_call.toolCallId] = request.tool_call
+  -- The permission request can carry details the announcement lacked, such as the `rawInput` being approved
+  if type(tool_call) == "table" and tool_call.toolCallId then
+    local stored = self.chat.tool_calls.acp[tool_call.toolCallId]
+    self.chat.tool_calls.acp[tool_call.toolCallId] = merge_tool_call(stored, request.tool_call)
   end
 
   -- The original respond function is stored so that if the user cancels the request, we can respond as per the spec

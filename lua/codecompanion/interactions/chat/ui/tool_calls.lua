@@ -187,6 +187,19 @@ local function get_acp_output(call)
   return #texts > 0 and table.concat(texts, "\n") or nil
 end
 
+---Terminate the text's last line, so a snippet doesn't show "No newline at end of file"
+---@param text any
+---@return string
+local function end_with_newline(text)
+  if type(text) ~= "string" then
+    return ""
+  end
+  if text == "" or vim.endswith(text, "\n") then
+    return text
+  end
+  return text .. "\n"
+end
+
 ---@param call table
 ---@return string|nil
 local function get_acp_diff(call)
@@ -194,8 +207,8 @@ local function get_acp_diff(call)
   for _, block in ipairs(type(call.content) == "table" and call.content or {}) do
     if block.type == "diff" then
       -- A new file arrives with `oldText` as JSON null
-      local old_text = type(block.oldText) == "string" and block.oldText .. "\n" or ""
-      local new_text = type(block.newText) == "string" and block.newText .. "\n" or ""
+      local old_text = end_with_newline(block.oldText)
+      local new_text = end_with_newline(block.newText)
       local hunks = diff(old_text, new_text, { result_type = "unified" })
       table.insert(diffs, fmt("--- %s\n+++ %s\n%s", block.path, block.path, hunks))
     end

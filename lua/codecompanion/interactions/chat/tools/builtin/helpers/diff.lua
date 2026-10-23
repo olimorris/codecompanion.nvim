@@ -69,23 +69,23 @@ local function build_approval_choices(opts)
   local labels = require("codecompanion.interactions.chat.tools.labels")
 
   return {
-    labels.choice("view", function()
+    labels.build_choice("view", function()
       open_diff_view(opts)
     end),
-    labels.choice("always_accept", function()
+    labels.build_choice("always_accept", function()
       approvals:always(opts.chat_bufnr, { tool_name = opts.tool_name })
       opts.apply()
     end),
-    labels.choice("accept", function()
+    labels.build_choice("accept", function()
       opts.apply()
     end),
-    labels.choice("reject", function()
+    labels.build_choice("reject", function()
       get_rejection_reason(function(reason)
         local msg = fmt('User rejected the changes for `%s`, with the reason "%s"', opts.title, reason)
         opts.output_cb(make_response("error", msg))
       end)
     end),
-    labels.choice("cancel", function()
+    labels.build_choice("cancel", function()
       opts.output_cb(make_response("error", fmt("User cancelled the changes for `%s`", opts.title)))
     end),
   }

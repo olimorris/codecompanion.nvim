@@ -211,7 +211,7 @@ local function build_choices(opts)
   if opts.has_diff then
     table.insert(
       choices,
-      labels.choice("view", function()
+      labels.build_choice("view", function()
         log:debug("[acp::request_permission] Opening diff for review")
         open_diff_view(permission)
       end)
@@ -223,7 +223,7 @@ local function build_choices(opts)
     if option and option.keymap then
       table.insert(
         choices,
-        labels.choice(option.keymap, function()
+        labels.build_choice(option.keymap, function()
           permission.request.respond(opt.optionId, false)
         end)
       )
@@ -232,7 +232,7 @@ local function build_choices(opts)
 
   table.insert(
     choices,
-    labels.choice("cancel", function()
+    labels.build_choice("cancel", function()
       permission.request.respond(nil, true)
     end)
   )

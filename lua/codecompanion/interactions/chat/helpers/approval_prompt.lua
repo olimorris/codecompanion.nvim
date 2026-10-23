@@ -62,6 +62,46 @@ local function mark_prompt(chat, opts)
   end
 end
 
+---Record the user's choice in the chat buffer
+---@param chat CodeCompanion.Chat
+---@param choice_label string
+---@return nil
+local function add_selection(chat, choice_label)
+  local is_rejection = labels.is_rejection(choice_label)
+  local icons = config.display.chat.icons
+  local icon = is_rejection and icons.tool_failure or icons.tool_success
+  local status = is_rejection and "failed" or "completed"
+  chat:add_buf_message(
+    { content = fmt("%sYou selected: %s\n\n---\n", icon, choice_label) },
+    { _icon_info = { has_icon = true, status = status } }
+  )
+end
+
+---@param opts { bufnr: number, choices: CodeCompanion.Chat.ApprovalChoice[], is_resolved: fun(): boolean, on_done: fun(choice_label: string) }
+---@return nil
+local function set_keymaps(opts)
+  for _, choice in ipairs(opts.choices) do
+    vim.keymap.set("n", choice.keymap, function()
+      if opts.is_resolved() then
+        return
+      end
+
+      if not choice.preview then
+        opts.on_done(choice.label)
+      end
+
+      log:debug("[approval_prompt] User selected: %s", choice.label)
+
+      choice.callback()
+    end, {
+      buffer = opts.bufnr,
+      desc = choice.label,
+      silent = true,
+      nowait = true,
+    })
+  end
+end
+
 ---Request approval from the user via the chat buffer
 ---@param chat CodeCompanion.Chat
 ---@param opts { id: string|number, title?: string, prompt?: string, name?: string, call_id?: string, choices: CodeCompanion.Chat.ApprovalChoice[] }
@@ -73,7 +113,7 @@ function M.request(chat, opts)
 
   if opts.call_id then
     opts.choices = vim.list_extend({
-      labels.choice("view", function()
+      labels.build_choice("view", function()
         tool_calls.open(chat, { call_id = opts.call_id })
       end),
     }, opts.choices)
@@ -101,37 +141,18 @@ function M.request(chat, opts)
     end
     resolved = true
     cleanup_keymaps({ bufnr = bufnr, choices = opts.choices })
-    local is_rejection = labels.is_rejection(choice_label)
-    local icons = config.display.chat.icons
-    local icon = is_rejection and icons.tool_failure or icons.tool_success
-    local status = is_rejection and "failed" or "completed"
-    chat:add_buf_message(
-      { content = fmt("%sYou selected: %s\n\n---\n", icon, choice_label) },
-      { _icon_info = { has_icon = true, status = status } }
-    )
+    add_selection(chat, choice_label)
     utils.fire("ToolApprovalFinished", { bufnr = bufnr, choice = choice_label })
   end
 
-  for _, choice in ipairs(opts.choices) do
-    vim.keymap.set("n", choice.keymap, function()
-      if resolved then
-        return
-      end
-
-      if not choice.preview then
-        on_done(choice.label)
-      end
-
-      log:debug("[approval_prompt] User selected: %s", choice.label)
-
-      choice.callback()
-    end, {
-      buffer = bufnr,
-      desc = choice.label,
-      silent = true,
-      nowait = true,
-    })
-  end
+  set_keymaps({
+    bufnr = bufnr,
+    choices = opts.choices,
+    is_resolved = function()
+      return resolved
+    end,
+    on_done = on_done,
+  })
 
   return on_done
 end
