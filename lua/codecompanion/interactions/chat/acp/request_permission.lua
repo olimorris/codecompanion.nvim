@@ -326,7 +326,7 @@ function M.confirm(chat, request)
       call_id = tool_call.toolCallId,
       choices = choices,
       permission = permission,
-      prompt = formatter.tool_message(tool_call, chat.adapter),
+      prompt = formatter.tool_message({ tool_call = tool_call, adapter = chat.adapter }),
     })
   end
 

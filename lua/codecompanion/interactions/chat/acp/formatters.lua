@@ -227,14 +227,13 @@ local function normalize(tool_call)
 end
 
 ---Build the single-line display string for an ACP tool call
----@param tool_call table
----@param adapter CodeCompanion.ACPAdapter
+---@param opts { tool_call: table, adapter: CodeCompanion.ACPAdapter }
 ---@return string
-function M.tool_message(tool_call, adapter)
-  local call = normalize(tool_call)
+function M.tool_message(opts)
+  local call = normalize(opts.tool_call)
   local target = find_target(call)
 
-  local verbose = adapter.opts and adapter.opts.verbose_output == true
+  local verbose = opts.adapter.opts and opts.adapter.opts.verbose_output == true
   if verbose and call.status == "completed" then
     local summary = content_summary(call)
     target = diff_summary(call) or (summary and summary ~= "" and target .. " - " .. summary) or target

@@ -191,12 +191,11 @@ function M.get_picked_adapter(bufnr)
 end
 
 ---Show the LLM's reply in a float that stays open until `q` is pressed
----@param reply string
----@param opts { adapter: CodeCompanion.HTTPAdapter }
+---@param opts { reply: string, adapter: CodeCompanion.HTTPAdapter }
 ---@return nil
-function M.show_reply(reply, opts)
+function M.show_reply(opts)
   local _, winnr = ui_utils.create_hover({
-    lines = vim.split(reply, "\n", { plain = true }),
+    lines = vim.split(opts.reply, "\n", { plain = true }),
     border = config.display.input.window.border,
     close_events = {},
     focus_id = "codecompanion_inline_reply",

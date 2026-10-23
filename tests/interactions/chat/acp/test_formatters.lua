@@ -20,7 +20,7 @@ local T = new_set({
 local function format(tool_call, opts)
   opts = opts or {}
   local adapter = { opts = { verbose_output = opts.verbose == true } }
-  local expr = ("formatters.tool_message(%s, %s)"):format(vim.inspect(tool_call), vim.inspect(adapter))
+  local expr = ("formatters.tool_message(%s)"):format(vim.inspect({ tool_call = tool_call, adapter = adapter }))
   return child.lua_get(expr)
 end
 
@@ -247,7 +247,7 @@ T["ACP Formatters"]["title with trailing ' => ...' preview is stripped"] = funct
 end
 
 T["ACP Formatters"]["nil tool_call is normalised to 'Other' and 'Invalid tool call'"] = function()
-  h.eq("**Other** Invalid tool call", child.lua_get("formatters.tool_message(nil, { opts = {} })"))
+  h.eq("**Other** Invalid tool call", child.lua_get("formatters.tool_message({ adapter = { opts = {} } })"))
 end
 
 return T
