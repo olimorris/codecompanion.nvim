@@ -262,7 +262,7 @@ function ToolCalls.open(chat, opts)
     lines, title = format_http_call(http_tool_call)
   end
 
-  ui_utils.create_hover(lines, { title = title, focus_id = "codecompanion_tool_call" })
+  ui_utils.create_hover({ lines = lines, title = title, focus_id = "codecompanion_tool_call" })
 end
 
 ---Open a float with the details of the tool call on the cursor's line

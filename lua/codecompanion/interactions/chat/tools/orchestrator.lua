@@ -332,6 +332,31 @@ function Orchestrator:_finalize_tools()
   return agent_loop.after_tools(self.tools)
 end
 
+---Keep the tool call so its details can be opened from the chat buffer
+---@return nil
+function Orchestrator:_store_tool_call()
+  local call_id = self.tool.function_call.id
+  -- A custom adapter may not give its tool calls an ID, and a nil key would end the tool run with an error
+  if call_id then
+    self.tools.chat.tool_calls.http[call_id] = { call = self.tool.function_call }
+  end
+end
+
+---Resolve the tool's `require_approval_before` option
+---@return boolean
+function Orchestrator:_requires_approval()
+  local require_approval_before = self.tool.opts.require_approval_before
+
+  if type(require_approval_before) == "function" then
+    require_approval_before = require_approval_before(self.tool, self.tools)
+  end
+  if require_approval_before and type(require_approval_before) ~= "boolean" then
+    require_approval_before = self.handlers.prompt_condition()
+  end
+
+  return require_approval_before and true or false
+end
+
 ---Setup the tool to be executed
 ---@param input? any
 ---@return nil
@@ -347,12 +372,7 @@ function Orchestrator:setup_next_tool(input)
   self.tool = self.queue:pop()
   self.tool_output = {}
 
-  local call_id = self.tool.function_call.id
-  -- A custom adapter may not give its tool calls an ID, and a nil key would end the tool run with an error
-  if call_id then
-    self.tools.chat.tool_calls.http[call_id] = { call = self.tool.function_call }
-  end
-
+  self:_store_tool_call()
   self:_setup_handlers()
   self.handlers.setup() -- Call this early as run_command needs to setup its cmds dynamically
 
@@ -371,16 +391,7 @@ function Orchestrator:setup_next_tool(input)
     return self:execute_tool({ cmd = cmd, input = input })
   end
 
-  local require_approval_before = self.tool.opts.require_approval_before
-
-  if require_approval_before and type(require_approval_before) == "function" then
-    require_approval_before = require_approval_before(self.tool, self.tools)
-  end
-  if require_approval_before and type(require_approval_before) ~= "boolean" then
-    require_approval_before = self.handlers.prompt_condition()
-  end
-
-  if not require_approval_before then
+  if not self:_requires_approval() then
     return self:execute_tool({ cmd = cmd, input = input })
   end
 

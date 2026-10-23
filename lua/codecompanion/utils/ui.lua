@@ -22,11 +22,10 @@ local M = {}
 ---@field winbar? string Winbar text to display at the top of the window
 
 ---Open a markdown float at the cursor, sized to its content and no wider than the current window
----@param lines string[]
----@param opts { title: string, focus_id: string, border?: string|string[], close_events?: string[] }
+---@param opts { lines: string[], title: string, focus_id: string, border?: string|string[], close_events?: string[] }
 ---@return number, number The buffer and window numbers
-function M.create_hover(lines, opts)
-  return vim.lsp.util.open_floating_preview(lines, "markdown", {
+function M.create_hover(opts)
+  return vim.lsp.util.open_floating_preview(opts.lines, "markdown", {
     -- Neovim drops the title from a float without a border
     border = opts.border or (vim.o.winborder == "" and "single" or nil),
     close_events = opts.close_events,

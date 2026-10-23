@@ -195,7 +195,8 @@ end
 ---@param opts { adapter: CodeCompanion.HTTPAdapter }
 ---@return nil
 function M.show_reply(reply, opts)
-  local _, winnr = ui_utils.create_hover(vim.split(reply, "\n", { plain = true }), {
+  local _, winnr = ui_utils.create_hover({
+    lines = vim.split(reply, "\n", { plain = true }),
     border = config.display.input.window.border,
     close_events = {},
     focus_id = "codecompanion_inline_reply",

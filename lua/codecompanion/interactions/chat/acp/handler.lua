@@ -315,6 +315,34 @@ function ACPHandler:flush_edits(id, tool_call)
   end
 end
 
+---Rewrite the line a tool call has already written to the chat buffer
+---@param opts { id: string, status: string, summary: string }
+---@return boolean updated
+function ACPHandler:_update_tool_call_line(opts)
+  local cached = self.ui_state[opts.id]
+  if not cached then
+    return false
+  end
+
+  local update_ok, _, new_icon_id = pcall(tool_calls.update, self.chat, {
+    icon_id = cached.icon_id,
+    line_number = cached.line_number,
+    status = opts.status,
+    summary = opts.summary,
+  })
+
+  if opts.status == "completed" then
+    self.ui_state[opts.id] = nil
+  elseif update_ok and new_icon_id then
+    cached.icon_id = new_icon_id
+  end
+
+  if not update_ok then
+    log:debug("[ACP::Handler] Failed to update tool call line for toolCallId %s", opts.id)
+  end
+  return update_ok
+end
+
 ---Output tool call to the chat
 ---@param tool_call table
 ---@return nil
@@ -347,30 +375,8 @@ function ACPHandler:process_tool_call(tool_call)
     content = "[Error formatting tool output]"
   end
 
-  -- If the tool call has already written output to the chat buffer, update the
-  -- existing line rather than adding a new one
-  local cached = self.ui_state[id]
-  if cached then
-    local update_ok, _, new_icon_id = pcall(tool_calls.update, self.chat, {
-      icon_id = cached.icon_id,
-      line_number = cached.line_number,
-      status = tool_call.status,
-      summary = content,
-    })
-
-    if update_ok then
-      if tool_call.status == "completed" then
-        self.ui_state[id] = nil
-      elseif new_icon_id then
-        cached.icon_id = new_icon_id
-      end
-      return
-    end
-
-    if tool_call.status == "completed" then
-      self.ui_state[id] = nil
-    end
-    log:debug("[ACP::Handler] Failed to update tool call line for toolCallId %s", id)
+  if self:_update_tool_call_line({ id = id, status = tool_call.status, summary = content }) then
+    return
   end
 
   local line_number, icon_id = tool_calls.write(self.chat, {
