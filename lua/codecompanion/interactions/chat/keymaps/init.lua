@@ -341,31 +341,44 @@ M.close = {
     end
     local window_opts = chat.ui.window_opts or { default = true }
 
-    chat:close()
+    local chats = vim.tbl_filter(function(c)
+      return c.chat.bufnr ~= chat.bufnr
+    end, require("codecompanion").buf_get_chat())
 
-    local chats = require("codecompanion").buf_get_chat()
-    if vim.tbl_count(chats) == 0 then
-      return
-    end
-
-    local target = chats[1]
-
-    -- In pertab mode, prefer a chat that isn't already visible in another tab
-    -- so closing one chat doesn't steal a sibling chat from another tab.
-    if config.display.chat.window.pertab then
-      for _, c in ipairs(chats) do
-        if bufnr_available_to_current_tab(c.chat.bufnr) then
-          target = c
-          break
+    local target
+    if vim.tbl_count(chats) > 0 then
+      target = chats[1]
+      -- In pertab mode, prefer a chat that isn't already visible in another tab
+      -- so closing one chat doesn't steal a sibling chat from another tab.
+      if config.display.chat.window.pertab then
+        for _, c in ipairs(chats) do
+          if bufnr_available_to_current_tab(c.chat.bufnr) then
+            target = c
+            break
+          end
         end
       end
     end
 
-    require("codecompanion.interactions.chat").open({
-      ui = target.chat.ui,
-      winnr = winnr,
-      window_opts = window_opts,
-    })
+    -- Show the next chat first: deleting the only buffer in a window destroys it
+    if target and winnr and api.nvim_win_is_valid(winnr) then
+      require("codecompanion.interactions.chat").open({
+        ui = target.chat.ui,
+        winnr = winnr,
+        window_opts = window_opts,
+      })
+      chat:close()
+      return
+    end
+
+    chat:close()
+
+    if target then
+      require("codecompanion.interactions.chat").open({
+        ui = target.chat.ui,
+        window_opts = window_opts,
+      })
+    end
   end,
 }
 
