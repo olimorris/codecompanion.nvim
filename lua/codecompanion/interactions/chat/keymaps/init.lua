@@ -341,8 +341,8 @@ M.close = {
     end
     local window_opts = chat.ui.window_opts or { default = true }
 
-    local chats = vim.tbl_filter(function(c)
-      return c.chat.bufnr ~= chat.bufnr
+    local chats = vim.tbl_filter(function(chat_entry)
+      return chat_entry.chat.bufnr ~= chat.bufnr
     end, require("codecompanion").buf_get_chat())
 
     local target
