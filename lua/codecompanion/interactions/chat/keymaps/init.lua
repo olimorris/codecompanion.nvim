@@ -360,13 +360,17 @@ M.close = {
       end
     end
 
-    -- Show the next chat first: deleting the only buffer in a window destroys it
-    if target and winnr then
+    local function open_target(winnr)
       require("codecompanion.interactions.chat").open({
         ui = target.chat.ui,
         winnr = winnr,
         window_opts = window_opts,
       })
+    end
+
+    -- Show the next chat first: deleting the only buffer in a window destroys it
+    if target and winnr then
+      open_target(winnr)
       chat:close()
       return
     end
@@ -374,10 +378,7 @@ M.close = {
     chat:close()
 
     if target then
-      require("codecompanion.interactions.chat").open({
-        ui = target.chat.ui,
-        window_opts = window_opts,
-      })
+      open_target()
     end
   end,
 }
