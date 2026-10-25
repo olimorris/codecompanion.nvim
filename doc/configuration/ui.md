@@ -1,5 +1,5 @@
 ---
-description: "Change the chat buffer's window layout, icons, folding, scrolling, headers and reasoning output."
+description: "Change the chat buffer's window layout, icons, folding, scrolling, headers, reasoning output and streaming."
 ---
 
 # Configuring the Chat Buffer UI
@@ -169,6 +169,22 @@ require("codecompanion").setup({
 ```
 
 By default, the LLM's header names the chat's adapter, such as `CodeCompanion (DeepSeek)`. `llm` can be a string, or a function that receives the adapter. `user` can only be a string.
+
+## Streaming
+
+A streamed response arrives in many small chunks, and Neovim redraws the chat buffer after every write. To save redrawing, CodeCompanion collects the chunks and writes them at most once every 25 milliseconds. To change this:
+
+```lua
+require("codecompanion").setup({
+  display = {
+    chat = {
+      stream_interval = 50, -- milliseconds. 0 writes every chunk as it arrives
+    },
+  },
+})
+```
+
+A longer interval makes the response arrive in larger pieces and uses less CPU, which is most noticeable in long chats.
 
 ## Others
 
