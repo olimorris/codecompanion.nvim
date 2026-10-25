@@ -197,6 +197,45 @@ T["Chat"]["reuses window when closing to the next chat"] = function()
   h.eq("codecompanion", result.filetype)
 end
 
+T["Chat"]["reuses the window when the closing chat is alone in its tab"] = function()
+  local result = child.lua([[
+    vim.cmd("CodeCompanionChat")
+    local chat1 = require("codecompanion").last_chat()
+    vim.cmd("CodeCompanionChat")
+    local chat2 = require("codecompanion").last_chat()
+    vim.cmd("only")
+
+    -- Move a file window to its own tab, leaving the chat alone in this one
+    local path = vim.fn.tempname()
+    vim.cmd("vsplit " .. vim.fn.fnameescape(path))
+    local file_bufnr = vim.api.nvim_get_current_buf()
+    vim.cmd("wincmd T")
+    vim.cmd("tabprevious")
+
+    local winnr_before = vim.api.nvim_get_current_win()
+    local tab_count_before = #vim.api.nvim_list_tabpages()
+
+    require("codecompanion.interactions.chat.keymaps").close.callback(chat2)
+
+    local result = {
+      same_win = vim.api.nvim_get_current_win() == winnr_before,
+      same_tab_count = #vim.api.nvim_list_tabpages() == tab_count_before,
+      one_window = #vim.api.nvim_tabpage_list_wins(0) == 1,
+      shows_chat1 = vim.api.nvim_get_current_buf() == chat1.bufnr,
+      filetype = vim.bo[vim.api.nvim_get_current_buf()].filetype,
+    }
+    vim.cmd("silent! tabonly")
+    pcall(vim.api.nvim_buf_delete, file_bufnr, { force = true })
+    return result
+  ]])
+
+  h.eq(true, result.same_win)
+  h.eq(true, result.same_tab_count)
+  h.eq(true, result.one_window)
+  h.eq(true, result.shows_chat1)
+  h.eq("codecompanion", result.filetype)
+end
+
 T["Chat"]["applies window opts when shown in an existing window"] = function()
   local result = child.lua([[
     local chat = require("codecompanion").chat({ hidden = true })
