@@ -243,14 +243,32 @@ end
 ---@return { destination: string, markdown: string }[]|nil
 function M.context_paths(chat, opts)
   local ts_query = context_path_query()
-  local parser = chat.parsers.markdown_inline or vim.treesitter.get_parser(chat.bufnr, "markdown_inline")
+  local start_row = opts.start_range - 1
 
-  local tree = parser:parse({ opts.start_range, -1 })[1]
-  local root = tree:root()
+  local markdown = chat.parsers.markdown
+  -- Injections are only parsed inside the range, and an end row of -1 matches none of them
+  markdown:parse({ start_row, vim.api.nvim_buf_line_count(chat.bufnr) })
+  local inline = markdown:children().markdown_inline
+  if not inline then
+    return nil
+  end
+
+  local links = {}
+  for _, tree in pairs(inline:trees()) do
+    for _, node in ts_query:iter_captures(tree:root(), chat.bufnr, start_row, -1) do
+      table.insert(links, node)
+    end
+  end
+  -- Each paragraph is its own injected tree, so restore the order the links appear in the buffer
+  table.sort(links, function(a, b)
+    local _, _, a_byte = a:start()
+    local _, _, b_byte = b:start()
+    return a_byte < b_byte
+  end)
 
   local context_paths = {}
 
-  for _, node in ts_query:iter_captures(root, chat.bufnr, opts.start_range - 1, -1) do
+  for _, node in ipairs(links) do
     local destination, title
     for child in node:iter_children() do
       if child:type() == "link_destination" then

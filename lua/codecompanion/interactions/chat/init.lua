@@ -23,7 +23,7 @@
 ---@field intro_message? string The welcome message that is displayed in the chat buffer
 ---@field messages? CodeCompanion.Chat.Messages The messages in the chat buffer
 ---@field opts CodeCompanion.ChatArgs Store all arguments in this table
----@field parsers { markdown: vim.treesitter.LanguageTree, markdown_inline?: vim.treesitter.LanguageTree, yaml?: vim.treesitter.LanguageTree } Tree-sitter parsers attached to the chat buffer
+---@field parsers { markdown: vim.treesitter.LanguageTree, yaml?: vim.treesitter.LanguageTree } Tree-sitter parsers attached to the chat buffer
 ---@field session_id string An identifier for the life of the chat buffer (designed for external use)
 ---@field settings? table The settings that are used in the adapter of the chat buffer
 ---@field subscribers table The subscribers to the chat buffer
@@ -133,6 +133,8 @@ local show_settings = config.display.chat.show_settings
 local function create_chat_buf()
   local bufnr = api.nvim_create_buf(config.display.chat.window.buflisted, true)
   api.nvim_buf_set_name(bufnr, fmt("[CodeCompanion] %d", bufnr))
+  -- Every streamed chunk is its own undo entry, so the default 1000 levels mostly holds the LLM's output
+  vim.bo[bufnr].undolevels = 100
 
   vim.schedule(function()
     pcall(vim.treesitter.start, bufnr)
@@ -381,19 +383,6 @@ Chat.MESSAGE_TYPES = {
 local function init_parsers(chat)
   chat.parsers = {}
 
-  local ok, markdown = pcall(vim.treesitter.get_parser, chat.bufnr, "markdown")
-  if not ok or not markdown then
-    log:error("[chat::init::new] Could not find the Markdown Tree-sitter parser")
-    return false
-  end
-  chat.parsers.markdown = markdown
-
-  -- markdown_inline drives image detection; cache once to avoid re-resolving per submit
-  local inline_ok, markdown_inline = pcall(vim.treesitter.get_parser, chat.bufnr, "markdown_inline")
-  if inline_ok and markdown_inline then
-    chat.parsers.markdown_inline = markdown_inline
-  end
-
   if show_settings then
     local yaml_ok, yaml = pcall(vim.treesitter.get_parser, chat.bufnr, "yaml", { ignore_injections = false })
     if not yaml_ok or not yaml then
@@ -402,6 +391,14 @@ local function init_parsers(chat)
     end
     chat.parsers.yaml = yaml
   end
+
+  -- Last, so Neovim's cached parser for the buffer is the one the highlighter reuses rather than duplicates
+  local ok, markdown = pcall(vim.treesitter.get_parser, chat.bufnr, "markdown")
+  if not ok or not markdown then
+    log:error("[chat::init::new] Could not find the Markdown Tree-sitter parser")
+    return false
+  end
+  chat.parsers.markdown = markdown
 
   return true
 end
@@ -1523,6 +1520,7 @@ function Chat:done(args)
     return
   end
 
+  self.builder:flush()
   self:_clear_status()
 
   if args.status == "stopped" then

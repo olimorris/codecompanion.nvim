@@ -75,6 +75,7 @@ end
 ---@field chat CodeCompanion.Chat
 ---@field state CodeCompanion.Chat.UI.BuilderState
 ---@field _block_by_type table<string, string> Maps `MESSAGE_TYPES` to `BLOCK` values
+---@field _queue? { role?: string, type: string, chunks: string[] } Streamed chunks waiting to be written
 local Builder = {}
 
 ---@class CodeCompanion.Chat.UI.BuilderArgs
@@ -118,14 +119,76 @@ function Builder:_tool_folds_enabled(opts)
   return config.interactions.chat.tools.opts.folds.enabled and not opts.status
 end
 
----Add a streamed message to the chat buffer
+---Can this message be added to the queue rather than written immediately?
+---@param data { content?: string, role?: string }
+---@param opts { type?: string }
+---@return boolean
+function Builder:_can_queue(data, opts)
+  local types = self.chat.MESSAGE_TYPES
+  local is_streamed_text = opts.type == types.LLM_MESSAGE or opts.type == types.REASONING_MESSAGE
+  return config.display.chat.stream_interval > 0
+    and is_streamed_text
+    and vim.tbl_count(opts) == 1
+    and type(data.content) == "string"
+    and data.content ~= ""
+end
+
+---Hold a streamed chunk until the next flush, writing out chunks of a different role or type first
+---@param data { content: string, role?: string }
+---@param opts { type: string }
+---@return nil
+function Builder:_queue_message(data, opts)
+  if self._queue and (self._queue.role ~= data.role or self._queue.type ~= opts.type) then
+    self:flush()
+  end
+
+  if not self._queue then
+    self._queue = { role = data.role, type = opts.type, chunks = {} }
+    local bufnr = self.chat.bufnr
+    vim.defer_fn(function()
+      if api.nvim_buf_is_valid(bufnr) then
+        self:flush()
+      end
+    end, config.display.chat.stream_interval)
+  end
+
+  table.insert(self._queue.chunks, data.content)
+end
+
+---Write any queued streamed chunks to the buffer
+---@return nil
+function Builder:flush()
+  local queue = self._queue
+  if not queue then
+    return
+  end
+
+  self._queue = nil
+  self:_render({ role = queue.role, content = table.concat(queue.chunks) }, { type = queue.type })
+end
+
+---Add a message to the chat buffer, queueing streamed text so it's written once per frame
 ---@param data { content?: string, role?: string }
 ---@param opts? { type?: string, force_role?: boolean, insert_at?: number, status?: string, _icon_info?: table, virt_text_pos?: string }
----@return number|nil insert_line The line after the write (1-based), or nil if nothing was written
+---@return number|nil insert_line The line after the write (1-based), or nil if nothing was written or it was queued
 ---@return number|nil icon_id
 function Builder:add_message(data, opts)
   opts = opts or {}
 
+  if self:_can_queue(data, opts) then
+    return self:_queue_message(data, opts)
+  end
+
+  self:flush()
+  return self:_render(data, opts)
+end
+
+---Write a message to the chat buffer
+---@param data { content?: string, role?: string }
+---@param opts { type?: string, force_role?: boolean, insert_at?: number, status?: string, _icon_info?: table, virt_text_pos?: string }
+---@return number|nil insert_line The line after the write (1-based), or nil if nothing was written
+---@return number|nil icon_id
+function Builder:_render(data, opts)
   local role_changed = self:_needs_header({ role = data.role, force_role = opts.force_role })
 
   local content = data.content
@@ -258,7 +321,7 @@ function Builder:_write(opts)
     -- The write's first blank merges into the existing last line, so only the
     -- second blank costs a row before the header
     self.state.current_header_line = insert_line + 2
-    self.chat.ui:render_headers()
+    self.chat.ui:render_header(self.state.current_header_line)
   end
 
   if opts.fold_info then
@@ -308,6 +371,7 @@ end
 function Builder:update_line(line_number, content, opts)
   opts = opts or {}
   content = collapse_to_single_line(content)
+  self:flush()
 
   if line_number < 1 then
     return false
