@@ -139,7 +139,7 @@ local function parse_title(title)
   return title ~= "" and title or "Tool call"
 end
 
----Find what a tool call acts on: its diff path, then its first location, then its parsed title
+---Find what a tool call acts on e.g. the diff path, first location, parsed title
 ---@param tool_call table
 ---@return string
 local function find_target(tool_call)
@@ -156,7 +156,7 @@ local function find_target(tool_call)
   return parse_title(tool_call.title)
 end
 
----Build a verbose summary of an edit's path and line count, which replaces the target
+---Build a verbose summary of an edit's path and line count, replacing the target
 ---@param tool_call table
 ---@return string|nil
 local function diff_summary(tool_call)

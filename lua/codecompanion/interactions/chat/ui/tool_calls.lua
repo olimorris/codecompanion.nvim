@@ -25,7 +25,7 @@ local function format_kind(kind)
   return words:sub(1, 1):upper() .. words:sub(2)
 end
 
----Build the one-line summary of a tool call, shared so HTTP and ACP tool calls look the same
+---Build a one-line summary of a tool call. Unifies http and acp tool calls
 ---@param opts { kind: string, detail?: string }
 ---@return string
 function ToolCalls.format_summary(opts)
@@ -35,21 +35,23 @@ function ToolCalls.format_summary(opts)
   if vim.fn.strchars(detail) > CONSTANTS.MAX_DETAIL_LENGTH then
     detail = vim.fn.strcharpart(detail, 0, CONSTANTS.MAX_DETAIL_LENGTH - 3) .. "..."
   end
+
   -- Escaping after truncating, so the cut can't separate a backslash from the character it escapes
   detail = markdown.escape_formatting(detail)
 
   if detail == "" then
     return fmt("**%s**", format_kind(opts.kind))
   end
+
   return fmt("**%s** %s", format_kind(opts.kind), detail)
 end
 
----Mark a tool call's summary line so its details can be opened from the cursor
+---Mark a tool call line line so its details can be opened from the cursor
 ---@param chat CodeCompanion.Chat
 ---@param opts { line_number: number, call_id: string }
 ---@return nil
 function ToolCalls.mark(chat, opts)
-  -- Without left gravity, ACP rewriting the line with a new status pushes the mark onto the next line
+  -- Each status change replaces the line, which would otherwise push the mark down and leave `K` on the line below
   local extmark_id = api.nvim_buf_set_extmark(chat.bufnr, CONSTANTS.NS_TOOL_CALLS, opts.line_number - 1, 0, {
     right_gravity = false,
   })
@@ -69,9 +71,11 @@ function ToolCalls.write(chat, opts)
     virt_text_pos = "inline",
     type = chat.MESSAGE_TYPES.TOOL_MESSAGE,
   })
+
   if line_number then
     ToolCalls.mark(chat, { line_number = line_number, call_id = opts.call_id })
   end
+
   return line_number, icon_id
 end
 

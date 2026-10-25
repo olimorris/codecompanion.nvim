@@ -315,7 +315,7 @@ function ACPHandler:flush_edits(id, tool_call)
   end
 end
 
----Rewrite the line a tool call has already written to the chat buffer
+---Update an existing tool call line such as when the status changes
 ---@param opts { id: string, status: string, summary: string }
 ---@return boolean updated
 function ACPHandler:_update_tool_call_line(opts)
