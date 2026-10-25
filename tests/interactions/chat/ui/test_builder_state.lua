@@ -115,6 +115,16 @@ end
 
 T["Builder"] = new_set()
 
+T["Builder"]["streamed text queued BEFORE a clear is not written after it"] = function()
+  child.lua([[
+    _G.chat:add_buf_message({ role = "llm", content = "Stale response" }, { type = _G.MT.LLM_MESSAGE })
+    _G.chat:clear()
+    vim.wait(100, function() return false end)
+  ]])
+  local lines = child.lua_get([[vim.api.nvim_buf_get_lines(_G.chat.bufnr, 0, -1, true)]])
+  h.eq(vim.tbl_contains(lines, "Stale response"), false)
+end
+
 T["Builder"]["a status write is collapsed onto a single line"] = function()
   child.lua([[
     _G.chat:add_buf_message(

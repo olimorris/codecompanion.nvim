@@ -237,25 +237,23 @@ local function unwrap_destination(destination)
   return destination
 end
 
----Parse a section of the buffer for Markdown links to files and URLs
+---Get the markdown links from a row to the end of the chat buffer, in the order they appear
 ---@param chat CodeCompanion.Chat
----@param opts { start_range: number }
----@return { destination: string, markdown: string }[]|nil
-function M.context_paths(chat, opts)
-  local ts_query = context_path_query()
-  local start_row = opts.start_range - 1
-
+---@param opts { start_row: number }
+---@return TSNode[]
+local function get_links(chat, opts)
   local markdown = chat.parsers.markdown
   -- Injections are only parsed inside the range, and an end row of -1 matches none of them
-  markdown:parse({ start_row, vim.api.nvim_buf_line_count(chat.bufnr) })
+  markdown:parse({ opts.start_row, vim.api.nvim_buf_line_count(chat.bufnr) })
   local inline = markdown:children().markdown_inline
   if not inline then
-    return nil
+    return {}
   end
 
+  local ts_query = context_path_query()
   local links = {}
   for _, tree in pairs(inline:trees()) do
-    for _, node in ts_query:iter_captures(tree:root(), chat.bufnr, start_row, -1) do
+    for _, node in ts_query:iter_captures(tree:root(), chat.bufnr, opts.start_row, -1) do
       table.insert(links, node)
     end
   end
@@ -266,9 +264,17 @@ function M.context_paths(chat, opts)
     return a_byte < b_byte
   end)
 
+  return links
+end
+
+---Parse a section of the buffer for Markdown links to files and URLs
+---@param chat CodeCompanion.Chat
+---@param opts { start_range: number }
+---@return { destination: string, markdown: string }[]|nil
+function M.context_paths(chat, opts)
   local context_paths = {}
 
-  for _, node in ipairs(links) do
+  for _, node in ipairs(get_links(chat, { start_row = opts.start_range - 1 })) do
     local destination, title
     for child in node:iter_children() do
       if child:type() == "link_destination" then

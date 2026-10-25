@@ -120,39 +120,40 @@ function Builder:_tool_folds_enabled(opts)
 end
 
 ---Can this message be added to the queue rather than written immediately?
----@param data { content?: string, role?: string }
----@param opts { type?: string }
+---@param opts { message: { content?: string, role?: string }, render_opts: { type?: string } }
 ---@return boolean
-function Builder:_can_queue(data, opts)
+function Builder:_can_queue(opts)
   local types = self.chat.MESSAGE_TYPES
-  local is_streamed_text = opts.type == types.LLM_MESSAGE or opts.type == types.REASONING_MESSAGE
+  local message_type = opts.render_opts.type
+  local is_streamed_text = message_type == types.LLM_MESSAGE or message_type == types.REASONING_MESSAGE
   return config.display.chat.stream_interval > 0
     and is_streamed_text
-    and vim.tbl_count(opts) == 1
-    and type(data.content) == "string"
-    and data.content ~= ""
+    and vim.tbl_count(opts.render_opts) == 1
+    and type(opts.message.content) == "string"
+    and opts.message.content ~= ""
 end
 
 ---Hold a streamed chunk until the next flush, writing out chunks of a different role or type first
----@param data { content: string, role?: string }
----@param opts { type: string }
+---@param opts { content: string, role?: string, type: string }
 ---@return nil
-function Builder:_queue_message(data, opts)
-  if self._queue and (self._queue.role ~= data.role or self._queue.type ~= opts.type) then
+function Builder:_queue_message(opts)
+  if self._queue and (self._queue.role ~= opts.role or self._queue.type ~= opts.type) then
     self:flush()
   end
 
   if not self._queue then
-    self._queue = { role = data.role, type = opts.type, chunks = {} }
+    local queue = { role = opts.role, type = opts.type, chunks = {} }
+    self._queue = queue
     local bufnr = self.chat.bufnr
     vim.defer_fn(function()
-      if api.nvim_buf_is_valid(bufnr) then
+      -- An earlier flush or a cleared chat has already dealt with this queue, so leave its successor to its own timer
+      if self._queue == queue and api.nvim_buf_is_valid(bufnr) then
         self:flush()
       end
     end, config.display.chat.stream_interval)
   end
 
-  table.insert(self._queue.chunks, data.content)
+  table.insert(self._queue.chunks, opts.content)
 end
 
 ---Write any queued streamed chunks to the buffer
@@ -167,20 +168,26 @@ function Builder:flush()
   self:_render({ role = queue.role, content = table.concat(queue.chunks) }, { type = queue.type })
 end
 
----Add a message to the chat buffer, queueing streamed text so it's written once per frame
----@param data { content?: string, role?: string }
+---Drop any queued streamed chunks without writing them
+---@return nil
+function Builder:discard()
+  self._queue = nil
+end
+
+---Add a message to the chat buffer, queueing streamed text so it's written once per interval
+---@param message { content?: string, role?: string }
 ---@param opts? { type?: string, force_role?: boolean, insert_at?: number, status?: string, _icon_info?: table, virt_text_pos?: string }
 ---@return number|nil insert_line The line after the write (1-based), or nil if nothing was written or it was queued
 ---@return number|nil icon_id
-function Builder:add_message(data, opts)
+function Builder:add_message(message, opts)
   opts = opts or {}
 
-  if self:_can_queue(data, opts) then
-    return self:_queue_message(data, opts)
+  if self:_can_queue({ message = message, render_opts = opts }) then
+    return self:_queue_message({ content = message.content, role = message.role, type = opts.type })
   end
 
   self:flush()
-  return self:_render(data, opts)
+  return self:_render(message, opts)
 end
 
 ---Write a message to the chat buffer

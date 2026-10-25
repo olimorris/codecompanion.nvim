@@ -2016,6 +2016,7 @@ function Chat:clear()
 
   self.watchers:clear()
   self.tool_registry:clear()
+  self.builder:discard()
 
   log:trace("Clearing chat buffer")
   self.ui:render(self.buffer_context, self.messages, self.opts):set_intro_msg(self.intro_message)
