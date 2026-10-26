@@ -5,6 +5,7 @@ local config = require("codecompanion.config")
 local formatter = require("codecompanion.interactions.chat.acp.formatters")
 local log = require("codecompanion.utils.log")
 local markdown = require("codecompanion.utils.markdown")
+local tool_calls = require("codecompanion.interactions.chat.ui.tool_calls")
 local utils = require("codecompanion.utils")
 local watch = require("codecompanion.interactions.shared.watch")
 
@@ -314,6 +315,35 @@ function ACPHandler:flush_edits(id, tool_call)
   end
 end
 
+---Update an existing tool call line such as when the status changes
+---@param opts { id: string, status: string, summary: string }
+---@return boolean updated
+function ACPHandler:_update_tool_call_line(opts)
+  local cached = self.ui_state[opts.id]
+  if not cached then
+    return false
+  end
+
+  local ok, update = pcall(tool_calls.update, self.chat, {
+    icon_id = cached.icon_id,
+    line_number = cached.line_number,
+    status = opts.status,
+    summary = opts.summary,
+  })
+  local is_updated = ok and update.is_updated
+
+  if opts.status == "completed" then
+    self.ui_state[opts.id] = nil
+  elseif is_updated and update.icon_id then
+    cached.icon_id = update.icon_id
+  end
+
+  if not is_updated then
+    log:debug("[ACP::Handler] Failed to update tool call line for toolCallId %s", opts.id)
+  end
+  return is_updated
+end
+
 ---Output tool call to the chat
 ---@param tool_call table
 ---@return nil
@@ -324,6 +354,7 @@ function ACPHandler:process_tool_call(tool_call)
   tool_call = merged
 
   self:track_edits(id, tool_call)
+  self.chat.tool_calls.acp[id] = merged
 
   -- Cache or cleanup
   if tool_call.status == "completed" then
@@ -340,51 +371,18 @@ function ACPHandler:process_tool_call(tool_call)
     return
   end
 
-  local ok, content = pcall(formatter.tool_message, tool_call, self.chat.adapter)
-  if not ok then
-    content = "[Error formatting tool output]"
+  local ok, message = pcall(formatter.tool_message, { tool_call = tool_call, adapter = self.chat.adapter })
+  local content = ok and message.summary or "[Error formatting tool output]"
+
+  if self:_update_tool_call_line({ id = id, status = tool_call.status, summary = content }) then
+    return
   end
 
-  -- If the tool call has already written output to the chat buffer, update the
-  -- existing line rather than adding a new one
-  local cached = self.ui_state[id]
-  if cached then
-    local update_ok, _, new_icon_id = pcall(self.chat.update_buf_line, self.chat, {
-      line_number = cached.line_number,
-      content = content,
-      status = tool_call.status,
-      icon_id = cached.icon_id,
-      priority = 120,
-      virt_text_pos = "inline",
-    })
-
-    if update_ok then
-      if tool_call.status == "completed" then
-        self.ui_state[id] = nil
-      elseif new_icon_id then
-        cached.icon_id = new_icon_id
-      end
-      return
-    end
-
-    if tool_call.status == "completed" then
-      self.ui_state[id] = nil
-    end
-    log:debug("[ACP::Handler] Failed to update tool call line for toolCallId %s", id)
-  end
-
-  local line_number, icon_id = self.chat:add_buf_message({
-    role = config.constants.LLM_ROLE,
-    content = content,
-  }, {
+  self.ui_state[id] = tool_calls.write(self.chat, {
+    call_id = id,
     status = tool_call.status or "in_progress",
-    virt_text_pos = "inline",
-    tools = { call_id = id },
-    kind = tool_call.kind,
-    type = self.chat.MESSAGE_TYPES.TOOL_MESSAGE,
+    summary = content,
   })
-
-  self.ui_state[id] = { line_number = line_number, icon_id = icon_id }
 end
 
 ---Queue a permission request and process when ready
@@ -416,6 +414,11 @@ function ACPHandler:_process_next_permission()
     if cached then
       request.tool_call = merge_tool_call(cached, tool_call)
     end
+  end
+  -- The permission request can carry details the announcement lacked, such as the `rawInput` being approved
+  if type(tool_call) == "table" and tool_call.toolCallId then
+    local stored = self.chat.tool_calls.acp[tool_call.toolCallId]
+    self.chat.tool_calls.acp[tool_call.toolCallId] = merge_tool_call(stored, request.tool_call)
   end
 
   -- The original respond function is stored so that if the user cancels the request, we can respond as per the spec

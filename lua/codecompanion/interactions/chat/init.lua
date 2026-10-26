@@ -23,12 +23,14 @@
 ---@field intro_message? string The welcome message that is displayed in the chat buffer
 ---@field messages? CodeCompanion.Chat.Messages The messages in the chat buffer
 ---@field opts CodeCompanion.ChatArgs Store all arguments in this table
----@field parsers { markdown: vim.treesitter.LanguageTree, markdown_inline?: vim.treesitter.LanguageTree, yaml?: vim.treesitter.LanguageTree } Tree-sitter parsers attached to the chat buffer
+---@field parsers { markdown: vim.treesitter.LanguageTree, yaml?: vim.treesitter.LanguageTree } Tree-sitter parsers attached to the chat buffer
 ---@field session_id string An identifier for the life of the chat buffer (designed for external use)
 ---@field settings? table The settings that are used in the adapter of the chat buffer
 ---@field subscribers table The subscribers to the chat buffer
 ---@field title? string The title of the chat buffer
 ---@field tokens? number|table The tokens reported by the adapter
+---@field tool_calls { acp: table<string, table>, http: table<string, { call: table, output?: string }> } Tool calls by their ID, kept after they complete and when context management rewrites the messages
+---@field tool_call_marks table<number, string> Tool call IDs by the extmark on their summary line
 ---@field tools CodeCompanion.Tools The tools coordinator that executes available tools
 ---@field tool_orchestrator? CodeCompanion.Tools.Orchestrator Coordinates the tools that the LLM has asked to run
 ---@field tool_registry CodeCompanion.Chat.ToolRegistry Methods for handling interactions between the chat buffer and tools
@@ -99,6 +101,7 @@ local CONSTANTS = {
 
   BLANK_DESC = "[No messages]",
   INPUT_KEYMAPS = { "scroll_chat_down", "scroll_chat_up", "scroll_chat_top_or_bottom" },
+  CHAT_KEYMAPS = { "tool_call_details" },
   INCOMPLETE_TOOL_CALL = "This tool call did not complete and produced no result",
 
   SYSTEM_PROMPT = [[You are an AI programming assistant named "CodeCompanion", working within the Neovim text editor.
@@ -136,6 +139,8 @@ local show_settings = config.display.chat.show_settings
 local function create_chat_buf()
   local bufnr = api.nvim_create_buf(config.display.chat.window.buflisted, true)
   api.nvim_buf_set_name(bufnr, fmt("[CodeCompanion] %d", bufnr))
+  -- Every streamed chunk is its own undo entry, so the default 1000 levels mostly holds the LLM's output
+  vim.bo[bufnr].undolevels = 100
 
   vim.schedule(function()
     pcall(vim.treesitter.start, bufnr)
@@ -386,19 +391,6 @@ Chat.MESSAGE_TYPES = {
 local function init_parsers(chat)
   chat.parsers = {}
 
-  local ok, markdown = pcall(vim.treesitter.get_parser, chat.bufnr, "markdown")
-  if not ok or not markdown then
-    log:error("[chat::init::new] Could not find the Markdown Tree-sitter parser")
-    return false
-  end
-  chat.parsers.markdown = markdown
-
-  -- markdown_inline drives image detection; cache once to avoid re-resolving per submit
-  local inline_ok, markdown_inline = pcall(vim.treesitter.get_parser, chat.bufnr, "markdown_inline")
-  if inline_ok and markdown_inline then
-    chat.parsers.markdown_inline = markdown_inline
-  end
-
   if show_settings then
     local yaml_ok, yaml = pcall(vim.treesitter.get_parser, chat.bufnr, "yaml", { ignore_injections = false })
     if not yaml_ok or not yaml then
@@ -407,6 +399,14 @@ local function init_parsers(chat)
     end
     chat.parsers.yaml = yaml
   end
+
+  -- Last, so Neovim's cached parser for the buffer is the one the highlighter reuses rather than duplicates
+  local ok, markdown = pcall(vim.treesitter.get_parser, chat.bufnr, "markdown")
+  if not ok or not markdown then
+    log:error("[chat::init::new] Could not find the Markdown Tree-sitter parser")
+    return false
+  end
+  chat.parsers.markdown = markdown
 
   return true
 end
@@ -504,7 +504,7 @@ local function init_keymaps(chat)
         data = chat,
         keymaps = filtered_keymaps,
       })
-      :set({ exclude_keymaps = bufnr == chat.bufnr and CONSTANTS.INPUT_KEYMAPS or nil })
+      :set({ exclude_keymaps = bufnr == chat.bufnr and CONSTANTS.INPUT_KEYMAPS or CONSTANTS.CHAT_KEYMAPS })
 
     if vim.tbl_count(slash_command_keymaps) > 0 then
       keymaps
@@ -627,6 +627,8 @@ function Chat.new(args)
     session_id = fmt("codecompanion-%d-%d", os.time(), id),
     status = "",
     title = args.title,
+    tool_call_marks = {},
+    tool_calls = { acp = {}, http = {} },
     _last_role = args.last_role or config.constants.USER_ROLE,
     _status = {},
   }, { __index = Chat })
@@ -1626,6 +1628,7 @@ function Chat:done(args)
     return
   end
 
+  self.builder:flush()
   self:_clear_status()
 
   if args.status == "stopped" then
@@ -2009,18 +2012,23 @@ function Chat:update_buf_line(args)
   return self.builder:update_line(args.line_number, args.content, args)
 end
 
----Add the output from a tool to the message history and a message to the UI
+---Add the output from a tool to the message history
 ---@param tool table
----@param opts { content: string, display?: string|false }
+---@param opts { content: string }
 ---@return nil
 function Chat:add_tool_output(tool, opts)
   local tool_call = tool.function_call
   log:debug("Tool output: %s", tool_call)
 
   -- Allow users to modify the tool output before it's added to the message history
-  local tool_output = { tool = tool.name, content = opts.content, display = opts.display }
+  local tool_output = { tool = tool.name, content = opts.content }
   self:dispatch("on_tool_output", tool_output)
-  local content, display = tool_output.content, tool_output.display
+  local content = tool_output.content
+
+  local http_tool_call = self.tool_calls.http[tool_call.id]
+  if http_tool_call then
+    http_tool_call.output = http_tool_call.output and (http_tool_call.output .. "\n\n" .. content) or content
+  end
 
   local output = adapters.call_handler(self.adapter, "format_response", { tool_call = tool_call, output = content })
   if not output then
@@ -2034,7 +2042,7 @@ function Chat:add_tool_output(tool, opts)
   })
 
   -- Ensure that tool output is merged if it has the same tool call ID
-  local existing = find_tool_call({ messages = self.messages, id = tool_call.id })
+  local existing = find_tool_call({ messages = self.messages, id = adapter_utils.pairing_id(tool_call) })
   if existing then
     if existing.content ~= "" then
       existing.content = existing.content .. "\n\n" .. output.content
@@ -2051,15 +2059,6 @@ function Chat:add_tool_output(tool, opts)
   output._meta = vim.tbl_extend("force", output._meta or {}, {
     estimated_tokens = tokens.calculate(output.content),
   })
-
-  if display ~= false and display ~= "" then
-    self:add_buf_message({
-      role = config.constants.LLM_ROLE,
-      content = (display or content),
-    }, {
-      type = self.MESSAGE_TYPES.TOOL_MESSAGE,
-    })
-  end
 
   if not self:has_orphaned_tool_calls() then
     self:checkpoint()
@@ -2142,12 +2141,15 @@ function Chat:clear()
   self.header_line = 1
   self.messages = {}
   self.context_items = {}
+  self.tool_call_marks = {}
+  self.tool_calls = { acp = {}, http = {} }
 
   self.watchers:clear()
   self.tool_registry:clear()
   if self.ui.input then
     self.ui.input:clear()
   end
+  self.builder:discard()
 
   log:trace("Clearing chat buffer")
   self.ui:render(self.buffer_context, self.messages, self.opts):set_intro_msg(self.intro_message)

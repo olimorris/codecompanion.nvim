@@ -250,6 +250,7 @@ end
 ---@class CodeCompanion.Tool.GetDiagnostics: CodeCompanion.Tools.Tool
 return {
   name = "get_diagnostics",
+  kind = "read",
   cmds = {
     ---Execute the diagnostics commands
     ---@param self CodeCompanion.Tool.GetDiagnostics
@@ -315,7 +316,7 @@ return {
     success = function(self, stdout, meta)
       local chat = meta.tools.chat
       local llm_output = vim.iter(stdout):flatten():join("\n")
-      chat:add_tool_output(self, { content = llm_output, display = false })
+      chat:add_tool_output(self, { content = llm_output })
     end,
 
     ---@param self CodeCompanion.Tool.GetDiagnostics

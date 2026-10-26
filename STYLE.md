@@ -165,6 +165,30 @@ local function get_bufnr(chat)
 
 Don't annotate params with inline explanations - if a param needs explaining, rename it.
 
+### Return a table, not multiple values
+
+Lua adjusts extra return values without warning: `local x = f()` keeps only the first, and `return f()` passes every one of them up to the caller. A table names each value at the call site, gains a field in a single edit, and can be passed on whole.
+
+Name the table for the whole result and its fields for the parts, so the call site reads `found.target`, never `target.target`.
+
+The exception is the error pair: `return nil, err` and `local ok, result = pcall(...)` stay as they are.
+
+```lua
+-- ❌ The caller has to know the order, and a third value means editing every caller
+---@return string target, string full_target
+local function find_target(tool_call)
+  return target, full_target
+end
+
+-- ✅
+---@return { target: string, full_target: string }
+local function find_target(tool_call)
+  return { target = target, full_target = full_target }
+end
+
+local found = find_target(tool_call)
+```
+
 ## 5. Tests
 
 Tests use [Mini.Test](https://github.com/nvim-mini/mini.nvim/blob/main/readmes/mini-test.md) with child Neovim processes. Read an existing test file before writing one - `tests/adapters/test_openai.lua` and `tests/interactions/chat/test_chat.lua` are good models. There are roughly 800 tests and they act as a second source of documentation.

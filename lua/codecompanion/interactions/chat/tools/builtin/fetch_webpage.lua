@@ -9,6 +9,7 @@ local fmt = string.format
 ---@class CodeCompanion.Tool.FetchWebpage: CodeCompanion.Tools.Tool
 return {
   name = "fetch_webpage",
+  kind = "fetch",
   cmds = {
     ---Execute the fetch_webpage tool
     ---@param self CodeCompanion.Tools
@@ -125,7 +126,7 @@ return {
 
       local llm_output = fmt([[<attachment url="%s">%s</attachment>]], args.url, content)
 
-      chat:add_tool_output(self, { content = llm_output, display = false })
+      chat:add_tool_output(self, { content = llm_output })
     end,
 
     ---@param self CodeCompanion.Tool.FetchWebpage

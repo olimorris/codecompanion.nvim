@@ -281,9 +281,6 @@ return {
         },
         opts = {
           system_prompt = "My tool system prompt",
-          folds = {
-            enabled = false,
-          },
         },
       },
       slash_commands = {

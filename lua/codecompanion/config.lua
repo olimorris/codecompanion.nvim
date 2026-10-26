@@ -331,18 +331,6 @@ The user is working on a %s machine. Please respond with system specific command
           approval_mode = "ask",
           max_output_tokens = 30000, -- Truncate a tool's output above this many tokens, or the model's limit if lower
           notify_on_approval = true, -- Notify the user when a tool requires approval?,
-
-          folds = {
-            enabled = true, -- Fold tool output in the buffer?
-            failure_words = { -- Words that indicate an error in the tool output. Used to apply failure highlighting
-              "cancelled",
-              "error",
-              "failed",
-              "incorrect",
-              "invalid",
-              "rejected",
-            },
-          },
           ---Tools and/or groups that are always loaded in a chat buffer
           ---@type string[]
           default_tools = {},
@@ -786,7 +774,7 @@ If you are providing code changes, use the edit_file tool (if available to you) 
           modes = { n = "gty" },
           index = 20,
           callback = "keymaps.yolo_mode",
-          description = "Choose how tool calls are approved",
+          description = "Choose the mode for approving tool calls",
         },
         goto_file_under_cursor = {
           modes = { n = "gR" },
@@ -800,22 +788,28 @@ If you are providing code changes, use the edit_file tool (if available to you) 
           callback = "keymaps.copilot_stats",
           description = "Show Copilot usage statistics",
         },
+        tool_call_details = {
+          modes = { n = "K" },
+          index = 23,
+          callback = "keymaps.tool_call_details",
+          description = "Show the tool call under the cursor",
+        },
         -- Note: These are only set in the input, when the chat has one
         scroll_chat_down = {
           modes = { n = "<M-j>", i = "<M-j>" },
-          index = 23,
+          index = 24,
           callback = "keymaps.scroll_chat_down",
           description = "Scroll the chat down",
         },
         scroll_chat_up = {
           modes = { n = "<M-k>", i = "<M-k>" },
-          index = 24,
+          index = 25,
           callback = "keymaps.scroll_chat_up",
           description = "Scroll the chat up",
         },
         scroll_chat_top_or_bottom = {
           modes = { n = "<M-g>", i = "<M-g>" },
-          index = 25,
+          index = 26,
           callback = "keymaps.scroll_chat_top_or_bottom",
           description = "Jump to the bottom of the chat, or the top if already there",
         },
@@ -1138,7 +1132,7 @@ The user is working on a %s machine. Please respond with system specific command
       },
       keymaps = {
         view_diff = {
-          description = "View the proposed diff",
+          description = "View the proposed diff or tool call",
           modes = { n = "gv" },
           opts = { nowait = true },
         },
@@ -1460,6 +1454,7 @@ The user is working on a %s machine. Please respond with system specific command
       show_settings = false, -- Show an LLM's settings at the top of the chat buffer?
       show_token_count = true, -- Show the token count for each response?
       start_in_insert_mode = false, -- Open the chat buffer in insert mode?
+      stream_interval = 25, -- How often to write a response to the chat buffer (milliseconds)
 
       ---The function to display the token count
       ---@param tokens number

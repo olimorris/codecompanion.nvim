@@ -33,6 +33,26 @@ local function set_llm_role(opts)
   return opts.role
 end
 
+---Apply the separator and highlight to a role header
+---@param ui CodeCompanion.Chat.UI
+---@param opts { row: number, content: string }
+---@return nil
+local function decorate_header(ui, opts)
+  local separator = config.display.chat.separator
+  local col = vim.fn.strwidth(opts.content) - vim.fn.strwidth(separator)
+
+  api.nvim_buf_set_extmark(ui.chat_bufnr, CONSTANTS.NS_HEADER, opts.row, col, {
+    virt_text_win_col = col,
+    virt_text = { { string.rep(separator, vim.go.columns), "CodeCompanionChatSeparator" } },
+    priority = 100,
+  })
+
+  api.nvim_buf_set_extmark(ui.chat_bufnr, CONSTANTS.NS_HEADER, opts.row, 0, {
+    end_col = col + 1,
+    hl_group = "CodeCompanionChatHeader",
+  })
+end
+
 ---@class CodeCompanion.Chat.UI
 ---@field adapter CodeCompanion.HTTPAdapter|CodeCompanion.ACPAdapter The adapter in use for the chat
 ---@field aug number The autocmd group ID
@@ -539,6 +559,8 @@ function UI:render(context, messages, opts)
 
   self:unlock_buf()
   api.nvim_buf_set_lines(self.chat_bufnr, 0, -1, false, lines)
+  -- A full rewrite leaves old marks bunched at the top, where `K` would open a stale tool call
+  require("codecompanion.interactions.chat.ui.tool_calls").clear(self.chat_bufnr)
   if self.input then
     self:lock_buf()
   end
@@ -603,28 +625,29 @@ function UI:render_headers()
     return
   end
 
-  local separator = config.display.chat.separator
+  api.nvim_buf_clear_namespace(self.chat_bufnr, CONSTANTS.NS_HEADER, 0, -1)
+
   local lines = api.nvim_buf_get_lines(self.chat_bufnr, 0, -1, false)
   local llm_role = set_llm_role({ role = self.roles.llm, adapter = self.adapter })
 
   for line, content in ipairs(lines) do
     if content:match("^## " .. vim.pesc(self.roles.user)) or content:match("^## " .. vim.pesc(llm_role)) then
-      local col = vim.fn.strwidth(content) - vim.fn.strwidth(separator)
-
-      api.nvim_buf_set_extmark(self.chat_bufnr, CONSTANTS.NS_HEADER, line - 1, col, {
-        virt_text_win_col = col,
-        virt_text = { { string.rep(separator, vim.go.columns), "CodeCompanionChatSeparator" } },
-        priority = 100,
-      })
-
-      -- Set the highlight group for the header
-      api.nvim_buf_set_extmark(self.chat_bufnr, CONSTANTS.NS_HEADER, line - 1, 0, {
-        end_col = col + 1,
-        hl_group = "CodeCompanionChatHeader",
-      })
+      decorate_header(self, { row = line - 1, content = content })
     end
   end
   log:trace("Rendering headers in the chat buffer")
+end
+
+---Render the separator for a header the builder has just written
+---@param row number 0-based
+---@return nil
+function UI:render_header(row)
+  if not config.display.chat.show_header_separator then
+    return
+  end
+
+  local content = api.nvim_buf_get_lines(self.chat_bufnr, row, row + 1, false)[1]
+  decorate_header(self, { row = row, content = content })
 end
 
 ---Set the welcome message in the chat buffer

@@ -179,6 +179,7 @@ Press `?` in a chat buffer to list every keymap. The defaults in normal mode are
 | `gty` | `yolo_mode` | Choose how tool calls are approved |
 | `gx` | `clear` | Clear all messages from the chat |
 | `gy` | `yank_code` | Yank code from the last codeblock |
+| `K` | `tool_call_details` | Show the tool call under the cursor |
 | `}` `{` | `next_chat` `previous_chat` | Move to the next or previous chat |
 | `]]` `[[` | `next_header` `previous_header` | Jump to the next or previous header |
 

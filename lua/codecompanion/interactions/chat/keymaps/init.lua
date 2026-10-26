@@ -341,31 +341,45 @@ M.close = {
     end
     local window_opts = chat.ui.window_opts or { default = true }
 
-    chat:close()
+    local chat_entries = vim.tbl_filter(function(chat_entry)
+      return chat_entry.chat.bufnr ~= chat.bufnr
+    end, require("codecompanion").buf_get_chat())
 
-    local chats = require("codecompanion").buf_get_chat()
-    if vim.tbl_count(chats) == 0 then
-      return
-    end
-
-    local target = chats[1]
-
-    -- In pertab mode, prefer a chat that isn't already visible in another tab
-    -- so closing one chat doesn't steal a sibling chat from another tab.
-    if config.display.chat.window.pertab then
-      for _, c in ipairs(chats) do
-        if bufnr_available_to_current_tab(c.chat.bufnr) then
-          target = c
-          break
+    local target
+    if vim.tbl_count(chat_entries) > 0 then
+      target = chat_entries[1]
+      -- In pertab mode, prefer a chat that isn't already visible in another tab
+      -- so closing one chat doesn't steal a sibling chat from another tab.
+      if config.display.chat.window.pertab then
+        for _, chat_entry in ipairs(chat_entries) do
+          if bufnr_available_to_current_tab(chat_entry.chat.bufnr) then
+            target = chat_entry
+            break
+          end
         end
       end
     end
 
-    require("codecompanion.interactions.chat").open({
-      ui = target.chat.ui,
-      winnr = winnr,
-      window_opts = window_opts,
-    })
+    local function open_target(winnr)
+      require("codecompanion.interactions.chat").open({
+        ui = target.chat.ui,
+        winnr = winnr,
+        window_opts = window_opts,
+      })
+    end
+
+    -- Show the next chat first: deleting the only buffer in a window destroys it
+    if target and winnr then
+      open_target(winnr)
+      chat:close()
+      return
+    end
+
+    chat:close()
+
+    if target then
+      open_target()
+    end
   end,
 }
 
@@ -801,6 +815,13 @@ M.copilot_stats = {
       return utils.notify("Stats are only available when using the Copilot adapter", vim.log.levels.WARN)
     end
     chat.adapter.show_copilot_stats()
+  end,
+}
+
+M.tool_call_details = {
+  desc = "Show the tool call under the cursor",
+  callback = function(chat)
+    require("codecompanion.interactions.chat.ui.tool_calls").show(chat)
   end,
 }
 
