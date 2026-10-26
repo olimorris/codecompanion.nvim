@@ -27,12 +27,13 @@ end
 
 ---Build a one-line summary of a tool call. Unifies http and acp tool calls
 ---@param opts { kind: string, detail?: string }
----@return string
+---@return { text: string, is_truncated: boolean }
 function ToolCalls.format_summary(opts)
   local detail = vim.trim(((opts.detail or ""):gsub("%s+", " ")))
   detail = detail:gsub(vim.pesc(vim.fn.getcwd()) .. "/", "")
 
-  if vim.fn.strchars(detail) > CONSTANTS.MAX_DETAIL_LENGTH then
+  local is_truncated = vim.fn.strchars(detail) > CONSTANTS.MAX_DETAIL_LENGTH
+  if is_truncated then
     detail = vim.fn.strcharpart(detail, 0, CONSTANTS.MAX_DETAIL_LENGTH - 3) .. "..."
   end
 
@@ -40,10 +41,21 @@ function ToolCalls.format_summary(opts)
   detail = markdown.escape_formatting(detail)
 
   if detail == "" then
-    return fmt("**%s**", format_kind(opts.kind))
+    return { text = fmt("**%s**", format_kind(opts.kind)), is_truncated = is_truncated }
   end
 
-  return fmt("**%s** %s", format_kind(opts.kind), detail)
+  return { text = fmt("**%s** %s", format_kind(opts.kind), detail), is_truncated = is_truncated }
+end
+
+---Build an approval prompt from a tool call's summary, adding the full detail when the summary cut it
+---@param opts { summary: string, full_detail?: string }
+---@return string
+function ToolCalls.format_approval(opts)
+  if not opts.full_detail then
+    return opts.summary
+  end
+  -- The cut could hide the end of a command, such as a trailing `| sh`, from the user approving it
+  return fmt("%s\n\n%s", opts.summary, markdown.form_codeblock(opts.full_detail))
 end
 
 ---Mark a tool call line line so its details can be opened from the cursor
@@ -61,7 +73,7 @@ end
 ---Write a tool call's summary line to the chat buffer, with its status icon
 ---@param chat CodeCompanion.Chat
 ---@param opts { summary: string, call_id?: string, status: string }
----@return number|nil line_number, number|nil icon_id
+---@return { line_number?: number, icon_id?: number }
 function ToolCalls.write(chat, opts)
   local line_number, icon_id = chat:add_buf_message({
     role = config.constants.LLM_ROLE,
@@ -76,15 +88,15 @@ function ToolCalls.write(chat, opts)
     ToolCalls.mark(chat, { line_number = line_number, call_id = opts.call_id })
   end
 
-  return line_number, icon_id
+  return { line_number = line_number, icon_id = icon_id }
 end
 
 ---Rewrite a tool call's summary line with a new status
 ---@param chat CodeCompanion.Chat
 ---@param opts { line_number: number, summary: string, status: string, icon_id?: number }
----@return boolean updated, number|nil icon_id
+---@return { is_updated: boolean, icon_id?: number }
 function ToolCalls.update(chat, opts)
-  return chat:update_buf_line({
+  local is_updated, icon_id = chat:update_buf_line({
     line_number = opts.line_number,
     content = opts.summary,
     status = opts.status,
@@ -92,6 +104,7 @@ function ToolCalls.update(chat, opts)
     priority = 120,
     virt_text_pos = "inline",
   })
+  return { is_updated = is_updated, icon_id = icon_id }
 end
 
 ---@param bufnr number
@@ -166,12 +179,12 @@ local function add_output(opts)
 end
 
 ---@param http_tool_call { call: table, output?: string }
----@return string[] lines, string title
+---@return { lines: string[], title: string }
 local function format_http_call(http_tool_call)
   local call = http_tool_call.call
   local lines = format_arguments(call["function"].arguments)
   add_output({ lines = lines, output = http_tool_call.output })
-  return lines, call["function"].name
+  return { lines = lines, title = call["function"].name }
 end
 
 ---@param call table
@@ -222,7 +235,7 @@ local function get_acp_diff(call)
 end
 
 ---@param call table
----@return string[] lines, string title
+---@return { lines: string[], title: string }
 local function format_acp_call(call)
   local lines
   if type(call.rawInput) == "table" and not vim.tbl_isempty(call.rawInput) then
@@ -245,7 +258,7 @@ local function format_acp_call(call)
     add_output({ lines = lines, output = get_acp_diff(call), ft = "diff" })
   end
 
-  return lines, call.kind or "Tool Call"
+  return { lines = lines, title = call.kind or "Tool Call" }
 end
 
 ---Open a float with the details of a tool call
@@ -254,19 +267,19 @@ end
 ---@return nil
 function ToolCalls.open(chat, opts)
   local call_id = opts.call_id
-  local lines, title
+  local details
   local acp_call = chat.tool_calls.acp[call_id]
   if acp_call then
-    lines, title = format_acp_call(acp_call)
+    details = format_acp_call(acp_call)
   else
     local http_tool_call = chat.tool_calls.http[call_id]
     if not http_tool_call then
       return
     end
-    lines, title = format_http_call(http_tool_call)
+    details = format_http_call(http_tool_call)
   end
 
-  ui_utils.create_hover({ lines = lines, title = title, focus_id = "codecompanion_tool_call" })
+  ui_utils.create_hover({ lines = details.lines, title = details.title, focus_id = "codecompanion_tool_call" })
 end
 
 ---Open a float with the details of the tool call on the cursor's line

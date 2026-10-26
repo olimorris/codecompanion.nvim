@@ -324,23 +324,24 @@ function ACPHandler:_update_tool_call_line(opts)
     return false
   end
 
-  local update_ok, _, new_icon_id = pcall(tool_calls.update, self.chat, {
+  local ok, update = pcall(tool_calls.update, self.chat, {
     icon_id = cached.icon_id,
     line_number = cached.line_number,
     status = opts.status,
     summary = opts.summary,
   })
+  local is_updated = ok and update.is_updated
 
   if opts.status == "completed" then
     self.ui_state[opts.id] = nil
-  elseif update_ok and new_icon_id then
-    cached.icon_id = new_icon_id
+  elseif is_updated and update.icon_id then
+    cached.icon_id = update.icon_id
   end
 
-  if not update_ok then
+  if not is_updated then
     log:debug("[ACP::Handler] Failed to update tool call line for toolCallId %s", opts.id)
   end
-  return update_ok
+  return is_updated
 end
 
 ---Output tool call to the chat
@@ -370,21 +371,18 @@ function ACPHandler:process_tool_call(tool_call)
     return
   end
 
-  local ok, content = pcall(formatter.tool_message, { tool_call = tool_call, adapter = self.chat.adapter })
-  if not ok then
-    content = "[Error formatting tool output]"
-  end
+  local ok, message = pcall(formatter.tool_message, { tool_call = tool_call, adapter = self.chat.adapter })
+  local content = ok and message.summary or "[Error formatting tool output]"
 
   if self:_update_tool_call_line({ id = id, status = tool_call.status, summary = content }) then
     return
   end
 
-  local line_number, icon_id = tool_calls.write(self.chat, {
+  self.ui_state[id] = tool_calls.write(self.chat, {
     call_id = id,
     status = tool_call.status or "in_progress",
     summary = content,
   })
-  self.ui_state[id] = { line_number = line_number, icon_id = icon_id }
 end
 
 ---Queue a permission request and process when ready

@@ -3,6 +3,7 @@ local log = require("codecompanion.utils.log")
 local approvals = require("codecompanion.interactions.chat.tools.approvals")
 local formatter = require("codecompanion.interactions.chat.acp.formatters")
 local labels = require("codecompanion.interactions.chat.tools.labels")
+local tool_calls = require("codecompanion.interactions.chat.ui.tool_calls")
 
 local fmt = string.format
 
@@ -326,7 +327,7 @@ function M.confirm(chat, request)
       call_id = tool_call.toolCallId,
       choices = choices,
       permission = permission,
-      prompt = formatter.tool_message({ tool_call = tool_call, adapter = chat.adapter }),
+      prompt = tool_calls.format_approval(formatter.tool_message({ tool_call = tool_call, adapter = chat.adapter })),
     })
   end
 

@@ -274,6 +274,13 @@ return {
     ---@param self CodeCompanion.Tool.EditFile
     ---@param meta { tools: CodeCompanion.Tools }
     ---@return string
+    cmd_string = function(self, meta)
+      return self.args.filepath
+    end,
+
+    ---@param self CodeCompanion.Tool.EditFile
+    ---@param meta { tools: CodeCompanion.Tools }
+    ---@return string
     prompt = function(self, meta)
       return fmt("Edit `%s`?", vim.fn.fnamemodify(self.args.filepath, ":."))
     end,

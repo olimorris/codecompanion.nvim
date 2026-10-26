@@ -141,19 +141,29 @@ end
 
 ---Find what a tool call acts on e.g. the diff path, first location, parsed title
 ---@param tool_call table
----@return string
+---@return { target: string, full_target: string }
 local function find_target(tool_call)
   local diff = find_diff(tool_call)
   if diff and type(diff.path) == "string" then
-    return relpath(diff.path)
+    return { target = relpath(diff.path), full_target = relpath(diff.path) }
   end
 
   local location = tool_call.locations and tool_call.locations[1]
   if location and type(location.path) == "string" then
-    return relpath(location.path)
+    return { target = relpath(location.path), full_target = relpath(location.path) }
   end
 
-  return parse_title(tool_call.title)
+  return { target = parse_title(tool_call.title), full_target = tool_call.title }
+end
+
+---Check whether the target leaves out any of the full target's text, ignoring whitespace and quoting
+---@param opts { target: string, full_target: string }
+---@return boolean
+local function is_shortened(opts)
+  local function strip(text)
+    return (text:gsub('[%s`"]', ""))
+  end
+  return strip(opts.full_target) ~= "" and strip(opts.target) ~= strip(opts.full_target)
 end
 
 ---Build a verbose summary of an edit's path and line count, replacing the target
@@ -228,10 +238,11 @@ end
 
 ---Build the single-line display string for an ACP tool call
 ---@param opts { tool_call: table, adapter: CodeCompanion.ACPAdapter }
----@return string
+---@return { summary: string, full_detail?: string }
 function M.tool_message(opts)
   local call = normalize(opts.tool_call)
-  local target = find_target(call)
+  local found = find_target(call)
+  local target = found.target
 
   local verbose = opts.adapter.opts and opts.adapter.opts.verbose_output == true
   if verbose and call.status == "completed" then
@@ -239,7 +250,9 @@ function M.tool_message(opts)
     target = diff_summary(call) or (summary and summary ~= "" and target .. " - " .. summary) or target
   end
 
-  return tool_calls.format_summary({ kind = call.kind, detail = target })
+  local summary = tool_calls.format_summary({ kind = call.kind, detail = target })
+  local is_cut = is_shortened(found) or summary.is_truncated
+  return { summary = summary.text, full_detail = is_cut and found.full_target or nil }
 end
 
 return M

@@ -274,7 +274,7 @@ function Orchestrator:_setup_handlers()
 end
 
 ---Create the label for the tool in the chat buffer
----@return string
+---@return { text: string, is_truncated: boolean }
 function Orchestrator:_create_label()
   local ok, cmd_string = pcall(self.output.cmd_string)
   return tool_calls.format_summary({
@@ -285,19 +285,19 @@ end
 
 ---@return nil
 function Orchestrator:_write_label_to_chat()
-  local text = self:_create_label()
+  local text = self:_create_label().text
 
-  local ok, line_number, icon_id = pcall(tool_calls.write, self.tools.chat, {
+  local ok, written = pcall(tool_calls.write, self.tools.chat, {
     call_id = self.tool.function_call.id,
     status = "in_progress",
     summary = text,
   })
 
-  if not ok or not line_number then
+  if not ok or not written.line_number then
     return log:debug("[Orchestrator::_write_label_to_chat] Couldn't write the label for `%s`", self.tool.name)
   end
 
-  self.tool_label = { line_number = line_number, icon_id = icon_id, text = text, status = "failed" }
+  self.tool_label = { line_number = written.line_number, icon_id = written.icon_id, text = text, status = "failed" }
 end
 
 ---Update the label's icon for the tool's final status
@@ -416,7 +416,11 @@ function Orchestrator:_prompt_for_approval(args)
 
   local prompt = self.output.prompt()
   if prompt == nil or prompt == "" then
-    prompt = self:_create_label()
+    local label = self:_create_label()
+    prompt = tool_calls.format_approval({
+      summary = label.text,
+      full_detail = label.is_truncated and self.output.cmd_string() or nil,
+    })
   end
   if args.reason and args.reason ~= "" then
     prompt = fmt('%s\nJudge: _"%s"_', prompt, args.reason)

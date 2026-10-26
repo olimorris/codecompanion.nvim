@@ -774,7 +774,7 @@ If you are providing code changes, use the edit_file tool (if available to you) 
           modes = { n = "gty" },
           index = 20,
           callback = "keymaps.yolo_mode",
-          description = "Choose how tool calls are approved",
+          description = "Choose the mode for approving tool calls",
         },
         goto_file_under_cursor = {
           modes = { n = "gR" },

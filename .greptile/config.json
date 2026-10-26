@@ -81,6 +81,14 @@
       "severity": "medium"
     },
     {
+      "id": "table-return",
+      "rule": "Functions return a table rather than multiple values: `return { target = target, full_target = full_target }`, not `return target, full_target`. The table is named for the whole result and its fields for the parts, so a call site reads `found.target` - flag a call site that stutters, such as `target.target`. Flag any new or modified function that returns two or more values, and suggest the table shape with its LuaCATS `---@return { ... }` annotation. Do not flag the error pair `return nil, err`, unpacking `pcall` as `local ok, result = pcall(...)`, or a function whose return shape is fixed by a Neovim or libuv API.",
+      "scope": [
+        "lua/**/*.lua"
+      ],
+      "severity": "medium"
+    },
+    {
       "id": "no-globals",
       "rule": "No module-level globals in plugin source. Use module-local state. (_G is expected inside tests running in a child Neovim process.)",
       "scope": [
