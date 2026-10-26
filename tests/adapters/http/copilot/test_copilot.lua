@@ -501,6 +501,7 @@ T["Token initialization"] = new_set({
       -- these tests need a response, so answer every request with nothing
       token_child.lua([[
         require("codecompanion.utils.curl").get = function() return {} end
+        require("codecompanion.utils.curl").get_sync = function() return {} end
       ]])
     end,
     post_once = token_child.stop,

@@ -18,7 +18,7 @@ local function get_models(self, opts)
 
   local url = "https://api.novita.ai/v3/openai/models"
 
-  local response, err = Curl.get({
+  local response, err = Curl.get_sync({
     url = url,
     insecure = config.adapters.http.opts.allow_insecure,
     proxy = config.adapters.http.opts.proxy,

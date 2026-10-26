@@ -306,6 +306,8 @@ Helpers.make_tool_call = function(chat, tool_call, tool_output, messages)
       content = messages.llm_final_response,
     })
   end
+
+  chat.builder:flush()
 end
 
 ---Get the lines of a buffer

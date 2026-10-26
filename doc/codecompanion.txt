@@ -8859,6 +8859,26 @@ By default, the LLM's header names the chat's adapter, such as `CodeCompanion
 `user` can only be a string.
 
 
+STREAMING ~
+
+A streamed response arrives in many small chunks, and Neovim redraws the chat
+buffer after every write. To save redrawing, CodeCompanion collects the chunks
+and writes them at most once every 25 milliseconds. To change this:
+
+>lua
+    require("codecompanion").setup({
+      display = {
+        chat = {
+          stream_interval = 50, -- milliseconds. 0 writes every chunk as it arrives
+        },
+      },
+    })
+<
+
+A longer interval makes the response arrive in larger pieces and uses less CPU,
+which is most noticeable in long chats.
+
+
 OTHERS ~
 
 The remaining options, with their defaults:

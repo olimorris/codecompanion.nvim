@@ -27,7 +27,7 @@ local function get_statistics()
 
   local oauth_token = token.fetch({ force = true }).oauth_token
 
-  local response, err = Curl.get({
+  local response, err = Curl.get_sync({
     url = "https://api.github.com/copilot_internal/user",
     headers = {
       Authorization = "Bearer " .. oauth_token,

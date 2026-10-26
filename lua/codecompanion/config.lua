@@ -1428,6 +1428,7 @@ The user is working on a %s machine. Please respond with system specific command
       show_settings = false, -- Show an LLM's settings at the top of the chat buffer?
       show_token_count = true, -- Show the token count for each response?
       start_in_insert_mode = false, -- Open the chat buffer in insert mode?
+      stream_interval = 25, -- How often to write a response to the chat buffer (milliseconds)
 
       ---The function to display the token count
       ---@param tokens number

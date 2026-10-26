@@ -44,7 +44,7 @@ local function get_models(self, opts)
 
   local headers = adapter_utils.set_env_vars(adapter, adapter.headers) or {}
 
-  local response, err = Curl.get({
+  local response, err = Curl.get_sync({
     url = url,
     headers = headers,
     insecure = config.adapters.http.opts.allow_insecure,
