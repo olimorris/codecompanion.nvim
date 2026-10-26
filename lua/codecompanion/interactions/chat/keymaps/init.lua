@@ -564,17 +564,68 @@ local function resolve_roles(chat)
   return { roles.user, llm_role }
 end
 
+---Move to a message in the chat window, even when the keymap is pressed in the input
+---@param chat CodeCompanion.Chat
+---@param opts { direction: "next"|"prev" }
+---@return nil
+local function goto_message(chat, opts)
+  local function goto_heading()
+    ts.goto_heading({ direction = opts.direction, count = 1, roles = resolve_roles(chat) })
+  end
+
+  if api.nvim_get_current_buf() == chat.bufnr then
+    return goto_heading()
+  end
+
+  api.nvim_win_call(chat.ui.winnr, goto_heading)
+  chat.ui:track_cursor()
+end
+
 M.next_header = {
   desc = "Go to the next message",
   callback = function(chat)
-    ts.goto_heading({ direction = "next", count = 1, roles = resolve_roles(chat) })
+    goto_message(chat, { direction = "next" })
   end,
 }
 
 M.previous_header = {
   desc = "Go to the previous message",
   callback = function(chat)
-    ts.goto_heading({ direction = "prev", count = 1, roles = resolve_roles(chat) })
+    goto_message(chat, { direction = "prev" })
+  end,
+}
+
+---Run normal mode keys in the chat window, leaving the cursor in the input
+---@param chat CodeCompanion.Chat
+---@param keys string
+---@return nil
+local function scroll_chat(chat, keys)
+  api.nvim_win_call(chat.ui.winnr, function()
+    vim.cmd("normal! " .. vim.keycode(keys))
+  end)
+  -- CursorMoved only fires in the current window, so auto-scroll would drag the chat back to the bottom
+  chat.ui:track_cursor()
+end
+
+M.scroll_chat_down = {
+  desc = "Scroll the chat down",
+  callback = function(chat)
+    scroll_chat(chat, "<C-d>")
+  end,
+}
+
+M.scroll_chat_up = {
+  desc = "Scroll the chat up",
+  callback = function(chat)
+    scroll_chat(chat, "<C-u>")
+  end,
+}
+
+M.scroll_chat_top_or_bottom = {
+  desc = "Jump to the bottom of the chat, or the top if already there",
+  callback = function(chat)
+    local is_at_bottom = api.nvim_win_get_cursor(chat.ui.winnr)[1] == api.nvim_buf_line_count(chat.bufnr)
+    scroll_chat(chat, is_at_bottom and "gg" or "G")
   end,
 }
 

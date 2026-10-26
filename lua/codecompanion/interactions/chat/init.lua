@@ -98,6 +98,7 @@ local CONSTANTS = {
   STATUS_SUCCESS = "success",
 
   BLANK_DESC = "[No messages]",
+  INPUT_KEYMAPS = { "scroll_chat_down", "scroll_chat_up", "scroll_chat_top_or_bottom" },
   INCOMPLETE_TOOL_CALL = "This tool call did not complete and produced no result",
 
   SYSTEM_PROMPT = [[You are an AI programming assistant named "CodeCompanion", working within the Neovim text editor.
@@ -503,7 +504,7 @@ local function init_keymaps(chat)
         data = chat,
         keymaps = filtered_keymaps,
       })
-      :set()
+      :set({ exclude_keymaps = bufnr == chat.bufnr and CONSTANTS.INPUT_KEYMAPS or nil })
 
     if vim.tbl_count(slash_command_keymaps) > 0 then
       keymaps
@@ -2229,7 +2230,7 @@ function Chat:set_title(title)
   assert(type(title) == "string", "title must be a string")
 
   self.title = title
-  self.ui.title = title
+  self.ui:set_title(title)
   registry.update(self.bufnr, { description = title })
   pcall(function()
     api.nvim_buf_set_name(self.bufnr, title)

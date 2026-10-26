@@ -118,30 +118,9 @@ function UI.new(args)
           return
         end
 
-        ---@return nil
-        local function get_cursor_pos()
-          if not self:is_visible() then
-            return
-          end
-
-          if self:is_following() then
-            self.cursor.moved_by_user = false
-            self.cursor.pos = nil
-            return
-          end
-
-          local ok, cursor = pcall(api.nvim_win_get_cursor, self.winnr)
-          if not ok then
-            return
-          end
-
-          self.cursor.moved_by_user = true
-          self.cursor.pos = { cursor[1], cursor[2] }
-        end
-
         -- PERF: If we're testing, skip the debounce
         if debounce_ms == 0 then
-          return get_cursor_pos()
+          return self:track_cursor()
         end
 
         if debounce then
@@ -152,7 +131,7 @@ function UI.new(args)
 
         debounce = vim.defer_fn(function()
           debounce = nil
-          get_cursor_pos()
+          self:track_cursor()
         end, debounce_ms)
       end,
     })
@@ -333,6 +312,28 @@ function UI:hide(opts)
   end
 
   utils.fire("ChatHidden", { bufnr = self.chat_bufnr, id = self.chat_id })
+end
+
+---Record whether the user has moved the cursor away from the response, so auto-scroll stops following it
+---@return nil
+function UI:track_cursor()
+  if not self:is_visible() then
+    return
+  end
+
+  if self:is_following() then
+    self.cursor.moved_by_user = false
+    self.cursor.pos = nil
+    return
+  end
+
+  local ok, cursor = pcall(api.nvim_win_get_cursor, self.winnr)
+  if not ok then
+    return
+  end
+
+  self.cursor.moved_by_user = true
+  self.cursor.pos = { cursor[1], cursor[2] }
 end
 
 ---Follow the cursor in the chat buffer
@@ -533,7 +534,7 @@ function UI:render(context, messages, opts)
   end
 
   if self.input then
-    lines = self:move_prompt_to_input(lines)
+    lines = vim.list_extend({ self:format_title(), "" }, self:move_prompt_to_input(lines))
   end
 
   self:unlock_buf()
@@ -546,6 +547,25 @@ function UI:render(context, messages, opts)
   self:follow()
 
   return self
+end
+
+---@return string
+function UI:format_title()
+  return "# " .. (self.title or config.display.chat.input.title)
+end
+
+---Set the title, replacing the heading at the top of the chat buffer when the chat has an input
+---@param title string
+---@return nil
+function UI:set_title(title)
+  self.title = title
+  if not self.input then
+    return
+  end
+
+  self:unlock_buf()
+  api.nvim_buf_set_lines(self.chat_bufnr, 0, 1, false, { self:format_title() })
+  self:lock_buf()
 end
 
 ---Move the trailing user prompt out of the rendered lines and into the input

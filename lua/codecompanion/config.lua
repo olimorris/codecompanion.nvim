@@ -800,6 +800,25 @@ If you are providing code changes, use the edit_file tool (if available to you) 
           callback = "keymaps.copilot_stats",
           description = "Show Copilot usage statistics",
         },
+        -- Note: These are only set in the input, when the chat has one
+        scroll_chat_down = {
+          modes = { n = "<M-j>", i = "<M-j>" },
+          index = 23,
+          callback = "keymaps.scroll_chat_down",
+          description = "Scroll the chat down",
+        },
+        scroll_chat_up = {
+          modes = { n = "<M-k>", i = "<M-k>" },
+          index = 24,
+          callback = "keymaps.scroll_chat_up",
+          description = "Scroll the chat up",
+        },
+        scroll_chat_top_or_bottom = {
+          modes = { n = "<M-g>", i = "<M-g>" },
+          index = 25,
+          callback = "keymaps.scroll_chat_top_or_bottom",
+          description = "Jump to the bottom of the chat, or the top if already there",
+        },
         -- Note: This is only available during streaming
         _btw = {
           modes = { n = "gm" },
@@ -1422,6 +1441,7 @@ The user is working on a %s machine. Please respond with system specific command
       input = {
         layout = "buffer", -- buffer|split (a split beneath the chat window, ignored for the float layout)
         height = 8, -- Height of the split
+        title = "CodeCompanion.nvim", -- Heading at the top of the chat buffer, until the chat is given a title
       },
 
       -- Chat buffer options --------------------------------------------------

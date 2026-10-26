@@ -1,4 +1,5 @@
 local trigger = require("codecompanion.triggers").mappings.editor_context
+local utils = require("codecompanion.utils")
 
 local source = {}
 
@@ -7,7 +8,7 @@ function source.new()
 end
 
 function source:is_available()
-  return vim.bo.filetype == "codecompanion" or vim.bo.filetype == "codecompanion_input"
+  return utils.is_prompt_ft(vim.bo.filetype)
 end
 
 source.get_position_encoding_kind = function()

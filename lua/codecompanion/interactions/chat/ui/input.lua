@@ -46,7 +46,7 @@ function Input:open(opts)
       vim.tbl_extend("force", config.display.chat.window.opts, { winfixheight = true })
     )
     -- Set after the window is current, as the syntax highlighting autocmds act on the current buffer
-    vim.bo[self.bufnr].filetype = "codecompanion"
+    vim.bo[self.bufnr].filetype = "codecompanion_chat_input"
     pcall(vim.treesitter.start, self.bufnr, "markdown")
     require("codecompanion.interactions.chat.ui.folds"):setup(self.winnr)
     self:_fold_context()

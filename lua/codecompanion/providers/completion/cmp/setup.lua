@@ -1,9 +1,10 @@
 local config = require("codecompanion.config")
 
 local cmp = require("cmp")
+local utils = require("codecompanion.utils")
 
 vim.api.nvim_create_autocmd("FileType", {
-  pattern = { "codecompanion", "codecompanion_input" },
+  pattern = utils.PROMPT_FILETYPES,
   callback = function()
     local completion = "codecompanion.providers.completion.cmp"
     cmp.register_source("codecompanion_acp_commands", require(completion .. ".acp_commands").new(config))
@@ -21,8 +22,7 @@ vim.api.nvim_create_autocmd("FileType", {
         { name = "codecompanion_tools" },
       }, cmp.get_config().sources),
     }
-    cmp.setup.filetype("codecompanion", sources)
-    cmp.setup.filetype("codecompanion_input", sources)
+    cmp.setup.filetype(utils.PROMPT_FILETYPES, sources)
     -- returning true will remove this autocmd
     -- now that the completion sources are registered
     return true

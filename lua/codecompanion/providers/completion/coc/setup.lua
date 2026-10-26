@@ -1,5 +1,6 @@
 local coc = require("codecompanion.providers.completion.coc")
 local log = require("codecompanion.utils.log")
+local utils = require("codecompanion.utils")
 
 --coc.nvim currently requires new completion sources to be registered via a Vim autoload file.
 ---@type table Specifies autoload file properties for coc.nvim.
@@ -72,6 +73,6 @@ local function ensure_buffer_attached()
 end
 
 vim.api.nvim_create_autocmd("FileType", {
-  pattern = { "codecompanion", "codecompanion_input" },
+  pattern = utils.PROMPT_FILETYPES,
   callback = ensure_buffer_attached,
 })

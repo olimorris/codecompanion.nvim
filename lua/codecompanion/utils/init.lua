@@ -4,6 +4,21 @@ local api = vim.api
 
 local M = {}
 
+---The filetypes of the buffers a user writes a prompt in, for chat and the CLI
+M.PROMPT_FILETYPES = { "codecompanion", "codecompanion_chat_input", "codecompanion_input" }
+
+---@param ft string
+---@return boolean
+function M.is_chat_ft(ft)
+  return ft == "codecompanion" or ft == "codecompanion_chat_input"
+end
+
+---@param ft string
+---@return boolean
+function M.is_prompt_ft(ft)
+  return vim.tbl_contains(M.PROMPT_FILETYPES, ft)
+end
+
 ---Fire an event
 ---@param event string
 ---@param opts? table
@@ -164,14 +179,14 @@ function M.replace_vars(msg, vars, mapping)
   return string.format(msg, unpack(replacements))
 end
 
----Safely get the filetype
----@param filetype string
+---Safely get the ft
+---@param ft string
 ---@return string
-function M.safe_filetype(filetype)
-  if filetype == "C++" then
+function M.safe_filetype(ft)
+  if ft == "C++" then
     return "cpp"
   end
-  return filetype
+  return ft
 end
 
 ---Set an option in Neovim

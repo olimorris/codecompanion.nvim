@@ -1,4 +1,5 @@
 local blink = require("blink.cmp")
+local utils = require("codecompanion.utils")
 
 pcall(function()
   local add_provider = blink.add_source_provider or blink.add_provider --[[@type function]]
@@ -10,6 +11,7 @@ pcall(function()
   })
 end)
 pcall(function()
-  blink.add_filetype_source("codecompanion", "codecompanion")
-  blink.add_filetype_source("codecompanion_input", "codecompanion")
+  for _, filetype in ipairs(utils.PROMPT_FILETYPES) do
+    blink.add_filetype_source(filetype, "codecompanion")
+  end
 end)
