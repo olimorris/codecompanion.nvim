@@ -1,5 +1,24 @@
 # Changelog
 
+## [20.1.0](https://github.com/olimorris/codecompanion.nvim/compare/v20.0.1...v20.1.0) (2026-10-26)
+
+
+### Features
+
+* **chat:** better tool output ([#3478](https://github.com/olimorris/codecompanion.nvim/issues/3478)) ([052ad5a](https://github.com/olimorris/codecompanion.nvim/commit/052ad5ade662ea3e3a6b99bc39a6bf3ce1c42892))
+* **slash_cmds:** add `tools` slash cmd ([#3473](https://github.com/olimorris/codecompanion.nvim/issues/3473)) ([6387171](https://github.com/olimorris/codecompanion.nvim/commit/6387171a2b44164566a9933e7a119683d034a919))
+
+
+### Bug Fixes
+
+* **chat:** keep the chat tab when closing a chat ([#3482](https://github.com/olimorris/codecompanion.nvim/issues/3482)) ([09b4b61](https://github.com/olimorris/codecompanion.nvim/commit/09b4b61b5d6af887cc144d43a901e4274a23850b))
+* **chat:** saving sessions with tool context ([#3468](https://github.com/olimorris/codecompanion.nvim/issues/3468)) ([799526f](https://github.com/olimorris/codecompanion.nvim/commit/799526fb35548c26e2dd74c3b282537bb8122a3b)), closes [#3407](https://github.com/olimorris/codecompanion.nvim/issues/3407)
+
+
+### Performance Improvements
+
+* **chat:** streamline tree-sitter and streaming ([#3485](https://github.com/olimorris/codecompanion.nvim/issues/3485)) ([8d3cf35](https://github.com/olimorris/codecompanion.nvim/commit/8d3cf350b79bb35b00da58dcc48dba656c36cfa7))
+
 ## [20.0.1](https://github.com/olimorris/codecompanion.nvim/compare/v20.0.0...v20.0.1) (2026-10-17)
 
 
