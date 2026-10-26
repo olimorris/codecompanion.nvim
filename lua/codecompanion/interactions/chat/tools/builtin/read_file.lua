@@ -119,6 +119,7 @@ end
 ---@class CodeCompanion.Tool.ReadFile: CodeCompanion.Tools.Tool
 return {
   name = "read_file",
+  kind = "read",
   cmds = {
     ---Execute the file commands
     ---@param self CodeCompanion.Tools
@@ -200,7 +201,7 @@ return {
     success = function(self, stdout, meta)
       local chat = meta.tools.chat
       local output = stdout[1]
-      chat:add_tool_output(self, { content = output.for_llm, display = false })
+      chat:add_tool_output(self, { content = output.for_llm })
     end,
 
     ---@param self CodeCompanion.Tool.ReadFile

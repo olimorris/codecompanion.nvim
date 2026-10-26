@@ -61,18 +61,9 @@ local function cmd_tool(spec)
         local content = markdown.form_codeblock(errors, { ft = "txt" })
 
         local llm_output = fmt("There was an error running the `%s` command:\n%s", cmd_string, content)
-        local user_output = fmt("`%s` error\n%s", cmd_string, content)
 
-        chat:add_tool_output(self, { content = llm_output, display = user_output })
+        chat:add_tool_output(self, { content = llm_output })
       end
-    end,
-
-    ---Prompt the user to approve the execution of the command
-    ---@param self CodeCompanion.Tools.Tool
-    ---@param meta { tools: CodeCompanion.Tools }
-    ---@return string
-    prompt = function(self, meta)
-      return fmt("Run the command `%s`?", spec.build_cmd(self.args))
     end,
 
     ---Rejection message back to the LLM
@@ -94,17 +85,17 @@ local function cmd_tool(spec)
       if stdout then
         local output = vim.iter(stdout[#stdout]):flatten():join("\n")
         local content = fmt("`%s`\n%s", spec.build_cmd(self.args), markdown.form_codeblock(output))
-        return chat:add_tool_output(self, { content = content, display = false })
+        return chat:add_tool_output(self, { content = content })
       end
       return chat:add_tool_output(self, {
         content = fmt("There was no output from the %s tool", spec.name),
-        display = false,
       })
     end,
   }
 
   return {
     name = spec.name,
+    kind = spec.kind or "execute",
     cmds = {},
     schema = schema,
     system_prompt = spec.system_prompt,

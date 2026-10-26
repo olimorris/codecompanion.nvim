@@ -8,15 +8,17 @@
 
       Output rules:
         - Always single line (no triple backticks, no newlines)
-        - Label format: "Kind: <target>" (e.g. "Read: config.json")
+        - Label format: "**Kind** <target>" (e.g. "**Read** config.json")
         - When `verbose_output` is set on the adapter, completed calls may
-          append " — <summary>" or replace the label entirely (edits)
+          append " — <summary>" or, for edits, replace the target with the line count
 -------------------------------------------------------------------------------
     Attribution:
       If you use or distribute this code, please credit:
       Oli Morris (https://github.com/olimorris)
 ===============================================================================
 --]]
+
+local tool_calls = require("codecompanion.interactions.chat.ui.tool_calls")
 
 local M = {}
 
@@ -83,17 +85,6 @@ function M.extract_text(block)
   return nil
 end
 
----Capitalise an ACP tool kind ("edit" → "Edit", "switch_mode" → "Switch mode")
----@param kind string|nil
----@return string
-local function format_kind(kind)
-  if not kind or kind == "" then
-    return "Tool"
-  end
-  local s = kind:gsub("_", " ")
-  return s:sub(1, 1):upper() .. s:sub(2)
-end
-
 ---Find the first diff content block in a tool call
 ---@param tool_call table
 ---@return table|nil
@@ -148,27 +139,34 @@ local function parse_title(title)
   return title ~= "" and title or "Tool call"
 end
 
----Build the "Kind: <target>" label for a tool call.
----Preference order for target: diff path → first location path → parsed title.
+---Find what a tool call acts on e.g. the diff path, first location, parsed title
 ---@param tool_call table
----@return string
-local function build_label(tool_call)
-  local kind = format_kind(tool_call.kind)
-
+---@return { target: string, full_target: string }
+local function find_target(tool_call)
   local diff = find_diff(tool_call)
   if diff and type(diff.path) == "string" then
-    return ("%s: %s"):format(kind, relpath(diff.path))
+    return { target = relpath(diff.path), full_target = relpath(diff.path) }
   end
 
   local location = tool_call.locations and tool_call.locations[1]
   if location and type(location.path) == "string" then
-    return ("%s: %s"):format(kind, relpath(location.path))
+    return { target = relpath(location.path), full_target = relpath(location.path) }
   end
 
-  return ("%s: %s"):format(kind, parse_title(tool_call.title))
+  return { target = parse_title(tool_call.title), full_target = tool_call.title }
 end
 
----Build a verbose summary for an edit (replaces the label entirely)
+---Check whether the target leaves out any of the full target's text, ignoring whitespace and quoting
+---@param opts { target: string, full_target: string }
+---@return boolean
+local function is_shortened(opts)
+  local function strip(text)
+    return (text:gsub('[%s`"]', ""))
+  end
+  return strip(opts.full_target) ~= "" and strip(opts.target) ~= strip(opts.full_target)
+end
+
+---Build a verbose summary of an edit's path and line count, replacing the target
 ---@param tool_call table
 ---@return string|nil
 local function diff_summary(tool_call)
@@ -183,11 +181,11 @@ local function diff_summary(tool_call)
   local delta = #new_lines - #old_lines
 
   if delta > 0 then
-    return ("Edited %s (+%d lines)"):format(path, delta)
+    return ("%s (+%d lines)"):format(path, delta)
   elseif delta < 0 then
-    return ("Edited %s (-%d lines)"):format(path, math.abs(delta))
+    return ("%s (-%d lines)"):format(path, math.abs(delta))
   end
-  return ("Edited %s"):format(path)
+  return path
 end
 
 ---Extract a one-line summary from a tool call's content blocks
@@ -211,21 +209,6 @@ local function content_summary(tool_call)
   if #parts > 0 then
     return table.concat(parts, "; ")
   end
-end
-
----Strip backticks and shorten cwd-rooted paths for display in a markdown buffer
----@param text string
----@return string
-local function clean_for_buffer(text)
-  if not text or text == "" then
-    return text
-  end
-  text = text:gsub("`", "")
-  local cwd = vim.fn.getcwd()
-  if cwd and cwd ~= "" then
-    text = text:gsub(vim.pesc(cwd) .. "/", "")
-  end
-  return text
 end
 
 ---Fill in defaults for missing tool call fields
@@ -254,30 +237,22 @@ local function normalize(tool_call)
 end
 
 ---Build the single-line display string for an ACP tool call
----@param tool_call table
----@param adapter CodeCompanion.ACPAdapter
----@return string
-function M.tool_message(tool_call, adapter)
-  local call = normalize(tool_call)
-  local label = build_label(call)
+---@param opts { tool_call: table, adapter: CodeCompanion.ACPAdapter }
+---@return { summary: string, full_detail?: string }
+function M.tool_message(opts)
+  local call = normalize(opts.tool_call)
+  local found = find_target(call)
+  local target = found.target
 
-  local verbose = adapter.opts and adapter.opts.verbose_output == true
-  if not verbose or call.status ~= "completed" then
-    return clean_for_buffer(label)
+  local verbose = opts.adapter.opts and opts.adapter.opts.verbose_output == true
+  if verbose and call.status == "completed" then
+    local summary = content_summary(call)
+    target = diff_summary(call) or (summary and summary ~= "" and target .. " - " .. summary) or target
   end
 
-  -- Edits get a custom summary that replaces the label entirely
-  local diff = diff_summary(call)
-  if diff then
-    return clean_for_buffer(diff)
-  end
-
-  local summary = content_summary(call)
-  if summary and summary ~= "" then
-    return clean_for_buffer(label .. " — " .. summary)
-  end
-
-  return clean_for_buffer(label)
+  local summary = tool_calls.format_summary({ kind = call.kind, detail = target })
+  local is_cut = is_shortened(found) or summary.is_truncated
+  return { summary = summary.text, full_detail = is_cut and found.full_target or nil }
 end
 
 return M

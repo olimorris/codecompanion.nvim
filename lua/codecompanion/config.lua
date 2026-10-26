@@ -331,18 +331,6 @@ The user is working on a %s machine. Please respond with system specific command
           approval_mode = "ask",
           max_output_tokens = 30000, -- Truncate a tool's output above this many tokens, or the model's limit if lower
           notify_on_approval = true, -- Notify the user when a tool requires approval?,
-
-          folds = {
-            enabled = true, -- Fold tool output in the buffer?
-            failure_words = { -- Words that indicate an error in the tool output. Used to apply failure highlighting
-              "cancelled",
-              "error",
-              "failed",
-              "incorrect",
-              "invalid",
-              "rejected",
-            },
-          },
           ---Tools and/or groups that are always loaded in a chat buffer
           ---@type string[]
           default_tools = {},
@@ -786,7 +774,7 @@ If you are providing code changes, use the edit_file tool (if available to you) 
           modes = { n = "gty" },
           index = 20,
           callback = "keymaps.yolo_mode",
-          description = "Choose how tool calls are approved",
+          description = "Choose the mode for approving tool calls",
         },
         goto_file_under_cursor = {
           modes = { n = "gR" },
@@ -799,6 +787,12 @@ If you are providing code changes, use the edit_file tool (if available to you) 
           index = 22,
           callback = "keymaps.copilot_stats",
           description = "Show Copilot usage statistics",
+        },
+        tool_call_details = {
+          modes = { n = "K" },
+          index = 23,
+          callback = "keymaps.tool_call_details",
+          description = "Show the tool call under the cursor",
         },
         -- Note: This is only available during streaming
         _btw = {
@@ -1119,7 +1113,7 @@ The user is working on a %s machine. Please respond with system specific command
       },
       keymaps = {
         view_diff = {
-          description = "View the proposed diff",
+          description = "View the proposed diff or tool call",
           modes = { n = "gv" },
           opts = { nowait = true },
         },

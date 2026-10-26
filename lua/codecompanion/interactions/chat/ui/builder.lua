@@ -112,13 +112,6 @@ function Builder:_block_type(opts)
   return self._block_by_type[opts.type] or BLOCK.LLM
 end
 
----Tool output folds unless folds are disabled or the tool carries a status (ACP)
----@param opts { status?: string }
----@return boolean
-function Builder:_tool_folds_enabled(opts)
-  return config.interactions.chat.tools.opts.folds.enabled and not opts.status
-end
-
 ---Can this message be added to the queue rather than written immediately?
 ---@param opts { message: { content?: string, role?: string }, render_opts: { type?: string } }
 ---@return boolean
@@ -246,14 +239,6 @@ function Builder:_render(data, opts)
     write.content_start = #lines
     vim.list_extend(lines, content_lines)
 
-    if block == BLOCK.TOOL and #content_lines > 0 and self:_tool_folds_enabled(opts) then
-      write.fold_info = {
-        start_offset = write.content_start,
-        end_offset = write.content_start + #content_lines - 1,
-        first_line = content_lines[1] or "",
-      }
-    end
-
     self.state.block_type = block
   end
 
@@ -298,7 +283,7 @@ function Builder:_set_trailing_blanks(n)
 end
 
 ---Write the assembled lines to the buffer and finalise icons, folds and headers
----@param opts { lines: string[], role_changed: boolean, content_start?: number, fold_info?: table, leaving_reasoning?: boolean, trailing_blanks?: number, insert_at?: number, status?: string, _icon_info?: table, virt_text_pos?: string }
+---@param opts { lines: string[], role_changed: boolean, content_start?: number, leaving_reasoning?: boolean, trailing_blanks?: number, insert_at?: number, status?: string, _icon_info?: table, virt_text_pos?: string }
 ---@return number insert_line 1-based line after the write
 ---@return number|nil icon_id
 function Builder:_write(opts)
@@ -329,14 +314,6 @@ function Builder:_write(opts)
     -- second blank costs a row before the header
     self.state.current_header_line = insert_line + 2
     self.chat.ui:render_header(self.state.current_header_line)
-  end
-
-  if opts.fold_info then
-    local fold_start = insert_line + opts.fold_info.start_offset
-    local fold_end = insert_line + opts.fold_info.end_offset
-    vim.schedule(function()
-      self.chat.ui.folds:create_tool_fold(self.chat.bufnr, fold_start, fold_end, opts.fold_info.first_line)
-    end)
   end
 
   if opts.leaving_reasoning and config.display.chat.fold_reasoning then

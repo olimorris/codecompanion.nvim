@@ -765,4 +765,11 @@ M.copilot_stats = {
   end,
 }
 
+M.tool_call_details = {
+  desc = "Show the tool call under the cursor",
+  callback = function(chat)
+    require("codecompanion.interactions.chat.ui.tool_calls").show(chat)
+  end,
+}
+
 return M

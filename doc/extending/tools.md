@@ -91,6 +91,7 @@ A tool is a table with these fields:
 | Field | Type | Description |
 | --- | --- | --- |
 | `name` | `string` | The tool's name, matching the schema's function name and its key in the config |
+| `kind` | `string` | How the tool is labelled in the chat buffer: `read`, `edit`, `delete`, `move`, `search`, `execute`, `think`, `fetch` or `other`. The tool's name is used when it's left out |
 | `schema` | `table` | The schema the LLM follows to call the tool |
 | `cmds` | `table` | The commands or functions to run, in order |
 | `system_prompt` | `string\|fun(schema)` | Extra instructions for the LLM |
@@ -348,11 +349,10 @@ output = {
 ```lua
 meta.tools.chat:add_tool_output(self, {
   content = "The result of 6 * 7 is 42",
-  display = "Calculated 6 * 7",
 })
 ```
 
-The first argument is the tool that ran, `self` in an output function. `content` is sent to the LLM. `display` is shown in the chat buffer, `content` is shown when it's `nil`, and `false` or an empty string shows nothing.
+The first argument is the tool that ran, `self` in an output function. `content` is sent to the LLM. The chat buffer shows only the tool's summary line, and `K` on that line shows the full call and its output.
 
 > [!IMPORTANT]
 > If an output function you define doesn't call `add_tool_output`, the LLM receives a stand-in result saying the tool call didn't complete
@@ -363,7 +363,7 @@ Leave an output function out and CodeCompanion uses a default:
 | --- | --- |
 | `success` | `Executed` and the tool's name |
 | `error` | `Error calling` and the tool's name |
-| `prompt` | `Run the "calculator" tool?` |
+| `prompt` | The tool call's summary line |
 | `rejected` | The user rejected the tool, with their reason |
 | `cancelled` | The user cancelled the tool |
 | `cmd_string` | The tool's name alone |
@@ -609,6 +609,7 @@ Most custom tools run a command on your machine, and the handlers and output fun
 | `schema` | The schema's `properties` and `required`, with `additionalProperties` optional |
 | `build_cmd` | A function that receives the LLM's arguments and returns the command to run, as a string |
 | `system_prompt` | Optional instructions for the LLM |
+| `kind` | Optional. How the tool is labelled in the chat buffer, defaulting to `execute` |
 
 `cmd_tool` wraps `schema` in a full schema, runs the command from `build_cmd` and shows it in the approval prompt. Your own `handlers` and `output` functions replace the matching defaults, and `gates` are passed through. `cmd_tool` doesn't carry over `opts` from the tool table, so set them on the config entry.
 

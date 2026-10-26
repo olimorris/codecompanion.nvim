@@ -303,7 +303,7 @@ T["unsafe verdict prompts with the judge's reason instead of running"] = functio
   setup_auto_mode({ verdict = { safe = false, reason = "deletes the filesystem" } })
 
   h.eq({}, child.lua_get("_G.executed"))
-  h.eq('Run the "dangerous" tool?\nJudge: _"deletes the filesystem"_', child.lua_get("_G.prompted_with"))
+  h.eq('**Dangerous** rm -rf /\nJudge: _"deletes the filesystem"_', child.lua_get("_G.prompted_with"))
 end
 
 T["safe command runs without judging or prompting"] = function()
@@ -319,7 +319,7 @@ T["protected tool prompts without judging, even for a safe command"] = function(
 
   h.eq({}, child.lua_get("_G.executed"))
   h.eq(vim.NIL, child.lua_get("_G.judged_context"))
-  h.eq('Run the "dangerous" tool?', child.lua_get("_G.prompted_with"))
+  h.eq("**Dangerous** rm -rf /", child.lua_get("_G.prompted_with"))
 end
 
 return T

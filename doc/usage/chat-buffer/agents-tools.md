@@ -31,6 +31,8 @@ The harness runs the _agent loop_:
 
 The loop ends when the LLM responds without asking for a tool, or when you stop the request or cancel a tool. Rejecting a tool doesn't end the loop. The LLM is told you rejected it, along with your reason, and carries on.
 
+Each tool call is summarised in the chat buffer. Press `K` on a line to see the tool call in detail. Press `K` again to move into the tool call. For ACP adapters, an agent that sends no arguments shows the tool call's title and locations instead.
+
 The [tool system architecture](/extending/tools#architecture) is outlined in the extending section.
 
 ## Tool Groups
@@ -425,10 +427,13 @@ Tools are designed to keep the LLM from making changes that are hard to [recover
 
 Approvals are kept per chat buffer and per tool. Approving a tool in one chat buffer doesn't approve it anywhere else, and approving it once means you're asked again next time.
 
+The request shows the tool call's summary line, the same one you see once it runs. Press `gv`, or `K` on that line, to see the full call in a floating window.
+
 When asked, you choose from:
 
 | Keymap | Choice | Description |
 | --- | --- | --- |
+| `gv` | View | Show the tool call's arguments in a floating window |
 | `g1` | Always accept | Run this tool without asking again in this chat buffer |
 | `g2` | Accept | Run this tool this one time |
 | `g3` | Reject | Don't run the tool, and give the LLM a reason |

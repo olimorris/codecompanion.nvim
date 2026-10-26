@@ -501,6 +501,8 @@ function UI:render(context, messages, opts)
 
   self:unlock_buf()
   api.nvim_buf_set_lines(self.chat_bufnr, 0, -1, false, lines)
+  -- A full rewrite leaves old marks bunched at the top, where `K` would open a stale tool call
+  require("codecompanion.interactions.chat.ui.tool_calls").clear(self.chat_bufnr)
   self:render_headers()
 
   self:follow()
