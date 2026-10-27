@@ -2232,7 +2232,7 @@ function Chat:set_title(title)
   assert(type(title) == "string", "title must be a string")
 
   self.title = title
-  self.ui:set_title(title)
+  self.ui.title = title
   registry.update(self.bufnr, { description = title })
   pcall(function()
     api.nvim_buf_set_name(self.bufnr, title)

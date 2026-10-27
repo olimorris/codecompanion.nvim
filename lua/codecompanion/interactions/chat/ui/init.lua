@@ -554,7 +554,7 @@ function UI:render(context, messages, opts)
   end
 
   if self.input then
-    lines = vim.list_extend({ self:format_title(), "" }, self:move_prompt_to_input(lines))
+    lines = self:move_prompt_to_input(lines)
   end
 
   self:unlock_buf()
@@ -569,25 +569,6 @@ function UI:render(context, messages, opts)
   self:follow()
 
   return self
-end
-
----@return string
-function UI:format_title()
-  return "# " .. (self.title or config.display.chat.input.title)
-end
-
----Set the title, replacing the heading at the top of the chat buffer when the chat has an input
----@param title string
----@return nil
-function UI:set_title(title)
-  self.title = title
-  if not self.input then
-    return
-  end
-
-  self:unlock_buf()
-  api.nvim_buf_set_lines(self.chat_bufnr, 0, 1, false, { self:format_title() })
-  self:lock_buf()
 end
 
 ---Move the trailing user prompt out of the rendered lines and into the input

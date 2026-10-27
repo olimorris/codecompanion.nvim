@@ -80,32 +80,8 @@ T["Input"]["writes the prompt into the chat buffer under a user header on submit
 
   h.eq("What does this do?", result.message)
   h.eq({ "" }, result.input)
-  h.eq("## foo", result.chat[3])
+  h.eq("## foo", result.chat[1])
   h.expect_contains("What does this do?", table.concat(result.chat, "\n"))
-end
-
-T["Input"]["replaces the title at the top of the chat buffer"] = function()
-  local result = child.lua([[
-    write({ "What does this do?" })
-    h.send_to_llm(chat, "It does things")
-    local before = chat_lines()[1]
-    chat:set_title("Explaining things")
-    return { before = before, after = chat_lines() }
-  ]])
-
-  h.eq("# CodeCompanion.nvim", result.before)
-  h.eq("# Explaining things", result.after[1])
-  h.eq("## foo", result.after[3])
-end
-
-T["Input"]["keeps the title when the chat is cleared"] = function()
-  local first_line = child.lua([[
-    chat:set_title("Explaining things")
-    chat:clear()
-    return chat_lines()[1]
-  ]])
-
-  h.eq("# Explaining things", first_line)
 end
 
 T["Input"]["keeps the context block in the input and OUT of the chat buffer"] = function()

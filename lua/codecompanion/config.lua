@@ -1437,7 +1437,6 @@ The user is working on a %s machine. Please respond with system specific command
       input = {
         layout = "buffer", -- buffer|split (a split beneath the chat window, ignored for the float layout)
         height = 8, -- Height of the split
-        title = "CodeCompanion.nvim", -- Heading at the top of the chat buffer, until the chat is given a title
       },
 
       -- Chat buffer options --------------------------------------------------

@@ -53,7 +53,6 @@ require("codecompanion").setup({
       input = {
         layout = "split", -- Can be "buffer" or "split"
         height = 8, -- lines
-        title = "CodeCompanion.nvim",
       },
     },
   },
@@ -65,7 +64,6 @@ With the split, the chat buffer is read-only, so you can scroll through a respon
 - **Submitting** - Your message is added to the chat buffer under your header
 - **Queueing** - A message sent whilst the LLM is responding is queued and delivered once it's safe to do so. Sending another adds it to the same message. Stopping the response moves the queued message back into the input
 - **Context** - Shared context sits at the top of the input and stays there between messages. It's never folded. Delete a line to remove that item
-- **Title** - The chat buffer opens with `title` as a heading, which is replaced by the chat's title once it has one
 - **Filetype** - The input is a `codecompanion_chat_input` buffer, so it can be targeted separately from the chat buffer in your statusline or autocmds
 - **Keymaps** - Every chat buffer keymap works in both windows. `[[` and `]]` move between messages in the chat buffer, even from the input. Pressing `i`, `a`, `I`, `A`, `o` or `O` in the chat buffer moves you to the input
 - **Window** - Hiding or closing either window closes both. If you resize the input, that chat keeps the new height until you restart Neovim. New chats open at `height`
