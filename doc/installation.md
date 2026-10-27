@@ -122,7 +122,7 @@ These plugins work well with CodeCompanion. The examples use lazy.nvim.
 ```lua [render-markdown.nvim]
 {
   "MeanderingProgrammer/render-markdown.nvim",
-  ft = { "markdown", "codecompanion" }
+  ft = { "markdown", "codecompanion", "codecompanion_chat_input" }
 },
 ```
 
@@ -132,7 +132,7 @@ These plugins work well with CodeCompanion. The examples use lazy.nvim.
   lazy = false,
   opts = {
     preview = {
-      filetypes = { "markdown", "codecompanion" },
+      filetypes = { "markdown", "codecompanion", "codecompanion_chat_input" },
       ignore_buftypes = {},
     },
   },

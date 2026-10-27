@@ -3,7 +3,6 @@
 local completion = require("codecompanion.providers.completion")
 local config = require("codecompanion.config")
 local triggers = require("codecompanion.triggers")
-local utils = require("codecompanion.utils")
 
 --- @type table Cache for callback addresses that get lost (replaced by vim.Nil) during serialization.
 local callbacks_cache = {}
@@ -91,7 +90,7 @@ function M.init()
   return {
     priority = 99,
     shortcut = "CodeCompanion",
-    filetypes = utils.PROMPT_FILETYPES,
+    filetypes = config.constants.PROMPT_FILETYPES,
     triggerCharacters = trigger_chars,
   }
 end

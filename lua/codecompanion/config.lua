@@ -7,6 +7,8 @@ local constants = {
   LLM_ROLE = "llm",
   USER_ROLE = "user",
   SYSTEM_ROLE = "system",
+
+  PROMPT_FILETYPES = { "codecompanion", "codecompanion_chat_input", "codecompanion_input" },
 }
 
 local defaults = {

@@ -4,9 +4,6 @@ local api = vim.api
 
 local M = {}
 
----The filetypes of the buffers a user writes a prompt in, for chat and the CLI
-M.PROMPT_FILETYPES = { "codecompanion", "codecompanion_chat_input", "codecompanion_input" }
-
 ---@param ft string
 ---@return boolean
 function M.is_chat_ft(ft)
@@ -16,7 +13,7 @@ end
 ---@param ft string
 ---@return boolean
 function M.is_prompt_ft(ft)
-  return vim.tbl_contains(M.PROMPT_FILETYPES, ft)
+  return vim.tbl_contains(require("codecompanion.config").constants.PROMPT_FILETYPES, ft)
 end
 
 ---Fire an event

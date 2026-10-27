@@ -269,7 +269,7 @@ the chat buffer:
 >lua
     {
       "MeanderingProgrammer/render-markdown.nvim",
-      ft = { "markdown", "codecompanion" }
+      ft = { "markdown", "codecompanion", "codecompanion_chat_input" }
     },
 <
 
@@ -281,7 +281,7 @@ the chat buffer:
       lazy = false,
       opts = {
         preview = {
-          filetypes = { "markdown", "codecompanion" },
+          filetypes = { "markdown", "codecompanion", "codecompanion_chat_input" },
           ignore_buftypes = {},
         },
       },
