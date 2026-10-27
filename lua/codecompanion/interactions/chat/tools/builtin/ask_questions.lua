@@ -40,8 +40,8 @@ local function ask_all(chat, opts, callback)
       question = question,
       index = index,
       total = #questions,
-      callback = function(answer)
-        answers[question.header] = answer or "No answer provided"
+      callback = function(result)
+        answers[question.header] = result.answer or "No answer provided"
         next_question()
       end,
     })

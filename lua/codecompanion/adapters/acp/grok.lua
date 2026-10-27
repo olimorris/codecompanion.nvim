@@ -13,6 +13,16 @@ local EXIT_PLAN_MODE_METHODS = {
   ["_x.ai/exit_plan_mode"] = true,
 }
 
+local PLAN_QUESTION = {
+  header = "Plan review",
+  question = "What should Grok Build do with this plan?",
+  options = {
+    { label = "Approve", description = "Continue and implement the plan", recommended = true },
+    { label = "Request changes", description = "Revise the plan before implementation" },
+    { label = "Abandon", description = "Stop without implementing the plan" },
+  },
+}
+
 ---Unwrap an xAI extension request when it uses the ACP extension envelope
 ---@param params table
 ---@return table
@@ -23,63 +33,38 @@ local function unwrap_params(params)
   return params
 end
 
----Recover selected labels from the comma-separated multi-select answer
----@param options table[]
----@param answer string
----@param start_index? number
----@return string[]|nil
-local function recover_selected_labels(options, answer, start_index)
-  if answer == "" then
-    return {}
-  end
-  for index = start_index or 1, #options do
-    local label = options[index].label
-    if type(label) == "string" then
-      if answer == label then
-        return { label }
-      end
-      local prefix = label .. ", "
-      if answer:sub(1, #prefix) == prefix then
-        local remaining = recover_selected_labels(options, answer:sub(#prefix + 1), index + 1)
-        if remaining then
-          table.insert(remaining, 1, label)
-          return remaining
-        end
-      end
-    end
-  end
-end
-
----Normalize one answer for Grok's extension response
----@param question table
----@param answer string
+---Map one chat answer onto Grok's labels and optional annotation
+---@param opts { question: table, answer: string, selected?: string[] }
 ---@return string[] labels
 ---@return table|nil annotation
-local function normalize_answer(question, answer)
+local function normalize_answer(opts)
+  opts = opts or {}
+  local question = opts.question
+  local answer = opts.answer
   local options = type(question.options) == "table" and question.options or {}
-  local labels
-  if question.multiSelect == true then
-    labels = recover_selected_labels(options, answer)
-  else
-    for _, option in ipairs(options) do
-      if option.label == answer then
-        labels = { answer }
-        local preview = type(option.preview) == "string" and vim.trim(option.preview) or ""
-        return labels, preview ~= "" and { preview = preview } or nil
+
+  -- Selected labels arrive separately: a comma inside a label collides with the joined display text
+  if type(opts.selected) == "table" then
+    return opts.selected
+  end
+
+  for _, option in ipairs(options) do
+    if option.label == answer then
+      local preview = type(option.preview) == "string" and vim.trim(option.preview) or ""
+      if question.multiSelect == true or preview == "" then
+        return { answer }
       end
+      return { answer }, { preview = preview }
     end
   end
 
-  if labels then
-    return labels
-  end
   return { "Other" }, { notes = answer }
 end
 
----Convert a Grok question into CodeCompanion's question prompt shape
+---Build the question prompt shape for one Grok question
 ---@param question table
 ---@return table
-local function question_for_chat(question)
+local function build_chat_question(question)
   local options = {}
   for _, option in ipairs(type(question.options) == "table" and question.options or {}) do
     if type(option) == "table" and type(option.label) == "string" then
@@ -97,10 +82,10 @@ local function question_for_chat(question)
   }
 end
 
----Check the questions before opening an interactive prompt
+---Return whether Grok sent a non-empty list of questions
 ---@param questions any
 ---@return boolean
-local function valid_questions(questions)
+local function is_valid_question_list(questions)
   if type(questions) ~= "table" or #questions == 0 then
     return false
   end
@@ -112,46 +97,51 @@ local function valid_questions(questions)
   return true
 end
 
----Finish a Grok question request after the final answer
----@param request CodeCompanion.ACP.ClientRequest
----@param state table
-local function finish_questions(request, state)
+---Send the accepted question response over ACP
+---@param opts { request: CodeCompanion.ACP.ClientRequest, state: table }
+local function finish_questions(opts)
+  opts = opts or {}
+  local state = opts.state
   local response = { outcome = "accepted", answers = state.answers }
   if not vim.tbl_isempty(state.annotations) then
     response.annotations = state.annotations
   end
-  request.respond(response)
+  opts.request.respond(response)
 end
 
-local ask_next_question
-
 ---Present the next question in a Grok request
----@param request CodeCompanion.ACP.ClientRequest
----@param state table
-ask_next_question = function(request, state)
+---@param opts { request: CodeCompanion.ACP.ClientRequest, state: table }
+local function ask_next_question(opts)
+  opts = opts or {}
+  local request = opts.request
+  local state = opts.state
   state.index = state.index + 1
   if state.index > #state.questions then
-    return finish_questions(request, state)
+    return finish_questions(opts)
   end
 
   local question = state.questions[state.index]
   state.cancel_current = question_prompt.ask(request.chat, {
-    question = question_for_chat(question),
+    question = build_chat_question(question),
     index = state.index,
     total = #state.questions,
-    callback = function(answer)
+    callback = function(result)
       state.cancel_current = nil
       if state.cancelled then
         return
       end
-      if answer then
-        local labels, annotation = normalize_answer(question, answer)
+      if result.answer then
+        local labels, annotation = normalize_answer({
+          question = question,
+          answer = result.answer,
+          selected = result.selected,
+        })
         state.answers[question.question] = labels
         if annotation then
           state.annotations[question.question] = annotation
         end
       end
-      ask_next_question(request, state)
+      ask_next_question(opts)
     end,
   })
 end
@@ -161,7 +151,7 @@ end
 ---@return boolean
 local function handle_ask_user_question(request)
   local questions = unwrap_params(request.params).questions
-  if not valid_questions(questions) then
+  if not is_valid_question_list(questions) then
     request.reject("Invalid Grok question request", jsonrpc.errors.INVALID_PARAMS)
     return true
   elseif not request.chat then
@@ -169,8 +159,13 @@ local function handle_ask_user_question(request)
     return true
   end
 
-  local state = { answers = vim.empty_dict(), annotations = {}, cancelled = false, index = 0 }
-  state.questions = questions
+  local state = {
+    answers = vim.empty_dict(),
+    annotations = {},
+    cancelled = false,
+    index = 0,
+    questions = questions,
+  }
   request.on_cancel(function()
     state.cancelled = true
     if state.cancel_current then
@@ -178,15 +173,17 @@ local function handle_ask_user_question(request)
     end
     request.respond({ outcome = "cancelled" })
   end)
-  ask_next_question(request, state)
+  ask_next_question({ request = request, state = state })
   return true
 end
 
 ---Respond to the user's Grok plan decision
----@param request CodeCompanion.ACP.ClientRequest
----@param state table
----@param answer string|nil
-local function respond_to_plan_choice(request, state, answer)
+---@param opts { request: CodeCompanion.ACP.ClientRequest, state: table, answer: string|nil }
+local function respond_to_plan_choice(opts)
+  opts = opts or {}
+  local request = opts.request
+  local state = opts.state
+  local answer = opts.answer
   if state.cancelled then
     return
   end
@@ -248,20 +245,16 @@ local function handle_exit_plan_mode(request)
   end)
 
   state.cancel_question = question_prompt.ask(request.chat, {
-    question = {
-      header = "Plan review",
-      question = "What should Grok Build do with this plan?",
-      options = {
-        { label = "Approve", description = "Continue and implement the plan", recommended = true },
-        { label = "Request changes", description = "Revise the plan before implementation" },
-        { label = "Abandon", description = "Stop without implementing the plan" },
-      },
-    },
+    question = PLAN_QUESTION,
     index = 1,
     total = 1,
-    callback = function(answer)
+    callback = function(result)
       state.cancel_question = nil
-      respond_to_plan_choice(request, state, answer)
+      respond_to_plan_choice({
+        request = request,
+        state = state,
+        answer = result.answer,
+      })
     end,
   })
   return true

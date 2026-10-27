@@ -16,7 +16,7 @@ local T = new_set({
   },
 })
 
-local function request(params, method)
+local function create_request(params, method)
   local captured = {}
   return {
     chat = {
@@ -50,12 +50,12 @@ end
 
 T["Grok adapter"]["answers Grok's wrapped question request"] = function()
   question_prompt.ask = function(_, opts)
-    opts.callback("Python")
+    opts.callback({ answer = "Python" })
     return function() end
   end
 
   local adapter = require("codecompanion.adapters.acp.grok")
-  local req, captured = request({
+  local request, captured = create_request({
     method = "x.ai/ask_user_question",
     params = {
       sessionId = "session-1",
@@ -71,19 +71,19 @@ T["Grok adapter"]["answers Grok's wrapped question request"] = function()
     },
   })
 
-  h.is_true(adapter.handlers.acp_request(adapter, req))
+  h.is_true(adapter.handlers.acp_request(adapter, request))
   h.eq("accepted", captured.response.outcome)
   h.eq({ "Python" }, captured.response.answers["Which language?"])
 end
 
 T["Grok adapter"]["preserves custom answers as annotations"] = function()
   question_prompt.ask = function(_, opts)
-    opts.callback("Use Zig")
+    opts.callback({ answer = "Use Zig" })
     return function() end
   end
 
   local adapter = require("codecompanion.adapters.acp.grok")
-  local req, captured = request({
+  local request, captured = create_request({
     sessionId = "session-1",
     questions = {
       {
@@ -93,19 +93,19 @@ T["Grok adapter"]["preserves custom answers as annotations"] = function()
     },
   })
 
-  adapter.handlers.acp_request(adapter, req)
+  adapter.handlers.acp_request(adapter, request)
   h.eq({ "Other" }, captured.response.answers["Which language?"])
   h.eq("Use Zig", captured.response.annotations["Which language?"].notes)
 end
 
 T["Grok adapter"]["omits skipped questions from an accepted response"] = function()
   question_prompt.ask = function(_, opts)
-    opts.callback(nil)
+    opts.callback({ answer = nil })
     return function() end
   end
 
   local adapter = require("codecompanion.adapters.acp.grok")
-  local req, captured = request({
+  local request, captured = create_request({
     sessionId = "session-1",
     questions = {
       {
@@ -115,31 +115,31 @@ T["Grok adapter"]["omits skipped questions from an accepted response"] = functio
     },
   })
 
-  adapter.handlers.acp_request(adapter, req)
+  adapter.handlers.acp_request(adapter, request)
   h.eq("accepted", captured.response.outcome)
   h.eq("{}", vim.json.encode(captured.response.answers))
 end
 
 T["Grok adapter"]["returns the user's plan decision"] = function()
   question_prompt.ask = function(_, opts)
-    opts.callback("Approve")
+    opts.callback({ answer = "Approve" })
     return function() end
   end
 
   local adapter = require("codecompanion.adapters.acp.grok")
-  local req, captured = request({
+  local request, captured = create_request({
     sessionId = "session-1",
     planContent = "1. Inspect the project\n2. Make the change",
   }, "_x.ai/exit_plan_mode")
 
-  adapter.handlers.acp_request(adapter, req)
+  adapter.handlers.acp_request(adapter, request)
   h.eq("approved", captured.response.outcome)
   h.expect_contains("Inspect the project", captured.message)
 end
 
 T["Grok adapter"]["returns plan feedback using Grok's cancelled outcome"] = function()
   question_prompt.ask = function(_, opts)
-    opts.callback("Request changes")
+    opts.callback({ answer = "Request changes" })
     return function() end
   end
   vim.ui.input = function(_, callback)
@@ -147,12 +147,12 @@ T["Grok adapter"]["returns plan feedback using Grok's cancelled outcome"] = func
   end
 
   local adapter = require("codecompanion.adapters.acp.grok")
-  local req, captured = request({
+  local request, captured = create_request({
     sessionId = "session-1",
     planContent = "1. Make the change",
   }, "_x.ai/exit_plan_mode")
 
-  adapter.handlers.acp_request(adapter, req)
+  adapter.handlers.acp_request(adapter, request)
   h.eq("cancelled", captured.response.outcome)
   h.eq("Use async I/O", captured.response.feedback)
 end
@@ -160,7 +160,7 @@ end
 T["Grok adapter"]["closes plan feedback when the request is cancelled"] = function()
   local feedback_callback
   question_prompt.ask = function(_, opts)
-    opts.callback("Request changes")
+    opts.callback({ answer = "Request changes" })
     return function() end
   end
   vim.ui.input = function(_, callback)
@@ -173,12 +173,12 @@ T["Grok adapter"]["closes plan feedback when the request is cancelled"] = functi
   end
 
   local adapter = require("codecompanion.adapters.acp.grok")
-  local req, captured = request({
+  local request, captured = create_request({
     sessionId = "session-1",
     planContent = "1. Make the change",
   }, "_x.ai/exit_plan_mode")
 
-  adapter.handlers.acp_request(adapter, req)
+  adapter.handlers.acp_request(adapter, request)
   captured.cancel()
 
   h.eq("<Esc>", input)
@@ -186,6 +186,32 @@ T["Grok adapter"]["closes plan feedback when the request is cancelled"] = functi
 
   feedback_callback("Use async I/O")
   h.eq({ outcome = "abandoned" }, captured.response)
+end
+
+T["Grok adapter"]["keeps selected labels that contain commas"] = function()
+  question_prompt.ask = function(_, opts)
+    opts.callback({ answer = "A, B", selected = { "A", "A, B" } })
+    return function() end
+  end
+
+  local adapter = require("codecompanion.adapters.acp.grok")
+  local request, captured = create_request({
+    sessionId = "session-1",
+    questions = {
+      {
+        question = "Which combination?",
+        multiSelect = true,
+        options = {
+          { label = "A" },
+          { label = "B" },
+          { label = "A, B" },
+        },
+      },
+    },
+  })
+
+  adapter.handlers.acp_request(adapter, request)
+  h.eq({ "A", "A, B" }, captured.response.answers["Which combination?"])
 end
 
 return T

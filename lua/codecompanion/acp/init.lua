@@ -827,7 +827,10 @@ function Connection:handle_adapter_request(message)
     self._pending_client_request_cancels[message.id] = nil
     state.mark_responded()
     if cancel then
-      pcall(cancel)
+      local cancelled, cancel_err = pcall(cancel)
+      if not cancelled then
+        log:error("[acp::handle_adapter_request] Failed to cancel client request: %s", cancel_err)
+      end
     end
     log:error("[acp::handle_adapter_request] Adapter request handler failed: %s", handled)
     if not already_responded then
@@ -844,7 +847,10 @@ function Connection:handle_adapter_request(message)
   self._pending_client_request_cancels[message.id] = nil
   state.mark_responded()
   if cancel then
-    pcall(cancel)
+    local cancelled, cancel_err = pcall(cancel)
+    if not cancelled then
+      log:error("[acp::handle_adapter_request] Failed to cancel client request: %s", cancel_err)
+    end
   end
   return false
 end
@@ -855,7 +861,10 @@ function Connection:cancel_client_requests()
   local callbacks = self._pending_client_request_cancels
   self._pending_client_request_cancels = {}
   for _, callback in pairs(callbacks) do
-    pcall(callback)
+    local ok, err = pcall(callback)
+    if not ok then
+      log:error("[acp::cancel_client_requests] Failed to cancel client request: %s", err)
+    end
   end
 end
 

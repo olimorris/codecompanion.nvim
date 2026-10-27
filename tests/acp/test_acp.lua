@@ -515,6 +515,42 @@ T["ACP Responses"]["cancels pending adapter-specific client requests"] = functio
   h.eq(result.pending, 0)
 end
 
+T["ACP Responses"]["logs a failed client request cancellation"] = function()
+  local result = child.lua([[
+    local log = require("codecompanion.utils.log")
+    local original_error = log.error
+    local logged = {}
+    log.error = function(_, ...)
+      table.insert(logged, string.format(...))
+    end
+
+    local connection = create_test_connection()
+    connection.session_id = "sess-123"
+    test_adapter.handlers.acp_request = function(_, request)
+      request.on_cancel(function()
+        error("cleanup failed")
+      end)
+      return true
+    end
+
+    local message = vim.json.encode({
+      jsonrpc = "2.0",
+      id = 103,
+      method = "vendor/question",
+      params = { sessionId = "sess-123" }
+    })
+    local ok = pcall(function()
+      connection:buffer_stdout_and_dispatch(message .. "\n")
+      connection:cancel_client_requests()
+    end)
+    log.error = original_error
+    return { ok = ok, logged = table.concat(logged, "\n") }
+  ]])
+
+  h.eq(true, result.ok)
+  h.expect_contains("cleanup failed", result.logged)
+end
+
 T["ACP Responses"]["_handle_done when stopReason present"] = function()
   local result = child.lua([[
     local connection = create_test_connection()

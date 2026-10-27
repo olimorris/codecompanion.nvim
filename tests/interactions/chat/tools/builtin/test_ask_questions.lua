@@ -294,4 +294,81 @@ T["ask_questions"]["can cancel a question without recording an answer"] = functi
   h.eq(nil, string.match(result.buffer, "You skipped this question"))
 end
 
+T["ask_questions"]["returns the selected labels separately from the display text"] = function()
+  local result = child.lua([[
+    local question_prompt = require("codecompanion.interactions.chat.helpers.question_prompt")
+    local received
+    question_prompt.ask(chat, {
+      question = {
+        header = "Choice",
+        question = "Which combination?",
+        multiSelect = true,
+        options = {
+          { label = "A" },
+          { label = "B" },
+          { label = "A, B" },
+        },
+      },
+      index = 1,
+      total = 1,
+      callback = function(answer)
+        received = answer
+      end,
+    })
+    _G.press("g1")
+    _G.press("g1")
+    _G.press("g2")
+    return received
+  ]])
+
+  h.eq("A, B", result.answer)
+  h.eq({ "A", "B" }, result.selected)
+end
+
+T["ask_questions"]["closes a custom answer when the question is cancelled"] = function()
+  local result = child.lua([[
+    local question_prompt = require("codecompanion.interactions.chat.helpers.question_prompt")
+    local answer
+    local input_keys
+    local input_open = false
+    vim.ui.input = function(_, callback)
+      input_open = true
+      _G.input_callback = function(value)
+        input_open = false
+        callback(value)
+      end
+    end
+    vim.api.nvim_input = function(keys)
+      input_keys = keys
+      if keys == "<Esc>" and input_open and _G.input_callback then
+        _G.input_callback(nil)
+      end
+    end
+
+    local cancel = question_prompt.ask(chat, {
+      question = {
+        header = "Directory",
+        question = "Where should I create the files?",
+        options = { { label = "src/" } },
+      },
+      index = 1,
+      total = 1,
+      callback = function(result)
+        answer = result
+      end,
+    })
+
+    _G.press("gc")
+    cancel()
+    if _G.input_callback then
+      _G.input_callback("later")
+    end
+    return { answered = answer ~= nil, input_keys = input_keys, input_open = input_open }
+  ]])
+
+  h.eq(false, result.answered)
+  h.eq("<Esc>", result.input_keys)
+  h.eq(false, result.input_open)
+end
+
 return T
