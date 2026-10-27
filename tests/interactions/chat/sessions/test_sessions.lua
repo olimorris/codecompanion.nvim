@@ -104,6 +104,31 @@ T["Sessions"]["restores the buffer from the saved markdown"] = function()
   h.eq(child.lua_get([[_G.saved_lines]]), child.lua_get([[_G.restored_lines]]))
 end
 
+T["Sessions"]["restores into an input split with the context in the input"] = function()
+  local result = child.lua([[
+    local stem = _G.build_session()
+    require("codecompanion.config").display.chat.input.layout = "split"
+    local restored = _G.sessions.load(stem)
+    local lines = vim.api.nvim_buf_get_lines(restored.bufnr, 0, -1, false)
+    return {
+      modifiable = vim.bo[restored.bufnr].modifiable,
+      has_context = vim.tbl_contains(lines, "> Context:"),
+      input = vim.api.nvim_buf_get_lines(restored.ui.input.bufnr, 0, -1, false),
+    }
+  ]])
+
+  h.eq(false, result.modifiable)
+  h.eq(false, result.has_context)
+  h.eq({
+    "> Context:",
+    "> - <tool>weather</tool>",
+    "> - <group>test_group</group>",
+    "> - <file>init.lua</file>",
+    "",
+    "",
+  }, result.input)
+end
+
 T["Sessions"]["DROPS every rendered context block but the last"] = function()
   child.lua([[
     local stem = _G.build_session()

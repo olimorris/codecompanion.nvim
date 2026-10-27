@@ -90,7 +90,7 @@ function M.init()
   return {
     priority = 99,
     shortcut = "CodeCompanion",
-    filetypes = { "codecompanion", "codecompanion_input" },
+    filetypes = config.constants.PROMPT_FILETYPES,
     triggerCharacters = trigger_chars,
   }
 end

@@ -149,7 +149,7 @@ function SlashCommand:output(selected, opts)
         return utils.notify(fmt("MCP prompt `%s` has no text to add", selected.prompt.name), vim.log.levels.WARN)
       end
 
-      self.Chat:add_buf_message({ role = config.constants.USER_ROLE, content = text })
+      self.Chat:add_to_prompt(text)
     end,
   })
 end

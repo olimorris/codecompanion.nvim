@@ -307,9 +307,21 @@ function M.load(stem, opts)
 
   -- The saved markdown already carries the context block, so replant rather than re-render
   if saved_chat.ui_lines then
-    api.nvim_buf_set_lines(chat.bufnr, 0, -1, false, prune_context_blocks(saved_chat.ui_lines))
+    local lines = prune_context_blocks(saved_chat.ui_lines)
+    if chat.ui.input then
+      lines = chat.ui:move_prompt_to_input(lines)
+    end
+    chat.ui:unlock_buf()
+    api.nvim_buf_set_lines(chat.bufnr, 0, -1, false, lines)
+    if chat.ui.input then
+      chat.ui:lock_buf()
+      chat.header_line = api.nvim_buf_line_count(chat.bufnr)
+    end
   end
   chat.context:create_folds()
+  if chat.ui.input then
+    chat.context:render()
+  end
 
   -- Opening the chat counts as a user cursor move, which would stop `follow` short
   chat.ui.cursor.moved_by_user = false

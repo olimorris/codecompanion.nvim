@@ -7,6 +7,8 @@ if vim.fn.has("nvim-0.12") == 0 then
   return vim.notify("CodeCompanion.nvim requires Neovim 0.12+", vim.log.levels.ERROR)
 end
 
+local constants = require("codecompanion.config").constants
+
 local api = vim.api
 
 api.nvim_set_hl(0, "CodeCompanionChatError", { link = "DiagnosticError", default = true })
@@ -78,7 +80,7 @@ local make_hl_syntax = vim.schedule_wrap(function(bufnr)
 end)
 
 api.nvim_create_autocmd("FileType", {
-  pattern = { "codecompanion", "codecompanion_input" },
+  pattern = constants.PROMPT_FILETYPES,
   group = syntax_group,
   callback = function(args)
     make_hl_syntax(args.buf)
@@ -130,5 +132,4 @@ api.nvim_create_autocmd("BufEnter", {
   end,
 })
 
-vim.treesitter.language.register("markdown", "codecompanion")
-vim.treesitter.language.register("markdown", "codecompanion_input")
+vim.treesitter.language.register("markdown", constants.PROMPT_FILETYPES)

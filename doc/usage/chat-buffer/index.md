@@ -30,7 +30,7 @@ The Lua equivalents, `require("codecompanion").chat()` and `require("codecompani
 require("codecompanion").chat({ window_opts = { layout = "float", width = 0.6 } })
 ```
 
-Press `<CR>` or `<C-s>` in normal mode, or `<C-s>` in insert mode, to send your message. The response streams back into the buffer. While the LLM is running tools, press `gm` to send it a follow-up, which CodeCompanion delivers once it's safe to do so.
+Press `<CR>` or `<C-s>` in normal mode, or `<C-s>` in insert mode, to send your message. The response streams back into the buffer. While the LLM is running tools, press `gm` to send it a follow-up, which CodeCompanion delivers once it's safe to do so. To write your messages in a separate split instead, see [Input](/configuration/ui#input).
 
 ## Action Palette
 

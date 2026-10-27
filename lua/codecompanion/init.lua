@@ -112,14 +112,13 @@ CodeCompanion.add = function(args)
     end
   end
 
-  chat:add_buf_message({
-    role = config.constants.USER_ROLE,
-    content = string.format(
+  chat:add_to_prompt(
+    string.format(
       "Here is some code from %s:\n%s\n",
       context.path,
       markdown.form_codeblock(content, { ft = context.filetype })
-    ),
-  })
+    )
+  )
   chat.ui:open()
 end
 

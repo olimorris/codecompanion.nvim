@@ -9,6 +9,7 @@
 local codecompanion = require("codecompanion")
 local config = require("codecompanion.config")
 local triggers = require("codecompanion.triggers")
+local utils = require("codecompanion.utils")
 
 local _cached_adapters = {}
 local hidden = config.adapters.http.opts.hidden
@@ -382,7 +383,7 @@ return {
 
       -- If we're in a chat buffer, open the chat command palette instead
       local bufnr = vim.api.nvim_get_current_buf()
-      if vim.bo[bufnr].filetype == "codecompanion" then
+      if utils.is_chat_ft(vim.bo[bufnr].filetype) then
         local chat = require("codecompanion.interactions.chat").buf_get_chat(bufnr)
         if chat then
           return require("codecompanion.interactions.chat.action_palette").launch(chat)

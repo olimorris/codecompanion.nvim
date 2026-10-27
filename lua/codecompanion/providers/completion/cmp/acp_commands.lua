@@ -2,6 +2,7 @@ local cc_config = require("codecompanion.config")
 local completion = require("codecompanion.providers.completion")
 
 local trigger = require("codecompanion.triggers").mappings.acp_slash_commands
+local utils = require("codecompanion.utils")
 
 ---Execute selected ACP command (insert as text, no auto-submit)
 ---@param selected table
@@ -30,7 +31,7 @@ function source.new(config)
 end
 
 function source:is_available()
-  return vim.bo.filetype == "codecompanion" and cc_config.interactions.chat.slash_commands.opts.acp.enabled
+  return utils.is_chat_ft(vim.bo.filetype) and cc_config.interactions.chat.slash_commands.opts.acp.enabled
 end
 
 function source:get_trigger_characters()

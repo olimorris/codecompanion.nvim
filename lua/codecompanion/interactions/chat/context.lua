@@ -101,6 +101,17 @@ local function ts_parse_buffer(chat)
   return nil
 end
 
+---@param context CodeCompanion.Chat.ContextItem
+---@return string
+local function format_item(context)
+  if context.opts and context.opts.sync_all then
+    return string.format("> - %s%s", icons.sync_all, context.id)
+  elseif context.opts and context.opts.sync_diff then
+    return string.format("> - %s%s", icons.sync_diff, context.id)
+  end
+  return string.format("> - %s", context.id)
+end
+
 ---Add context to the chat buffer
 ---@param chat CodeCompanion.Chat
 ---@param opts { context: CodeCompanion.Chat.ContextItem, row: number }
@@ -111,17 +122,7 @@ local function add(chat, opts)
   end
   local lines = {}
 
-  -- Check if this context has special options and format accordingly
-  local context_text
-  if context.opts and context.opts.sync_all then
-    context_text = string.format("> - %s%s", icons.sync_all, context.id)
-  elseif context.opts and context.opts.sync_diff then
-    context_text = string.format("> - %s%s", icons.sync_diff, context.id)
-  else
-    context_text = string.format("> - %s", context.id)
-  end
-
-  table.insert(lines, context_text)
+  table.insert(lines, format_item(context))
 
   if vim.tbl_count(chat.context_items) == 1 then
     table.insert(lines, 1, context_header)
@@ -201,6 +202,13 @@ function Context:add(context)
       end
       context.opts.sync_diff = synced
     end
+  end
+
+  if self.Chat.ui.input then
+    if context and context.opts.visible then
+      self.Chat.ui.input:add_context(format_item(context))
+    end
+    return self
   end
 
   local parsed_buffer = ts_parse_buffer(self.Chat)
@@ -285,20 +293,16 @@ function Context:render()
   table.insert(lines, context_header)
 
   for _, context in pairs(chat.context_items) do
-    if not context or (context.opts and context.opts.visible == false) then
-      goto continue
+    if context and not (context.opts and context.opts.visible == false) then
+      table.insert(lines, format_item(context))
     end
-    if context.opts and context.opts.sync_all then
-      table.insert(lines, string.format("> - %s%s", icons.sync_all, context.id))
-    elseif context.opts and context.opts.sync_diff then
-      table.insert(lines, string.format("> - %s%s", icons.sync_diff, context.id))
-    else
-      table.insert(lines, string.format("> - %s", context.id))
-    end
-    ::continue::
   end
   if #lines == 1 then
     return
+  end
+
+  if chat.ui.input then
+    return chat.ui.input:set_context(lines)
   end
   table.insert(lines, "")
 
@@ -309,6 +313,11 @@ end
 ---Clear the rendered context block from the chat buffer (if present)
 ---@return CodeCompanion.Chat.Context
 function Context:clear_rendered()
+  if self.Chat.ui.input then
+    self.Chat.ui.input:set_context({})
+    return self
+  end
+
   local start_row, end_row = get_range(self.Chat)
   if not start_row or not end_row then
     return self
@@ -339,7 +348,7 @@ end
 ---Fold all of the context items in the chat buffer
 ---@return nil
 function Context:create_folds()
-  if not config.display.chat.fold_context then
+  if not config.display.chat.fold_context or self.Chat.ui.input then
     return
   end
 
@@ -384,6 +393,16 @@ end
 ---Get the context items from the chat buffer
 ---@return table
 function Context:get_from_chat()
+  local function clean(context)
+    return vim.trim(vim.iter(vim.tbl_values(icons)):fold(select(1, context:gsub("^> %- ", "")), function(acc, icon)
+      return select(1, acc:gsub(icon, ""))
+    end))
+  end
+
+  if self.Chat.ui.input then
+    return vim.tbl_map(clean, self.Chat.ui.input:get_context())
+  end
+
   local query = query_get("markdown", "cc_context")
 
   local tree = self.Chat.parsers.markdown:parse()[1]
@@ -398,12 +417,7 @@ function Context:get_from_chat()
     if query.captures[id] == "role" then
       role = helpers.format_role(get_node_text(node, chat.bufnr))
     elseif role == user_role and query.captures[id] == "context_item" then
-      local context = get_node_text(node, chat.bufnr)
-      -- Clean both icons
-      context = vim.iter(vim.tbl_values(icons)):fold(select(1, context:gsub("^> %- ", "")), function(acc, icon)
-        return select(1, acc:gsub(icon, ""))
-      end)
-      table.insert(items, vim.trim(context))
+      table.insert(items, clean(get_node_text(node, chat.bufnr)))
     end
   end
 

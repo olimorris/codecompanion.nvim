@@ -1,6 +1,7 @@
 local completion = require("codecompanion.providers.completion")
 
 local trigger = require("codecompanion.triggers").mappings.slash_commands
+local utils = require("codecompanion.utils")
 
 local source = {}
 
@@ -9,7 +10,7 @@ function source.new(config)
 end
 
 function source:is_available()
-  return vim.bo.filetype == "codecompanion"
+  return utils.is_chat_ft(vim.bo.filetype)
 end
 
 function source:get_trigger_characters()

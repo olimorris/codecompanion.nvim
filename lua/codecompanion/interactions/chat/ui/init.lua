@@ -61,6 +61,7 @@ end
 ---@field cursor { moved_by_user: boolean, pos?: table, followed_to?: table } Cursor state tracking
 ---@field folds CodeCompanion.Chat.UI.Folds The folds for the chat
 ---@field header_ns number The namespace for the header
+---@field input? CodeCompanion.Chat.UI.Input The split the user writes their prompt in, when the chat has one
 ---@field roles table The roles in the chat
 ---@field winnr number The window number of the chat
 ---@field settings table The settings for the chat
@@ -102,9 +103,21 @@ function UI.new(args)
 
   self.folds = require("codecompanion.interactions.chat.ui.folds")
 
+  local layout = (args.window_opts and args.window_opts.layout) or config.display.chat.window.layout
+  if config.display.chat.input.layout == "split" and layout ~= "float" then
+    self.input = require("codecompanion.interactions.chat.ui.input").new({
+      chat_bufnr = self.chat_bufnr,
+      on_closed = function()
+        if self:is_visible() then
+          self:hide()
+        end
+      end,
+    })
+  end
+
   api.nvim_create_autocmd("InsertEnter", {
     group = self.aug,
-    buffer = self.chat_bufnr,
+    buffer = self:prompt_bufnr(),
     once = true,
     desc = "Clear the virtual text in the CodeCompanion chat buffer",
     callback = function()
@@ -125,30 +138,9 @@ function UI.new(args)
           return
         end
 
-        ---@return nil
-        local function get_cursor_pos()
-          if not self:is_visible() then
-            return
-          end
-
-          if self:is_following() then
-            self.cursor.moved_by_user = false
-            self.cursor.pos = nil
-            return
-          end
-
-          local ok, cursor = pcall(api.nvim_win_get_cursor, self.winnr)
-          if not ok then
-            return
-          end
-
-          self.cursor.moved_by_user = true
-          self.cursor.pos = { cursor[1], cursor[2] }
-        end
-
         -- PERF: If we're testing, skip the debounce
         if debounce_ms == 0 then
-          return get_cursor_pos()
+          return self:track_cursor()
         end
 
         if debounce then
@@ -159,7 +151,7 @@ function UI.new(args)
 
         debounce = vim.defer_fn(function()
           debounce = nil
-          get_cursor_pos()
+          self:track_cursor()
         end, debounce_ms)
       end,
     })
@@ -196,7 +188,12 @@ function UI:_setup_after_open(opts)
     end)
   end
 
-  if not opts.toggled then
+  if self.input then
+    -- The cursor goes to the input, so the chat window would otherwise open on the top of the conversation
+    self.cursor.moved_by_user = false
+    self.cursor.pos = nil
+    pcall(api.nvim_win_set_cursor, self.winnr, { api.nvim_buf_line_count(self.chat_bufnr), 0 })
+  elseif not opts.toggled then
     if self.cursor.moved_by_user and self.cursor.pos then
       vim.schedule(function()
         if self:is_visible() then
@@ -209,8 +206,36 @@ function UI:_setup_after_open(opts)
   end
 
   self.folds:setup(self.winnr)
+  if self.input then
+    self:_open_input()
+  end
   utils.fire("ChatOpened", { bufnr = self.chat_bufnr, id = self.chat_id })
   return self
+end
+
+---Open the input beneath the chat window, closing it whenever the chat window closes
+---@return nil
+function UI:_open_input()
+  self.input:open({ chat_winnr = self.winnr })
+  api.nvim_create_autocmd("WinClosed", {
+    group = self.aug,
+    pattern = tostring(self.winnr),
+    once = true,
+    callback = function()
+      vim.schedule(function()
+        -- The chat may have been shown again before this runs
+        if not self:is_visible() then
+          self.input:hide()
+        end
+      end)
+    end,
+  })
+end
+
+---The buffer the user writes their prompt in
+---@return number
+function UI:prompt_bufnr()
+  return self.input and self.input.bufnr or self.chat_bufnr
 end
 
 ---Open/create the chat window
@@ -289,6 +314,13 @@ end
 ---@return nil
 function UI:hide(opts)
   opts = opts or {}
+  if self.input then
+    -- Otherwise the buffer layout swaps out whichever window the cursor lands in once the input closes
+    if api.nvim_get_current_win() == self.input.winnr and self:is_visible() then
+      api.nvim_set_current_win(self.winnr)
+    end
+    self.input:hide()
+  end
   if not opts.keep_window then
     local layout
     if self.window_opts then
@@ -300,6 +332,28 @@ function UI:hide(opts)
   end
 
   utils.fire("ChatHidden", { bufnr = self.chat_bufnr, id = self.chat_id })
+end
+
+---Record whether the user has moved the cursor away from the response, so auto-scroll stops following it
+---@return nil
+function UI:track_cursor()
+  if not self:is_visible() then
+    return
+  end
+
+  if self:is_following() then
+    self.cursor.moved_by_user = false
+    self.cursor.pos = nil
+    return
+  end
+
+  local ok, cursor = pcall(api.nvim_win_get_cursor, self.winnr)
+  if not ok then
+    return
+  end
+
+  self.cursor.moved_by_user = true
+  self.cursor.pos = { cursor[1], cursor[2] }
 end
 
 ---Follow the cursor in the chat buffer
@@ -458,7 +512,7 @@ function UI:render(context, messages, opts)
     end
   end
 
-  if config.display.chat.show_settings and self.adapter.type == "http" then
+  if config.display.chat.show_settings and self.adapter.type == "http" and not self.input then
     log:trace("Showing chat settings")
     lines = { "---" }
     local keys = schema.get_ordered_keys(self.adapter)
@@ -499,15 +553,50 @@ function UI:render(context, messages, opts)
     vim.list_extend(lines, vim.split(block, "\n", { plain = true }))
   end
 
+  if self.input then
+    lines = self:move_prompt_to_input(lines)
+  end
+
   self:unlock_buf()
   api.nvim_buf_set_lines(self.chat_bufnr, 0, -1, false, lines)
   -- A full rewrite leaves old marks bunched at the top, where `K` would open a stale tool call
   require("codecompanion.interactions.chat.ui.tool_calls").clear(self.chat_bufnr)
+  if self.input then
+    self:lock_buf()
+  end
   self:render_headers()
 
   self:follow()
 
   return self
+end
+
+---Move the trailing user prompt out of the rendered lines and into the input
+---@param lines string[]
+---@return string[]
+function UI:move_prompt_to_input(lines)
+  local header_row
+  for i = #lines, 1, -1 do
+    if vim.startswith(lines[i], "## ") then
+      header_row = i
+      break
+    end
+  end
+  if not header_row or lines[header_row] ~= self:format_header(self.roles.user) then
+    return lines
+  end
+
+  local prompt = vim.trim(table.concat(vim.list_slice(lines, header_row + 1), "\n"))
+  self.input:clear()
+  if prompt ~= "" then
+    self.input:add_prompt(prompt)
+  end
+
+  lines = vim.list_slice(lines, 1, header_row - 1)
+  while lines[#lines] == "" do
+    table.remove(lines)
+  end
+  return lines
 end
 
 ---Render the headers in the chat buffer and apply extmarks
@@ -553,7 +642,7 @@ function UI:set_intro_msg(message)
   if not config.display.chat.start_in_insert_mode then
     local extmark_id = self:set_virtual_text(message, "eol")
     api.nvim_create_autocmd("InsertEnter", {
-      buffer = self.chat_bufnr,
+      buffer = self:prompt_bufnr(),
       callback = function()
         self:clear_virtual_text(extmark_id)
       end,

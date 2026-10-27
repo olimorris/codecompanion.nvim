@@ -1,5 +1,6 @@
 local config = require("codecompanion.config")
 local log = require("codecompanion.utils.log")
+local utils = require("codecompanion.utils")
 
 local api = vim.api
 
@@ -41,7 +42,7 @@ end
 function Folds.fold_text()
   local bufnr = api.nvim_get_current_buf()
 
-  if vim.bo[bufnr].filetype ~= "codecompanion" then
+  if not utils.is_chat_ft(vim.bo[bufnr].filetype) then
     return vim.fn.foldtext()
   end
 

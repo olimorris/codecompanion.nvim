@@ -7,6 +7,8 @@ local constants = {
   LLM_ROLE = "llm",
   USER_ROLE = "user",
   SYSTEM_ROLE = "system",
+
+  PROMPT_FILETYPES = { "codecompanion", "codecompanion_chat_input", "codecompanion_input" },
 }
 
 local defaults = {
@@ -794,6 +796,25 @@ If you are providing code changes, use the edit_file tool (if available to you) 
           callback = "keymaps.tool_call_details",
           description = "Show the tool call under the cursor",
         },
+        -- Note: These are only set in the input, when the chat has one
+        scroll_chat_down = {
+          modes = { n = "<M-j>", i = "<M-j>" },
+          index = 24,
+          callback = "keymaps.scroll_chat_down",
+          description = "Scroll the chat down",
+        },
+        scroll_chat_up = {
+          modes = { n = "<M-k>", i = "<M-k>" },
+          index = 25,
+          callback = "keymaps.scroll_chat_up",
+          description = "Scroll the chat up",
+        },
+        scroll_chat_top_or_bottom = {
+          modes = { n = "<M-g>", i = "<M-g>" },
+          index = 26,
+          callback = "keymaps.scroll_chat_top_or_bottom",
+          description = "Jump to the bottom of the chat, or the top if already there",
+        },
         -- Note: This is only available during streaming
         _btw = {
           modes = { n = "gm" },
@@ -1410,6 +1431,12 @@ The user is working on a %s machine. Please respond with system specific command
         border = "single",
         relative = "editor",
         opts = {},
+      },
+
+      -- Where the user writes their prompt
+      input = {
+        layout = "buffer", -- buffer|split (a split beneath the chat window, ignored for the float layout)
+        height = 8, -- Height of the split
       },
 
       -- Chat buffer options --------------------------------------------------

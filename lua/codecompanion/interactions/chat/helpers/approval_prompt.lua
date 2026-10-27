@@ -35,10 +35,12 @@ local function build_message(opts)
 end
 
 ---Clean up keymaps set for the approval prompt
----@param opts { bufnr: number, choices: table }
+---@param opts { bufnrs: number[], choices: table }
 local function cleanup_keymaps(opts)
-  for _, choice in ipairs(opts.choices) do
-    pcall(vim.keymap.del, "n", choice.keymap, { buffer = opts.bufnr })
+  for _, bufnr in ipairs(opts.bufnrs) do
+    for _, choice in ipairs(opts.choices) do
+      pcall(vim.keymap.del, "n", choice.keymap, { buffer = bufnr })
+    end
   end
 end
 
@@ -77,28 +79,30 @@ local function add_selection(chat, choice_label)
   )
 end
 
----@param opts { bufnr: number, choices: CodeCompanion.Chat.ApprovalChoice[], is_resolved: fun(): boolean, on_done: fun(choice_label: string) }
+---@param opts { bufnrs: number[], choices: CodeCompanion.Chat.ApprovalChoice[], is_resolved: fun(): boolean, on_done: fun(choice_label: string) }
 ---@return nil
 local function set_keymaps(opts)
-  for _, choice in ipairs(opts.choices) do
-    vim.keymap.set("n", choice.keymap, function()
-      if opts.is_resolved() then
-        return
-      end
+  for _, bufnr in ipairs(opts.bufnrs) do
+    for _, choice in ipairs(opts.choices) do
+      vim.keymap.set("n", choice.keymap, function()
+        if opts.is_resolved() then
+          return
+        end
 
-      if not choice.preview then
-        opts.on_done(choice.label)
-      end
+        if not choice.preview then
+          opts.on_done(choice.label)
+        end
 
-      log:debug("[approval_prompt] User selected: %s", choice.label)
+        log:debug("[approval_prompt] User selected: %s", choice.label)
 
-      choice.callback()
-    end, {
-      buffer = opts.bufnr,
-      desc = choice.label,
-      silent = true,
-      nowait = true,
-    })
+        choice.callback()
+      end, {
+        buffer = bufnr,
+        desc = choice.label,
+        silent = true,
+        nowait = true,
+      })
+    end
   end
 end
 
@@ -140,13 +144,13 @@ function M.request(chat, opts)
       return
     end
     resolved = true
-    cleanup_keymaps({ bufnr = bufnr, choices = opts.choices })
+    cleanup_keymaps({ bufnrs = chat:get_bufnrs(), choices = opts.choices })
     add_selection(chat, choice_label)
     utils.fire("ToolApprovalFinished", { bufnr = bufnr, choice = choice_label })
   end
 
   set_keymaps({
-    bufnr = bufnr,
+    bufnrs = chat:get_bufnrs(),
     choices = opts.choices,
     is_resolved = function()
       return resolved
