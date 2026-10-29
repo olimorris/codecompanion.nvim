@@ -299,6 +299,49 @@ T["ACP Connection"]["use_session restores the model of the session it switches b
   h.eq("opus", result)
 end
 
+T["ACP Connection"]["sends systemPrompt metadata from config prompt"] = function()
+  local result = child.lua([[
+    local captured_params
+    local adapter = vim.deepcopy(test_adapter)
+
+    local connection = ACP.new({
+      adapter = adapter,
+      chat = {
+        messages = {
+          {
+            role = "system",
+            content = "Use project-specific instructions.",
+            _meta = { tag = "system_prompt_from_config" },
+          },
+        },
+      },
+      opts = {
+        schedule_wrap = function(fn) return fn end,
+        job = function() return { write = function() end } end,
+      },
+    })
+    function connection:prepare_adapter() return adapter end
+    connection._state.handle = { write = function() end }
+    function connection:send_rpc_request(method, params)
+      if method == "initialize" then
+        return { protocolVersion = 1, authMethods = {}, agentCapabilities = { loadSession = false } }
+      elseif method == "session/new" then
+        captured_params = params
+        return { sessionId = "new-session" }
+      end
+    end
+
+    local ok = connection:connect_and_initialize()
+    return {
+      ok = ok ~= nil,
+      system_prompt = captured_params._meta.systemPrompt,
+    }
+  ]])
+
+  h.eq(result.ok, true)
+  h.eq(result.system_prompt, "Use project-specific instructions.")
+end
+
 T["ACP Connection"]["falls back to session/new if session/load fails"] = function()
   local result = child.lua([[
     local calls = {}
