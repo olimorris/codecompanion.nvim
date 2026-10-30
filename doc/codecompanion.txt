@@ -7318,6 +7318,7 @@ Adapters built by the community:
 - Fireworks.ai <https://github.com/olimorris/codecompanion.nvim/discussions/693>
 - InceptionLabs - Mercury 2 <https://github.com/olimorris/codecompanion.nvim/discussions/2867>
 - Nvidia NIM <https://github.com/olimorris/codecompanion.nvim/discussions/2810>
+- Opper <https://github.com/olimorris/codecompanion.nvim/discussions/3487>
 - Venice.ai <https://github.com/olimorris/codecompanion.nvim/discussions/972>
 - Vertex AI <https://github.com/viespejo/cc-adapter-vertex-ai.nvim>
 
