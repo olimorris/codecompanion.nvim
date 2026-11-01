@@ -114,14 +114,6 @@ return {
       return self.args.query
     end,
 
-    ---The message which is shared with the user when asking for their approval
-    ---@param self CodeCompanion.Tools.Tool
-    ---@param meta { tools: CodeCompanion.Tools }
-    ---@return nil|string
-    prompt = function(self, meta)
-      return fmt("Search the cwd for `%s`?", self.args.query)
-    end,
-
     ---@param self CodeCompanion.Tool.FileSearch
     ---@param stdout table The output from the command
     ---@param meta { tools: CodeCompanion.Tools, cmd: table }

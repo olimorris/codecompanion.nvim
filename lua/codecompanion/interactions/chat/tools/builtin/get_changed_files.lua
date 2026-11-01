@@ -131,12 +131,6 @@ return {
   },
   output = {
     ---@param self CodeCompanion.Tool.GetChangedFiles
-    ---@param meta { tools: CodeCompanion.Tools }
-    prompt = function(self, meta)
-      return "Get changed files in the git repository?"
-    end,
-
-    ---@param self CodeCompanion.Tool.GetChangedFiles
     ---@param stdout table The output from the command
     ---@param meta { tools: CodeCompanion.Tools, cmd: table }
     success = function(self, stdout, meta)
