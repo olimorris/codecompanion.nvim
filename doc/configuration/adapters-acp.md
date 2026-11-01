@@ -215,6 +215,9 @@ A value matches either the option's value or its name, ignoring case. The model 
 
 ## Setting a System Prompt
 
+> [!IMPORTANT]
+> This feature is in beta. It's built on an [unstable part of the ACP spec](https://agentclientprotocol.com/rfds/client-system-prompt), so it may change or break between releases
+
 Agents have their own system prompt. By default, CodeCompanion appends a single line to it:
 
 ```txt
