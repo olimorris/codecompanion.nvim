@@ -299,7 +299,7 @@ return {
     ---@param opts { tools: CodeCompanion.Tools }
     ---@return string
     cmd_string = function(self, opts)
-      return self.args.filepath
+      return fmt("diagnostics for %s", self.args.filepath)
     end,
 
     ---@param self CodeCompanion.Tool.GetDiagnostics
