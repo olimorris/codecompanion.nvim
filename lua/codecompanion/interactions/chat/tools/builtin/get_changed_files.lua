@@ -5,6 +5,8 @@ local markdown = require("codecompanion.utils.markdown")
 
 local fmt = string.format
 
+local DEFAULT_STATES = { "unstaged", "staged", "merge-conflicts" }
+
 ---@param opts { state: string, max_lines: number }
 ---@return string[]|nil, string|nil
 local function get_git_diff(opts)
@@ -42,7 +44,7 @@ end
 ---@param opts { action: {source_control_state?: string[]}, max_lines: number }
 ---@return {status: "success"|"error", data: string}
 local function get_changed_files(opts)
-  local states = opts.action.source_control_state or { "unstaged", "staged", "merge-conflicts" }
+  local states = opts.action.source_control_state or DEFAULT_STATES
   local output = {}
 
   for _, state in ipairs(states) do
@@ -131,9 +133,11 @@ return {
   },
   output = {
     ---@param self CodeCompanion.Tool.GetChangedFiles
-    ---@param meta { tools: CodeCompanion.Tools }
-    prompt = function(self, meta)
-      return "Get changed files in the git repository?"
+    ---@param opts { tools: CodeCompanion.Tools }
+    ---@return string
+    cmd_string = function(self, opts)
+      local states = self.args.source_control_state or DEFAULT_STATES
+      return fmt("git changes (%s)", table.concat(states, ", "))
     end,
 
     ---@param self CodeCompanion.Tool.GetChangedFiles

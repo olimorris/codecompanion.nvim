@@ -25,7 +25,15 @@ local function read_back(str)
   return content, blocks
 end
 
-local FORMATTING_NODES = { emphasis = true, strong_emphasis = true, code_span = true, strikethrough = true }
+local FORMATTING_NODES = {
+  code_span = true,
+  emphasis = true,
+  html_tag = true,
+  inline_link = true,
+  latex_block = true,
+  strikethrough = true,
+  strong_emphasis = true,
+}
 
 ---Render `str` as inline markdown, returning the visible text and whether any of it is formatted
 ---@param str string
@@ -69,6 +77,10 @@ T["Markdown utils"]["escape_formatting"] = new_set({
     { "*.lua or tests/*" },
     { "C:\\Users\\*" },
     { "a\\`b`" },
+    { "echo $HOME $PATH" },
+    { "rm __init__.py" },
+    { "echo [a](b)" },
+    { "echo <div>" },
   },
 })
 

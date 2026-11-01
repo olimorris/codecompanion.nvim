@@ -491,29 +491,28 @@ return {
     end,
   },
   output = {
-    ---The message shared with the user when asking for approval
     ---@param self CodeCompanion.Tools.Tool
-    ---@param meta { tools: CodeCompanion.Tools }
-    ---@return nil|string
-    prompt = function(self, meta)
+    ---@param opts { tools: CodeCompanion.Tools }
+    ---@return string
+    cmd_string = function(self, opts)
       local args = self.args
       local command = args.command
 
       if command == "view" then
-        return fmt("View %s?", args.path)
+        return fmt("view %s", args.path)
       elseif command == "create" then
-        return fmt("Create file at %s?", args.path)
+        return fmt("create %s", args.path)
       elseif command == "str_replace" then
-        return fmt("Replace text in %s?", args.path)
+        return fmt("replace text in %s", args.path)
       elseif command == "insert" then
-        return fmt("Insert text at line %d in %s?", args.insert_line or 0, args.path)
+        return fmt("insert text at line %d in %s", args.insert_line or 0, args.path)
       elseif command == "delete" then
-        return fmt("Delete %s?", args.path)
+        return fmt("delete %s", args.path)
       elseif command == "rename" then
-        return fmt("Rename %s to %s?", args.old_path, args.new_path)
+        return fmt("rename %s to %s", args.old_path, args.new_path)
       end
 
-      return "Execute memory command?"
+      return command or ""
     end,
 
     ---@param self CodeCompanion.Tool.Memory

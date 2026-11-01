@@ -187,14 +187,6 @@ return {
       return self.args.filepath
     end,
 
-    ---The message which is shared with the user when asking for their approval
-    ---@param self CodeCompanion.Tools.Tool
-    ---@param meta { tools: CodeCompanion.Tools }
-    ---@return nil|string
-    prompt = function(self, meta)
-      return fmt("Read `%s`?", vim.fn.fnamemodify(self.args.filepath, ":."))
-    end,
-
     ---@param self CodeCompanion.Tool.ReadFile
     ---@param stdout {for_llm: string}[] The output from the command
     ---@param meta { tools: CodeCompanion.Tools, cmd: table }
