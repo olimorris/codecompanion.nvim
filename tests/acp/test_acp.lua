@@ -325,6 +325,146 @@ T["ACP Connection"]["falls back to session/new if session/load fails"] = functio
   h.eq(result.session_id, "new-session")
 end
 
+---Open a session with each option given as Lua source, capturing the session params and notifications
+---@param opts { system_prompt: string, capabilities: string, session_id?: string }
+local function open_session_with_system_prompt(opts)
+  return child.lua(string.format(
+    [[
+    local notifications = {}
+    vim.notify = function(msg) table.insert(notifications, msg) end
+
+    local adapter = vim.deepcopy(test_adapter)
+    adapter.formatted_name = "Test Agent"
+    adapter.defaults.system_prompt = %s
+
+    local connection = create_init_connection()
+    connection.adapter = adapter
+    connection.session_id = %s
+    function connection:prepare_adapter() return adapter end
+
+    local sent = {}
+    function connection:send_rpc_request(method, params)
+      if method == "initialize" then
+        return {
+          protocolVersion = 1,
+          authMethods = {},
+          agentCapabilities = { loadSession = true, sessionCapabilities = %s },
+        }
+      end
+      sent[method] = params
+      return { sessionId = "new-session" }
+    end
+
+    connection:connect_and_initialize()
+    return { sent = sent, notifications = notifications }
+  ]],
+    opts.system_prompt,
+    opts.session_id and string.format("%q", opts.session_id) or "nil",
+    opts.capabilities
+  ))
+end
+
+T["ACP Connection"]["sends the system prompt with session/new"] = function()
+  local result = open_session_with_system_prompt({
+    system_prompt = [[{ content = "No H1 headers" }]],
+    capabilities = [[{ systemPrompt = {} }]],
+  })
+
+  h.eq(
+    { mode = "append", content = { { type = "text", text = "No H1 headers" } } },
+    result.sent["session/new"].systemPrompt
+  )
+end
+
+T["ACP Connection"]["sends the system prompt with session/load"] = function()
+  local result = open_session_with_system_prompt({
+    system_prompt = [[{ content = "No H1 headers" }]],
+    capabilities = [[{ systemPrompt = {} }]],
+    session_id = "prev-session",
+  })
+
+  h.eq("No H1 headers", result.sent["session/load"].systemPrompt.content[1].text)
+end
+
+T["ACP Connection"]["passes the context to a system prompt function"] = function()
+  local result = open_session_with_system_prompt({
+    system_prompt = [[{
+      content = function(ctx) return ctx.default_system_prompt .. " Neovim " .. ctx.nvim_version end,
+    }]],
+    capabilities = [[{ systemPrompt = {} }]],
+  })
+
+  h.expect_match(result.sent["session/new"].systemPrompt.content[1].text, "H1 or H2 headers.* Neovim %d+%.%d+%.%d+$")
+end
+
+T["ACP Connection"]["starts the session without a system prompt when its function errors"] = function()
+  local result = open_session_with_system_prompt({
+    system_prompt = [[{ content = function() error("typo in my config") end }]],
+    capabilities = [[{ systemPrompt = {} }]],
+  })
+
+  h.eq(nil, result.sent["session/new"].systemPrompt)
+end
+
+T["ACP Connection"]["DOES NOT send the system prompt when the agent DOES NOT support it"] = function()
+  local result = open_session_with_system_prompt({
+    system_prompt = [[{ content = "No H1 headers" }]],
+    capabilities = [[{}]],
+  })
+
+  h.eq(nil, result.sent["session/new"].systemPrompt)
+  h.eq({ "Could not apply the system prompt: Test Agent doesn't support it" }, result.notifications)
+end
+
+T["ACP Connection"]["DOES NOT send an override system prompt when the agent ONLY supports append"] = function()
+  local result = open_session_with_system_prompt({
+    system_prompt = [[{ mode = "override", content = "You are a pirate" }]],
+    capabilities = [[{ systemPrompt = { mode = { override = vim.NIL } } }]],
+  })
+
+  h.eq(nil, result.sent["session/new"].systemPrompt)
+  h.eq({ "Could not apply the system prompt: Test Agent doesn't support override mode" }, result.notifications)
+end
+
+T["ACP Connection"]["sends an override system prompt when the agent supports override"] = function()
+  local result = open_session_with_system_prompt({
+    system_prompt = [[{ mode = "override", content = "You are a pirate" }]],
+    capabilities = [[{ systemPrompt = { mode = { override = {} } } }]],
+  })
+
+  h.eq("override", result.sent["session/new"].systemPrompt.mode)
+  h.eq({}, result.notifications)
+end
+
+T["ACP Connection"]["sends the default system prompt when the adapter DOES NOT set one"] = function()
+  local result = open_session_with_system_prompt({
+    system_prompt = "nil",
+    capabilities = [[{ systemPrompt = {} }]],
+  })
+
+  h.eq("append", result.sent["session/new"].systemPrompt.mode)
+  h.expect_match(result.sent["session/new"].systemPrompt.content[1].text, "H1 or H2 headers")
+end
+
+T["ACP Connection"]["DOES NOT notify when the default system prompt CAN'T be applied"] = function()
+  local result = open_session_with_system_prompt({
+    system_prompt = "nil",
+    capabilities = [[{}]],
+  })
+
+  h.eq(nil, result.sent["session/new"].systemPrompt)
+  h.eq({}, result.notifications)
+end
+
+T["ACP Connection"]["DOES NOT send a system prompt when the adapter sets it to false"] = function()
+  local result = open_session_with_system_prompt({
+    system_prompt = "false",
+    capabilities = [[{ systemPrompt = {} }]],
+  })
+
+  h.eq(nil, result.sent["session/new"].systemPrompt)
+end
+
 T["ACP Responses"] = new_set()
 
 T["ACP Responses"]["handles partial JSON messages correctly"] = function()

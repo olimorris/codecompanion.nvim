@@ -81,6 +81,7 @@ local context_paths = require("codecompanion.interactions.chat.helpers.context_p
 local helpers = require("codecompanion.interactions.chat.helpers")
 local parser = require("codecompanion.interactions.chat.parser")
 local schema = require("codecompanion.schema")
+local system_prompt = require("codecompanion.interactions.shared.system_prompt")
 local tags = require("codecompanion.interactions.shared.tags")
 
 local hash = require("codecompanion.utils.hash")
@@ -915,58 +916,11 @@ function Chat:complete_models(callback)
   callback({ items = items, isIncomplete = false })
 end
 
----@class CodeCompanion.SystemPrompt.Context
----@field language string
----@field adapter CodeCompanion.HTTPAdapter|CodeCompanion.ACPAdapter
----@field date string
----@field nvim_version string
----@field os string the operating system that the user is using
----@field default_system_prompt string
----@field cwd string current working directory
----@field project_root? string The closest parent directory that contains either a `.git`, `.svn`, or `.hg` directory
-
 ---@return CodeCompanion.SystemPrompt.Context
 function Chat:make_system_prompt_context()
-  ---@type table<string, fun(_chat: CodeCompanion.Chat):any>
-  local dynamic_ctx = {
-    -- These can be slow-to-run or too complex for a one-liner. So wrap them in
-    -- functions and use a metatable to handle the eval when needed.
-    adapter = function()
-      return adapters.make_safe(self.adapter)
-    end,
-    os = function()
-      local machine = vim.uv.os_uname().sysname
-      if machine == "Darwin" then
-        machine = "Mac"
-      end
-      if machine:find("Windows") then
-        machine = "Windows"
-      end
-      return machine
-    end,
-  }
-
-  local bufnr = self.bufnr
-  local winid = vim.fn.bufwinid(bufnr)
-  local static_ctx = { ---@type CodeCompanion.SystemPrompt.Context|{}
-    cwd = winid ~= -1 and vim.fn.getcwd(winid) or vim.fn.getcwd(),
-    date = tostring(os.date(config.interactions.opts.date_format)),
-    default_system_prompt = CONSTANTS.SYSTEM_PROMPT,
-    language = config.opts.language or "English",
-    nvim_version = vim.version().major .. "." .. vim.version().minor .. "." .. vim.version().patch,
-    project_root = vim.fs.root(bufnr, { ".git", ".svn", "hg" }),
-  }
-
-  ---@type CodeCompanion.SystemPrompt.Context
-  return setmetatable(static_ctx, {
-    __index = function(_, key)
-      local val = dynamic_ctx[key]
-      if type(val) == "function" then
-        return val()
-      end
-      return val
-    end,
-  })
+  local context = system_prompt.make_context({ adapter = self.adapter, bufnr = self.bufnr })
+  context.default_system_prompt = CONSTANTS.SYSTEM_PROMPT
+  return context
 end
 
 ---Set the system prompt in the chat buffer
@@ -1029,6 +983,10 @@ end
 ---Toggle the system prompt in the chat buffer
 ---@return nil
 function Chat:toggle_system_prompt()
+  if self.adapter.type == "acp" then
+    return utils.notify("The system prompt can't be toggled in an ACP chat")
+  end
+
   if helpers.has_tag(tags.SYSTEM_PROMPT_FROM_CONFIG, self.messages) then
     self:remove_tagged_message(tags.SYSTEM_PROMPT_FROM_CONFIG)
     utils.notify("Removed system prompt")

@@ -7,7 +7,7 @@ description: "Replace or extend the system prompts CodeCompanion sends with ever
 A _system prompt_ sets how the LLM behaves before it sees your first message. CodeCompanion sends one with every request from a chat buffer, and a second one when [tools](/usage/chat-buffer/agents-tools) are in use.
 
 > [!NOTE]
-> System prompts only apply to HTTP adapters. ACP agents bring their own
+> System prompts only apply to HTTP adapters. ACP agents bring their own, which you can [add to or replace](/configuration/adapters-acp#setting-a-system-prompt)
 
 ## Chat System Prompt
 

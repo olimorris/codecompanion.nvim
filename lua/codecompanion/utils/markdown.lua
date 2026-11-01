@@ -18,7 +18,7 @@ end
 ---@param text string
 ---@return string
 function M.escape_formatting(text)
-  return (text:gsub("[`*\\~]", "\\%0"))
+  return (text:gsub("[`*_~\\$%[%]<]", "\\%0"))
 end
 
 ---@param content string

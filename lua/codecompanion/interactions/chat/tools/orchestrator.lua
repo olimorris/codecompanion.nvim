@@ -6,6 +6,7 @@ local tool_calls = require("codecompanion.interactions.chat.ui.tool_calls")
 
 local config = require("codecompanion.config")
 local log = require("codecompanion.utils.log")
+local markdown = require("codecompanion.utils.markdown")
 local os_utils = require("codecompanion.utils.os")
 local ui_utils = require("codecompanion.utils.ui")
 local utils = require("codecompanion.utils")
@@ -423,7 +424,7 @@ function Orchestrator:_prompt_for_approval(args)
     })
   end
   if args.reason and args.reason ~= "" then
-    prompt = fmt('%s\nJudge: _"%s"_', prompt, args.reason)
+    prompt = fmt('%s\n**Judge**: _"%s"_', prompt, markdown.escape_formatting(args.reason))
   end
 
   local labels = require("codecompanion.interactions.chat.tools.labels")
