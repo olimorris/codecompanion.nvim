@@ -1,4 +1,4 @@
-*codecompanion.txt*         For NVIM v0.12        Last change: 2026 October 31
+*codecompanion.txt*        For NVIM v0.12        Last change: 2026 November 01
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -6341,11 +6341,24 @@ line to it:
 
 To replace that line with your own:
 
-`lua {6-11} require("codecompanion").setup({ adapters = { acp = { claude_code =
-function() return require("codecompanion.adapters").extend("claude_code", {
-defaults = { system_prompt = { mode = "append", -- Can be "append" or
-"override" content = "Always reply in British English.", }, }, }) end, }, },
-})`
+>lua
+    require("codecompanion").setup({
+      adapters = {
+        acp = {
+          claude_code = function()
+            return require("codecompanion.adapters").extend("claude_code", {
+              defaults = {
+                system_prompt = {
+                  mode = "append", -- Can be "append" or "override"
+                  content = "Always reply in British English.",
+                },
+              },
+            })
+          end,
+        },
+      },
+    })
+<
 
 `mode` defaults to `append`. **override replaces the agent's own instructions,
 including how it uses its tools**, so only use it to supply a full replacement.
@@ -6355,11 +6368,23 @@ including how it uses its tools**, so only use it to supply a full replacement.
 add to it:
 
 >lua
-    system_prompt = {
-      content = function(ctx)
-        return ctx.default_system_prompt .. "\n\nAlways reply in British English."
-      end,
-    },
+    require("codecompanion").setup({
+      adapters = {
+        acp = {
+          claude_code = function()
+            return require("codecompanion.adapters").extend("claude_code", {
+              defaults = {
+                system_prompt = {
+                  content = function(ctx)
+                    return ctx.default_system_prompt .. "\n\nAlways reply in British English."
+                  end,
+                },
+              },
+            })
+          end,
+        },
+      },
+    })
 <
 
 To send nothing, set `system_prompt = false`.

@@ -226,7 +226,7 @@ Do not use H1 or H2 headers in your response, unless writing the contents of a m
 
 To replace that line with your own:
 
-```lua {6-11}
+```lua
 require("codecompanion").setup({
   adapters = {
     acp = {
@@ -250,11 +250,23 @@ require("codecompanion").setup({
 `content` can also be a function, which receives the same context as the [chat system prompt](/configuration/system-prompt). To keep CodeCompanion's line and add to it:
 
 ```lua
-system_prompt = {
-  content = function(ctx)
-    return ctx.default_system_prompt .. "\n\nAlways reply in British English."
-  end,
-},
+require("codecompanion").setup({
+  adapters = {
+    acp = {
+      claude_code = function()
+        return require("codecompanion.adapters").extend("claude_code", {
+          defaults = {
+            system_prompt = {
+              content = function(ctx)
+                return ctx.default_system_prompt .. "\n\nAlways reply in British English."
+              end,
+            },
+          },
+        })
+      end,
+    },
+  },
+})
 ```
 
 To send nothing, set `system_prompt = false`.

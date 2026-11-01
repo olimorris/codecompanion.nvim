@@ -397,6 +397,15 @@ T["ACP Connection"]["passes the context to a system prompt function"] = function
   h.expect_match(result.sent["session/new"].systemPrompt.content[1].text, "H1 or H2 headers.* Neovim %d+%.%d+%.%d+$")
 end
 
+T["ACP Connection"]["starts the session without a system prompt when its function errors"] = function()
+  local result = open_session_with_system_prompt({
+    system_prompt = [[{ content = function() error("typo in my config") end }]],
+    capabilities = [[{ systemPrompt = {} }]],
+  })
+
+  h.eq(nil, result.sent["session/new"].systemPrompt)
+end
+
 T["ACP Connection"]["DOES NOT send the system prompt when the agent DOES NOT support it"] = function()
   local result = open_session_with_system_prompt({
     system_prompt = [[{ content = "No H1 headers" }]],

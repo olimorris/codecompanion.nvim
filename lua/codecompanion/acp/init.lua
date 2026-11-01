@@ -499,7 +499,12 @@ function Connection:_build_system_prompt()
   if type(content) == "function" then
     local context = system_prompt.make_context({ adapter = self.adapter, bufnr = self.chat and self.chat.bufnr })
     context.default_system_prompt = DEFAULT_SYSTEM_PROMPT
-    content = content(context)
+    local ok, result = pcall(content, context)
+    if not ok then
+      log:error("[acp::_build_system_prompt] The system prompt function failed: %s", result)
+      return nil
+    end
+    content = result
   end
   if type(content) ~= "string" or content == "" then
     return nil
