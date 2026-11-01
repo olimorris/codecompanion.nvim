@@ -113,29 +113,6 @@ local function prune_context_blocks(lines)
   return kept
 end
 
----Write a saved chat's lines back into the chat buffer and its input
----@param chat CodeCompanion.Chat
----@param opts { lines?: string[] }
----@return nil
-local function restore_lines(chat, opts)
-  if not chat.ui.input then
-    -- The saved markdown already carries the context block, so replant rather than re-render
-    if opts.lines then
-      api.nvim_buf_set_lines(chat.bufnr, 0, -1, false, opts.lines)
-    end
-    return chat.context:create_folds()
-  end
-
-  if opts.lines then
-    local lines = chat.ui:move_prompt_to_input(opts.lines)
-    chat.ui:unlock_buf()
-    api.nvim_buf_set_lines(chat.bufnr, 0, -1, false, lines)
-    chat.ui:lock_buf()
-    chat:_set_header_line_to_end()
-  end
-  chat.context:render()
-end
-
 ---Write the current state of a tracked chat to disk
 ---@param chat CodeCompanion.Chat
 ---@return boolean ok
@@ -328,7 +305,7 @@ function M.load(stem, opts)
   serializer.restore_tools(chat, saved_chat.chat.tools)
   chat:set_title(saved_chat.meta.title)
 
-  restore_lines(chat, { lines = saved_chat.ui_lines and prune_context_blocks(saved_chat.ui_lines) })
+  chat.prompt:restore_lines(saved_chat.ui_lines and prune_context_blocks(saved_chat.ui_lines))
 
   -- Opening the chat counts as a user cursor move, which would stop `follow` short
   chat.ui.cursor.moved_by_user = false

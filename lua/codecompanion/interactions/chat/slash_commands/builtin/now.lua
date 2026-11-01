@@ -16,7 +16,7 @@ end
 ---@return nil
 function SlashCommand:execute()
   local Chat = self.Chat
-  Chat:add_to_prompt(os.date("%a, %d %b %Y %H:%M:%S %z") --[[@as string]])
+  Chat.prompt:add(os.date("%a, %d %b %Y %H:%M:%S %z") --[[@as string]])
 end
 
 return SlashCommand

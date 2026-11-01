@@ -59,30 +59,7 @@ require("codecompanion").setup({
 })
 ```
 
-With the split, the chat buffer is read-only, so you can scroll through a response and write your next message whilst it streams:
-
-- **Submitting** - Your message is added to the chat buffer under your header
-- **Queueing** - A message sent whilst the LLM is responding is queued and delivered once it's safe to do so. Sending another adds it to the same message. Stopping the response moves the queued message back into the input
-- **Context** - Shared context sits at the top of the input and stays there between messages. It's never folded. Delete a line to remove that item
-- **Filetype** - The input is a `codecompanion_chat_input` buffer, so it can be targeted separately from the chat buffer in your statusline or autocmds
-- **Keymaps** - Every chat buffer keymap works in both windows. `[[` and `]]` move between messages in the chat buffer, even from the input. Pressing `i`, `a`, `I`, `A`, `o` or `O` in the chat buffer moves you to the input
-- **Window** - Hiding or closing either window closes both. If you resize the input, that chat keeps the new height until you restart Neovim. New chats open at `height`
-
-The input also has keymaps to scroll the chat buffer without leaving it, in normal and insert mode:
-
-| Keymap | Name | Description |
-| ------ | ---- | ----------- |
-| `<M-j>` | `scroll_chat_down` | Scroll the chat down half a page |
-| `<M-k>` | `scroll_chat_up` | Scroll the chat up half a page |
-| `<M-g>` | `scroll_chat_jump` | Jump to the bottom of the chat, or to the top if you're already at the bottom |
-
-Scrolling up stops the chat following the response, and jumping back to the bottom starts it again. To change these keymaps, see [Keymaps](/configuration/chat-buffer#keymaps).
-
-> [!TIP]
-> On macOS, your terminal must send the Option key as Meta for `<M-j>`, `<M-k>` and `<M-g>` to reach Neovim
-
-> [!NOTE]
-> The split isn't available for the `float` layout, and the chat settings aren't shown at the top of the chat buffer
+The split isn't available for the `float` layout. For how it changes the chat buffer, see [Customising the Chat Experience](/guides/customising-the-chat-experience#writing-your-message).
 
 ## Layout
 

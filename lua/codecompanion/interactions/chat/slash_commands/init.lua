@@ -203,7 +203,7 @@ function SlashCommands.run(selected, chat)
       if prompt.role == config.constants.SYSTEM_ROLE then
         chat:add_message(prompt, { visible = false })
       elseif prompt.role == config.constants.USER_ROLE then
-        chat:add_to_prompt(prompt.content)
+        chat.prompt:add(prompt.content)
       end
     end)
   else

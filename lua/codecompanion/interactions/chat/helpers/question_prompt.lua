@@ -193,7 +193,7 @@ function M.ask(chat, opts)
     utils.notify("The LLM has a question for you")
   end
 
-  local overrides = vim.tbl_map(keymaps.Override.new, chat:get_bufnrs())
+  local overrides = vim.tbl_map(keymaps.Override.new, chat.prompt:get_bufnrs())
   local resolved = false
 
   local function bind(lhs, callback, desc)

@@ -144,13 +144,13 @@ function M.request(chat, opts)
       return
     end
     resolved = true
-    cleanup_keymaps({ bufnrs = chat:get_bufnrs(), choices = opts.choices })
+    cleanup_keymaps({ bufnrs = chat.prompt:get_bufnrs(), choices = opts.choices })
     add_selection(chat, choice_label)
     utils.fire("ToolApprovalFinished", { bufnr = bufnr, choice = choice_label })
   end
 
   set_keymaps({
-    bufnrs = chat:get_bufnrs(),
+    bufnrs = chat.prompt:get_bufnrs(),
     choices = opts.choices,
     is_resolved = function()
       return resolved

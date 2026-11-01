@@ -226,7 +226,7 @@ end
 T["Input"]["adds text from slash commands to the input"] = function()
   local result = child.lua([[
     write({ "The date is" })
-    chat:add_to_prompt("today")
+    chat.prompt:add("today")
     return { chat = chat_lines(), input = input_lines() }
   ]])
 

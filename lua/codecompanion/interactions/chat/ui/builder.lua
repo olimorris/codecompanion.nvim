@@ -386,10 +386,10 @@ function Builder:update_line(line_number, content, opts)
   return true, new_icon_id
 end
 
----The chat buffer stays editable whilst the user writes their prompt in it, unless they write it in the input
+---The chat buffer stays editable whilst the user writes their prompt in it
 ---@return boolean
 function Builder:_should_lock_buf()
-  return self.state.last_role ~= config.constants.USER_ROLE or self.chat.ui.input ~= nil
+  return self.state.last_role ~= config.constants.USER_ROLE or self.chat.prompt.locks_chat_buffer
 end
 
 return Builder

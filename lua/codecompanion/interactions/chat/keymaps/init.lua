@@ -781,8 +781,7 @@ M.btw = {
   ---@param chat CodeCompanion.Chat
   set = function(chat)
     local btw_keymap = config.interactions.chat.keymaps._btw
-    -- Submitting from the input already queues a message
-    if not btw_keymap or chat.ui.input then
+    if not btw_keymap or chat.prompt.queues_messages then
       return
     end
 

@@ -112,7 +112,7 @@ CodeCompanion.add = function(args)
     end
   end
 
-  chat:add_to_prompt(
+  chat.prompt:add(
     string.format(
       "Here is some code from %s:\n%s\n",
       context.path,

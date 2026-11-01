@@ -23,6 +23,7 @@
 ---@field intro_message? string The welcome message that is displayed in the chat buffer
 ---@field messages? CodeCompanion.Chat.Messages The messages in the chat buffer
 ---@field opts CodeCompanion.ChatArgs Store all arguments in this table
+---@field prompt CodeCompanion.Chat.Prompt Where the user writes their prompt, in the chat buffer or the input
 ---@field parsers { markdown: vim.treesitter.LanguageTree, yaml?: vim.treesitter.LanguageTree } Tree-sitter parsers attached to the chat buffer
 ---@field session_id string An identifier for the life of the chat buffer (designed for external use)
 ---@field settings? table The settings that are used in the adapter of the chat buffer
@@ -43,7 +44,6 @@
 ---@field _last_role string The last role that was rendered in the chat buffer
 ---@field _status table Bookkeeping for the current status virtual text (extmark id + status flag)
 ---@field _turn_in_progress? boolean Whether the LLM is still working on the user's last submission
----@field _unsent_input? { row: number, lines: string[], builder_state: CodeCompanion.Chat.UI.BuilderState } The input written to the chat buffer but not yet sent
 ---@field _tool_monitors? table A table of tool monitors that are currently running in the chat buffer
 
 ---@class CodeCompanion.ChatArgs Arguments that can be injected into the chat
@@ -246,7 +246,7 @@ local last_chat = {}
 local function set_autocmds(chat)
   local bufnr = chat.bufnr
 
-  for _, buf in ipairs(chat:get_bufnrs()) do
+  for _, buf in ipairs(chat.prompt:get_bufnrs()) do
     api.nvim_create_autocmd("BufEnter", {
       group = chat.aug,
       buffer = buf,
@@ -481,6 +481,7 @@ local function init_components(chat, args)
     title = chat.title,
     window_opts = args.window_opts,
   })
+  chat.prompt = require("codecompanion.interactions.chat.prompt").new(chat)
   chat.watchers = require("codecompanion.interactions.chat.watchers").new()
 end
 
@@ -496,7 +497,7 @@ local function init_keymaps(chat)
   end
   local slash_command_keymaps = helpers.slash_command_keymaps(config.interactions.chat.slash_commands)
 
-  for _, bufnr in ipairs(chat:get_bufnrs()) do
+  for _, bufnr in ipairs(chat.prompt:get_bufnrs()) do
     keymaps
       .new({
         bufnr = bufnr,
@@ -518,13 +519,7 @@ local function init_keymaps(chat)
     end
   end
 
-  if chat.ui.input then
-    for _, key in ipairs({ "i", "a", "I", "A", "o", "O" }) do
-      vim.keymap.set("n", key, function()
-        chat.ui.input:focus()
-      end, { buffer = chat.bufnr, desc = "Write in the input", nowait = true })
-    end
-  end
+  chat.prompt:set_keymaps()
 end
 
 ---Preload default tools and any tools explicitly listed in args
@@ -696,13 +691,7 @@ function Chat.new(args)
     self.ui:render(self.buffer_context, self.messages, { stop_context_insertion = args.stop_context_insertion })
   end
 
-  -- For restored chats, locate the last user header via Tree-sitter once
-  if self.ui.input then
-    self:_set_header_line_to_end()
-  elseif args.messages and vim.tbl_count(args.messages) > 0 then
-    local header_line = parser.headers(self)
-    self.header_line = header_line and (header_line + 1) or 1
-  end
+  self.prompt:set_header_line({ messages = args.messages })
 
   if vim.tbl_isempty(self.messages) or not helpers.has_user_messages(args.messages) then
     self.ui:set_intro_msg(self.intro_message)
@@ -1248,100 +1237,13 @@ function Chat:_inject_btw()
   self._btw = nil
 end
 
----Queue what the user has written in the input, to be sent once the LLM is ready
----@return nil
-function Chat:_queue_input()
-  local prompt = self.ui.input:get_prompt()
-  if prompt == "" then
-    return
-  end
-
-  self:btw(prompt)
-  self.ui.input:clear_prompt()
-  utils.notify("Message queued. It will be sent when the LLM is ready")
-end
-
----Write the input into the chat buffer as the user's next message
----@return nil
-function Chat:_add_input_to_buffer()
-  local prompt = self.ui.input:get_prompt()
-  if prompt == "" then
-    return
-  end
-
-  local is_first_message = api.nvim_buf_line_count(self.bufnr) == 1
-    and api.nvim_buf_get_lines(self.bufnr, 0, 1, false)[1] == ""
-
-  self._unsent_input = {
-    row = is_first_message and 0 or api.nvim_buf_line_count(self.bufnr),
-    lines = self.ui.input:get_lines(),
-    builder_state = vim.deepcopy(self.builder.state),
-  }
-  self:add_buf_message(
-    { role = config.constants.USER_ROLE, content = prompt },
-    { force_role = true, type = self.MESSAGE_TYPES.USER_MESSAGE }
-  )
-  self.ui.input:clear_prompt()
-
-  -- The builder spaces a header from the message above it, which a new chat doesn't have
-  if is_first_message then
-    self.ui:unlock_buf()
-    api.nvim_buf_set_lines(self.bufnr, 0, 2, false, {})
-    self.ui:lock_buf()
-    self.builder.state.current_header_line = 0
-  end
-end
-
----Move a message that was prevented from being sent out of the chat buffer and back into the input
----@return nil
-function Chat:_return_unsent_input()
-  local unsent = self._unsent_input
-  self._unsent_input = nil
-
-  self.ui:unlock_buf()
-  api.nvim_buf_set_lines(self.bufnr, unsent.row, -1, false, {})
-  self.ui:lock_buf()
-
-  self.builder.state = unsent.builder_state
-  self._last_role = unsent.builder_state.last_role
-  api.nvim_buf_set_lines(self.ui.input.bufnr, 0, -1, false, unsent.lines)
-end
-
----Start Tree-sitter parsing from the end of the chat buffer, where the input writes the next message
----@return nil
-function Chat:_set_header_line_to_end()
-  self.header_line = api.nvim_buf_line_count(self.bufnr)
-end
-
----Add text to the user's prompt, in the input when the chat has one
----@param content string
----@return nil
-function Chat:add_to_prompt(content)
-  if self.ui.input then
-    return self.ui.input:add_prompt(content)
-  end
-  self:add_buf_message({ role = config.constants.USER_ROLE, content = content })
-end
-
----The chat buffer and, when the chat has one, its input
----@return number[]
-function Chat:get_bufnrs()
-  if self.ui.input then
-    return { self.bufnr, self.ui.input.bufnr }
-  end
-  return { self.bufnr }
-end
-
 ---Make a request to the LLM using the HTTP client
 ---@param payload table The payload to send to the LLM
 ---@return nil
 function Chat:_submit_http(payload)
   local adapter = self.adapter ---@cast adapter CodeCompanion.HTTPAdapter
 
-  if show_settings and not self.ui.input then
-    local settings = parser.settings(self.bufnr, self.parsers.yaml, adapter)
-    helpers.apply_settings_and_model(self, settings)
-  end
+  self.prompt:apply_settings()
 
   local mapped_settings = adapter:map_schema_to_params(self.settings)
   log:trace("Settings:\n%s", mapped_settings)
@@ -1469,11 +1371,8 @@ end
 function Chat:submit(opts)
   opts = opts or {}
 
-  if self.ui.input and not opts.auto_submit and not opts.regenerate then
-    if self._turn_in_progress or self.current_request then
-      return self:_queue_input()
-    end
-    self:_add_input_to_buffer()
+  if not opts.auto_submit and not opts.regenerate and not self.prompt:prepare_submit() then
+    return
   end
 
   if self.current_request then
@@ -1541,7 +1440,7 @@ function Chat:submit(opts)
     if self:message_too_big(message_to_submit) then
       return self:restore()
     end
-    self._unsent_input = nil
+    self.prompt:mark_sent()
 
     if message_to_submit then
       context_paths.attach({ chat = self, message = message_to_submit })
@@ -1894,10 +1793,7 @@ end
 ---Stop streaming the response from the LLM
 ---@return nil
 function Chat:stop()
-  if self.ui.input and self._btw then
-    self.ui.input:prepend_prompt(self._btw)
-    self._btw = nil
-  end
+  self.prompt:return_queued()
 
   self.status = CONSTANTS.STATUS_CANCELLING
   self:dispatch("on_cancelled")
@@ -1963,9 +1859,7 @@ function Chat:close()
   chats[self.bufnr] = nil
   approvals:reset(self.bufnr)
   registry.remove(self.bufnr)
-  if self.ui.input then
-    self.ui.input:close()
-  end
+  self.prompt:close()
   pcall(api.nvim_buf_delete, self.bufnr, { force = true })
   if self.aug then
     api.nvim_clear_autocmds({ group = self.aug })
@@ -2080,17 +1974,8 @@ function Chat:ready_for_input(opts)
   if not opts.auto_submit and self._last_role ~= config.constants.USER_ROLE then
     self.cycle = self.cycle + 1
 
-    local tokens_row
-    if self.ui.input then
-      -- The next message is written beneath everything currently in the chat buffer
-      tokens_row = (self.builder.state.current_header_line or 0) + 1
-      self:_set_header_line_to_end()
-    else
-      self:add_buf_message({ role = config.constants.USER_ROLE, content = "" })
-      self.header_line = (self.builder.state.current_header_line or 0) + 1
-      tokens_row = self.header_line
-    end
-    self.ui:display_tokens({ parser = self.parsers.markdown, start_row = tokens_row, tokens = self.tokens })
+    local next_message = self.prompt:start_next_message()
+    self.ui:display_tokens({ parser = self.parsers.markdown, start_row = next_message.tokens_row, tokens = self.tokens })
     self.context:render()
 
     self:dispatch("on_ready")
@@ -2116,9 +2001,7 @@ end
 ---@return nil
 function Chat:reset()
   self.status = ""
-  if not self.ui.input then
-    self.ui:unlock_buf()
-  end
+  self.prompt:make_editable()
 end
 
 ---Restore the chat buffer to an editable state (used when a submission is prevented)
@@ -2126,9 +2009,7 @@ end
 function Chat:restore()
   require("codecompanion.interactions.chat.keymaps").btw.remove(self)
   self._turn_in_progress = false
-  if self._unsent_input then
-    self:_return_unsent_input()
-  end
+  self.prompt:return_unsent()
   self:reset()
   utils.fire("ChatRestored", { bufnr = self.bufnr, id = self.id })
 end
@@ -2152,9 +2033,7 @@ function Chat:clear()
 
   self.watchers:clear()
   self.tool_registry:clear()
-  if self.ui.input then
-    self.ui.input:clear()
-  end
+  self.prompt:clear()
   self.builder:discard()
 
   log:trace("Clearing chat buffer")
@@ -2274,7 +2153,7 @@ function Chat.buf_get_chat(bufnr)
     return chats[bufnr]
   end
   for _, chat in pairs(chats) do
-    if chat.ui.input and chat.ui.input.bufnr == bufnr then
+    if vim.tbl_contains(chat.prompt:get_bufnrs(), bufnr) then
       return chat
     end
   end
