@@ -105,25 +105,10 @@ function UI.new(args)
 
   local layout = (args.window_opts and args.window_opts.layout) or config.display.chat.window.layout
   if config.display.chat.input.layout == "split" and layout ~= "float" then
-    self.input = require("codecompanion.interactions.chat.ui.input").new({
-      chat_bufnr = self.chat_bufnr,
-      on_closed = function()
-        if self:is_visible() then
-          self:hide()
-        end
-      end,
-    })
+    self:_setup_input()
+  else
+    self:_setup_buffer_prompt()
   end
-
-  api.nvim_create_autocmd("InsertEnter", {
-    group = self.aug,
-    buffer = self:prompt_bufnr(),
-    once = true,
-    desc = "Clear the virtual text in the CodeCompanion chat buffer",
-    callback = function()
-      api.nvim_buf_clear_namespace(self.chat_bufnr, CONSTANTS.NS_VIRTUAL_TEXT, 0, -1)
-    end,
-  })
 
   if config.display.chat.auto_scroll then
     local debounce = nil
@@ -172,6 +157,34 @@ function UI.new(args)
   end
 
   return self
+end
+
+---Create the input split that the user writes their prompt in, separate from the conversation
+---@return nil
+function UI:_setup_input()
+  self.input = require("codecompanion.interactions.chat.ui.input").new({
+    chat_bufnr = self.chat_bufnr,
+    on_closed = function()
+      if self:is_visible() then
+        self:hide()
+      end
+    end,
+  })
+  self:_watch_text_changes()
+end
+
+---Prepare the chat buffer for the user to write their prompt in it
+---@return nil
+function UI:_setup_buffer_prompt()
+  api.nvim_create_autocmd("InsertEnter", {
+    group = self.aug,
+    buffer = self.chat_bufnr,
+    once = true,
+    desc = "Clear the virtual text in the CodeCompanion chat buffer",
+    callback = function()
+      api.nvim_buf_clear_namespace(self.chat_bufnr, CONSTANTS.NS_VIRTUAL_TEXT, 0, -1)
+    end,
+  })
 end
 
 ---@param opts? { toggled?: boolean }
@@ -227,6 +240,29 @@ function UI:_open_input()
         if not self:is_visible() then
           self.input:hide()
         end
+      end)
+    end,
+  })
+end
+
+---Fire TextChanged when the chat buffer changes whilst the user is in the input, as Neovim only fires it for the current buffer
+---@return nil
+function UI:_watch_text_changes()
+  local is_scheduled = false
+  api.nvim_buf_attach(self.chat_bufnr, false, {
+    on_lines = function()
+      if is_scheduled then
+        return
+      end
+      is_scheduled = true
+      vim.schedule(function()
+        is_scheduled = false
+        if not api.nvim_buf_is_valid(self.chat_bufnr) or api.nvim_get_current_buf() == self.chat_bufnr then
+          return
+        end
+        api.nvim_buf_call(self.chat_bufnr, function()
+          api.nvim_exec_autocmds("TextChanged", { buffer = self.chat_bufnr, modeline = false })
+        end)
       end)
     end,
   })
@@ -639,10 +675,24 @@ function UI:set_intro_msg(message)
     return self
   end
 
-  if not config.display.chat.start_in_insert_mode then
+  if self.input then
+    local extmark_id = self:set_virtual_text(message, "eol")
+    api.nvim_create_autocmd("User", {
+      group = self.aug,
+      pattern = "CodeCompanionChatSubmitted",
+      callback = function(event)
+        if event.data.bufnr ~= self.chat_bufnr then
+          return
+        end
+        self:clear_virtual_text(extmark_id)
+        return true
+      end,
+    })
+    self.intro_message = true
+  elseif not config.display.chat.start_in_insert_mode then
     local extmark_id = self:set_virtual_text(message, "eol")
     api.nvim_create_autocmd("InsertEnter", {
-      buffer = self:prompt_bufnr(),
+      buffer = self.chat_bufnr,
       callback = function()
         self:clear_virtual_text(extmark_id)
       end,

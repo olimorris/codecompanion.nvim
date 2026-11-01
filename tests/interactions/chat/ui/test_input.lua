@@ -117,6 +117,25 @@ T["Input"]["keeps the chat buffer locked after a response"] = function()
   h.eq(false, modifiable)
 end
 
+T["Input"]["fires TextChanged on the chat buffer as the response streams in"] = function()
+  local result = child.lua([[
+    _G.current_bufs = {}
+    vim.api.nvim_create_autocmd("TextChanged", {
+      buffer = chat.bufnr,
+      callback = function()
+        table.insert(current_bufs, vim.api.nvim_get_current_buf())
+      end,
+    })
+    chat:add_buf_message({ role = "llm", content = "Streaming in" })
+    vim.wait(100, function() return #current_bufs > 0 end)
+    return { fired = #current_bufs, current = current_bufs[1], in_input = vim.api.nvim_get_current_win() == input.winnr }
+  ]])
+
+  h.eq(true, result.in_input)
+  h.eq(1, result.fired)
+  h.eq(child.lua_get("chat.bufnr"), result.current)
+end
+
 T["Input"]["sends a prompt submitted AFTER the response has finished"] = function()
   local result = child.lua([[
     write({ "First" })

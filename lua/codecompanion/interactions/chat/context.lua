@@ -112,6 +112,15 @@ local function format_item(context)
   return string.format("> - %s", context.id)
 end
 
+---Strip the list marker and sync icons from a rendered context item
+---@param line string
+---@return string
+local function get_item_id(line)
+  return vim.trim(vim.iter(vim.tbl_values(icons)):fold(select(1, line:gsub("^> %- ", "")), function(acc, icon)
+    return select(1, acc:gsub(icon, ""))
+  end))
+end
+
 ---Add context to the chat buffer
 ---@param chat CodeCompanion.Chat
 ---@param opts { context: CodeCompanion.Chat.ContextItem, row: number }
@@ -393,14 +402,8 @@ end
 ---Get the context items from the chat buffer
 ---@return table
 function Context:get_from_chat()
-  local function clean(context)
-    return vim.trim(vim.iter(vim.tbl_values(icons)):fold(select(1, context:gsub("^> %- ", "")), function(acc, icon)
-      return select(1, acc:gsub(icon, ""))
-    end))
-  end
-
   if self.Chat.ui.input then
-    return vim.tbl_map(clean, self.Chat.ui.input:get_context())
+    return vim.tbl_map(get_item_id, self.Chat.ui.input:get_context())
   end
 
   local query = query_get("markdown", "cc_context")
@@ -417,7 +420,7 @@ function Context:get_from_chat()
     if query.captures[id] == "role" then
       role = helpers.format_role(get_node_text(node, chat.bufnr))
     elseif role == user_role and query.captures[id] == "context_item" then
-      table.insert(items, clean(get_node_text(node, chat.bufnr)))
+      table.insert(items, get_item_id(get_node_text(node, chat.bufnr)))
     end
   end
 

@@ -8,8 +8,9 @@ local constants = {
   USER_ROLE = "user",
   SYSTEM_ROLE = "system",
 
-  PROMPT_FILETYPES = { "codecompanion", "codecompanion_chat_input", "codecompanion_input" },
+  CHAT_FILETYPES = { "codecompanion", "codecompanion_chat_input" },
 }
+constants.PROMPT_FILETYPES = vim.list_extend(vim.deepcopy(constants.CHAT_FILETYPES), { "codecompanion_input" })
 
 local defaults = {
   adapters = {
@@ -801,19 +802,19 @@ If you are providing code changes, use the edit_file tool (if available to you) 
           modes = { n = "<M-j>", i = "<M-j>" },
           index = 24,
           callback = "keymaps.scroll_chat_down",
-          description = "Scroll the chat down",
+          description = "Scroll the chat down half a page",
         },
         scroll_chat_up = {
           modes = { n = "<M-k>", i = "<M-k>" },
           index = 25,
           callback = "keymaps.scroll_chat_up",
-          description = "Scroll the chat up",
+          description = "Scroll the chat up half a page",
         },
-        scroll_chat_top_or_bottom = {
+        scroll_chat_jump = {
           modes = { n = "<M-g>", i = "<M-g>" },
           index = 26,
-          callback = "keymaps.scroll_chat_top_or_bottom",
-          description = "Jump to the bottom of the chat, or the top if already there",
+          callback = "keymaps.scroll_chat_jump",
+          description = "Jump to the bottom of the chat, or to the top if you're already at the bottom",
         },
         -- Note: This is only available during streaming
         _btw = {

@@ -100,8 +100,8 @@ local CONSTANTS = {
   STATUS_SUCCESS = "success",
 
   BLANK_DESC = "[No messages]",
-  INPUT_KEYMAPS = { "scroll_chat_down", "scroll_chat_up", "scroll_chat_top_or_bottom" },
-  CHAT_KEYMAPS = { "tool_call_details" },
+  INPUT_ONLY_KEYMAPS = { "scroll_chat_down", "scroll_chat_up", "scroll_chat_jump" },
+  CHAT_ONLY_KEYMAPS = { "tool_call_details" },
   INCOMPLETE_TOOL_CALL = "This tool call did not complete and produced no result",
 
   SYSTEM_PROMPT = [[You are an AI programming assistant named "CodeCompanion", working within the Neovim text editor.
@@ -504,7 +504,7 @@ local function init_keymaps(chat)
         data = chat,
         keymaps = filtered_keymaps,
       })
-      :set({ exclude_keymaps = bufnr == chat.bufnr and CONSTANTS.INPUT_KEYMAPS or CONSTANTS.CHAT_KEYMAPS })
+      :set({ exclude_keymaps = bufnr == chat.bufnr and CONSTANTS.INPUT_ONLY_KEYMAPS or CONSTANTS.CHAT_ONLY_KEYMAPS })
 
     if vim.tbl_count(slash_command_keymaps) > 0 then
       keymaps
@@ -698,7 +698,7 @@ function Chat.new(args)
 
   -- For restored chats, locate the last user header via Tree-sitter once
   if self.ui.input then
-    self.header_line = api.nvim_buf_line_count(self.bufnr)
+    self:_set_header_line_to_end()
   elseif args.messages and vim.tbl_count(args.messages) > 0 then
     local header_line = parser.headers(self)
     self.header_line = header_line and (header_line + 1) or 1
@@ -1305,6 +1305,12 @@ function Chat:_return_unsent_input()
   self.builder.state = unsent.builder_state
   self._last_role = unsent.builder_state.last_role
   api.nvim_buf_set_lines(self.ui.input.bufnr, 0, -1, false, unsent.lines)
+end
+
+---Start Tree-sitter parsing from the end of the chat buffer, where the input writes the next message
+---@return nil
+function Chat:_set_header_line_to_end()
+  self.header_line = api.nvim_buf_line_count(self.bufnr)
 end
 
 ---Add text to the user's prompt, in the input when the chat has one
@@ -2078,7 +2084,7 @@ function Chat:ready_for_input(opts)
     if self.ui.input then
       -- The next message is written beneath everything currently in the chat buffer
       tokens_row = (self.builder.state.current_header_line or 0) + 1
-      self.header_line = api.nvim_buf_line_count(self.bufnr)
+      self:_set_header_line_to_end()
     else
       self:add_buf_message({ role = config.constants.USER_ROLE, content = "" })
       self.header_line = (self.builder.state.current_header_line or 0) + 1

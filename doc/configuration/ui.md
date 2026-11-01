@@ -74,7 +74,7 @@ The input also has keymaps to scroll the chat buffer without leaving it, in norm
 | ------ | ---- | ----------- |
 | `<M-j>` | `scroll_chat_down` | Scroll the chat down half a page |
 | `<M-k>` | `scroll_chat_up` | Scroll the chat up half a page |
-| `<M-g>` | `scroll_chat_top_or_bottom` | Jump to the bottom of the chat, or the top if already there |
+| `<M-g>` | `scroll_chat_jump` | Jump to the bottom of the chat, or to the top if you're already at the bottom |
 
 Scrolling up stops the chat following the response, and jumping back to the bottom starts it again. To change these keymaps, see [Keymaps](/configuration/chat-buffer#keymaps).
 

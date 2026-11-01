@@ -622,21 +622,21 @@ local function scroll_chat(chat, keys)
 end
 
 M.scroll_chat_down = {
-  desc = "Scroll the chat down",
+  desc = "Scroll the chat down half a page",
   callback = function(chat)
     scroll_chat(chat, "<C-d>")
   end,
 }
 
 M.scroll_chat_up = {
-  desc = "Scroll the chat up",
+  desc = "Scroll the chat up half a page",
   callback = function(chat)
     scroll_chat(chat, "<C-u>")
   end,
 }
 
-M.scroll_chat_top_or_bottom = {
-  desc = "Jump to the bottom of the chat, or the top if already there",
+M.scroll_chat_jump = {
+  desc = "Jump to the bottom of the chat, or to the top if you're already at the bottom",
   callback = function(chat)
     local is_at_bottom = api.nvim_win_get_cursor(chat.ui.winnr)[1] == api.nvim_buf_line_count(chat.bufnr)
     scroll_chat(chat, is_at_bottom and "gg" or "G")
