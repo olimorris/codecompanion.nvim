@@ -213,6 +213,69 @@ require("codecompanion").setup({
 
 A value matches either the option's value or its name, ignoring case. The model is set first, as it can change which other options are available. To see an agent's options and their values, open the [debug window](/usage/chat-buffer/#debug-window).
 
+## Setting a System Prompt
+
+> [!IMPORTANT]
+> This feature is in beta. It's built on an [unstable part of the ACP spec](https://agentclientprotocol.com/rfds/client-system-prompt), so it may change or break between releases
+
+Agents have their own system prompt. By default, CodeCompanion appends a single line to it:
+
+```txt
+Do not use H1 or H2 headers in your response, unless writing the contents of a markdown file.
+```
+
+To replace that line with your own:
+
+```lua
+require("codecompanion").setup({
+  adapters = {
+    acp = {
+      claude_code = function()
+        return require("codecompanion.adapters").extend("claude_code", {
+          defaults = {
+            system_prompt = {
+              mode = "append", -- Can be "append" or "override"
+              content = "Always reply in British English.",
+            },
+          },
+        })
+      end,
+    },
+  },
+})
+```
+
+`mode` defaults to `append`. **`override` replaces the agent's own instructions, including how it uses its tools**, so only use it to supply a full replacement.
+
+`content` can also be a function, which receives the same context as the [chat system prompt](/configuration/system-prompt). To keep CodeCompanion's line and add to it:
+
+```lua
+require("codecompanion").setup({
+  adapters = {
+    acp = {
+      claude_code = function()
+        return require("codecompanion.adapters").extend("claude_code", {
+          defaults = {
+            system_prompt = {
+              content = function(ctx)
+                return ctx.default_system_prompt .. "\n\nAlways reply in British English."
+              end,
+            },
+          },
+        })
+      end,
+    },
+  },
+})
+```
+
+To send nothing, set `system_prompt = false`.
+
+The system prompt is sent whenever a session starts or loads. If the agent doesn't support it, or doesn't support the mode you picked, the session starts without it. CodeCompanion notifies you when this happens to a system prompt you've set.
+
+> [!NOTE]
+> Agents already read their own instruction files, such as `CLAUDE.md` and `AGENTS.md`. Put project rules there and use this for anything specific to CodeCompanion
+
 ## Configuring MCP Servers
 
 Some agents [support](https://agentclientprotocol.com/protocol/session-setup#mcp-servers) connecting to Model Context Protocol (MCP) servers. To pass on the servers in your [MCP configuration](/configuration/mcp):
