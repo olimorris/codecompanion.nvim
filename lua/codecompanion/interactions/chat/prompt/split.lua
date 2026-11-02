@@ -41,10 +41,10 @@ function SplitPrompt:set_header_line()
   self.chat.header_line = api.nvim_buf_line_count(self.chat.bufnr)
 end
 
----@param content string
+---@param args { content: string }
 ---@return nil
-function SplitPrompt:add(content)
-  self.input:add_prompt(content)
+function SplitPrompt:add(args)
+  self.input:add_prompt(args.content)
 end
 
 ---Queue the prompt if the LLM is busy, otherwise write it into the chat buffer ready to send
@@ -156,11 +156,11 @@ end
 ---@return nil
 function SplitPrompt:apply_settings() end
 
----@param lines? string[]
+---@param args { lines?: string[] }
 ---@return nil
-function SplitPrompt:restore_lines(lines)
-  if lines then
-    lines = self.chat.ui:move_prompt_to_input(lines)
+function SplitPrompt:restore_lines(args)
+  if args.lines then
+    local lines = self.chat.ui:move_prompt_to_input(args.lines)
     self.chat.ui:unlock_buf()
     api.nvim_buf_set_lines(self.chat.bufnr, 0, -1, false, lines)
     self.chat.ui:lock_buf()
@@ -169,16 +169,16 @@ function SplitPrompt:restore_lines(lines)
   self.chat.context:render()
 end
 
----@param line string
+---@param args { line: string }
 ---@return nil
-function SplitPrompt:add_context(line)
-  self.input:add_context(line)
+function SplitPrompt:add_context(args)
+  self.input:add_context(args.line)
 end
 
----@param lines string[] The context block, including the header
+---@param args { lines: string[] }
 ---@return nil
-function SplitPrompt:render_context(lines)
-  self.input:set_context(lines)
+function SplitPrompt:render_context(args)
+  self.input:set_context(args.lines)
 end
 
 ---@return nil
@@ -192,6 +192,24 @@ function SplitPrompt:fold_context() end
 ---@return string[]
 function SplitPrompt:get_context()
   return self.input:get_context()
+end
+
+---The chat as the buffer layout would show it, so the draft in the input is saved and restored with the chat
+---@return string[]
+function SplitPrompt:get_session_lines()
+  local lines = api.nvim_buf_get_lines(self.chat.bufnr, 0, -1, false)
+  local draft = self.input:get_lines()
+  if vim.trim(table.concat(draft, "\n")) == "" then
+    return lines
+  end
+
+  if #lines == 1 and lines[1] == "" then
+    lines = {}
+  else
+    table.insert(lines, "")
+  end
+  vim.list_extend(lines, { self.chat.ui:format_header(self.chat.ui.roles.user), "" })
+  return vim.list_extend(lines, draft)
 end
 
 return SplitPrompt

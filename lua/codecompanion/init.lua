@@ -112,13 +112,13 @@ CodeCompanion.add = function(args)
     end
   end
 
-  chat.prompt:add(
-    string.format(
+  chat.prompt:add({
+    content = string.format(
       "Here is some code from %s:\n%s\n",
       context.path,
       markdown.form_codeblock(content, { ft = context.filetype })
-    )
-  )
+    ),
+  })
   chat.ui:open()
 end
 

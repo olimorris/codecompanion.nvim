@@ -1,4 +1,5 @@
 local config = require("codecompanion.config")
+local log = require("codecompanion.utils.log")
 local ui_utils = require("codecompanion.utils.ui")
 
 local api = vim.api
@@ -40,7 +41,12 @@ end
 ---@return nil
 function Input:open(opts)
   if not self:is_visible() then
-    self.winnr = api.nvim_open_win(self.bufnr, true, { split = "below", win = opts.chat_winnr, height = self.height })
+    local ok, winnr =
+      pcall(api.nvim_open_win, self.bufnr, true, { split = "below", win = opts.chat_winnr, height = self.height })
+    if not ok then
+      return log:error("[Chat] Could not open the input split: %s", winnr)
+    end
+    self.winnr = winnr
     ui_utils.set_win_options(
       self.winnr,
       vim.tbl_extend("force", config.display.chat.window.opts, { winfixheight = true })
@@ -182,10 +188,10 @@ function Input:prepend_prompt(content)
 end
 
 ---Replace the context block at the top of the input
----@param lines string[] The context lines, including the header, or empty to remove the block
+---@param context_lines string[]
 ---@return nil
-function Input:set_context(lines)
-  lines = vim.deepcopy(lines)
+function Input:set_context(context_lines)
+  local lines = vim.deepcopy(context_lines)
   if #lines > 0 then
     table.insert(lines, "")
   end

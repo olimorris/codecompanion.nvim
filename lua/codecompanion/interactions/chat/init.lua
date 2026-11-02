@@ -1183,16 +1183,20 @@ function Chat:_inject_btw()
     return
   end
 
-  self:add_buf_message({
-    role = config.constants.USER_ROLE,
-    content = self._btw,
-  }, { type = self.MESSAGE_TYPES.USER_MESSAGE })
-  self:add_message({
-    role = config.constants.USER_ROLE,
-    content = self._btw,
-  })
-  log:debug("BTW message injected into message stack")
+  local message = { role = config.constants.USER_ROLE, content = self._btw }
   self._btw = nil
+
+  self:add_buf_message(
+    { role = config.constants.USER_ROLE, content = message.content },
+    { type = self.MESSAGE_TYPES.USER_MESSAGE }
+  )
+  -- Otherwise the links in the LLM's response above would be attached as context too
+  self.header_line = (self.builder.state.current_header_line or 0) + 1
+  self:replace_user_inputs(message)
+  context_paths.attach({ chat = self, message = message })
+
+  self:add_message({ role = config.constants.USER_ROLE, content = message.content })
+  log:debug("BTW message injected into message stack")
 end
 
 ---Make a request to the LLM using the HTTP client

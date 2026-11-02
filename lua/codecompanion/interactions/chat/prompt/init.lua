@@ -5,8 +5,8 @@
 ---@field queues_messages boolean Whether submitting whilst the LLM is busy queues the message
 ---@field get_bufnrs fun(self): number[]
 ---@field set_keymaps fun(self)
----@field set_header_line fun(self, opts: { messages?: CodeCompanion.Chat.Messages })
----@field add fun(self, content: string)
+---@field set_header_line fun(self, args: { messages?: CodeCompanion.Chat.Messages })
+---@field add fun(self, args: { content: string })
 ---@field prepare_submit fun(self): boolean
 ---@field mark_sent fun(self)
 ---@field return_unsent fun(self)
@@ -16,12 +16,13 @@
 ---@field clear fun(self)
 ---@field close fun(self)
 ---@field apply_settings fun(self)
----@field restore_lines fun(self, lines?: string[])
----@field add_context fun(self, line: string)
----@field render_context fun(self, lines: string[])
+---@field restore_lines fun(self, args: { lines?: string[] })
+---@field add_context fun(self, args: { line: string })
+---@field render_context fun(self, args: { lines: string[] })
 ---@field clear_context fun(self)
 ---@field fold_context fun(self)
 ---@field get_context fun(self): string[]
+---@field get_session_lines fun(self): string[]
 
 local M = {}
 

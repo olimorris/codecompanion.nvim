@@ -107,19 +107,19 @@ end
 function BufferPrompt:set_keymaps() end
 
 ---Locate the last user header in a restored chat, so Tree-sitter parsing starts from it
----@param opts { messages?: CodeCompanion.Chat.Messages }
+---@param args { messages?: CodeCompanion.Chat.Messages }
 ---@return nil
-function BufferPrompt:set_header_line(opts)
-  if opts.messages and vim.tbl_count(opts.messages) > 0 then
+function BufferPrompt:set_header_line(args)
+  if args.messages and vim.tbl_count(args.messages) > 0 then
     local header_line = parser.headers(self.chat)
     self.chat.header_line = header_line and (header_line + 1) or 1
   end
 end
 
----@param content string
+---@param args { content: string }
 ---@return nil
-function BufferPrompt:add(content)
-  self.chat:add_buf_message({ role = config.constants.USER_ROLE, content = content })
+function BufferPrompt:add(args)
+  self.chat:add_buf_message({ role = config.constants.USER_ROLE, content = args.content })
 end
 
 ---@return boolean
@@ -165,26 +165,26 @@ function BufferPrompt:apply_settings()
   helpers.apply_settings_and_model(self.chat, settings)
 end
 
----@param lines? string[]
+---@param args { lines?: string[] }
 ---@return nil
-function BufferPrompt:restore_lines(lines)
+function BufferPrompt:restore_lines(args)
   -- The saved markdown already carries the context block, so replant rather than re-render
-  if lines then
-    api.nvim_buf_set_lines(self.chat.bufnr, 0, -1, false, lines)
+  if args.lines then
+    api.nvim_buf_set_lines(self.chat.bufnr, 0, -1, false, args.lines)
   end
   self:fold_context()
 end
 
 ---Add a context item beneath the user's header, starting the context block if there isn't one
----@param line string
+---@param args { line: string }
 ---@return nil
-function BufferPrompt:add_context(line)
+function BufferPrompt:add_context(args)
   local position = find_context_position(self.chat)
   if not position then
     return
   end
 
-  local lines = { line }
+  local lines = { args.line }
   if vim.tbl_count(self.chat.context_items) == 1 then
     table.insert(lines, 1, CONTEXT_HEADER)
     table.insert(lines, "")
@@ -197,13 +197,13 @@ function BufferPrompt:add_context(line)
   end
 end
 
----@param lines string[] The context block, including the header
+---@param args { lines: string[] }
 ---@return nil
-function BufferPrompt:render_context(lines)
+function BufferPrompt:render_context(args)
   local start_row = self.chat.header_line + 1
   set_chat_buffer_lines(
     self.chat,
-    { start_row = start_row, end_row = start_row, lines = vim.list_extend(lines, { "" }) }
+    { start_row = start_row, end_row = start_row, lines = vim.list_extend(args.lines, { "" }) }
   )
   self:fold_context()
 end
@@ -246,6 +246,11 @@ function BufferPrompt:get_context()
   end
 
   return items
+end
+
+---@return string[]
+function BufferPrompt:get_session_lines()
+  return api.nvim_buf_get_lines(self.chat.bufnr, 0, -1, false)
 end
 
 return BufferPrompt

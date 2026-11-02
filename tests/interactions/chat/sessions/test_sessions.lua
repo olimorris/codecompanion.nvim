@@ -129,6 +129,25 @@ T["Sessions"]["restores into an input split with the context in the input"] = fu
   }, result.input)
 end
 
+T["Sessions"]["restores an unsent draft into the input split"] = function()
+  local input = child.lua([[
+    require("codecompanion.config").display.chat.input.layout = "split"
+    local split_chat = require("codecompanion.interactions.chat").new({
+      buffer_context = { bufnr = 1, filetype = "lua" },
+      adapter = "test_adapter",
+    })
+    table.insert(split_chat.messages, { role = "user", content = "Hello there" })
+    vim.api.nvim_buf_set_lines(split_chat.ui.input.bufnr, 0, -1, false, { "Half written", "", "## Notes" })
+
+    _G.sessions.save(split_chat, { title = "Draft" })
+    split_chat:close()
+    local restored = _G.sessions.load(_G.storage.list()[1].stem)
+    return vim.api.nvim_buf_get_lines(restored.ui.input.bufnr, 0, -1, false)
+  ]])
+
+  h.eq({ "Half written", "", "## Notes" }, input)
+end
+
 T["Sessions"]["DROPS every rendered context block but the last"] = function()
   child.lua([[
     local stem = _G.build_session()

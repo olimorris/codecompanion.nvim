@@ -124,7 +124,7 @@ function Context:add(context)
   end
 
   if context.opts.visible then
-    self.Chat.prompt:add_context(format_item(context))
+    self.Chat.prompt:add_context({ line = format_item(context) })
   end
 end
 
@@ -178,7 +178,7 @@ function Context:render()
     return
   end
 
-  chat.prompt:render_context(lines)
+  chat.prompt:render_context({ lines = lines })
 end
 
 ---Clear the rendered context block from the chat buffer (if present)

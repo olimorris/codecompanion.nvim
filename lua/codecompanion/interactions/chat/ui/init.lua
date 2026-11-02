@@ -33,6 +33,32 @@ local function set_llm_role(opts)
   return opts.role
 end
 
+---Find the row of the last user or LLM header, skipping headings inside messages and code blocks
+---@param ui CodeCompanion.Chat.UI
+---@param lines string[]
+---@return number|nil
+local function find_last_role_header(ui, lines)
+  local headers = {
+    [ui:format_header(ui.roles.user)] = true,
+    [ui:format_header(set_llm_role({ role = ui.roles.llm, adapter = ui.adapter }))] = true,
+  }
+
+  local fence
+  local header_row
+  for row, line in ipairs(lines) do
+    local marker = line:match("^%s*(```+)") or line:match("^%s*(~~~+)")
+    if marker and not fence then
+      fence = marker
+    elseif marker and marker:sub(1, 1) == fence:sub(1, 1) and #marker >= #fence and vim.trim(line) == marker then
+      fence = nil
+    elseif not fence and headers[line] then
+      header_row = row
+    end
+  end
+
+  return header_row
+end
+
 ---Apply the separator and highlight to a role header
 ---@param ui CodeCompanion.Chat.UI
 ---@param opts { row: number, content: string }
@@ -266,12 +292,6 @@ function UI:_watch_text_changes()
       end)
     end,
   })
-end
-
----The buffer the user writes their prompt in
----@return number
-function UI:prompt_bufnr()
-  return self.input and self.input.bufnr or self.chat_bufnr
 end
 
 ---Open/create the chat window
@@ -611,13 +631,7 @@ end
 ---@param lines string[]
 ---@return string[]
 function UI:move_prompt_to_input(lines)
-  local header_row
-  for i = #lines, 1, -1 do
-    if vim.startswith(lines[i], "## ") then
-      header_row = i
-      break
-    end
-  end
+  local header_row = find_last_role_header(self, lines)
   if not header_row or lines[header_row] ~= self:format_header(self.roles.user) then
     return lines
   end

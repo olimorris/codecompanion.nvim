@@ -167,6 +167,21 @@ T["Input"]["queues a prompt submitted WHILE a response is in progress"] = functi
   h.eq({ "" }, result.input)
 end
 
+T["Input"]["adds the editor context of a queued prompt when it is sent"] = function()
+  local result = child.lua([[
+    write({ "First" })
+    chat:submit()
+    write({ "#{foo} explain this" })
+    chat:submit()
+    chat:_inject_btw()
+    return vim.tbl_map(function(message)
+      return message.content
+    end, vim.list_slice(chat.messages, #chat.messages - 1))
+  ]])
+
+  h.eq({ "foo", "foo explain this" }, result)
+end
+
 T["Input"]["returns a queued prompt to the input on stop, above what is being written"] = function()
   local result = child.lua([[
     chat.context:add({ id = "<buf>foo.lua</buf>", source = "test" })
@@ -223,10 +238,34 @@ T["Input"]["returns a prompt that is prevented from being sent to the input"] = 
   h.eq({ "Not yet" }, result.input)
 end
 
+T["Input"]["moves a prompt containing a HEADING into the input"] = function()
+  local result = child.lua([[
+    local user = chat.ui:format_header(chat.ui.roles.user)
+    local lines = chat.ui:move_prompt_to_input({ user, "", "Build this", "", "## Requirements", "", "- Fast" })
+    return { chat = lines, input = input_lines() }
+  ]])
+
+  h.eq({}, result.chat)
+  h.eq({ "Build this", "", "## Requirements", "", "- Fast" }, result.input)
+end
+
+T["Input"]["DOES NOT move a user header inside a CODE BLOCK into the input"] = function()
+  local result = child.lua([[
+    local user = chat.ui:format_header(chat.ui.roles.user)
+    local llm_role = chat.ui.roles.llm
+    local llm = chat.ui:format_header(type(llm_role) == "function" and llm_role(chat.adapter) or llm_role)
+    local lines = { user, "", "Show me a chat", "", llm, "", "```markdown", user, "", "Hello", "```" }
+    return { chat = chat.ui:move_prompt_to_input(vim.deepcopy(lines)), lines = lines, input = input_lines() }
+  ]])
+
+  h.eq(result.lines, result.chat)
+  h.eq({ "" }, result.input)
+end
+
 T["Input"]["adds text from slash commands to the input"] = function()
   local result = child.lua([[
     write({ "The date is" })
-    chat.prompt:add("today")
+    chat.prompt:add({ content = "today" })
     return { chat = chat_lines(), input = input_lines() }
   ]])
 
