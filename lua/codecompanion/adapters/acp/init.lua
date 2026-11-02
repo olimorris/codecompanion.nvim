@@ -36,6 +36,7 @@ local shared = require("codecompanion.adapters.shared")
 ---@class CodeCompanion.ACPAdapter.Handlers
 ---@field lifecycle? CodeCompanion.ACPAdapter.Handlers.Lifecycle
 ---@field request? CodeCompanion.ACPAdapter.Handlers.Request
+---@field acp_request? fun(self: CodeCompanion.ACPAdapter, request: CodeCompanion.ACP.ClientRequest): boolean Handle an agent-to-client ACP request
 ---@field setup? fun(self: CodeCompanion.ACPAdapter): boolean (Deprecated: use lifecycle.setup)
 ---@field auth? fun(self: CodeCompanion.ACPAdapter): boolean (Deprecated: use lifecycle.auth)
 ---@field form_messages? fun(self: CodeCompanion.ACPAdapter, messages: table, capabilities: table): table (Deprecated: use request.build_messages)
