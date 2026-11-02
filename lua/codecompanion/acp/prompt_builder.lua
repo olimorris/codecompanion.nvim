@@ -257,7 +257,7 @@ function PromptBuilder:handle_error(error)
     utils.fire("RequestFinished", self.options)
   end
 
-  self.connection._active_prompt = nil
+  self.connection:clear_active_prompt(self)
 end
 
 ---Handle done event from the server
@@ -290,7 +290,7 @@ function PromptBuilder:handle_done(stop_reason)
     self.options.status = status
     utils.fire("RequestFinished", self.options)
   end
-  self.connection._active_prompt = nil
+  self.connection:clear_active_prompt(self)
 end
 
 ---Cancel the prompt
@@ -313,7 +313,7 @@ function PromptBuilder:cancel()
     pcall(self.handlers.cancel)
   end
 
-  self.connection._active_prompt = nil
+  self.connection:clear_active_prompt(self)
 end
 
 PromptBuilder.new = PromptBuilder.new
