@@ -1755,7 +1755,7 @@ end
 ---Stop streaming the response from the LLM
 ---@return nil
 function Chat:stop()
-  self.prompt:return_queued()
+  self.prompt:restore_queued()
 
   self.status = CONSTANTS.STATUS_CANCELLING
   self:dispatch("on_cancelled")
@@ -1971,7 +1971,7 @@ end
 function Chat:restore()
   require("codecompanion.interactions.chat.keymaps").btw.remove(self)
   self._turn_in_progress = false
-  self.prompt:return_unsent()
+  self.prompt:undo_submit()
   self:reset()
   utils.fire("ChatRestored", { bufnr = self.bufnr, id = self.id })
 end

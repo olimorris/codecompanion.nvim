@@ -108,7 +108,7 @@ end
 
 ---Move a prompt that was prevented from being sent out of the chat buffer and back into the input
 ---@return nil
-function SplitPrompt:return_unsent()
+function SplitPrompt:undo_submit()
   local unsent = self.unsent
   if not unsent then
     return
@@ -126,7 +126,7 @@ end
 
 ---Move a queued message back into the input, above what the user is writing
 ---@return nil
-function SplitPrompt:return_queued()
+function SplitPrompt:restore_queued()
   if self.chat._btw then
     self.input:prepend_prompt(self.chat._btw)
     self.chat._btw = nil

@@ -131,10 +131,10 @@ end
 function BufferPrompt:mark_sent() end
 
 ---@return nil
-function BufferPrompt:return_unsent() end
+function BufferPrompt:undo_submit() end
 
 ---@return nil
-function BufferPrompt:return_queued() end
+function BufferPrompt:restore_queued() end
 
 ---Write the user's header for their next message
 ---@return { tokens_row: number }
