@@ -169,6 +169,7 @@ export default withMermaid(
           items: [
             { text: "Choosing an Adapter", link: "/guides/choosing-an-adapter" },
             { text: "Coding with an Agent", link: "/guides/coding-with-an-agent" },
+            { text: "Customising the Chat Experience", link: "/guides/customising-the-chat-experience" },
             { text: "Running Local Models", link: "/guides/running-local-models" },
             {
               text: "OpenAI-Compatible Providers",

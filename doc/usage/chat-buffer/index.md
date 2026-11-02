@@ -30,7 +30,7 @@ The Lua equivalents, `require("codecompanion").chat()` and `require("codecompani
 require("codecompanion").chat({ window_opts = { layout = "float", width = 0.6 } })
 ```
 
-Press `<CR>` or `<C-s>` in normal mode, or `<C-s>` in insert mode, to send your message. The response streams back into the buffer. While the LLM is running tools, press `gm` to send it a follow-up, which CodeCompanion delivers once it's safe to do so.
+Press `<CR>` or `<C-s>` in normal mode, or `<C-s>` in insert mode, to send your message. The response streams back into the buffer. Whilst the LLM is responding, press `gm` to send it a follow-up, which CodeCompanion delivers once it's safe to do so. To write your messages in a separate split instead, see [Customising the Chat Experience](/guides/customising-the-chat-experience#writing-your-message).
 
 ## Action Palette
 
@@ -169,7 +169,7 @@ Press `?` in a chat buffer to list every keymap. The defaults in normal mode are
 | `gc` | `codeblock` | Insert an empty codeblock |
 | `gd` | `debug` | Open the debug window |
 | `gf` | `fold_code` | Fold all codeblocks |
-| `gm` | `_btw` | Send a follow-up while the LLM is running |
+| `gm` | `_btw` | Send a follow-up whilst the LLM is responding |
 | `gM` | `rules` | Remove rules from the chat |
 | `gr` | `regenerate` | Regenerate the last response |
 | `gR` | `goto_file_under_cursor` | Open the file path under the cursor |

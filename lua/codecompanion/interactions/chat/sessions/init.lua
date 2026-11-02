@@ -132,7 +132,7 @@ local function write_session(chat)
   local ok = storage.write(stem, {
     chat = session.chat,
     meta = session.meta,
-    ui_lines = api.nvim_buf_is_valid(chat.bufnr) and api.nvim_buf_get_lines(chat.bufnr, 0, -1, false) or nil,
+    ui_lines = api.nvim_buf_is_valid(chat.bufnr) and chat.prompt:get_session_lines() or nil,
   })
   if ok then
     log:debug("[sessions] Wrote session %s for chat %d", stem, chat.id)
@@ -305,11 +305,7 @@ function M.load(stem, opts)
   serializer.restore_tools(chat, saved_chat.chat.tools)
   chat:set_title(saved_chat.meta.title)
 
-  -- The saved markdown already carries the context block, so replant rather than re-render
-  if saved_chat.ui_lines then
-    api.nvim_buf_set_lines(chat.bufnr, 0, -1, false, prune_context_blocks(saved_chat.ui_lines))
-  end
-  chat.context:create_folds()
+  chat.prompt:restore_lines({ lines = saved_chat.ui_lines and prune_context_blocks(saved_chat.ui_lines) })
 
   -- Opening the chat counts as a user cursor move, which would stop `follow` short
   chat.ui.cursor.moved_by_user = false

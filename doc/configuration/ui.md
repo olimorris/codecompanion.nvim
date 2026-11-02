@@ -42,6 +42,25 @@ require("codecompanion").setup({
 
 The `chat_context` icon is optional and appears at the start of the fold.
 
+## Input
+
+By default, you write your message at the bottom of the chat buffer. To write it in a separate split beneath the chat window instead:
+
+```lua
+require("codecompanion").setup({
+  display = {
+    chat = {
+      input = {
+        layout = "split", -- Can be "buffer" or "split"
+        height = 8, -- lines
+      },
+    },
+  },
+})
+```
+
+The split isn't available for the `float` layout. For how it changes the chat buffer, see [Customising the Chat Experience](/guides/customising-the-chat-experience#writing-your-message).
+
 ## Layout
 
 The `display.chat.window` table sets where the chat buffer opens. The `display.chat.floating_window` table sets the size of the floating windows CodeCompanion opens, such as the [debug window](/usage/chat-buffer/#debug-window) and the [diff](/configuration/diff):

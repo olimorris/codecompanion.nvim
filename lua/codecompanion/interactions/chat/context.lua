@@ -1,12 +1,8 @@
 local config = require("codecompanion.config")
-local helpers = require("codecompanion.interactions.chat.helpers")
 
 local api = vim.api
-local get_node_range = vim.treesitter.get_node_range --[[@as function]]
-local get_node_text = vim.treesitter.get_node_text --[[@as function]]
 local query_get = vim.treesitter.query.get --[[@as function]]
 
-local user_role = config.interactions.chat.roles.user
 local icons = {
   sync_all = config.display.chat.icons.sync_all,
   sync_diff = config.display.chat.icons.sync_diff,
@@ -22,22 +18,6 @@ local allowed__diff = {
 }
 local context_header = "> Context:"
 
----Set chat buffer lines while preserving its edit lock
----@param chat CodeCompanion.Chat
----@param opts { start_row: number, end_row: number, lines: string[] }
-local function set_chat_buffer_lines(chat, opts)
-  local was_locked = not vim.bo[chat.bufnr].modifiable
-  if was_locked then
-    chat.ui:unlock_buf()
-  end
-
-  api.nvim_buf_set_lines(chat.bufnr, opts.start_row, opts.end_row, false, opts.lines)
-
-  if was_locked then
-    chat.ui:lock_buf()
-  end
-end
-
 ---Whether attached content at this path is watched for changes out of the box
 ---@param path? string
 ---@return boolean
@@ -51,84 +31,24 @@ local function syncs_by_default(path)
   return extension ~= nil and extensions[extension:lower()] == true
 end
 
----Parse the chat buffer to find where to add the context items
----@param chat CodeCompanion.Chat
----@return table|nil
-local function ts_parse_buffer(chat)
-  local query = query_get("markdown", "cc_context")
-
-  local tree = chat.parsers.markdown:parse({ chat.header_line - 1, -1 })[1]
-  local root = tree:root()
-
-  -- Check if there are any context items already in the chat buffer
-  local items
-  for id, node in query:iter_captures(root, chat.bufnr, chat.header_line - 1, -1) do
-    if query.captures[id] == "context" then
-      items = node
-    end
+---@param context CodeCompanion.Chat.ContextItem
+---@return string
+local function format_item(context)
+  if context.opts and context.opts.sync_all then
+    return string.format("> - %s%s", icons.sync_all, context.id)
+  elseif context.opts and context.opts.sync_diff then
+    return string.format("> - %s%s", icons.sync_diff, context.id)
   end
-
-  if items and not vim.tbl_isempty(chat.context_items) then
-    local start_row, _, end_row, _ = items:range()
-    return {
-      capture = "context",
-      start_row = start_row + 2,
-      end_row = end_row + 1,
-    }
-  end
-
-  -- If not, check if there is a heading to add the context items below
-  local role
-  local role_node
-  for id, node in query:iter_captures(root, chat.bufnr, chat.header_line - 1, -1) do
-    if query.captures[id] == "role" then
-      role = get_node_text(node, chat.bufnr)
-      role_node = node
-    end
-  end
-
-  role = helpers.format_role(role)
-
-  if role_node and role == user_role then
-    local start_row, _, end_row, _ = role_node:range()
-    return {
-      capture = "role",
-      start_row = start_row + 1,
-      end_row = end_row + 1,
-    }
-  end
-
-  return nil
+  return string.format("> - %s", context.id)
 end
 
----Add context to the chat buffer
----@param chat CodeCompanion.Chat
----@param opts { context: CodeCompanion.Chat.ContextItem, row: number }
-local function add(chat, opts)
-  local context = opts.context
-  if not context.opts.visible then
-    return
-  end
-  local lines = {}
-
-  -- Check if this context has special options and format accordingly
-  local context_text
-  if context.opts and context.opts.sync_all then
-    context_text = string.format("> - %s%s", icons.sync_all, context.id)
-  elseif context.opts and context.opts.sync_diff then
-    context_text = string.format("> - %s%s", icons.sync_diff, context.id)
-  else
-    context_text = string.format("> - %s", context.id)
-  end
-
-  table.insert(lines, context_text)
-
-  if vim.tbl_count(chat.context_items) == 1 then
-    table.insert(lines, 1, context_header)
-    table.insert(lines, "")
-  end
-
-  set_chat_buffer_lines(chat, { start_row = opts.row, end_row = opts.row, lines = lines })
+---Strip the list marker and sync icons from a rendered context item
+---@param line string
+---@return string
+local function get_item_id(line)
+  return vim.trim(vim.iter(vim.tbl_values(icons)):fold(select(1, line:gsub("^> %- ", "")), function(acc, icon)
+    return select(1, acc:gsub(icon, ""))
+  end))
 end
 
 ---@class CodeCompanion.Chat.ContextItem
@@ -203,18 +123,8 @@ function Context:add(context)
     end
   end
 
-  local parsed_buffer = ts_parse_buffer(self.Chat)
-
-  if parsed_buffer then
-    -- If the context block already exists, add to it
-    if parsed_buffer.capture == "context" then
-      add(self.Chat, { context = context, row = parsed_buffer.end_row - 1 })
-      self:create_folds()
-
-    -- If there are no context items then add a new block below the heading
-    elseif parsed_buffer.capture == "role" then
-      add(self.Chat, { context = context, row = parsed_buffer.end_row + 1 })
-    end
+  if context.opts.visible then
+    self.Chat.prompt:add_context({ line = format_item(context) })
   end
 end
 
@@ -249,29 +159,6 @@ function Context:remove(message)
   return message
 end
 
----Get the range of the latest context block
----@param chat CodeCompanion.Chat
----@return number|nil, number|nil
-local function get_range(chat)
-  local query = query_get("markdown", "cc_context")
-
-  local tree = chat.parsers.markdown:parse()[1]
-  local root = tree:root()
-
-  local role = nil
-  local start_row, end_row = nil, nil
-
-  for id, node in query:iter_captures(root, chat.bufnr, chat.header_line - 1, -1) do
-    if query.captures[id] == "role" then
-      role = helpers.format_role(get_node_text(node, chat.bufnr))
-    elseif role == user_role and query.captures[id] == "context" then
-      start_row, _, end_row, _ = get_node_range(node)
-    end
-  end
-
-  return start_row, end_row
-end
-
 ---Render all the context items in the chat buffer after a response from the LLM
 ---@return nil
 function Context:render()
@@ -279,43 +166,25 @@ function Context:render()
   if vim.tbl_isempty(chat.context_items) then
     return self
   end
-  local start_row = chat.header_line + 1
 
-  local lines = {}
-  table.insert(lines, context_header)
+  local lines = { context_header }
 
   for _, context in pairs(chat.context_items) do
-    if not context or (context.opts and context.opts.visible == false) then
-      goto continue
+    if context and not (context.opts and context.opts.visible == false) then
+      table.insert(lines, format_item(context))
     end
-    if context.opts and context.opts.sync_all then
-      table.insert(lines, string.format("> - %s%s", icons.sync_all, context.id))
-    elseif context.opts and context.opts.sync_diff then
-      table.insert(lines, string.format("> - %s%s", icons.sync_diff, context.id))
-    else
-      table.insert(lines, string.format("> - %s", context.id))
-    end
-    ::continue::
   end
   if #lines == 1 then
     return
   end
-  table.insert(lines, "")
 
-  set_chat_buffer_lines(chat, { start_row = start_row, end_row = start_row, lines = lines })
-  self:create_folds()
+  chat.prompt:render_context({ lines = lines })
 end
 
 ---Clear the rendered context block from the chat buffer (if present)
 ---@return CodeCompanion.Chat.Context
 function Context:clear_rendered()
-  local start_row, end_row = get_range(self.Chat)
-  if not start_row or not end_row then
-    return self
-  end
-
-  set_chat_buffer_lines(self.Chat, { start_row = start_row, end_row = end_row + 1, lines = {} })
-
+  self.Chat.prompt:clear_context()
   return self
 end
 
@@ -333,20 +202,6 @@ function Context:remove_items(ids)
   if self.Chat.bufnr and api.nvim_buf_is_valid(self.Chat.bufnr) then
     self:clear_rendered()
     self:render()
-  end
-end
-
----Fold all of the context items in the chat buffer
----@return nil
-function Context:create_folds()
-  if not config.display.chat.fold_context then
-    return
-  end
-
-  local start_row, end_row = get_range(self.Chat)
-  if start_row and end_row then
-    end_row = end_row - 1
-    self.Chat.ui.folds:create_context_fold(self.Chat.bufnr, start_row, end_row, context_header)
   end
 end
 
@@ -384,30 +239,7 @@ end
 ---Get the context items from the chat buffer
 ---@return table
 function Context:get_from_chat()
-  local query = query_get("markdown", "cc_context")
-
-  local tree = self.Chat.parsers.markdown:parse()[1]
-  local root = tree:root()
-
-  local items = {}
-  local role = nil
-
-  local chat = self.Chat
-
-  for id, node in query:iter_captures(root, chat.bufnr, chat.header_line - 1, -1) do
-    if query.captures[id] == "role" then
-      role = helpers.format_role(get_node_text(node, chat.bufnr))
-    elseif role == user_role and query.captures[id] == "context_item" then
-      local context = get_node_text(node, chat.bufnr)
-      -- Clean both icons
-      context = vim.iter(vim.tbl_values(icons)):fold(select(1, context:gsub("^> %- ", "")), function(acc, icon)
-        return select(1, acc:gsub(icon, ""))
-      end)
-      table.insert(items, vim.trim(context))
-    end
-  end
-
-  return items
+  return vim.tbl_map(get_item_id, self.Chat.prompt:get_context())
 end
 
 return Context

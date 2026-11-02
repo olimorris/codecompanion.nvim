@@ -323,7 +323,7 @@ function Builder:_write(opts)
     end)
   end
 
-  if self.state.last_role ~= config.constants.USER_ROLE then
+  if self:_should_lock_buf() then
     self.chat.ui:lock_buf()
   end
   self.chat.ui:move_cursor(was_following)
@@ -379,11 +379,17 @@ function Builder:update_line(line_number, content, opts)
     new_icon_id = Icons.apply(self.chat.bufnr, zero_based_line, opts.status, opts)
   end
 
-  if self.state.last_role ~= config.constants.USER_ROLE then
+  if self:_should_lock_buf() then
     self.chat.ui:lock_buf()
   end
 
   return true, new_icon_id
+end
+
+---The chat buffer stays editable whilst the user writes their prompt in it
+---@return boolean
+function Builder:_should_lock_buf()
+  return self.state.last_role ~= config.constants.USER_ROLE or self.chat.prompt.locks_chat_buffer
 end
 
 return Builder
