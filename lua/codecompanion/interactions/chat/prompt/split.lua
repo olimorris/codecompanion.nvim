@@ -151,6 +151,7 @@ end
 ---@return nil
 function SplitPrompt:close()
   self.input:close()
+  require("codecompanion.interactions.chat.ui.winbar").clear(self.chat.ui)
 end
 
 ---@return nil

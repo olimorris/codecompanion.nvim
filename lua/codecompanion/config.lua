@@ -1438,6 +1438,8 @@ The user is working on a %s machine. Please respond with system specific command
       input = {
         layout = "buffer", -- buffer|split
         height = 8,
+        title = "CodeCompanion.nvim", -- Shown in the winbar until the chat is given a title
+        winbar = true, -- Show the title, adapter and model in the chat window's winbar
       },
 
       -- Chat buffer options --------------------------------------------------

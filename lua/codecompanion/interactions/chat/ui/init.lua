@@ -241,6 +241,7 @@ function UI:_setup_after_open(opts)
 
   self.folds:setup(self.winnr)
   if self.input then
+    require("codecompanion.interactions.chat.ui.winbar").set(self)
     self:_open_input()
     self:_restore_view()
   end
@@ -392,6 +393,7 @@ function UI:hide(opts)
       self.cursor.view = api.nvim_win_call(self.winnr, vim.fn.winsaveview)
     end
     self.input:hide()
+    require("codecompanion.interactions.chat.ui.winbar").clear(self)
   end
   if not opts.keep_window then
     local layout
