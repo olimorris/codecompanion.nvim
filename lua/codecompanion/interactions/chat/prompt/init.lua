@@ -1,4 +1,4 @@
----Where the user writes their prompt, so the chat never has to check which layout it's in
+---Where the user writes their prompt
 ---@class CodeCompanion.Chat.Prompt
 ---@field add fun(self, args: { content: string })
 ---@field add_context fun(self, args: { line: string })

@@ -1436,8 +1436,8 @@ The user is working on a %s machine. Please respond with system specific command
 
       -- Where the user writes their prompt
       input = {
-        layout = "buffer", -- buffer|split (a split beneath the chat window, ignored for the float layout)
-        height = 8, -- Height of the split
+        layout = "buffer", -- buffer|split
+        height = 8,
       },
 
       -- Chat buffer options --------------------------------------------------
