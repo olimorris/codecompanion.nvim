@@ -114,7 +114,7 @@ end
 
 ---The number of lines at the top of the input taken up by the context block and the blank line beneath it
 ---@return number
-function Input:_context_length()
+function Input:_get_context_length()
   local lines = self:get_lines()
   if lines[1] ~= CONTEXT_HEADER then
     return 0
@@ -136,20 +136,20 @@ end
 function Input:get_context()
   return vim.tbl_filter(function(line)
     return vim.startswith(line, "> - ")
-  end, api.nvim_buf_get_lines(self.bufnr, 0, self:_context_length(), false))
+  end, api.nvim_buf_get_lines(self.bufnr, 0, self:_get_context_length(), false))
 end
 
 ---The text the user has written, without the context block
 ---@return string
 function Input:get_prompt()
-  local lines = api.nvim_buf_get_lines(self.bufnr, self:_context_length(), -1, false)
+  local lines = api.nvim_buf_get_lines(self.bufnr, self:_get_context_length(), -1, false)
   return vim.trim(table.concat(lines, "\n"))
 end
 
 ---Remove everything the user has written, keeping the context block
 ---@return nil
 function Input:clear_prompt()
-  local length = self:_context_length()
+  local length = self:_get_context_length()
   -- Leave a line to write on beneath the blank line that separates it from the context block
   api.nvim_buf_set_lines(self.bufnr, length, -1, false, length > 0 and { "" } or {})
   if self:is_visible() then
@@ -168,7 +168,7 @@ end
 function Input:add_prompt(content)
   local lines = vim.split(content, "\n", { plain = true })
   if self:get_prompt() == "" then
-    api.nvim_buf_set_lines(self.bufnr, self:_context_length(), -1, false, lines)
+    api.nvim_buf_set_lines(self.bufnr, self:_get_context_length(), -1, false, lines)
   else
     api.nvim_buf_set_lines(self.bufnr, -1, -1, false, lines)
   end
@@ -183,7 +183,7 @@ function Input:prepend_prompt(content)
     table.insert(lines, "")
   end
 
-  local row = self:_context_length()
+  local row = self:_get_context_length()
   api.nvim_buf_set_lines(self.bufnr, row, row, false, lines)
 end
 
@@ -197,9 +197,9 @@ function Input:set_context(context_lines)
   end
 
   local is_empty = self:get_prompt() == ""
-  api.nvim_buf_set_lines(self.bufnr, 0, self:_context_length(), false, lines)
+  api.nvim_buf_set_lines(self.bufnr, 0, self:_get_context_length(), false, lines)
   if is_empty then
-    api.nvim_buf_set_lines(self.bufnr, self:_context_length(), -1, false, #lines > 0 and { "" } or {})
+    api.nvim_buf_set_lines(self.bufnr, self:_get_context_length(), -1, false, #lines > 0 and { "" } or {})
   end
   self:_fold_context()
 end
@@ -208,7 +208,7 @@ end
 ---@param line string
 ---@return nil
 function Input:add_context(line)
-  local length = self:_context_length()
+  local length = self:_get_context_length()
   if length == 0 then
     return self:set_context({ CONTEXT_HEADER, line })
   end
