@@ -84,7 +84,7 @@ end
 ---@field aug number The autocmd group ID
 ---@field chat_bufnr number The buffer number of the chat
 ---@field chat_id number The unique ID of the chat
----@field cursor { moved_by_user: boolean, pos?: table, followed_to?: table } Cursor state tracking
+---@field cursor { moved_by_user: boolean, pos?: table, followed_to?: table, view?: vim.fn.winsaveview.ret } Cursor state tracking
 ---@field folds CodeCompanion.Chat.UI.Folds The folds for the chat
 ---@field header_ns number The namespace for the header
 ---@field input? CodeCompanion.Chat.UI.Input The split the user writes their prompt in, when the chat has one
@@ -227,12 +227,7 @@ function UI:_setup_after_open(opts)
     end)
   end
 
-  if self.input then
-    -- The cursor goes to the input, so the chat window would otherwise open on the top of the conversation
-    self.cursor.moved_by_user = false
-    self.cursor.pos = nil
-    pcall(api.nvim_win_set_cursor, self.winnr, { api.nvim_buf_line_count(self.chat_bufnr), 0 })
-  elseif not opts.toggled then
+  if not self.input and not opts.toggled then
     if self.cursor.moved_by_user and self.cursor.pos then
       vim.schedule(function()
         if self:is_visible() then
@@ -247,6 +242,7 @@ function UI:_setup_after_open(opts)
   self.folds:setup(self.winnr)
   if self.input then
     self:_open_input()
+    self:_restore_view()
   end
   utils.fire("ChatOpened", { bufnr = self.chat_bufnr, id = self.chat_id })
   return self
@@ -269,6 +265,22 @@ function UI:_open_input()
       end)
     end,
   })
+end
+
+---Return the chat window to where the user left it, or to the end of the conversation if they were following it
+---@return nil
+function UI:_restore_view()
+  local view = self.cursor.view
+  self.cursor.view = nil
+  if view and self.cursor.moved_by_user then
+    return api.nvim_win_call(self.winnr, function()
+      vim.fn.winrestview(view)
+    end)
+  end
+
+  self.cursor.moved_by_user = false
+  self.cursor.pos = nil
+  self:follow()
 end
 
 ---Fire TextChanged when the chat buffer changes whilst the user is in the input, as Neovim only fires it for the current buffer
@@ -374,6 +386,10 @@ function UI:hide(opts)
     -- Otherwise the buffer layout swaps out whichever window the cursor lands in once the input closes
     if api.nvim_get_current_win() == self.input.winnr and self:is_visible() then
       api.nvim_set_current_win(self.winnr)
+    end
+    if self:is_visible() then
+      self:track_cursor()
+      self.cursor.view = api.nvim_win_call(self.winnr, vim.fn.winsaveview)
     end
     self.input:hide()
   end
