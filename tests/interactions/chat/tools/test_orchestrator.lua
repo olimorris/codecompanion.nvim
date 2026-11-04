@@ -192,7 +192,7 @@ T["tools only receive output that relates to their execution"] = function()
 end
 
 ---Queue a tool in auto mode, with the judge stubbed to reply with a canned verdict
----@param opts { verdict?: { safe: boolean, reason: string }, protect?: boolean, is_safe?: boolean }
+---@param opts { verdict?: { safe: boolean, reason: string }, protect?: boolean, is_safe?: boolean, permission?: "allow"|"confirm" }
 local function setup_auto_mode(opts)
   local verdict = opts.verdict or { safe = false, reason = "not judged" }
   child.lua(
@@ -255,6 +255,9 @@ local function setup_auto_mode(opts)
                     end,
                   },
                   gates = {
+                    permission = function()
+                      return %s
+                    end,
                     is_safe = function()
                       return %s
                     end,
@@ -286,6 +289,7 @@ local function setup_auto_mode(opts)
       vim.inspect(verdict),
       tostring(opts.protect == true),
       tostring(opts.protect == true),
+      vim.inspect(opts.permission),
       tostring(opts.is_safe == true)
     )
   )
@@ -316,6 +320,22 @@ end
 
 T["protected tool prompts without judging, even for a safe command"] = function()
   setup_auto_mode({ protect = true, is_safe = true, verdict = { safe = true, reason = "reads only" } })
+
+  h.eq({}, child.lua_get("_G.executed"))
+  h.eq(vim.NIL, child.lua_get("_G.judged_context"))
+  h.eq("**Dangerous** rm -rf /", child.lua_get("_G.prompted_with"))
+end
+
+T["explicit allowance bypasses protection"] = function()
+  setup_auto_mode({ protect = true, permission = "allow" })
+
+  h.eq({ "dangerous" }, child.lua_get("_G.executed"))
+  h.eq(vim.NIL, child.lua_get("_G.judged_context"))
+  h.eq(vim.NIL, child.lua_get("_G.prompted_with"))
+end
+
+T["explicit confirmation overrides a safe command"] = function()
+  setup_auto_mode({ permission = "confirm", is_safe = true })
 
   h.eq({}, child.lua_get("_G.executed"))
   h.eq(vim.NIL, child.lua_get("_G.judged_context"))
