@@ -190,6 +190,39 @@ function Approvals.get_pattern_permission(opts)
   end
 end
 
+---Check an existing path and its symlink target.
+---@param opts { path: string, always_allow?: { pattern: string }[], always_confirm?: { pattern: string }[] }
+---@return "allow"|"confirm"|nil permission
+function Approvals.get_path_permission(opts)
+  local path = vim.fs.normalize(vim.fs.abspath(opts.path))
+  local resolved = vim.uv.fs_realpath(path)
+  if not resolved then
+    return "confirm"
+  end
+  resolved = vim.fs.normalize(resolved)
+
+  local function check(value)
+    return Approvals.get_pattern_permission({
+      value = value,
+      always_allow = opts.always_allow,
+      always_confirm = opts.always_confirm,
+    })
+  end
+
+  local permission = check(path)
+  if path == resolved then
+    return permission
+  end
+
+  local target_permission = check(resolved)
+  if permission == "confirm" or target_permission == "confirm" then
+    return "confirm"
+  end
+  if permission == "allow" and target_permission == "allow" then
+    return "allow"
+  end
+end
+
 ---Reset the approvals for a given chat buffer
 ---@param bufnr number
 ---@return nil

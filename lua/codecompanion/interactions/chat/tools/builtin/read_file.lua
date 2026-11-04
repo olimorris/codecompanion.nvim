@@ -120,9 +120,8 @@ end
 ---@param tool CodeCompanion.Tool.ReadFile
 ---@return "allow"|"confirm"|nil
 local function get_permission(tool)
-  local path = file_utils.validate_and_normalize_path(tool.args.filepath)
-  return approvals.get_pattern_permission({
-    value = vim.fs.normalize(vim.fs.abspath(path)),
+  return approvals.get_path_permission({
+    path = file_utils.validate_and_normalize_path(tool.args.filepath),
     always_allow = tool.opts.always_allow,
     always_confirm = tool.opts.always_confirm,
   })
