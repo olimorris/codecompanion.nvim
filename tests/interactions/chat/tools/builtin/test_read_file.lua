@@ -181,7 +181,9 @@ local function expect_permission_read()
   h.expect_contains("alpha", child.lua_get("chat.messages[#chat.messages].content"))
 end
 
-T["always_allow bypasses protection for a normalized relative path"] = function()
+T["permissions"] = new_set()
+
+T["permissions"]["bypasses protection for an allowed path"] = function()
   queue_permission_read({
     protect = true,
     filepath = "tests/stubs/read_file/../read_file/cc_readfile_test.txt",
@@ -191,14 +193,14 @@ T["always_allow bypasses protection for a normalized relative path"] = function(
   expect_permission_read()
 end
 
-T["always_allow DOES NOT bypass protection for an unmatched path"] = function()
+T["permissions"]["DOES NOT bypass protection for an unmatched path"] = function()
   queue_permission_read({ protect = true, always_allow = { { pattern = "/other/" } } })
 
   h.eq(1, child.lua_get("#_G.permission_prompts"))
   h.eq(true, child.lua_get("#chat.messages == _G.permission_message_count"))
 end
 
-T["always_confirm overrides cached approval and a matching allowance"] = function()
+T["permissions"]["requires confirmation despite cached approval and a matching allowance"] = function()
   queue_permission_read({
     cached = true,
     require_approval_before = false,
@@ -219,32 +221,32 @@ T["always_confirm overrides cached approval and a matching allowance"] = functio
   h.eq(2, child.lua_get("#_G.permission_prompts"))
 end
 
-T["always_confirm DOES NOT prompt for an unmatched path"] = function()
+T["permissions"]["DOES NOT prompt for an unmatched confirmation pattern"] = function()
   queue_permission_read({ always_confirm = { { pattern = "/other/" } } })
 
   expect_permission_read()
 end
 
-T["invalid permission patterns require confirmation before reading"] = function()
+T["permissions"]["requires confirmation for invalid patterns"] = function()
   queue_permission_read({ always_allow = { { pattern = "(" } } })
 
   h.eq(1, child.lua_get("#_G.permission_prompts"))
   h.eq(true, child.lua_get("#chat.messages == _G.permission_message_count"))
 end
 
-T["always_allow DOES NOT bypass approval in ask mode"] = function()
+T["permissions"]["DOES NOT bypass approval in ask mode"] = function()
   queue_permission_read({ mode = "ask", always_allow = { { pattern = "/read_file/" } } })
 
   h.eq(1, child.lua_get("#_G.permission_prompts"))
 end
 
-T["always_confirm DOES NOT override cached approval in ask mode"] = function()
+T["permissions"]["DOES NOT override cached approval in ask mode"] = function()
   queue_permission_read({ mode = "ask", cached = true, always_confirm = { { pattern = "/read_file/" } } })
 
   expect_permission_read()
 end
 
-T["always_confirm DOES NOT override yolo mode"] = function()
+T["permissions"]["DOES NOT override yolo mode"] = function()
   queue_permission_read({ mode = "yolo", always_confirm = { { pattern = "/read_file/" } } })
 
   expect_permission_read()

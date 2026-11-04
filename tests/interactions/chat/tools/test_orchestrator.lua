@@ -326,7 +326,32 @@ T["protected tool prompts without judging, even for a safe command"] = function(
   h.eq("**Dangerous** rm -rf /", child.lua_get("_G.prompted_with"))
 end
 
-T["explicit allowance bypasses protection"] = function()
+T["permissions"] = new_set()
+
+T["permissions"]["reports permission errors and continues queued tools"] = function()
+  child.lua([[
+    require("codecompanion.interactions.chat.tools.approvals"):set_mode(tools.bufnr, { mode = "auto" })
+    _G.permission_message_count = #chat.messages
+    tools:execute(chat, {
+      { id = "invalid_read", ["function"] = { name = "read_file", arguments = "{}" } },
+      { id = "valid_read", ["function"] = {
+        name = "read_file",
+        arguments = vim.json.encode({ filepath = vim.fs.joinpath(vim.uv.cwd(), "STYLE.md") }),
+      } },
+    })
+    assert(vim.wait(1000, function()
+      return #chat.messages >= _G.permission_message_count + 2 and chat.tool_orchestrator == nil
+    end), "read_file batch did not finish")
+  ]])
+
+  h.expect_contains("path", child.lua_get("chat.messages[_G.permission_message_count + 1].content"))
+  h.expect_contains(
+    "CodeCompanion Style Guide",
+    child.lua_get("chat.messages[_G.permission_message_count + 2].content")
+  )
+end
+
+T["permissions"]["bypasses protection for an explicit allowance"] = function()
   setup_auto_mode({ protect = true, permission = "allow" })
 
   h.eq({ "dangerous" }, child.lua_get("_G.executed"))
@@ -334,7 +359,7 @@ T["explicit allowance bypasses protection"] = function()
   h.eq(vim.NIL, child.lua_get("_G.prompted_with"))
 end
 
-T["explicit confirmation overrides a safe command"] = function()
+T["permissions"]["requires confirmation even for a safe command"] = function()
   setup_auto_mode({ permission = "confirm", is_safe = true })
 
   h.eq({}, child.lua_get("_G.executed"))
