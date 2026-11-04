@@ -364,6 +364,23 @@ function Orchestrator:_requires_approval()
   return require_approval_before and true or false
 end
 
+---Look up an explicit permission decision in auto mode
+---@return "allow"|"confirm"|nil
+---@return any? error
+function Orchestrator:_get_permission()
+  if Approvals:get_mode(self.tools.bufnr) ~= "auto" then
+    return nil
+  end
+
+  local ok, permission = pcall(self.gates.permission)
+  if not ok then
+    log:error("[Orchestrator::_get_permission] Permission check failed for `%s`: %s", self.tool.name, permission)
+    return nil, permission
+  end
+
+  return permission
+end
+
 ---Setup the tool to be executed
 ---@param input? any
 ---@return nil
@@ -386,42 +403,51 @@ function Orchestrator:setup_next_tool(input)
   -- Transform cmd-based tools to func-based
   self.tool = cmd_to_func_tool({ tool = self.tool, orchestrator = self })
 
-  -- Get the first command to run
   local cmd = self.tool.cmds[1]
   log:debug("[Orchestrator::setup_next_tool] `%s` tool", self.tool.name)
 
-  if Approvals:get_mode(self.tools.bufnr) == "auto" then
-    local permission = self.gates.permission()
-    if permission == "confirm" then
-      return self:_prompt_for_approval({ cmd = cmd, input = input, force_confirm = true })
-    end
-    if permission == "allow" then
-      return self:execute_tool({ cmd = cmd, input = input })
-    end
+  local permission, err = self:_get_permission()
+  if err then
+    self:error({ action = self.tool.args, error = err })
+    return
+  end
+
+  return self:_approve_tool({ cmd = cmd, input = input, permission = permission })
+end
+
+---Apply the permission decision and approval rules before running the tool
+---@param opts { cmd: function, input?: any, permission?: "allow"|"confirm" }
+---@return nil
+function Orchestrator:_approve_tool(opts)
+  if opts.permission == "confirm" then
+    return self:_prompt_for_approval(vim.tbl_extend("force", opts, { force_confirm = true }))
+  end
+  if opts.permission == "allow" then
+    return self:execute_tool(opts)
   end
 
   if
     not self.tool.opts
     or Approvals:is_approved(self.tools.bufnr, { cmd = self.output.cmd_string(), tool_name = self.tool.name })
   then
-    log:debug("[Orchestrator::setup_next_tool] No tool approval required")
-    return self:execute_tool({ cmd = cmd, input = input })
+    log:debug("[Orchestrator::_approve_tool] No tool approval required")
+    return self:execute_tool(opts)
   end
 
   if not self:_requires_approval() then
-    return self:execute_tool({ cmd = cmd, input = input })
+    return self:execute_tool(opts)
   end
 
   if Approvals:get_mode(self.tools.bufnr) == "auto" and not self.tool.opts.protect then
     if self.gates.is_safe() then
-      return self:execute_tool({ cmd = cmd, input = input })
+      return self:execute_tool(opts)
     end
     if self:_should_run_judge() then
-      return self:_run_judge({ cmd = cmd, input = input })
+      return self:_run_judge(opts)
     end
   end
 
-  return self:_prompt_for_approval({ cmd = cmd, input = input })
+  return self:_prompt_for_approval(opts)
 end
 
 ---Ask the user to approve the pending tool before it runs
