@@ -27,7 +27,11 @@ local config = require("codecompanion.config")
 local integrations = require("codecompanion.integrations")
 local jsonrpc = require("codecompanion.utils.jsonrpc")
 local log = require("codecompanion.utils.log")
+local system_prompt = require("codecompanion.interactions.shared.system_prompt")
 local utils = require("codecompanion.utils")
+
+local DEFAULT_SYSTEM_PROMPT =
+  "Do not use H1 or H2 headers in your response, unless writing the contents of a markdown file."
 
 local TIMEOUTS = {
   DEFAULT = 2e4, -- 20 seconds
@@ -35,6 +39,7 @@ local TIMEOUTS = {
 }
 
 local api = vim.api
+local fmt = string.format
 local uv = vim.uv
 
 --=============================================================================
@@ -57,6 +62,7 @@ local uv = vim.uv
 ---@field _config_options table[] Raw configOptions from the agent
 ---@field _session_config_options table<string, table[]> The configOptions of each session, restored when switching back to it
 ---@field _in_flight table<string, CodeCompanion.ACP.Connection.InFlight> Establishment steps currently underway
+---@field _system_prompt_notified? boolean
 ---@field _pending_callbacks table<number, function> Async callbacks keyed by request ID
 ---@field _rpc_log? { path: string, write: fun(data: string) } Per-connection log capturing raw JSON-RPC traffic
 ---@field methods table
@@ -437,6 +443,76 @@ function Connection:load_session(session_id, opts)
   return true
 end
 
+---@param mode string
+---@return boolean
+function Connection:_supports_system_prompt_mode(mode)
+  local session_capabilities = self._agent_info
+    and self._agent_info.agentCapabilities
+    and self._agent_info.agentCapabilities.sessionCapabilities
+  local capability = type(session_capabilities) == "table" and session_capabilities.systemPrompt
+  if type(capability) ~= "table" then
+    return false
+  end
+  if mode == "append" then
+    return true
+  end
+
+  -- Agents send null for a mode they don't support, which decodes to vim.NIL
+  return type(capability.mode) == "table" and type(capability.mode[mode]) == "table"
+end
+
+---Tell the user once per connection that the system prompt they set can't be applied
+---@param opts { mode: string }
+function Connection:_notify_system_prompt_unsupported(opts)
+  if self._system_prompt_notified then
+    return
+  end
+  self._system_prompt_notified = true
+
+  local reason = self:_supports_system_prompt_mode("append") and fmt("%s mode", opts.mode) or "it"
+  utils.notify(
+    fmt("Could not apply the system prompt: %s doesn't support %s", self.adapter.formatted_name, reason),
+    vim.log.levels.WARN
+  )
+end
+
+---Build the session's system prompt from the adapter, or nil when there isn't one the agent can apply
+---@return table|nil
+function Connection:_build_system_prompt()
+  local prompt = self.adapter_modified.defaults.system_prompt
+  if prompt == false then
+    return nil
+  end
+
+  local is_default = prompt == nil
+  prompt = prompt or { content = DEFAULT_SYSTEM_PROMPT }
+
+  local mode = prompt.mode or "append"
+  if not self:_supports_system_prompt_mode(mode) then
+    if not is_default then
+      self:_notify_system_prompt_unsupported({ mode = mode })
+    end
+    return nil
+  end
+
+  local content = prompt.content
+  if type(content) == "function" then
+    local context = system_prompt.make_context({ adapter = self.adapter, bufnr = self.chat and self.chat.bufnr })
+    context.default_system_prompt = DEFAULT_SYSTEM_PROMPT
+    local ok, result = pcall(content, context)
+    if not ok then
+      log:error("[acp::_build_system_prompt] The system prompt function failed: %s", result)
+      return nil
+    end
+    content = result
+  end
+  if type(content) ~= "string" or content == "" then
+    return nil
+  end
+
+  return { mode = mode, content = { { type = "text", text = content } } }
+end
+
 ---Create or load a session
 ---@return boolean success
 function Connection:_establish_session()
@@ -452,6 +528,8 @@ function Connection:_establish_session()
   if self.adapter_modified.defaults.mcpServers == "inherit_from_config" and config.mcp.opts.acp_enabled then
     session_args.mcpServers = require("codecompanion.mcp").transform_to_acp()
   end
+
+  session_args.systemPrompt = self:_build_system_prompt()
 
   ---@param opts { session_data: table, source: string }
   local function apply_session_metadata(opts)

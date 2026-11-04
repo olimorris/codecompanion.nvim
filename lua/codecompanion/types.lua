@@ -7,6 +7,7 @@
 
 ---@class ACP.sessionCapabilities
 ---@field list? table|nil
+---@field systemPrompt? { mode?: { override?: table } }|nil
 
 ---@class ACP.agentCapabilities
 ---@field loadSession boolean

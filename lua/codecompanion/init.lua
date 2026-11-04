@@ -112,8 +112,7 @@ CodeCompanion.add = function(args)
     end
   end
 
-  chat:add_buf_message({
-    role = config.constants.USER_ROLE,
+  chat.prompt:add({
     content = string.format(
       "Here is some code from %s:\n%s\n",
       context.path,

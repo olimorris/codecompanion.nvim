@@ -299,15 +299,7 @@ return {
     ---@param opts { tools: CodeCompanion.Tools }
     ---@return string
     cmd_string = function(self, opts)
-      return self.args.filepath
-    end,
-
-    ---The message which is shared with the user when asking for their approval
-    ---@param self CodeCompanion.Tool.GetDiagnostics
-    ---@param meta { tools: CodeCompanion.Tools }
-    ---@return nil|string
-    prompt = function(self, meta)
-      return fmt("Get diagnostics for `%s`?", vim.fn.fnamemodify(self.args.filepath, ":."))
+      return fmt("diagnostics for %s", self.args.filepath)
     end,
 
     ---@param self CodeCompanion.Tool.GetDiagnostics

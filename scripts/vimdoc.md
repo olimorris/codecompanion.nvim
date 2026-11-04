@@ -8,6 +8,7 @@ doc/getting-started.md
 ```{.include shift-heading-level-by=1}
 doc/guides/choosing-an-adapter.md
 doc/guides/coding-with-an-agent.md
+doc/guides/customising-the-chat-experience.md
 doc/guides/running-local-models.md
 doc/guides/openai-compatible-providers.md
 doc/guides/tool-approvals.md
