@@ -158,6 +158,38 @@ function Approvals.is_safe_command(cmd)
   return false
 end
 
+---@param opts { value: string, rules: { pattern: string }[] }
+---@return boolean?, string?
+local function matches_patterns(opts)
+  local matched = false
+  for _, rule in ipairs(opts.rules) do
+    local ok, regex = pcall(vim.regex, "\\v" .. rule.pattern)
+    if not ok then
+      log:error("[Tools] Invalid permission pattern `%s`: %s", rule.pattern, regex)
+      return nil, regex
+    end
+    matched = regex:match_str(opts.value) ~= nil or matched
+  end
+  return matched
+end
+
+---@param opts { value: string, always_allow?: { pattern: string }[], always_confirm?: { pattern: string }[] }
+---@return "allow"|"confirm"|nil
+function Approvals.get_pattern_permission(opts)
+  local should_confirm = matches_patterns({ value = opts.value, rules = opts.always_confirm or {} })
+  if should_confirm ~= false then
+    return "confirm"
+  end
+
+  local should_allow = matches_patterns({ value = opts.value, rules = opts.always_allow or {} })
+  if should_allow == nil then
+    return "confirm"
+  end
+  if should_allow then
+    return "allow"
+  end
+end
+
 ---Reset the approvals for a given chat buffer
 ---@param bufnr number
 ---@return nil

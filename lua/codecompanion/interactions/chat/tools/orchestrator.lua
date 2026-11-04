@@ -264,6 +264,12 @@ function Orchestrator:_setup_handlers()
       end
       return nil
     end,
+    permission = function()
+      if self.tool and self.tool.gates and self.tool.gates.permission then
+        return self.tool.gates.permission(self.tool, { tools = self.tools })
+      end
+      return nil
+    end,
     is_safe = function()
       if self.tool and self.tool.gates and self.tool.gates.is_safe then
         return self.tool.gates.is_safe(self.tool, { tools = self.tools })
@@ -383,6 +389,16 @@ function Orchestrator:setup_next_tool(input)
   local cmd = self.tool.cmds[1]
   log:debug("[Orchestrator::setup_next_tool] `%s` tool", self.tool.name)
 
+  if Approvals:get_mode(self.tools.bufnr) == "auto" then
+    local permission = self.gates.permission()
+    if permission == "confirm" then
+      return self:_prompt_for_approval({ cmd = cmd, input = input, force_confirm = true })
+    end
+    if permission == "allow" then
+      return self:execute_tool({ cmd = cmd, input = input })
+    end
+  end
+
   if
     not self.tool.opts
     or Approvals:is_approved(self.tools.bufnr, { cmd = self.output.cmd_string(), tool_name = self.tool.name })
@@ -408,7 +424,7 @@ function Orchestrator:setup_next_tool(input)
 end
 
 ---Ask the user to approve the pending tool before it runs
----@param args { cmd: function, input?: any, reason?: string }
+---@param args { cmd: function, input?: any, reason?: string, force_confirm?: boolean }
 ---@return nil
 function Orchestrator:_prompt_for_approval(args)
   local cmd, input = args.cmd, args.input
@@ -432,11 +448,12 @@ function Orchestrator:_prompt_for_approval(args)
     id = self.id,
     name = self.tool.name,
     prompt = prompt,
-    choices = {
+    choices = vim.list_extend(args.force_confirm and {} or {
       labels.build_choice("always_accept", function()
         Approvals:always(self.tools.bufnr, { cmd = self.output.cmd_string(), tool_name = self.tool.name })
         self:execute_tool({ cmd = cmd, input = input })
       end),
+    }, {
       labels.build_choice("accept", function()
         self:execute_tool({ cmd = cmd, input = input })
       end),
@@ -451,7 +468,7 @@ function Orchestrator:_prompt_for_approval(args)
         self.tools.chat:dispatch("on_cancelled")
         self:cancel()
       end),
-    },
+    }),
   })
 end
 
