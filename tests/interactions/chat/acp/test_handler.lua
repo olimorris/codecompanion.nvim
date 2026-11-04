@@ -1180,4 +1180,72 @@ T["ACPHandler"]["Config Options"]["reflects config option changes in metadata"] 
   h.eq("Plan Mode", result.name_after)
 end
 
+T["ACPHandler"]["Agent Requests"] = new_set({
+  hooks = {
+    pre_case = function()
+      child.lua([[
+        chat = h.setup_chat_buffer({}, {
+          name = "test_acp",
+          config = {
+            name = "test_acp",
+            type = "acp",
+            handlers = { form_messages = function(a, m) return m end }
+          }
+        })
+        handler = require("codecompanion.interactions.chat.acp.handler").new(chat)
+        results = {}
+        chat.acp_connection = mocks_acp.new()
+        chat.acp_connection.send_result = function(_, id, result)
+          table.insert(results, { id = id, result = result })
+        end
+      ]])
+    end,
+  },
+})
+
+T["ACPHandler"]["Agent Requests"]["sends the adapter's result only once"] = function()
+  local result = child.lua([[
+    chat.adapter.handlers = { request = {
+      agent_request = function(_, request)
+        request.respond({ answer = 1 })
+        request.respond({ answer = 2 })
+        return true
+      end,
+    } }
+    local handled = handler:handle_agent_request({ id = 1, method = "vendor/ask", params = {} })
+    return { handled = handled, results = results }
+  ]])
+
+  h.is_true(result.handled)
+  h.eq({ { id = 1, result = { answer = 1 } } }, result.results)
+end
+
+T["ACPHandler"]["Agent Requests"]["DOES NOT claim a request the adapter does not handle"] = function()
+  local handled = child.lua([[
+    chat.adapter.handlers = { request = { agent_request = function() return false end } }
+    return handler:handle_agent_request({ id = 2, method = "vendor/unknown", params = {} })
+  ]])
+
+  h.is_false(handled)
+end
+
+T["ACPHandler"]["Agent Requests"]["cancels a pending request when the turn completes"] = function()
+  local result = child.lua([[
+    chat.adapter.handlers = { request = {
+      agent_request = function(_, request)
+        request.on_cancel(function()
+          request.respond({ outcome = "cancelled" })
+        end)
+        return true
+      end,
+    } }
+    handler:handle_agent_request({ id = 3, method = "vendor/ask", params = {} })
+    handler:handle_complete()
+    return { results = results, pending = handler._pending_agent_request ~= nil }
+  ]])
+
+  h.eq({ { id = 3, result = { outcome = "cancelled" } } }, result.results)
+  h.is_false(result.pending)
+end
+
 return T

@@ -32,6 +32,13 @@ local shared = require("codecompanion.adapters.shared")
 
 ---@class CodeCompanion.ACPAdapter.Handlers.Request
 ---@field build_messages? fun(self: CodeCompanion.ACPAdapter, args: { messages: table, capabilities: table }): table
+---@field agent_request? fun(self: CodeCompanion.ACPAdapter, args: CodeCompanion.ACPAdapter.AgentRequest): boolean Handle an agent request the client does not recognise
+
+---@class CodeCompanion.ACPAdapter.AgentRequest
+---@field chat CodeCompanion.Chat
+---@field message table
+---@field respond fun(result: table) Sends the result once; does nothing for notifications
+---@field on_cancel fun(cancel: function) Registers how to cancel the request if the turn ends first
 
 ---@class CodeCompanion.ACPAdapter.Handlers
 ---@field lifecycle? CodeCompanion.ACPAdapter.Handlers.Lifecycle
