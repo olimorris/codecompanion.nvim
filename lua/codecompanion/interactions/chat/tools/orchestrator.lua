@@ -372,10 +372,13 @@ function Orchestrator:_get_permission()
     return nil
   end
 
-  local ok, permission = pcall(self.gates.permission)
+  local ok, permission, err = pcall(self.gates.permission)
   if not ok then
-    log:error("[Orchestrator::_get_permission] Permission check failed for `%s`: %s", self.tool.name, permission)
-    return nil, permission
+    err = permission
+  end
+  if err then
+    log:error("[Orchestrator::_get_permission] Permission check failed for `%s`: %s", self.tool.name, err)
+    return nil, err
   end
 
   return permission

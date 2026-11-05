@@ -119,12 +119,18 @@ end
 
 ---@param tool CodeCompanion.Tool.ReadFile
 ---@return "allow"|"confirm"|nil
+---@return string? error
 local function get_permission(tool)
-  return approvals.get_path_permission({
-    path = file_utils.validate_and_normalize_path(tool.args.filepath),
+  local path = file_utils.validate_and_normalize_path(tool.args.filepath)
+  local permission, err = approvals.get_path_permission({
+    path = path,
     always_allow = tool.opts.always_allow,
     always_confirm = tool.opts.always_confirm,
   })
+  if err then
+    return nil, on_error({ filepath = path, message = err }).data
+  end
+  return permission
 end
 
 ---@class CodeCompanion.Tool.ReadFile: CodeCompanion.Tools.Tool

@@ -183,6 +183,30 @@ end
 
 T["permissions"] = new_set()
 
+T["permissions"]["returns an error without prompting for a missing file"] = function()
+  queue_permission_read({ filepath = "missing.txt" })
+
+  h.eq(0, child.lua_get("#_G.permission_prompts"))
+  expect_error(child.lua_get("chat.messages[#chat.messages].content"), "missing.txt", "ENOENT")
+end
+
+T["permissions"]["returns an error without prompting for a broken symlink despite an allowance"] = function()
+  child.lua([[
+    assert(vim.uv.fs_symlink(
+      vim.fs.joinpath(_G.TEST_CWD, "missing.txt"),
+      vim.fs.joinpath(_G.TEST_CWD, "broken.txt")
+    ))
+  ]])
+  queue_permission_read({
+    protect = true,
+    filepath = "broken.txt",
+    always_allow = { { pattern = ".*" } },
+  })
+
+  h.eq(0, child.lua_get("#_G.permission_prompts"))
+  expect_error(child.lua_get("chat.messages[#chat.messages].content"), "broken.txt", "ENOENT")
+end
+
 T["permissions"]["bypasses protection for an allowed path"] = function()
   queue_permission_read({
     protect = true,

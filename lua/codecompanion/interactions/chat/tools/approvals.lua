@@ -32,6 +32,7 @@
 --]]
 
 local config = require("codecompanion.config")
+local files = require("codecompanion.utils.files")
 local log = require("codecompanion.utils.log")
 
 ---@type table<string, string[]>
@@ -193,11 +194,12 @@ end
 ---Check an existing path and its symlink target.
 ---@param opts { path: string, always_allow?: { pattern: string }[], always_confirm?: { pattern: string }[] }
 ---@return "allow"|"confirm"|nil permission
+---@return string? error
 function Approvals.get_path_permission(opts)
   local path = vim.fs.normalize(vim.fs.abspath(opts.path))
-  local resolved = vim.uv.fs_realpath(path)
+  local resolved, err = files.get_real_path_strict(path)
   if not resolved then
-    return "confirm"
+    return nil, err
   end
   resolved = vim.fs.normalize(resolved)
 
