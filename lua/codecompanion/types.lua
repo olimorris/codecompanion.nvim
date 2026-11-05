@@ -196,6 +196,7 @@
 ---@field env? fun(schema: table): table|nil Any environment variables that can be used in the *_cmd fields. Receives the parsed schema from the LLM
 ---@field gates? table Handlers which decide whether a tool may run
 ---@field gates.is_safe? fun(self: CodeCompanion.Tools.Tool, meta: table): boolean Whether the tool can run without asking in auto mode
+---@field gates.permission? fun(self: CodeCompanion.Tools.Tool, meta: table): ("allow"|"confirm"|nil), string? Explicit permission in auto mode, or nil and a tool error
 ---@field gates.judge_context? fun(self: CodeCompanion.Tools.Tool, meta: table): string|nil The action, described in plain English, for the background judge to vet
 ---@field handlers table Functions which handle the execution of a tool
 ---@field handlers.setup? fun(self: CodeCompanion.Tools.Tool, tools: CodeCompanion.Tools): any Function used to setup the tool. Called before any commands

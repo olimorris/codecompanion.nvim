@@ -292,6 +292,8 @@ The user is working on a %s machine. Please respond with system specific command
           path = "interactions.chat.tools.builtin.read_file",
           description = "Read a file in the current working directory",
           opts = {
+            always_allow = {}, -- Very-magic Vim regex patterns, matched against normalized absolute paths in auto mode
+            always_confirm = {},
             require_approval_before = true,
           },
         },

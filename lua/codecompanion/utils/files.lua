@@ -542,6 +542,14 @@ function M.normalize_content(content)
   return (content:gsub("\r\n", "\n"):gsub("\r", "\n"))
 end
 
+---Resolve symlinks without falling back when the lookup fails
+---@param path string
+---@return string|nil, string?
+function M.get_real_path_strict(path)
+  local resolved, err = uv.fs_realpath(path)
+  return resolved, err
+end
+
 ---Resolve symlinks, so macOS's /var and its /private/var target compare as the same path
 ---@param path string
 ---@return string
