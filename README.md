@@ -42,7 +42,7 @@ Thank you to the following people:
 - :building_construction: Create your own [custom prompts](https://codecompanion.olimorris.dev/configuration/prompt-library.html#creating-prompts), Editor Context and Slash Commands
 - :inbox_tray: Have [multiple chats](https://codecompanion.olimorris.dev/usage/chat-buffer/#multiple-chats) open at the same time
 - :art: Support for [images](https://codecompanion.olimorris.dev/usage/chat-buffer/#images) and PDFs as input
-- :muscle: Async execution for fast performance
+- :muscle: Async execution for fast, responsive performance
 
 <!-- panvimdoc-ignore-start -->
 
