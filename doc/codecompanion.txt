@@ -1,4 +1,4 @@
-*codecompanion.txt*        For NVIM v0.12        Last change: 2026 November 01
+*codecompanion.txt*        For NVIM v0.12        Last change: 2026 November 07
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -14811,6 +14811,9 @@ LIST OF EVENTS ~
 
   CodeCompanionChatModel              After the model is set
 
+  CodeCompanionChatTitle              After the title is set, with the
+                                      title in the payload
+
   CodeCompanionChatToolAdded          After a tool is added, with the
                                       tool in the payload
   -----------------------------------------------------------------------
@@ -15269,8 +15272,8 @@ applications can follow what it's doing. Some integrations are built in.
 HERDR ~
 
 herdr <https://github.com/herdrdev/herdr> supervises terminal panes and shows
-which agent is running in each one. When Neovim runs in a herdr pane,
-CodeCompanion reports its state
+which agent is running in each one. When Neovim runs in a herdr pane, or a
+terminal in the Herdr app, CodeCompanion reports its state
 <https://herdr.dev/docs/integrations/#integrate-your-own-agent> to herdr, so
 the pane sits alongside panes running Claude Code or Codex:
 
@@ -15284,10 +15287,19 @@ the pane sits alongside panes running Claude Code or Codex:
   blocked                             A tool approval or a question from
                                       the LLM is waiting on you
 
+  done                                A turn finished whilst you were
+                                      looking elsewhere (Herdr app only)
+
   idle                                Nothing is in progress
   -----------------------------------------------------------------------
 Every chat buffer and CLI interaction in the Neovim instance counts towards the
-pane's state, and a `blocked` interaction takes priority.
+pane's state, and a `blocked` interaction takes priority. The Herdr app also
+shows whether a `blocked` pane is waiting on a tool approval or a question.
+
+In the Herdr app, the agents list names the pane after the most recently active
+chat's title, or `CodeCompanion [branch]` until the chat has one. This is
+skipped when Neovim's `'title'` option is on, as Neovim then sets the terminal
+title itself.
 
 The integration is enabled by default, and does nothing outside of herdr. To
 disable it:
@@ -15301,6 +15313,22 @@ disable it:
       },
     })
 <
+
+The Herdr app shows an icon for each agent from its programs table. To give
+CodeCompanion the Neovim icon, add this to `~/.config/herdr-app/programs.json`:
+
+>json
+    {
+      "programs": {
+        "codecompanion": { "name": "CodeCompanion", "icon": "icons/nvim.svg", "tint": true, "tile": "#57a143", "color": "#ffffff" }
+      }
+    }
+<
+
+
+LIMITATIONS
+
+- In the Herdr app, the state doesn't reach herdr when Neovim runs inside tmux or another multiplexer
 
 CodeCompanion follows semantic versioning <https://semver.org/>, so breaking
 changes only arrive in a major version. Each section below lists what changed
