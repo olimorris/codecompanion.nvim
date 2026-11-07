@@ -15292,14 +15292,13 @@ the pane sits alongside panes running Claude Code or Codex:
 
   idle                                Nothing is in progress
   -----------------------------------------------------------------------
-Every chat buffer and CLI interaction in the Neovim instance counts towards the
-pane's state, and a `blocked` interaction takes priority. The Herdr app also
-shows whether a `blocked` pane is waiting on a tool approval or a question.
+The status of a chat buffer or CLI interaction from within Neovim is shown as
+the pane's state. A `blocked` interaction takes priority and the Herdr app
+shows whether that pane is waiting on a tool approval or a question.
 
-In the Herdr app, the agents list names the pane after the most recently active
-chat's title, or `CodeCompanion [branch]` until the chat has one. This is
-skipped when Neovim's `'title'` option is on, as Neovim then sets the terminal
-title itself.
+In the Herdr app, panes are given the active chat's title, or `CodeCompanion
+[branch]`. This is skipped when Neovim's `'title'` option is on, as Neovim then
+sets the terminal title itself.
 
 The integration is enabled by default, and does nothing outside of herdr. To
 disable it:
