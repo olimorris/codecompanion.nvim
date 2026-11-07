@@ -1206,6 +1206,9 @@ The user is working on a %s machine. Please respond with system specific command
     herdr = {
       enabled = true,
     },
+    rex = {
+      enabled = true,
+    },
   },
   -- MCP SERVERS ----------------------------------------------------------------
   mcp = {
