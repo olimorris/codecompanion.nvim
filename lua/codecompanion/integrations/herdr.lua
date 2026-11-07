@@ -221,7 +221,7 @@ local function update_title()
     return send_title(chat_titles[last_active_bufnr])
   end
 
-  local ok = pcall(vim.system, { "git", "branch", "--show-current" }, { text = true }, function(result)
+  local ok, err = pcall(vim.system, { "git", "branch", "--show-current" }, { text = true }, function(result)
     local branch = result.code == 0 and vim.trim(result.stdout or "") or ""
     vim.schedule(function()
       -- A chat may have been titled or closed while git ran
@@ -232,6 +232,7 @@ local function update_title()
     end)
   end)
   if not ok then
+    log:debug("[herdr] Couldn't read the branch for the title: %s", err)
     send_title("CodeCompanion")
   end
 end
@@ -288,6 +289,9 @@ local function validate_chat_buffers()
     if not api.nvim_buf_is_loaded(bufnr) then
       chat_titles[bufnr] = nil
     end
+  end
+  if last_active_bufnr and not (in_flight_chats[last_active_bufnr] or open_chats[last_active_bufnr]) then
+    last_active_bufnr = next(in_flight_chats) or next(open_chats)
   end
 end
 
@@ -418,6 +422,7 @@ function M.setup()
   end)
   on({ "CodeCompanionChatClosed", "CodeCompanionCLIClosed" }, function(data)
     open_chats[data.bufnr] = nil
+    chat_titles[data.bufnr] = nil
     untrack({ bufnr = data.bufnr })
   end)
 

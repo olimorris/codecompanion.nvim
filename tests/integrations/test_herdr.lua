@@ -20,6 +20,9 @@ local T = new_set({
         end
 
         _G.start_herdr = function(env)
+          for _, name in ipairs({ "HERDR_ENV", "HERDR_PANE_ID", "HERDR_BIN_PATH", "HC_TERMINAL_ID" }) do
+            vim.env[name] = nil
+          end
           for name, value in pairs(env) do
             vim.env[name] = value
           end
@@ -74,7 +77,7 @@ T["herdr app"]["reports the kind of block and resumes working"] = function()
   }, child.lua_get("_G.sequences"))
 end
 
-T["herdr app"]["a blocked chat outranks a working one"] = function()
+T["herdr app"]["prioritises a blocked chat over a working one"] = function()
   child.lua([[
     start_herdr({ HC_TERMINAL_ID = "t9" })
     local blocked = vim.api.nvim_create_buf(false, true)
@@ -124,6 +127,21 @@ T["herdr app"]["names the pane after the chat title and clears it on close"] = f
   ]])
 
   h.eq({ "Fix the login flow", "" }, child.lua_get("_G.titles"))
+end
+
+T["herdr app"]["hands the name to an open chat when the active one closes"] = function()
+  child.lua([[
+    start_herdr({ HC_TERMINAL_ID = "t9" })
+    local remaining = vim.api.nvim_create_buf(false, true)
+    local closing = vim.api.nvim_create_buf(false, true)
+    fire("ChatCreated", remaining)
+    fire("ChatTitle", remaining, { title = "Refactor the parser" })
+    fire("ChatCreated", closing)
+    fire("ChatTitle", closing, { title = "Fix the login flow" })
+    fire("ChatClosed", closing)
+  ]])
+
+  h.eq({ "Refactor the parser", "Fix the login flow", "Refactor the parser" }, child.lua_get("_G.titles"))
 end
 
 T["herdr app"]["names an untitled chat after the branch"] = function()
