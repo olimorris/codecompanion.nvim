@@ -56,17 +56,28 @@ T["Tool Calls"]["DOES NOT open a stale tool call after the buffer is re-rendered
 end
 
 T["Tool Calls"]["opens an HTTP tool call after compaction removes it from the messages"] = function()
-  local lines = child.lua([[
+  local result = child.lua([[
     _G.chat, _G.tools = h.setup_chat_buffer()
     _G.tools:execute(_G.chat, {
-      { id = "call_1", type = "function", ["function"] = { name = "weather", arguments = { location = "London, UK", units = "celsius" } } },
+      {
+        id = "item_1",
+        call_id = "call_1",
+        type = "function",
+        ["function"] = { name = "weather", arguments = { location = "London, UK", units = "celsius" } },
+      },
     })
     _G.chat.messages = {}
 
     vim.api.nvim_set_current_win(_G.chat.ui.winnr)
-    return _G.show_tool_call_on(vim.fn.search("Weather", "n"))
+    return {
+      details = _G.show_tool_call_on(vim.fn.search("Weather", "n")),
+      stored_call_ids = vim.tbl_keys(_G.chat.tool_calls.http),
+      marked_call_ids = vim.tbl_values(_G.chat.tool_call_marks),
+    }
   ]])
 
+  h.eq({ "call_1" }, result.stored_call_ids)
+  h.eq({ "call_1" }, result.marked_call_ids)
   h.eq({
     "**location**",
     "````",
@@ -81,7 +92,35 @@ T["Tool Calls"]["opens an HTTP tool call after compaction removes it from the me
     "````",
     "Ran the weather tool The weather in London, UK is 15° celsius",
     "````",
-  }, lines)
+  }, result.details)
+end
+
+T["Tool Calls"]["opens an HTTP tool call from its approval prompt"] = function()
+  local result = child.lua([[
+    _G.chat, _G.tools = h.setup_chat_buffer({
+      interactions = { chat = { tools = { weather = { opts = { require_approval_before = true } } } } },
+    })
+    _G.tools:execute(_G.chat, {
+      {
+        id = "item_1",
+        call_id = "call_1",
+        type = "function",
+        ["function"] = { name = "weather", arguments = { location = "London", units = "celsius" } },
+      },
+    })
+
+    vim.api.nvim_set_current_win(_G.chat.ui.winnr)
+    vim.api.nvim_win_set_cursor(0, { vim.api.nvim_buf_line_count(_G.chat.bufnr), 0 })
+    local prompt_line = vim.fn.search("Weather", "bnW")
+    local namespace = vim.api.nvim_create_namespace("CodeCompanion-tool_calls")
+    local marks = vim.api.nvim_buf_get_extmarks(_G.chat.bufnr, namespace, { prompt_line - 1, 0 }, { prompt_line - 1, -1 }, {})
+    local marked_call_id = _G.chat.tool_call_marks[ marks[1][1] ]
+
+    return { details = _G.show_tool_call_on(prompt_line), marked_call_id = marked_call_id }
+  ]])
+
+  h.eq("call_1", result.marked_call_id)
+  h.eq({ "**location**", "````", "London", "````", "", "**units**", "````", "celsius", "````" }, result.details)
 end
 
 T["Tool Calls"]["shows the diff of an ACP edit that has no output"] = function()
