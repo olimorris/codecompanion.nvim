@@ -161,6 +161,16 @@ T["herdr app"]["names an untitled chat after the branch"] = function()
   h.eq({ "CodeCompanion [fix-login]" }, child.lua_get("_G.titles"))
 end
 
+T["herdr app"]["names an untitled chat CodeCompanion WITHOUT git"] = function()
+  child.lua([[
+    vim.env.PATH = vim.fn.tempname()
+    start_herdr({ HC_TERMINAL_ID = "t9" })
+    fire("ChatCreated", vim.api.nvim_create_buf(false, true))
+  ]])
+
+  h.eq({ "CodeCompanion" }, child.lua_get("_G.titles"))
+end
+
 T["herdr app"]["DOES NOT set the title when Neovim's 'title' is ON"] = function()
   child.lua([[
     vim.o.title = true

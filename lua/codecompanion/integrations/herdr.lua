@@ -221,7 +221,11 @@ local function update_title()
     return send_title(chat_titles[last_active_bufnr])
   end
 
-  local ok, err = pcall(vim.system, { "git", "branch", "--show-current" }, { text = true }, function(result)
+  if vim.fn.executable("git") == 0 then
+    return send_title("CodeCompanion")
+  end
+
+  vim.system({ "git", "branch", "--show-current" }, { text = true }, function(result)
     local branch = result.code == 0 and vim.trim(result.stdout or "") or ""
     vim.schedule(function()
       -- A chat may have been titled or closed while git ran
@@ -231,10 +235,6 @@ local function update_title()
       send_title(branch ~= "" and string.format("CodeCompanion [%s]", branch) or "CodeCompanion")
     end)
   end)
-  if not ok then
-    log:debug("[herdr] Couldn't read the branch for the title: %s", err)
-    send_title("CodeCompanion")
-  end
 end
 
 ---@return nil
