@@ -81,6 +81,7 @@ vim.api.nvim_exec_autocmds("User", {
 | `CodeCompanionChatCompacting` | When a chat starts compacting its messages |
 | `CodeCompanionChatAdapter` | After the adapter is set |
 | `CodeCompanionChatModel` | After the model is set |
+| `CodeCompanionChatTitle` | After the title is set, with the `title` in the payload |
 | `CodeCompanionChatToolAdded` | After a tool is added, with the `tool` in the payload |
 
 **Sessions**
