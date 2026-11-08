@@ -82,6 +82,25 @@ T["Rex"]["DOES NOT resume a chat that ISN'T blocked"] = function()
   h.eq({ "\027]7501;id=codecompanion/3:state=done:app=codecompanion\027\\" }, reports)
 end
 
+T["Rex"]["re-reports a chat's state when its title is set"] = function()
+  child.lua([[
+    require("codecompanion.interactions.chat").buf_get_chat = function()
+      return { title = _G.chat_title }
+    end
+  ]])
+  fire_and_get_reports({ { event = "ChatSubmitted", data = { bufnr = 3 } } })
+  child.lua([[_G.chat_title = "Fix the login flow"]])
+  local reports = fire_and_get_reports({
+    { event = "ChatTitle", data = { bufnr = 3, title = "Fix the login flow" } },
+    { event = "ChatTitle", data = { bufnr = 7, title = "Refactor the parser" } },
+  })
+
+  h.eq({
+    "\027]7501;id=codecompanion/3:state=working:app=codecompanion\027\\",
+    "\027]7501;id=codecompanion/3:state=working:app=codecompanion:title=" .. encode("Fix the login flow") .. "\027\\",
+  }, reports)
+end
+
 T["Rex"]["clears a chat's record when it's closed"] = function()
   local reports = fire_and_get_reports({
     { event = "ChatCreated", data = { bufnr = 3 } },

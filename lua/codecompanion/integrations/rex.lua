@@ -162,6 +162,11 @@ function M.setup()
   on({ "CodeCompanionChatClosed", "CodeCompanionCLIClosed" }, function(data)
     untrack({ bufnr = data.bufnr })
   end)
+  on({ "CodeCompanionChatTitle" }, function(data)
+    if records[data.bufnr] then
+      report(data.bufnr)
+    end
+  end)
 
   on({ "CodeCompanionToolApprovalRequested" }, function(data)
     track({
