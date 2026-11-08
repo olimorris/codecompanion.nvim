@@ -4,6 +4,7 @@ local Runner = require("codecompanion.interactions.chat.tools.runtime.runner")
 local agent_loop = require("codecompanion.interactions.chat.agent_loop")
 local tool_calls = require("codecompanion.interactions.chat.ui.tool_calls")
 
+local adapter_utils = require("codecompanion.adapters.utils")
 local config = require("codecompanion.config")
 local log = require("codecompanion.utils.log")
 local markdown = require("codecompanion.utils.markdown")
@@ -289,7 +290,7 @@ function Orchestrator:_write_label_to_chat()
   local text = self:_create_label().text
 
   local ok, written = pcall(tool_calls.write, self.tools.chat, {
-    call_id = self.tool.function_call.id,
+    call_id = adapter_utils.pairing_id(self.tool.function_call),
     status = "in_progress",
     summary = text,
   })
@@ -336,7 +337,7 @@ end
 ---Keep the tool call so its details can be opened from the chat buffer
 ---@return nil
 function Orchestrator:_store_tool_call()
-  local call_id = self.tool.function_call.id
+  local call_id = adapter_utils.pairing_id(self.tool.function_call)
   -- A custom adapter may not give its tool calls an ID, and a nil key would end the tool run with an error
   if call_id then
     self.tools.chat.tool_calls.http[call_id] = { call = self.tool.function_call }
@@ -429,7 +430,7 @@ function Orchestrator:_prompt_for_approval(args)
 
   local labels = require("codecompanion.interactions.chat.tools.labels")
   require("codecompanion.interactions.chat.helpers.approval_prompt").request(self.tools.chat, {
-    call_id = self.tool.function_call.id,
+    call_id = adapter_utils.pairing_id(self.tool.function_call),
     id = self.id,
     name = self.tool.name,
     prompt = prompt,
