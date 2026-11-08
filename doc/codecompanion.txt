@@ -1,5 +1,4 @@
-*codecompanion.txt*        For NVIM v0.12        Last change: 2026 November 04
-*codecompanion.txt*        For NVIM v0.12        Last change: 2026 November 07
+*codecompanion.txt*        For NVIM v0.12        Last change: 2026 November 08
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -15266,8 +15265,9 @@ SEE ALSO ~
 
 INTEGRATIONS                            *codecompanion-reference-integrations*
 
-CodeCompanion fires |codecompanion-usage-events| as it works, so other
-applications can follow what it's doing. Some integrations are built in.
+CodeCompanion fires |codecompanion-usage-events| at various points during the
+lifecycle, so other applications can follow what it's doing. Some integrations
+are built in.
 
 
 HERDR ~
@@ -15314,6 +15314,21 @@ disable it:
     })
 <
 
+The Herdr app shows an icon for each agent from its programs table. To give
+CodeCompanion the Neovim icon, add this to `~/.config/herdr-app/programs.json`:
+
+>json
+    {
+      "programs": {
+        "codecompanion": { "name": "CodeCompanion", "icon": "icons/nvim.svg", "tint": true, "tile": "#57a143", "color": "#ffffff" }
+      }
+    }
+<
+
+**Limitations**
+
+- In the Herdr app, the state doesn't reach herdr when Neovim runs inside tmux or another multiplexer
+
 
 REX ~
 
@@ -15344,21 +15359,6 @@ disable it:
       },
     })
 <
-The Herdr app shows an icon for each agent from its programs table. To give
-CodeCompanion the Neovim icon, add this to `~/.config/herdr-app/programs.json`:
-
->json
-    {
-      "programs": {
-        "codecompanion": { "name": "CodeCompanion", "icon": "icons/nvim.svg", "tint": true, "tile": "#57a143", "color": "#ffffff" }
-      }
-    }
-<
-
-
-LIMITATIONS
-
-- In the Herdr app, the state doesn't reach herdr when Neovim runs inside tmux or another multiplexer
 
 CodeCompanion follows semantic versioning <https://semver.org/>, so breaking
 changes only arrive in a major version. Each section below lists what changed
