@@ -18,6 +18,6 @@ elif [[ $os == Darwin ]]; then
   sudo ln -s "$PWD/$RELEASE_NAME/bin/nvim" /usr/local/bin
   rm -rf "$PWD/$RELEASE_NAME/lib/nvim/parser"
 else
-  curl -L "https://github.com/neovim/neovim/releases/download/${NVIM_TAG}/nvim-win64.zip" -o nvim-win64.zip
+  curl --fail -L "https://github.com/neovim/neovim/releases/download/${NVIM_TAG}/nvim-win64.zip" -o nvim-win64.zip
   unzip nvim-win64
 fi
