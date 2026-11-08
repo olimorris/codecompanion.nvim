@@ -17,6 +17,8 @@ Clearing an id also clears every record beneath it, which is how all of
 CodeCompanion's records are removed in one report when Neovim exits.
 --]]
 
+local log = require("codecompanion.utils.log")
+
 local api = vim.api
 
 local M = {}
@@ -54,7 +56,11 @@ end
 ---@param fields string[]
 ---@return nil
 local function send(fields)
-  api.nvim_ui_send("\027]7501;" .. table.concat(fields, ":") .. "\027\\")
+  local payload = table.concat(fields, ":")
+  local ok, err = pcall(api.nvim_ui_send, "\027]7501;" .. payload .. "\027\\")
+  if not ok then
+    log:error("[Rex] Report of `%s` failed: %s", payload, err)
+  end
 end
 
 ---@param bufnr number
