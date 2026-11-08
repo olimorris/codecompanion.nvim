@@ -1887,7 +1887,7 @@ function Chat:add_tool_output(tool, opts)
   self:dispatch("on_tool_output", tool_output)
   local content = tool_output.content
 
-  local http_tool_call = self.tool_calls.http[tool_call.id]
+  local http_tool_call = self.tool_calls.http[adapter_utils.pairing_id(tool_call)]
   if http_tool_call then
     http_tool_call.output = http_tool_call.output and (http_tool_call.output .. "\n\n" .. content) or content
   end
@@ -2084,6 +2084,7 @@ function Chat:set_title(title)
   pcall(function()
     api.nvim_buf_set_name(self.bufnr, title)
   end)
+  utils.fire("ChatTitle", { bufnr = self.bufnr, id = self.id, title = title })
 
   return self
 end
