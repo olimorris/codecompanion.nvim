@@ -70,6 +70,14 @@ local T = new_set({
             } },
           protocolVersion = 1
         }
+
+        function make_test_connection(session_id)
+          local connection = ACP.new({ adapter = test_adapter })
+          connection.session_id = session_id
+          connection._agent_info = agent_info
+          connection.write_message = function() return true end
+          return connection
+        end
       ]])
     end,
     post_once = child.stop,
@@ -398,6 +406,120 @@ T["Prompt Builder"]["handle_error accepts error object with message field"] = fu
   ]])
 
   h.eq(result, "LLM provider error: Error code: 429 - account suspended")
+end
+
+T["Prompt Builder"]["handle_done DOES NOT clear a follow-up prompt started by the complete handler"] = function()
+  local result = child.lua([[
+    local connection = make_test_connection("test-session-followup")
+
+    local follow_up = nil
+    local first = connection:session_prompt({ { type = "text", text = "first" } })
+      :on_complete(function()
+        follow_up = connection:session_prompt({ { type = "text", text = "btw" } })
+          :with_options({ silent = true })
+        follow_up:send()
+      end)
+      :with_options({ silent = true })
+
+    first:send()
+    first:handle_done()
+
+    return { active_is_follow_up = connection._active_prompt == follow_up }
+  ]])
+
+  h.eq(result.active_is_follow_up, true)
+end
+
+T["Prompt Builder"]["handle_done clears the active prompt when no follow-up is started"] = function()
+  local result = child.lua([[
+    local connection = make_test_connection("test-session-no-followup")
+
+    local prompt = connection:session_prompt({ { type = "text", text = "first" } })
+      :with_options({ silent = true })
+
+    prompt:send()
+    prompt:handle_done()
+
+    return { active_is_nil = connection._active_prompt == nil }
+  ]])
+
+  h.eq(result.active_is_nil, true)
+end
+
+T["Prompt Builder"]["handle_error DOES NOT clear a follow-up prompt started by the error handler"] = function()
+  local result = child.lua([[
+    local connection = make_test_connection("test-session-error-followup")
+
+    local follow_up = nil
+    local first = connection:session_prompt({ { type = "text", text = "first" } })
+      :on_error(function()
+        follow_up = connection:session_prompt({ { type = "text", text = "btw" } })
+          :with_options({ silent = true })
+        follow_up:send()
+      end)
+      :with_options({ silent = true })
+
+    first:send()
+    first:handle_error("boom")
+
+    return { active_is_follow_up = connection._active_prompt == follow_up }
+  ]])
+
+  h.eq(result.active_is_follow_up, true)
+end
+
+T["Prompt Builder"]["handle_error clears the active prompt when no follow-up is started"] = function()
+  local result = child.lua([[
+    local connection = make_test_connection("test-session-error-no-followup")
+
+    local prompt = connection:session_prompt({ { type = "text", text = "first" } })
+      :with_options({ silent = true })
+
+    prompt:send()
+    prompt:handle_error("boom")
+
+    return { active_is_nil = connection._active_prompt == nil }
+  ]])
+
+  h.eq(result.active_is_nil, true)
+end
+
+T["Prompt Builder"]["cancel DOES NOT clear a follow-up prompt started by the cancel handler"] = function()
+  local result = child.lua([[
+    local connection = make_test_connection("test-session-cancel-followup")
+
+    local follow_up = nil
+    local first = connection:session_prompt({ { type = "text", text = "first" } })
+      :on_cancel(function()
+        follow_up = connection:session_prompt({ { type = "text", text = "btw" } })
+          :with_options({ silent = true })
+        follow_up:send()
+      end)
+      :with_options({ silent = true })
+
+    first:send()
+    first:cancel()
+
+    return { active_is_follow_up = connection._active_prompt == follow_up }
+  ]])
+
+  h.eq(result.active_is_follow_up, true)
+end
+
+T["Prompt Builder"]["cancel clears the active prompt when no follow-up is started"] = function()
+  local result = child.lua([[
+    local connection = make_test_connection("test-session-cancel-no-followup")
+
+    local prompt = connection:session_prompt({ { type = "text", text = "first" } })
+      :with_options({ silent = true })
+
+    prompt:send()
+    prompt:cancel()
+
+    return { active_is_nil = connection._active_prompt == nil }
+  ]])
+
+  h.eq(result.active_is_nil, true)
 end
 
 return T
