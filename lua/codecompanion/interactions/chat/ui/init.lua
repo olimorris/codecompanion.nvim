@@ -182,7 +182,28 @@ function UI.new(args)
     })
   end
 
+  self:_watch_title()
+
   return self
+end
+
+---Keep the float's border title and the winbar in step with the chat's title, adapter and model
+---@return nil
+function UI:_watch_title()
+  api.nvim_create_autocmd("User", {
+    group = self.aug,
+    pattern = { "CodeCompanionChatTitle", "CodeCompanionChatAdapter", "CodeCompanionChatModel" },
+    desc = "Refresh the title of the CodeCompanion chat window",
+    callback = function(event)
+      if event.data.bufnr ~= self.chat_bufnr or not self:is_visible() then
+        return
+      end
+      if event.match == "CodeCompanionChatTitle" and api.nvim_win_get_config(self.winnr).relative ~= "" then
+        api.nvim_win_set_config(self.winnr, { title = string.format(" %s ", self.title) })
+      end
+      require("codecompanion.interactions.chat.ui.winbar").redraw(self)
+    end,
+  })
 end
 
 ---Create the input split that the user writes their prompt in, separate from the conversation

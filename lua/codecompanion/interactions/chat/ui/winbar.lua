@@ -34,6 +34,15 @@ function M.clear(ui)
   end
 end
 
+---Neovim doesn't re-evaluate the winbar when the values it reads change
+---@param ui CodeCompanion.Chat.UI
+---@return nil
+function M.redraw(ui)
+  if vim.wo[ui.winnr].winbar == get_expression(ui.chat_bufnr) then
+    vim.api.nvim__redraw({ win = ui.winnr, winbar = true })
+  end
+end
+
 ---@param chat_bufnr number
 ---@return string
 function M.render(chat_bufnr)

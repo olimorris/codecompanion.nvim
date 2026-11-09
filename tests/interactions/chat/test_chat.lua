@@ -917,6 +917,21 @@ T["Chat"]["merges tool output when the call ID DIFFERS from the item ID"] = func
   h.eq({ "first\n\nsecond" }, tool_messages)
 end
 
+T["Chat"]["updates the float's border title when the title is set"] = function()
+  local title = child.lua([[
+    chat.ui:hide()
+    local float_chat = require("codecompanion.interactions.chat").new({
+      buffer_context = { bufnr = 1, filetype = "lua" },
+      adapter = "test_adapter",
+      window_opts = { layout = "float", border = "single" },
+    })
+    float_chat:set_title("Explaining the parser")
+    return vim.api.nvim_win_get_config(float_chat.ui.winnr).title
+  ]])
+
+  h.eq({ { " Explaining the parser " } }, title)
+end
+
 T["Chat"]["btw"] = new_set()
 
 T["Chat"]["btw"]["stores the message on the chat object"] = function()
