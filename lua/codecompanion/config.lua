@@ -180,6 +180,7 @@ The user is working on a %s machine. Please respond with system specific command
               "get_changed_files",
               "get_diagnostics",
               "grep_search",
+              "overwrite_file",
               "read_file",
               "run_command",
             },
@@ -199,6 +200,7 @@ The user is working on a %s machine. Please respond with system specific command
               "file_search",
               "get_changed_files",
               "grep_search",
+              "overwrite_file",
               "read_file",
             },
             opts = {
@@ -286,6 +288,15 @@ The user is working on a %s machine. Please respond with system specific command
           opts = {
             require_approval_before = true,
             whitelist = {}, -- e.g. { { path = "/absolute/path", as = "/alias" } }
+          },
+        },
+        ["overwrite_file"] = {
+          path = "interactions.chat.tools.builtin.overwrite_file",
+          description = "Replace the entire content of an existing file",
+          opts = {
+            require_approval_before = false,
+            require_confirmation_after = true,
+            file_size_limit_mb = 2, -- Files larger than this are not overwritten
           },
         },
         ["read_file"] = {
