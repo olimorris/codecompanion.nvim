@@ -1,4 +1,4 @@
-*codecompanion.txt*        For NVIM v0.12        Last change: 2026 November 11
+*codecompanion.txt*        For NVIM v0.12        Last change: 2026 November 12
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -2041,8 +2041,8 @@ behave like this:
 
   delete_file             Asks, for each file     -
 
-  create_file, edit_file  Runs                    Asks you to confirm the
-                                                  change
+  create_file, edit_file, Runs                    Asks you to confirm the
+  overwrite_file                                  change
 
   file_search,            Runs                    -
   get_changed_files,                              
@@ -2069,11 +2069,11 @@ command or file**. Approving `make format` doesn't approve `make test`.
 
 
 
-After `create_file` or `edit_file` produces a change, you're asked to confirm
-it. Small diffs are shown in the chat buffer and larger ones open in a floating
-window, which `gv` opens on demand. The same `g1` to `g4` keymaps apply, except
-that Cancel only discards this change. Always accept here means later edits
-from that tool in this chat are written without a diff.
+After `create_file`, `edit_file` or `overwrite_file` produces a change, you're
+asked to confirm it. Small diffs are shown in the chat buffer and larger ones
+open in a floating window, which `gv` opens on demand. The same `g1` to `g4`
+keymaps apply, except that Cancel only discards this change. Always accept here
+means later edits from that tool in this chat are written without a diff.
 
 These keymaps are shared across CodeCompanion and can be changed under
 `interactions.shared.keymaps`. See |codecompanion-keymaps|.
@@ -3915,6 +3915,7 @@ prompt, which replaces the default chat and tool system prompts, and contains:
 - |codecompanion--get-changed-files|
 - |codecompanion--get-diagnostics|
 - |codecompanion--grep-search|
+- |codecompanion--overwrite-file|
 - |codecompanion--read-file|
 - |codecompanion--run-command|
 
@@ -3936,6 +3937,7 @@ directory. It contains:
 - |codecompanion--file-search|
 - |codecompanion--get-changed-files|
 - |codecompanion--grep-search|
+- |codecompanion--overwrite-file|
 - |codecompanion--read-file|
 
 To use it:
@@ -4013,6 +4015,9 @@ The built-in tools work with any adapter and model that
 
   -memory                             Store and retrieve information
                                       across conversations
+
+  -overwrite-file                     Replace the whole content of a
+                                      buffer or file
 
   -read-file                          Read all or part of a file
 
@@ -4294,6 +4299,34 @@ from and updates over time:
     })
 <
 
+
+OVERWRITE_FILE
+
+
+  [!NOTE] By default, you confirm the change in a diff before it's written
+The LLM replaces the whole content of an existing buffer or file. It suits
+rewrites, where |codecompanion--edit-file| would need many small replacements:
+
+>md
+    Use @{overwrite_file} to rewrite #buffer as a Lua module
+<
+
+The file must already exist. A file that's open in Neovim is overwritten in its
+buffer and saved, and any other file keeps its CRLF line endings.
+
+  ----------------------------------------------------------------------------
+  Option                       Default                 Description
+  ---------------------------- ----------------------- -----------------------
+  require_approval_before      false                   Require approval before
+                                                       showing the diff
+
+  require_confirmation_after   true                    Require confirmation of
+                                                       the diff before the
+                                                       file is overwritten
+
+  file_size_limit_mb           2                       Files larger than this
+                                                       aren't overwritten
+  ----------------------------------------------------------------------------
 
 READ_FILE
 

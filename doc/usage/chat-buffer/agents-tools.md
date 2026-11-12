@@ -55,6 +55,7 @@ The `@{agent}` group is CodeCompanion's agent mode. It has its own system prompt
 - [get_changed_files](#get-changed-files)
 - [get_diagnostics](#get-diagnostics)
 - [grep_search](#grep-search)
+- [overwrite_file](#overwrite-file)
 - [read_file](#read-file)
 - [run_command](#run-command)
 
@@ -74,6 +75,7 @@ The `@{files}` group carries out file operations in the current working director
 - [file_search](#file-search)
 - [get_changed_files](#get-changed-files)
 - [grep_search](#grep-search)
+- [overwrite_file](#overwrite-file)
 - [read_file](#read-file)
 
 To use it:
@@ -129,6 +131,7 @@ The built-in tools work with any adapter and model that [supports tool use](#com
 | [get_diagnostics](#get-diagnostics) | Get LSP diagnostics for a file |
 | [grep_search](#grep-search) | Search for text in files |
 | [memory](#memory) | Store and retrieve information across conversations |
+| [overwrite_file](#overwrite-file) | Replace the whole content of a buffer or file |
 | [read_file](#read-file) | Read all or part of a file |
 | [run_command](#run-command) | Run shell commands |
 | [search_help](#search-help) | Search the CodeCompanion docs |
@@ -344,6 +347,25 @@ require("codecompanion").setup({
   },
 })
 ```
+
+### overwrite_file
+
+> [!NOTE]
+> By default, you confirm the change in a diff before it's written
+
+The LLM replaces the whole content of an existing buffer or file. It suits rewrites, where [edit_file](#edit-file) would need many small replacements:
+
+```md
+Use @{overwrite_file} to rewrite #buffer as a Lua module
+```
+
+The file must already exist. A file that's open in Neovim is overwritten in its buffer and saved, and any other file keeps its CRLF line endings.
+
+| Option | Default | Description |
+| --- | --- | --- |
+| `require_approval_before` | `false` | Require approval before showing the diff |
+| `require_confirmation_after` | `true` | Require confirmation of the diff before the file is overwritten |
+| `file_size_limit_mb` | `2` | Files larger than this aren't overwritten |
 
 ### read_file
 

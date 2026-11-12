@@ -118,6 +118,12 @@ return {
             require_approval_before = false,
           },
         },
+        ["overwrite_file"] = {
+          opts = {
+            require_approval_before = false,
+            require_confirmation_after = false,
+          },
+        },
         ["grep_search"] = {
           opts = {
             require_approval_before = false,
