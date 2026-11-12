@@ -327,6 +327,7 @@ function Client:send_sync(payload, opts)
 
   local request_opts = {
     body_file = body_file,
+    compressed = adapter.opts and adapter.opts.compress or false,
     insecure = config.adapters.http.opts.allow_insecure,
     proxy = config.adapters.http.opts.proxy,
     raw = raw,
@@ -401,6 +402,7 @@ function Client:request(payload, actions, opts)
 
   local request_opts = {
     body_file = body_file,
+    compressed = adapter.opts and adapter.opts.compress or false,
     insecure = config.adapters.http.opts.allow_insecure,
     proxy = config.adapters.http.opts.proxy,
     raw = raw,
@@ -452,8 +454,6 @@ function Client:request(payload, actions, opts)
 
   if adapter.opts and adapter.opts.stream then
     local has_started_steaming = false
-
-    request_opts["compressed"] = adapter.opts.compress or false
 
     -- This will be called multiple times until the stream is finished
     request_opts["stream"] = self.methods.schedule_wrap(function(data)

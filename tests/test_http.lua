@@ -174,6 +174,19 @@ T["dispatches GET when method is GET"] = function()
   h.eq(child.lua_get([[_G.__calls.post]]), 0)
 end
 
+T["decompresses non-streaming responses when the adapter enables compression"] = function()
+  local result = child.lua([[
+    local adapter = __make_adapter({ opts = { compress = true } })
+    local client = Client.new({ adapter = adapter })
+    client:request({ messages = {} }, { callback = function() end })
+    local async_compressed = __last_request_opts.compressed
+    client:send_sync({ messages = {} })
+    return { async = async_compressed, sync = __last_request_opts.compressed }
+  ]])
+
+  h.eq(result, { async = true, sync = true })
+end
+
 T["invokes on_error callback with error"] = function()
   local result = child.lua([[
     -- Override POST to trigger on_error
