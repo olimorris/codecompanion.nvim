@@ -43,6 +43,31 @@ function M.get_title_line(ui)
   return title and ("# " .. title) or nil
 end
 
+---Add the H1 to lines bound for the chat buffer, beneath any settings, returning its 0-based row
+---@param ui CodeCompanion.Chat.UI
+---@param opts { lines: string[] }
+---@return number|nil
+function M.add_title_line(ui, opts)
+  local title_line = M.get_title_line(ui)
+  if not title_line then
+    return nil
+  end
+
+  local row = 0
+  if opts.lines[1] == "---" then
+    for index = 2, #opts.lines do
+      if opts.lines[index] == "---" then
+        row = opts.lines[index + 1] == "" and index + 1 or index
+        break
+      end
+    end
+  end
+
+  table.insert(opts.lines, row + 1, title_line)
+  table.insert(opts.lines, row + 2, "")
+  return row
+end
+
 ---Mark the H1 once it's been written, so a new title can replace it in place
 ---@param ui CodeCompanion.Chat.UI
 ---@param opts { row: number }
@@ -58,15 +83,38 @@ function M.mark(ui, opts)
 end
 
 ---@param ui CodeCompanion.Chat.UI
+---@return number|nil
+local function get_title_row(ui)
+  local mark = api.nvim_buf_get_extmark_by_id(ui.chat_bufnr, NS_ROW, ROW_MARK, { details = true })
+  if mark[1] and not mark[3].invalid then
+    return mark[1]
+  end
+end
+
+---Take the H1 out of the chat buffer's lines, so a restored session can add it afresh
+---@param ui CodeCompanion.Chat.UI
+---@param opts { lines: string[] }
+---@return string[]
+function M.remove_title_line(ui, opts)
+  local row = get_title_row(ui)
+  if row then
+    table.remove(opts.lines, row + 1)
+    if opts.lines[row + 1] == "" then
+      table.remove(opts.lines, row + 1)
+    end
+  end
+  return opts.lines
+end
+
+---@param ui CodeCompanion.Chat.UI
 ---@return nil
 local function rewrite_title_line(ui)
-  local mark = api.nvim_buf_get_extmark_by_id(ui.chat_bufnr, NS_ROW, ROW_MARK, { details = true })
+  local row = get_title_row(ui)
   local title_line = M.get_title_line(ui)
-  if not mark[1] or mark[3].invalid or not title_line then
+  if not row or not title_line then
     return
   end
 
-  local row = mark[1]
   local current = api.nvim_buf_get_lines(ui.chat_bufnr, row, row + 1, false)[1]
   if current ~= title_line then
     local buffer = vim.bo[ui.chat_bufnr]
@@ -82,16 +130,8 @@ end
 ---@return nil
 function M.set(ui)
   if config.display.chat.title.position == "winbar" then
-    vim.wo[ui.winnr].winbar = get_expression(ui.chat_bufnr)
-  end
-end
-
----Clear the winbar, so the window doesn't keep it once it shows another buffer
----@param ui CodeCompanion.Chat.UI
----@return nil
-function M.clear(ui)
-  if ui:is_visible() and vim.wo[ui.winnr].winbar == get_expression(ui.chat_bufnr) then
-    vim.wo[ui.winnr].winbar = ""
+    -- Scoped to the chat buffer, so another buffer opened in the window doesn't inherit the chat's title
+    vim.wo[ui.winnr][0].winbar = get_expression(ui.chat_bufnr)
   end
 end
 

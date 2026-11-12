@@ -129,6 +129,30 @@ T["Sessions"]["restores into an input split with the context in the input"] = fu
   }, result.input)
 end
 
+T["Sessions"]["saves the chat WITHOUT its H1 and adds the H1 back on restore"] = function()
+  local result = child.lua([[
+    require("codecompanion.config").display.chat.title.position = "buffer"
+    local titled_chat = require("codecompanion.interactions.chat").new({
+      buffer_context = { bufnr = 1, filetype = "lua" },
+      adapter = "test_adapter",
+    })
+    table.insert(titled_chat.messages, { role = "user", content = "Hello there" })
+
+    _G.sessions.save(titled_chat, { title = "Fixing the parser" })
+    titled_chat:close()
+    local saved = _G.storage.read(_G.storage.list()[1].stem)
+    local restored = _G.sessions.load(_G.storage.list()[1].stem)
+    local lines = vim.api.nvim_buf_get_lines(restored.bufnr, 0, -1, false)
+    return {
+      saved_headings = #vim.tbl_filter(function(line) return vim.startswith(line, "# ") end, saved.ui_lines),
+      restored_headings = #vim.tbl_filter(function(line) return vim.startswith(line, "# ") end, lines),
+      first_line = lines[1],
+    }
+  ]])
+
+  h.eq({ saved_headings = 0, restored_headings = 1, first_line = "# Fixing the parser" }, result)
+end
+
 T["Sessions"]["restores an unsent draft into the input split"] = function()
   local input = child.lua([[
     require("codecompanion.config").display.chat.input.layout = "split"

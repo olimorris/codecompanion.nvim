@@ -1441,7 +1441,7 @@ The user is working on a %s machine. Please respond with system specific command
       title = {
         position = "buffer", -- buffer|winbar|false
         text = {
-          ---@param metadata table See `_G.codecompanion_chat_metadata`
+          ---@param metadata table
           ---@return string In Neovim's `'statusline'` format
           winbar = function(metadata)
             -- A `%` would otherwise be read as the start of a statusline item
@@ -1450,7 +1450,7 @@ The user is working on a %s machine. Please respond with system specific command
               or metadata.adapter.name
             return string.format("%%#CodeCompanionChatHeader# %s%%*%%=%%#Comment#%s ", title, adapter)
           end,
-          ---@param metadata table See `_G.codecompanion_chat_metadata`
+          ---@param metadata table
           ---@return string Written as an H1 at the top of the chat buffer
           buffer = function(metadata)
             return metadata.title or "CodeCompanion.nvim"

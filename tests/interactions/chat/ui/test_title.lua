@@ -60,15 +60,18 @@ T["Title"]["builds the winbar from the chat's metadata with the user's function"
   h.eq("1200 tokens", result)
 end
 
-T["Title"]["clears the winbar from a reused window when the chat is hidden"] = function()
+T["Title"]["keeps the winbar with the chat when its window shows another buffer"] = function()
   local result = child.lua([[
-    _G.chat = h.setup_chat_buffer({ display = { chat = { title = { position = "winbar" }, window = { layout = "buffer" } } } })
+    _G.chat = h.setup_chat_buffer({ display = { chat = { title = { position = "winbar" } } } })
     local winnr = chat.ui.winnr
-    chat.ui:hide()
-    return { shows_chat = vim.api.nvim_win_get_buf(winnr) == chat.bufnr, winbar = vim.wo[winnr].winbar }
+    vim.api.nvim_win_set_buf(winnr, vim.api.nvim_create_buf(true, false))
+    local other = vim.wo[winnr].winbar
+    vim.api.nvim_win_set_buf(winnr, chat.bufnr)
+    return { other = other, back = winbar(winnr) }
   ]])
 
-  h.eq({ shows_chat = false, winbar = "" }, result)
+  h.eq("", result.other)
+  h.expect_match(result.back, "^ CodeCompanion.nvim")
 end
 
 T["Title"]["replaces the H1 in place when the title changes"] = function()

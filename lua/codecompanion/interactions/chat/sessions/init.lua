@@ -14,6 +14,7 @@ local log = require("codecompanion.utils.log")
 local serializer = require("codecompanion.interactions.chat.sessions.serializer")
 local slug = require("codecompanion.interactions.chat.sessions.utils.slug")
 local storage = require("codecompanion.interactions.chat.sessions.storage")
+local title_ui = require("codecompanion.interactions.chat.ui.title")
 local utils = require("codecompanion.utils")
 
 local api = vim.api
@@ -132,7 +133,9 @@ local function write_session(chat)
   local ok = storage.write(stem, {
     chat = session.chat,
     meta = session.meta,
-    ui_lines = api.nvim_buf_is_valid(chat.bufnr) and chat.prompt:get_session_lines() or nil,
+    ui_lines = api.nvim_buf_is_valid(chat.bufnr)
+        and title_ui.remove_title_line(chat.ui, { lines = chat.prompt:get_session_lines() })
+      or nil,
   })
   if ok then
     log:debug("[sessions] Wrote session %s for chat %d", stem, chat.id)
@@ -305,7 +308,12 @@ function M.load(stem, opts)
   serializer.restore_tools(chat, saved_chat.chat.tools)
   chat:set_title(saved_chat.meta.title)
 
-  chat.prompt:restore_lines({ lines = saved_chat.ui_lines and prune_context_blocks(saved_chat.ui_lines) })
+  local lines = saved_chat.ui_lines and prune_context_blocks(saved_chat.ui_lines)
+  local title_row = lines and title_ui.add_title_line(chat.ui, { lines = lines })
+  chat.prompt:restore_lines({ lines = lines })
+  if title_row then
+    title_ui.mark(chat.ui, { row = title_row })
+  end
 
   -- Opening the chat counts as a user cursor move, which would stop `follow` short
   chat.ui.cursor.moved_by_user = false

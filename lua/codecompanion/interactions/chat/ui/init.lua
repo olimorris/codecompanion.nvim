@@ -415,7 +415,6 @@ function UI:hide(opts)
     end
     self.input:hide()
   end
-  title_ui.clear(self)
   if not opts.keep_window then
     local layout
     if self.window_opts then
@@ -623,12 +622,7 @@ function UI:render(context, messages, opts)
     spacer()
   end
 
-  local title = title_ui.get_title_line(self)
-  local title_row = #lines
-  if title then
-    table.insert(lines, title)
-    spacer()
-  end
+  local title_row = title_ui.add_title_line(self, { lines = lines })
 
   -- NOTE: Typically, we wouldn't want to render a header if there are existing
   -- messages. However, provide an option to force the header to be rendered
@@ -658,7 +652,7 @@ function UI:render(context, messages, opts)
   if self.input then
     lines = self:move_prompt_to_input(lines)
     -- Gives the intro message a line of its own, rather than running on from the H1
-    if title and #lines == title_row + 1 then
+    if title_row and #lines == title_row + 1 then
       spacer()
     end
   end
@@ -667,7 +661,7 @@ function UI:render(context, messages, opts)
   api.nvim_buf_set_lines(self.chat_bufnr, 0, -1, false, lines)
   -- A full rewrite leaves old marks bunched at the top, where `K` would open a stale tool call
   require("codecompanion.interactions.chat.ui.tool_calls").clear(self.chat_bufnr)
-  if title then
+  if title_row then
     title_ui.mark(self, { row = title_row })
   end
   if self.input then
