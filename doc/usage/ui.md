@@ -21,6 +21,7 @@ CodeCompanion changes as little of your UI as it can. Instead, it exposes chat m
 | `context_items` | Number of context items in the chat |
 | `cycles` | Number of turns, from your message to the LLM's response |
 | `id` | The chat's ID |
+| `title` | The chat's title, once it has one |
 | `tokens` | Running total of tokens |
 | `tools` | Number of tools in the chat |
 

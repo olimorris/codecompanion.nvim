@@ -9,6 +9,7 @@ local markdown = require("codecompanion.utils.markdown")
 local schema = require("codecompanion.schema")
 local shared_ui = require("codecompanion.interactions.shared.ui")
 local tags = require("codecompanion.interactions.shared.tags")
+local title_ui = require("codecompanion.interactions.chat.ui.title")
 local ui_utils = require("codecompanion.utils.ui")
 local utils = require("codecompanion.utils")
 local yaml = require("codecompanion.utils.yaml")
@@ -182,7 +183,27 @@ function UI.new(args)
     })
   end
 
+  self:_watch_title()
+
   return self
+end
+
+---Keep the float's border title in step with the chat's title
+---@return nil
+function UI:_watch_title()
+  api.nvim_create_autocmd("User", {
+    group = self.aug,
+    pattern = "CodeCompanionChatTitle",
+    desc = "Update the border title of the CodeCompanion chat float",
+    callback = function(event)
+      if event.data.bufnr ~= self.chat_bufnr or not self:is_visible() then
+        return
+      end
+      if api.nvim_win_get_config(self.winnr).relative ~= "" then
+        api.nvim_win_set_config(self.winnr, { title = string.format(" %s ", self.title) })
+      end
+    end,
+  })
 end
 
 ---Create the input split that the user writes their prompt in, separate from the conversation
@@ -240,6 +261,7 @@ function UI:_setup_after_open(opts)
   end
 
   self.folds:setup(self.winnr)
+  title_ui.set(self)
   if self.input then
     self:_open_input()
     self:_restore_view()
@@ -600,6 +622,8 @@ function UI:render(context, messages, opts)
     spacer()
   end
 
+  local title_row = title_ui.add_title_line(self, { lines = lines })
+
   -- NOTE: Typically, we wouldn't want to render a header if there are existing
   -- messages. However, provide an option to force the header to be rendered
   -- for scenarios where there is no user prompt
@@ -627,12 +651,19 @@ function UI:render(context, messages, opts)
 
   if self.input then
     lines = self:move_prompt_to_input(lines)
+    -- Gives the intro message a line of its own, rather than running on from the H1
+    if title_row and #lines == title_row + 1 then
+      spacer()
+    end
   end
 
   self:unlock_buf()
   api.nvim_buf_set_lines(self.chat_bufnr, 0, -1, false, lines)
   -- A full rewrite leaves old marks bunched at the top, where `K` would open a stale tool call
   require("codecompanion.interactions.chat.ui.tool_calls").clear(self.chat_bufnr)
+  if title_row then
+    title_ui.mark(self, { row = title_row })
+  end
   if self.input then
     self:lock_buf()
   end

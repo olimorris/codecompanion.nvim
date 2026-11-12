@@ -2045,7 +2045,7 @@ function Chat:update_metadata()
 
   _G.codecompanion_chat_metadata[self.bufnr] = {
     adapter = {
-      name = self.adapter.formatted_name,
+      name = self.adapter.formatted_name or self.adapter.name,
       model = model,
       model_info = (self.adapter.model and self.adapter.model.info) and self.adapter.model.info,
       type = self.adapter.type,
@@ -2054,9 +2054,11 @@ function Chat:update_metadata()
     context_items = #self.context_items,
     cycles = self.cycle,
     id = self.id,
+    title = self.title,
     tokens = self.tokens or 0,
     tools = vim.tbl_count(self.tool_registry.in_use) or 0,
   }
+  require("codecompanion.interactions.chat.ui.title").refresh(self.ui)
 
   if self.adapter.type == "acp" then
     if model and model ~= "default" then
@@ -2084,6 +2086,8 @@ function Chat:set_title(title)
   pcall(function()
     api.nvim_buf_set_name(self.bufnr, title)
   end)
+  _G.codecompanion_chat_metadata[self.bufnr].title = title
+  require("codecompanion.interactions.chat.ui.title").refresh(self.ui)
   utils.fire("ChatTitle", { bufnr = self.bufnr, id = self.id, title = title })
 
   return self

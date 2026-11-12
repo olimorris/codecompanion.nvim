@@ -1,5 +1,5 @@
 ---
-description: "Change the chat buffer's window layout, icons, folding, scrolling, headers, reasoning output and streaming."
+description: "Change the chat buffer's window layout, icons, folding, scrolling, headers, reasoning output, streaming and title."
 ---
 
 # Configuring the Chat Buffer UI
@@ -204,6 +204,65 @@ require("codecompanion").setup({
 ```
 
 A longer interval makes the response arrive in larger pieces and uses less CPU, which is most noticeable in long chats.
+
+## Title
+
+The chat's title appears as a heading at the top of the chat buffer, and scrolls away with the conversation. The `text.buffer` function builds it from the chat's [metadata](/usage/ui#metadata), and runs again whenever the metadata changes. It returns plain text, and CodeCompanion adds the `# `. To add the adapter's name:
+
+```lua
+require("codecompanion").setup({
+  display = {
+    chat = {
+      title = {
+        text = {
+          buffer = function(metadata)
+            return string.format("%s (%s)", metadata.title or "CodeCompanion.nvim", metadata.adapter.name)
+          end,
+        },
+      },
+    },
+  },
+})
+```
+
+To show the title in the chat window's winbar instead, so it stays in view as you scroll:
+
+```lua
+require("codecompanion").setup({
+  display = {
+    chat = {
+      title = {
+        position = "winbar", -- Can be "buffer", "winbar" or false
+      },
+    },
+  },
+})
+```
+
+The winbar also shows the adapter and model. `text.winbar` returns a string in Neovim's `'statusline'` format, so to show the token count instead:
+
+```lua
+require("codecompanion").setup({
+  display = {
+    chat = {
+      title = {
+        position = "winbar",
+        text = {
+          winbar = function(metadata)
+            local title = (metadata.title or "CodeCompanion.nvim"):gsub("%%", "%%%%")
+            return string.format(" %s%%=%d tokens ", title, metadata.tokens)
+          end,
+        },
+      },
+    },
+  },
+})
+```
+
+> [!IMPORTANT]
+> Double any `%` in the title, as the `gsub` above does, or Neovim reads it as a statusline item
+
+To turn the title off, set `position = false`.
 
 ## Others
 

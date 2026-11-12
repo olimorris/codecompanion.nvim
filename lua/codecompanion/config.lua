@@ -1437,6 +1437,27 @@ The user is working on a %s machine. Please respond with system specific command
         opts = {},
       },
 
+      -- The chat's title, built from the chat's metadata
+      title = {
+        position = "buffer", -- buffer|winbar|false
+        text = {
+          ---@param metadata table
+          ---@return string In Neovim's `'statusline'` format
+          winbar = function(metadata)
+            -- A `%` would otherwise be read as the start of a statusline item
+            local title = (metadata.title or "CodeCompanion.nvim"):gsub("%%", "%%%%")
+            local adapter = metadata.adapter.model and (metadata.adapter.name .. " · " .. metadata.adapter.model)
+              or metadata.adapter.name
+            return string.format("%%#CodeCompanionChatHeader# %s%%*%%=%%#Comment#%s ", title, adapter)
+          end,
+          ---@param metadata table
+          ---@return string Written as an H1 at the top of the chat buffer
+          buffer = function(metadata)
+            return metadata.title or "CodeCompanion.nvim"
+          end,
+        },
+      },
+
       -- Where the user writes their prompt
       input = {
         layout = "buffer", -- buffer|split
