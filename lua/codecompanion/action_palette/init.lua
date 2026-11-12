@@ -138,7 +138,8 @@ end
 ---@param opts { context: CodeCompanion.BufferContext, provider?: string, provider_opts?: table, title?: string, validate?: function, resolve?: function }
 ---@return nil
 function ActionPalette.launch_picker(items, opts)
-  local provider = opts.provider or config.display.action_palette.provider
+  local provider =
+    require("codecompanion.providers").resolve_name(opts.provider or config.display.action_palette.provider)
   local noop = function(...)
     return ...
   end
@@ -166,7 +167,7 @@ function ActionPalette.launch(context, args)
     return log:warn("No prompts available. Please create some in your config or turn on the prompt library")
   end
 
-  local provider = config.display.action_palette.provider
+  local provider = require("codecompanion.providers").resolve_name(config.display.action_palette.provider)
   local provider_opts = {}
   if args and args.provider and args.provider.name then
     provider = args.provider.name

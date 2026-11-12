@@ -60,14 +60,14 @@ end
 
 ---Create a non-blocking writer that queues text and flushes it to a file in batches
 ---@param path string
----@return fun(text: string) write
+---@return { write: fun(text: string), discard: fun() }
 local function async_writer(path)
-  local a = require("plenary.async")
   local write_queue = {}
   local is_writing = false
+  local is_discarded = false
 
   local function process_queue()
-    if is_writing or #write_queue == 0 then
+    if is_discarded or is_writing or #write_queue == 0 then
       return
     end
     is_writing = true
@@ -75,6 +75,7 @@ local function async_writer(path)
     local text = table.concat(write_queue)
     write_queue = {}
 
+    local a = require("plenary.async")
     a.run(function()
       local err, fd = a.uv.fs_open(path, "a", 438)
       if err then
@@ -102,14 +103,29 @@ local function async_writer(path)
       end
 
       is_writing = false
+      if is_discarded then
+        vim.schedule(function()
+          vim.uv.fs_unlink(path)
+        end)
+        return
+      end
       vim.schedule(process_queue)
     end)
   end
 
-  return function(text)
-    table.insert(write_queue, text)
-    vim.schedule(process_queue)
-  end
+  return {
+    write = function(text)
+      table.insert(write_queue, text)
+      vim.schedule(process_queue)
+    end,
+    discard = function()
+      is_discarded = true
+      write_queue = {}
+      if not is_writing then
+        vim.uv.fs_unlink(path)
+      end
+    end,
+  }
 end
 
 ---@param opts table
@@ -122,9 +138,9 @@ local function create_file_handler(opts)
   end
   local path = vim.fs.joinpath(stdpath, opts.filename)
 
-  local write = async_writer(path)
+  local writer = async_writer(path)
   opts.handle = function(_level, text)
-    write(text .. "\n")
+    writer.write(text .. "\n")
   end
 
   return LogHandler.new(opts)
@@ -333,16 +349,17 @@ M.get_logfile = function()
 end
 
 ---Create a temp file that captures a request's streamed response, one timestamped entry per chunk
----@return { path: string, write: fun(data: string|table) }
+---@return { path: string, write: fun(data: string|table), discard: fun() }
 M.new_response_file = function()
   local path = vim.fn.tempname() .. ".log"
-  local write = async_writer(path)
+  local writer = async_writer(path)
   return {
     path = path,
     write = function(data)
       local content = type(data) == "table" and vim.inspect(data) or data
-      write(timestamp() .. "\n" .. content .. "\n")
+      writer.write(timestamp() .. "\n" .. content .. "\n")
     end,
+    discard = writer.discard,
   }
 end
 

@@ -350,4 +350,32 @@ T["chat()"]["params.model sets the model the adapter sends"] = function()
   h.eq("gpt-4o", result)
 end
 
+T["setup()"] = new_set({
+  hooks = {
+    pre_case = function()
+      h.child_start(child)
+      child.lua([[
+        _G.loaded_blink = false
+        package.preload["blink.cmp"] = function()
+          _G.loaded_blink = true
+          return { add_source_provider = function() end, add_filetype_source = function() end }
+        end
+        h = require("tests.helpers")
+        h.setup_plugin()
+      ]])
+    end,
+    post_once = child.stop,
+  },
+})
+
+T["setup()"]["DOES NOT load the completion plugin BEFORE a prompt buffer opens"] = function()
+  h.eq(false, child.lua_get("_G.loaded_blink"))
+end
+
+T["setup()"]["loads the completion plugin WHEN a prompt buffer opens"] = function()
+  child.lua([[vim.bo[vim.api.nvim_create_buf(false, true)].filetype = "codecompanion"]])
+
+  h.eq(true, child.lua_get("_G.loaded_blink"))
+end
+
 return T

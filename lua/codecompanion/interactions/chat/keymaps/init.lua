@@ -1,4 +1,3 @@
-local async = require("plenary.async")
 local completion = require("codecompanion.providers.completion")
 local config = require("codecompanion.config")
 local triggers = require("codecompanion.triggers")
@@ -203,7 +202,7 @@ M.options = {
 M.completion = {
   callback = function(chat)
     local function complete_items(callback)
-      async.run(function()
+      require("plenary.async").run(function()
         local slash_cmds = completion.slash_commands()
         local tools = completion.tools()
         local ec = completion.editor_context()

@@ -203,7 +203,8 @@ function M.open(opts)
   api.nvim_buf_set_name(bufnr, string.format("[CodeCompanion Input] %d", bufnr))
   vim.bo[bufnr].buftype = "acwrite"
 
-  local completion_provider = config.interactions.chat.opts.completion_provider
+  local completion_provider =
+    require("codecompanion.providers").resolve_name(config.interactions.chat.opts.completion_provider)
   if completion_provider == "default" then
     vim.bo[bufnr].omnifunc = "v:lua.require'codecompanion.providers.completion.default.omnifunc'.omnifunc"
   end

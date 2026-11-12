@@ -1,4 +1,3 @@
-local async = require("plenary.async")
 local log = require("codecompanion.utils.log")
 
 local api = vim.api
@@ -532,11 +531,7 @@ function M.confirm(prompt, choices, opts)
   return vim.fn.confirm(prompt, formatted_choices, opts.default, opts.highlight_group)
 end
 
----Wait for user input via vim.ui.input, wrapped in plenary.async
----@param opts table Options for vim.ui.input
----@param callback fun(input: string|nil)
----@return nil
-M.input = async.wrap(function(opts, callback)
+local function prompt_for_input(opts, callback)
   --Ref: https://github.com/CopilotC-Nvim/CopilotChat.nvim/blob/7a8e238e36ea9e1df9d6309434a37bcdc15a9fae/lua/CopilotChat/utils.lua#L148
   local fn = function()
     vim.ui.input(opts, function(input)
@@ -553,6 +548,14 @@ M.input = async.wrap(function(opts, callback)
   else
     fn()
   end
-end, 2)
+end
+
+---Wait for user input via vim.ui.input, wrapped in plenary.async
+---@param opts table Options for vim.ui.input
+---@param callback fun(input: string|nil)
+---@return nil
+M.input = function(...)
+  return require("plenary.async").wrap(prompt_for_input, 2)(...)
+end
 
 return M

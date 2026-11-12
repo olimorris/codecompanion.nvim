@@ -90,6 +90,20 @@ T["Subscribers"]["size() reflects queue size"] = function()
   h.eq(size, 0)
 end
 
+T["Subscribers"]["unsubscribe removes every queued entry with the same id"] = function()
+  child.lua([[
+    _G.chat.subscribers.queue = {
+      { id = 1, data = { type = "once" } },
+      { id = 1, data = { type = "once" } },
+      { id = 2, data = { type = "once" } },
+    }
+    _G.chat.subscribers:unsubscribe({ id = 1 })
+  ]])
+
+  h.eq(1, child.lua([[return _G.chat.subscribers:size()]]))
+  h.eq(2, child.lua([[return _G.chat.subscribers.queue[1].id]]))
+end
+
 T["Subscribers"]["on_cancelled marks subscribers as stopped"] = function()
   child.lua([[
     local ev = { data = { type = "once", opts = { auto_submit = true } }, callback = function() end }

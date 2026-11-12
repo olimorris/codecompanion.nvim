@@ -269,7 +269,11 @@ function M.setup()
     end,
   })
 
-  ui.refresh()
+  if vim.v.vim_did_enter == 1 then
+    vim.schedule(ui.refresh)
+  else
+    api.nvim_create_autocmd("VimEnter", { group = group, once = true, callback = ui.refresh })
+  end
 end
 
 return M

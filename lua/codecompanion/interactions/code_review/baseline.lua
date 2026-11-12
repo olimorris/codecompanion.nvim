@@ -1,4 +1,5 @@
 local diff = require("codecompanion.diff")
+local files = require("codecompanion.utils.files")
 local hash = require("codecompanion.utils.hash")
 local log = require("codecompanion.utils.log")
 
@@ -266,10 +267,59 @@ function M.storage_root()
   return M.get_root() or vim.fs.normalize(vim.uv.cwd() or "")
 end
 
+---The directory holding this worktree's HEAD, found without running git
+---@param root string
+---@return string|nil
+local function find_head_dir(root)
+  local dot_git = vim.fs.joinpath(root, ".git")
+  if files.is_dir(dot_git) then
+    return dot_git
+  end
+
+  -- A linked worktree has a `.git` file pointing at its own directory
+  local ok, lines = pcall(files.read_lines, dot_git)
+  local target = ok and lines and lines[1] and lines[1]:match("^gitdir:%s*(.-)%s*$")
+  if not target then
+    return nil
+  end
+
+  if vim.fn.isabsolutepath(target) == 1 then
+    return target
+  end
+  return vim.fs.joinpath(root, target)
+end
+
+---Read the branch from HEAD, returning nil if it can't be read this way
+---@param root string
+---@return { branch: string|nil }|nil
+local function read_head(root)
+  if vim.env.GIT_DIR then
+    return nil
+  end
+
+  local head_dir = find_head_dir(root)
+  if not head_dir then
+    return nil
+  end
+
+  local ok, lines = pcall(files.read_lines, vim.fs.joinpath(head_dir, "HEAD"))
+  if not ok or not lines or not lines[1] then
+    return nil
+  end
+
+  -- A detached HEAD holds a commit hash rather than a ref
+  return { branch = lines[1]:match("^ref:%s*refs/heads/(.-)%s*$") }
+end
+
 ---Get the checked-out branch for a repo, if HEAD isn't detached
 ---@param root string
 ---@return string|nil
 function M.get_branch(root)
+  local head = read_head(root)
+  if head then
+    return head.branch
+  end
+
   local branch = git({ root = root, args = { "branch", "--show-current" } })
   if not branch or branch == "" then
     return nil

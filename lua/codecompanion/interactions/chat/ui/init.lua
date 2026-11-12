@@ -722,7 +722,9 @@ function UI:set_intro_msg(message)
   elseif not config.display.chat.start_in_insert_mode then
     local extmark_id = self:set_virtual_text(message, "eol")
     api.nvim_create_autocmd("InsertEnter", {
+      group = self.aug,
       buffer = self.chat_bufnr,
+      once = true,
       callback = function()
         self:clear_virtual_text(extmark_id)
       end,

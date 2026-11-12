@@ -224,6 +224,69 @@ T["pairs RequestStarted and RequestFinished with adapter data when curl cannot s
   })
 end
 
+T["request drops cached cmd values on a 401 but keeps them on a 500"] = function()
+  local result = child.lua([[
+    local counter = vim.fn.tempname()
+    local status
+    _G.Client.static.methods.post = {
+      default = function(opts)
+        opts.callback({ status = status })
+        return { args = "mocked args", shutdown = function() end }
+      end,
+    }
+    local adapter = __make_adapter({ env = { token = "cmd:echo run >> " .. counter .. "; echo secret" } })
+    local client = _G.Client.new({ adapter = adapter })
+    local function send(code)
+      status = code
+      client:request({ messages = {}, tools = {} }, { callback = function() end }, { silent = true })
+    end
+
+    send(200)
+    send(500)
+    local runs_before_401 = #vim.fn.readfile(counter)
+    send(401)
+    send(200)
+    return { before = runs_before_401, after = #vim.fn.readfile(counter) }
+  ]])
+
+  h.eq(result.before, 1)
+  h.eq(result.after, 2)
+end
+
+T["request removes the response file after a successful non-streaming request but keeps it after an error"] = function()
+  local result = child.lua([[
+    local log = require("codecompanion.utils.log")
+    local config = require("codecompanion.config")
+    config.opts.log_level = "INFO"
+    local paths = {}
+    local original = log.new_response_file
+    log.new_response_file = function()
+      local response = original()
+      table.insert(paths, response.path)
+      return response
+    end
+
+    local status
+    _G.Client.static.methods.post = {
+      default = function(opts)
+        opts.callback({ status = status, body = "{}", headers = {}, exit = 0 })
+        return { args = "mocked args", shutdown = function() end }
+      end,
+    }
+    local client = _G.Client.new({ adapter = __make_adapter({ opts = { method = "POST", stream = false } }) })
+    for _, code in ipairs({ 200, 500 }) do
+      status = code
+      client:request({ messages = {}, tools = {} }, { callback = function() end }, { silent = true })
+    end
+    vim.wait(300)
+
+    return { success = vim.uv.fs_stat(paths[1]) ~= nil, failure = vim.uv.fs_stat(paths[2]) ~= nil }
+  ]])
+
+  h.eq(result.success, false)
+  h.eq(result.failure, true)
+end
+
 T["calls done then emits error callback for HTTP status >= 400"] = function()
   local result = child.lua([[
     -- Override POST to simulate a non-streaming 500 response

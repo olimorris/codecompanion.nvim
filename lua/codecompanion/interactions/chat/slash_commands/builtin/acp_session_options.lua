@@ -1,4 +1,5 @@
 local ACP = require("codecompanion.acp")
+local async = require("codecompanion.utils.async")
 local utils = require("codecompanion.utils")
 
 ---@class CodeCompanion.SlashCommand.ACP: CodeCompanion.SlashCommand
@@ -55,15 +56,18 @@ function SlashCommand:show_values(config_option)
       return utils.notify(selected.name .. " is already selected", vim.log.levels.INFO)
     end
 
-    local ok = self.Chat.acp_connection:set_config_option(config_option.id, selected.value)
-    if ok then
-      utils.notify("ACP: Changed `" .. config_option.name .. "` to `" .. selected.name .. "`", vim.log.levels.INFO)
-      if self.Chat.update_metadata then
-        self.Chat:update_metadata()
+    -- Inside a coroutine the connection yields for the agent's reply, rather than blocking the editor
+    async.sync(function()
+      local ok = self.Chat.acp_connection:set_config_option(config_option.id, selected.value)
+      if ok then
+        utils.notify("ACP: Changed `" .. config_option.name .. "` to `" .. selected.name .. "`", vim.log.levels.INFO)
+        if self.Chat.update_metadata then
+          self.Chat:update_metadata()
+        end
+      else
+        utils.notify("Failed to change " .. config_option.name, vim.log.levels.ERROR)
       end
-    else
-      utils.notify("Failed to change " .. config_option.name, vim.log.levels.ERROR)
-    end
+    end)()
   end)
 end
 

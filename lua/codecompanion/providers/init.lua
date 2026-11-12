@@ -5,6 +5,21 @@
 
 ---@class Providers<T>: { [string]: T}
 
+---@return boolean
+local function is_coc_installed()
+  if vim.g.did_coc_loaded == 1 or vim.g.coc_global_extensions ~= nil or vim.fn.exists("*coc#rpc#ready") == 1 then
+    return true
+  end
+
+  for _, path in ipairs(vim.api.nvim_list_runtime_paths()) do
+    if path:find("coc%.nvim") then
+      return true
+    end
+  end
+
+  return false
+end
+
 ---@type Providers<ProviderSpec>
 local configs = {
   -- Pickers / Action Palette
@@ -31,21 +46,7 @@ local configs = {
       local has_cmp, _ = pcall(require, "cmp")
       local has_blink, _ = pcall(require, "blink.cmp")
 
-      local has_coc = vim.g.did_coc_loaded == 1
-        or vim.g.coc_global_extensions ~= nil
-        or vim.fn.exists("*coc#rpc#ready") == 1
-
-      if not has_coc then
-        -- Fallback: check runtimepath for coc.nvim
-        for _, path in ipairs(vim.api.nvim_list_runtime_paths()) do
-          if path:find("coc%.nvim") then
-            has_coc = true
-            break
-          end
-        end
-      end
-
-      return has_coc and not has_blink and not has_cmp
+      return is_coc_installed() and not has_blink and not has_cmp
     end,
   },
 }
@@ -77,38 +78,54 @@ local function find_provider(opts)
   return opts.fallback
 end
 
----Get the default Action Palette provider
----@return string
-local function action_palette_providers()
+---Wrap a detector so the plugins are only probed on first use
+---@param detect fun(): string
+---@return fun(): string
+local function memoise(detect)
+  local detected
+  return function()
+    if not detected then
+      detected = detect()
+    end
+    return detected
+  end
+end
+
+local action_palette_providers = memoise(function()
   local providers = { "telescope", "fzf_lua", "mini_pick", "snacks" }
   return find_provider({ providers = providers, providers_config = configs, fallback = "default" })
-end
+end)
 
----Get the default Completion provider
----@return string
-local function completion_providers()
+local completion_providers = memoise(function()
   local providers = { "blink", "cmp", "coc", "default" }
   return find_provider({ providers = providers, providers_config = configs, fallback = "default" })
-end
+end)
 
----Get the default Vim Help provider
----@return string
-local function help_providers()
+local help_providers = memoise(function()
   local providers = { "telescope", "fzf_lua", "mini_pick", "snacks" }
   -- TODO: warn if falling back to telescope when it's also the first choice but others failed
   return find_provider({ providers = providers, providers_config = configs, fallback = "telescope" })
-end
+end)
 
----Get the default picker provider
----@return string
-local function pick_providers()
+local pick_providers = memoise(function()
   local providers = { "telescope", "fzf_lua", "mini_pick", "snacks" }
   return find_provider({ providers = providers, providers_config = configs, fallback = "default" })
-end
+end)
 
 return {
-  action_palette = action_palette_providers(),
-  completion = completion_providers(),
-  help = help_providers(),
-  pickers = pick_providers(),
+  action_palette = action_palette_providers,
+  completion = completion_providers,
+  help = help_providers,
+  pickers = pick_providers,
+  is_coc_installed = is_coc_installed,
+
+  ---Turn a configured provider (a name, or a detector function) into a name
+  ---@param provider string|fun(): string
+  ---@return string
+  resolve_name = function(provider)
+    if type(provider) == "function" then
+      return provider()
+    end
+    return provider
+  end,
 }

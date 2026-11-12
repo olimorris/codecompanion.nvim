@@ -497,6 +497,9 @@ return {
     tokens = function(self, data)
       if data then
         if self.opts.stream then
+          if type(data) == "string" and string.sub(data, 1, 6) == "event:" then
+            return
+          end
           data = adapter_utils.clean_streamed_data(data)
         else
           data = data.body
