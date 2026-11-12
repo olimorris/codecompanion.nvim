@@ -27,19 +27,17 @@ T["ACP Render"]["restores an agent reply with the buffer ready for input"] = fun
       { sessionUpdate = "user_message_chunk", content = { type = "text", text = "hello" } },
       { sessionUpdate = "agent_message_chunk", content = { type = "text", text = "hi there" } },
     })
-    vim.wait(100, function() return false end)
+    -- A streamed chunk left in the queue is flushed on a timer, which locks the buffer
+    vim.wait(1000, function() return _G.chat.builder._queue == nil end)
 
-    local lines = h.get_buf_lines(_G.chat.bufnr)
     return {
       modifiable = vim.bo[_G.chat.bufnr].modifiable,
-      lines = lines,
+      lines = h.get_buf_lines(_G.chat.bufnr),
     }
   ]])
 
   h.eq(true, result.modifiable)
-  h.eq("hi there", result.lines[#result.lines - 4])
-  h.eq("## foo", result.lines[#result.lines - 2])
-  h.eq("", result.lines[#result.lines])
+  h.eq({ "## foo", "", "hello", "", "## assistant", "", "hi there", "", "## foo", "", "" }, result.lines)
 end
 
 return T
