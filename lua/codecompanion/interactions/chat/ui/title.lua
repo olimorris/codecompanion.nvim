@@ -16,7 +16,7 @@ end
 
 ---@param opts { chat_bufnr: number, position: "winbar"|"buffer" }
 ---@return string|nil
-local function get_text(opts)
+local function get_title(opts)
   local metadata = _G.codecompanion_chat_metadata[opts.chat_bufnr]
   if not metadata then
     return nil
@@ -27,18 +27,20 @@ local function get_text(opts)
     log:error("[Chat] Failed to build the title: %s", result)
     return nil
   end
+
   return result
 end
 
 ---The H1 for the top of the chat buffer, when the title is shown there
 ---@param ui CodeCompanion.Chat.UI
 ---@return string|nil
-function M.get_line(ui)
+function M.get_title_line(ui)
   if config.display.chat.title.position ~= "buffer" then
     return nil
   end
-  local text = get_text({ chat_bufnr = ui.chat_bufnr, position = "buffer" })
-  return text and ("# " .. text) or nil
+
+  local title = get_title({ chat_bufnr = ui.chat_bufnr, position = "buffer" })
+  return title and ("# " .. title) or nil
 end
 
 ---Mark the H1 once it's been written, so a new title can replace it in place
@@ -57,20 +59,20 @@ end
 
 ---@param ui CodeCompanion.Chat.UI
 ---@return nil
-local function rewrite(ui)
+local function rewrite_title_line(ui)
   local mark = api.nvim_buf_get_extmark_by_id(ui.chat_bufnr, NS_ROW, ROW_MARK, { details = true })
-  local line = M.get_line(ui)
-  if not mark[1] or mark[3].invalid or not line then
+  local title_line = M.get_title_line(ui)
+  if not mark[1] or mark[3].invalid or not title_line then
     return
   end
 
   local row = mark[1]
   local current = api.nvim_buf_get_lines(ui.chat_bufnr, row, row + 1, false)[1]
-  if current ~= line then
+  if current ~= title_line then
     local buffer = vim.bo[ui.chat_bufnr]
     local modifiable, modified = buffer.modifiable, buffer.modified
     buffer.modifiable = true
-    api.nvim_buf_set_text(ui.chat_bufnr, row, 0, row, #current, { line })
+    api.nvim_buf_set_text(ui.chat_bufnr, row, 0, row, #current, { title_line })
     buffer.modifiable, buffer.modified = modifiable, modified
   end
 end
@@ -99,7 +101,7 @@ end
 function M.refresh(ui)
   local position = config.display.chat.title.position
   if position == "buffer" then
-    return rewrite(ui)
+    return rewrite_title_line(ui)
   end
   if position == "winbar" and ui:is_visible() and vim.wo[ui.winnr].winbar == get_expression(ui.chat_bufnr) then
     api.nvim__redraw({ win = ui.winnr, winbar = true })
@@ -109,7 +111,7 @@ end
 ---@param chat_bufnr number
 ---@return string
 function M.render(chat_bufnr)
-  return get_text({ chat_bufnr = chat_bufnr, position = "winbar" }) or ""
+  return get_title({ chat_bufnr = chat_bufnr, position = "winbar" }) or ""
 end
 
 return M

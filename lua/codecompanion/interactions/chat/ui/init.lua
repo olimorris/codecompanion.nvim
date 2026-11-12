@@ -623,7 +623,7 @@ function UI:render(context, messages, opts)
     spacer()
   end
 
-  local title = title_ui.get_line(self)
+  local title = title_ui.get_title_line(self)
   local title_row = #lines
   if title then
     table.insert(lines, title)
