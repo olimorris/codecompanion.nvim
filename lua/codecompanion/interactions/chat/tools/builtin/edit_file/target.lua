@@ -18,9 +18,10 @@ local M = {}
 ---@field path string
 ---@field write fun(content: string): { error?: string }
 
+---Check the file exists on disk and is within the size limit
 ---@param opts { filepath: string, file_size_limit_mb: number }
----@return { target?: CodeCompanion.Tool.EditFile.Target, error?: string }
-local function open_file_for_editing(opts)
+---@return { path?: string, error?: string }
+local function check_file(opts)
   local filepath = opts.filepath
   local path = file_utils.validate_and_normalize_path(filepath)
   if not file_utils.exists(path) or file_utils.is_dir(path) then
@@ -33,6 +34,19 @@ local function open_file_for_editing(opts)
       error = fmt("`%s` is larger than the %s MB limit for editing", filepath, opts.file_size_limit_mb),
     }
   end
+
+  return { path = path }
+end
+
+---@param opts { filepath: string, file_size_limit_mb: number }
+---@return { target?: CodeCompanion.Tool.EditFile.Target, error?: string }
+local function open_file_for_editing(opts)
+  local filepath = opts.filepath
+  local checked = check_file(opts)
+  if checked.error then
+    return { error = checked.error }
+  end
+  local path = checked.path
 
   local ok, original = pcall(file_utils.read, path)
   if not ok then
@@ -179,14 +193,22 @@ function M.review(tools, opts)
 end
 
 ---Open a file for editing, through its buffer if it's loaded in Neovim
----@param opts { filepath: string, file_size_limit_mb: number }
+---@param opts { filepath: string, file_size_limit_mb: number, must_exist?: boolean }
 ---@return { target?: CodeCompanion.Tool.EditFile.Target, error?: string }
 function M.open(opts)
   local bufnr = buf_utils.get_bufnr_from_path(opts.filepath)
-  if bufnr then
-    return open_buffer_for_editing(bufnr)
+  if not bufnr then
+    return open_file_for_editing(opts)
   end
-  return open_file_for_editing(opts)
+
+  if opts.must_exist then
+    local checked = check_file(opts)
+    if checked.error then
+      return { error = checked.error }
+    end
+  end
+
+  return open_buffer_for_editing(bufnr)
 end
 
 return M

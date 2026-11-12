@@ -61,6 +61,24 @@ T["Overwrite File"]["DOES NOT create a file that DOES NOT exist"] = function()
   h.eq(false, child.lua_get("vim.uv.fs_stat(_G.TEST_FILE) ~= nil"))
 end
 
+T["Overwrite File"]["DOES NOT create a file that is ONLY open in a buffer"] = function()
+  local output = child.lua([[
+    vim.cmd("edit " .. _G.TEST_FILE)
+    return _G.run_overwrite({ content = "return {}\n" })
+  ]])
+  h.expect_contains("does not exist", output)
+  h.eq(false, child.lua_get("vim.uv.fs_stat(_G.TEST_FILE) ~= nil"))
+end
+
+T["Overwrite File"]["DOES NOT overwrite a buffer OVER the size limit"] = function()
+  local output = child.lua([[
+    _G.write_raw(string.rep("x", 2 * 1024 * 1024) .. "\n")
+    vim.cmd("edit " .. _G.TEST_FILE)
+    return _G.run_overwrite({ content = "return {}\n" })
+  ]])
+  h.expect_contains("larger than the 2 MB limit", output)
+end
+
 T["Overwrite File"]["keeps CRLF line endings when the model sends LF"] = function()
   child.lua([[
     _G.write_raw("local x = 1\r\nlocal y = 2\r\n")

@@ -42,6 +42,7 @@ return {
       local opened = edit_target.open({
         filepath = args.filepath,
         file_size_limit_mb = self.tool.opts.file_size_limit_mb,
+        must_exist = true,
       })
       if opened.error then
         return opts.output_cb({ status = "error", data = opened.error })
