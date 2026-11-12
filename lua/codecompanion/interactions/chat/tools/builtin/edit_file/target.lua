@@ -40,7 +40,7 @@ end
 
 ---@param opts { filepath: string, file_size_limit_mb: number }
 ---@return { target?: CodeCompanion.Tool.EditFile.Target, error?: string }
-local function open_file_for_editing(opts)
+local function read_from_disk(opts)
   local filepath = opts.filepath
   local checked = check_file(opts)
   if checked.error then
@@ -110,7 +110,7 @@ end
 
 ---@param bufnr number
 ---@return { target: CodeCompanion.Tool.EditFile.Target }
-local function open_buffer_for_editing(bufnr)
+local function read_from_buffer(bufnr)
   if not api.nvim_buf_is_loaded(bufnr) then
     vim.fn.bufload(bufnr)
   end
@@ -192,13 +192,13 @@ function M.review(tools, opts)
   })
 end
 
----Open a file for editing, through its buffer if it's loaded in Neovim
+---Read the file from its buffer if it's open in Neovim, otherwise from disk
 ---@param opts { filepath: string, file_size_limit_mb: number, must_exist?: boolean }
 ---@return { target?: CodeCompanion.Tool.EditFile.Target, error?: string }
-function M.open(opts)
+function M.find(opts)
   local bufnr = buf_utils.get_bufnr_from_path(opts.filepath)
   if not bufnr then
-    return open_file_for_editing(opts)
+    return read_from_disk(opts)
   end
 
   if opts.must_exist then
@@ -208,7 +208,7 @@ function M.open(opts)
     end
   end
 
-  return open_buffer_for_editing(bufnr)
+  return read_from_buffer(bufnr)
 end
 
 return M

@@ -39,15 +39,15 @@ return {
         return opts.output_cb({ status = "error", data = "`content` is required" })
       end
 
-      local opened = edit_target.open({
+      local found = edit_target.find({
         filepath = args.filepath,
         file_size_limit_mb = self.tool.opts.file_size_limit_mb,
         must_exist = true,
       })
-      if opened.error then
-        return opts.output_cb({ status = "error", data = opened.error })
+      if found.error then
+        return opts.output_cb({ status = "error", data = found.error })
       end
-      local target = opened.target
+      local target = found.target
 
       return edit_target.review(self, {
         content = match_line_endings({ content = args.content, target = target }),

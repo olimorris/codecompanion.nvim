@@ -27,14 +27,14 @@ return {
         return opts.output_cb({ status = "error", data = "`old_string` and `new_string` are both required" })
       end
 
-      local opened = edit_target.open({
+      local found = edit_target.find({
         filepath = args.filepath,
         file_size_limit_mb = self.tool.opts.file_size_limit_mb,
       })
-      if opened.error then
-        return opts.output_cb({ status = "error", data = opened.error })
+      if found.error then
+        return opts.output_cb({ status = "error", data = found.error })
       end
-      local target = opened.target
+      local target = found.target
 
       local edit = replace.apply(target.content, {
         old_string = args.old_string,
