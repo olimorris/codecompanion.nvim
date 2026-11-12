@@ -13,6 +13,7 @@ T["cmds"] = new_set({
         h = require('tests.helpers')
         config = require('codecompanion.config')
         config.rules.opts.chat.enabled = false
+        config.display.chat.title.position = false
         h.setup_plugin(config)
       ]])
     end,
@@ -264,6 +265,7 @@ T["cmds_tab"] = new_set({
         h = require('tests.helpers')
         config = require('codecompanion.config')
         config.rules.opts.chat.enabled = false
+        config.display.chat.title.position = false
         config.display.chat.window.layout = "tab"
         config.display.chat.intro_message = "Welcome"
         h.setup_plugin(config)
@@ -320,6 +322,7 @@ T["cmds_tab_sticky"] = new_set({
         h = require('tests.helpers')
         config = require('codecompanion.config')
         config.rules.opts.chat.enabled = false
+        config.display.chat.title.position = false
         config.display.chat.window.layout = "tab"
         config.display.chat.window.sticky = true
         config.display.chat.intro_message = "Welcome"
@@ -356,6 +359,7 @@ T["cmds_pertab"] = new_set({
         h = require('tests.helpers')
         config = require('codecompanion.config')
         config.rules.opts.chat.enabled = false
+        config.display.chat.title.position = false
         config.display.chat.window.layout = "vertical"
         config.display.chat.window.pertab = true
         config.display.chat.window.sticky = false

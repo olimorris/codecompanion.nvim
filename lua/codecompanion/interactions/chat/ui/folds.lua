@@ -1,5 +1,6 @@
 local config = require("codecompanion.config")
 local log = require("codecompanion.utils.log")
+local utils = require("codecompanion.utils")
 
 local api = vim.api
 
@@ -7,20 +8,17 @@ local api = vim.api
 local Folds = {}
 
 local CONSTANTS = {
-  NS_FOLD_TOOLS = api.nvim_create_namespace("CodeCompanion-tool_fold_marks"),
   NS_FOLD_CONTEXT = api.nvim_create_namespace("CodeCompanion-context_fold_marks"),
   NS_FOLD_REASONING = api.nvim_create_namespace("CodeCompanion-reasoning_fold_marks"),
 }
 
 -- Unified fold summaries storage
----@type table<number, table<number, { content: string, type: "tool"|"context"|"reasoning" }>>
+---@type table<number, table<number, { content: string, type: "context"|"reasoning" }>>
 Folds.fold_summaries = {}
 
 ---@class CodeCompanion.Chat.UI.FoldConfig
----@field type "tool"|"context"|"reasoning"
+---@field type "context"|"reasoning"
 ---@field content string
----@field success_keywords? string[]
----@field failure_keywords? string[]
 
 ---Initialize fold settings for a buffer/window
 ---@param winnr number
@@ -44,7 +42,7 @@ end
 function Folds.fold_text()
   local bufnr = api.nvim_get_current_buf()
 
-  if vim.bo[bufnr].filetype ~= "codecompanion" then
+  if not utils.is_chat_ft(vim.bo[bufnr].filetype) then
     return vim.fn.foldtext()
   end
 
@@ -54,37 +52,19 @@ function Folds.fold_text()
     return vim.fn.foldtext()
   end
 
-  return Folds._format_fold_text(fold_data.content, fold_data.type)
+  return Folds._format_fold_text({ content = fold_data.content, fold_type = fold_data.type })
 end
 
 ---Format fold text based on type
----@param content string
----@param fold_type "tool"|"context"|"reasoning"
----@param opts? table
+---@param opts { content: string, fold_type: "context"|"reasoning", show_icon_only?: boolean }
 ---@return table[]
-function Folds._format_fold_text(content, fold_type, opts)
-  opts = opts or {}
+function Folds._format_fold_text(opts)
+  local content = opts.content
+  local fold_type = opts.fold_type
   local chunks = {}
   local icons = config.display.chat.icons
 
-  if fold_type == "tool" then
-    local icon_conf = icons.tool_success or ""
-    local icon_hl = "CodeCompanionChatToolSuccessIcon"
-    local summary_hl = "CodeCompanionChatToolSuccess"
-    local failure_words = config.interactions.chat.tools.opts.folds.failure_words or {}
-    for _, word in ipairs(failure_words) do
-      if content:lower():find(word) then
-        icon_conf = icons.tool_failure or ""
-        icon_hl = "CodeCompanionChatToolFailureIcon"
-        summary_hl = "CodeCompanionChatToolFailure"
-        break
-      end
-    end
-    table.insert(chunks, { icon_conf, icon_hl })
-    if not opts.show_icon_only then
-      table.insert(chunks, { content, summary_hl })
-    end
-  elseif fold_type == "context" then
+  if fold_type == "context" then
     local icon = icons.chat_context or ""
     table.insert(chunks, { icon, "CodeCompanionChatContextIcon" })
     if not opts.show_icon_only then
@@ -98,9 +78,9 @@ function Folds._format_fold_text(content, fold_type, opts)
 end
 
 ---Delete a fold exactly at the specified line, without affecting outer folds
----@param bufnr number
----@param line number  -- 0-based start line of the exact fold to remove
-function Folds:_delete(bufnr, line)
+---@param opts { bufnr: number, line: number }
+function Folds:_delete(opts)
+  local bufnr, line = opts.bufnr, opts.line
   local ok, err = pcall(function()
     api.nvim_buf_call(bufnr, function()
       local lnum = line + 1
@@ -128,11 +108,9 @@ function Folds:_delete(bufnr, line)
 end
 
 ---Create a new fold
----@param bufnr number
----@param start_row number (0-based)
----@param end_row number (0-based)
----@param fold_config CodeCompanion.Chat.UI.FoldConfig
-function Folds:_create(bufnr, start_row, end_row, fold_config)
+---@param opts { bufnr: number, start_row: number, end_row: number, fold_config: CodeCompanion.Chat.UI.FoldConfig }
+function Folds:_create(opts)
+  local bufnr, start_row, end_row, fold_config = opts.bufnr, opts.start_row, opts.end_row, opts.fold_config
   if start_row >= end_row then
     return
   end
@@ -144,17 +122,14 @@ function Folds:_create(bufnr, start_row, end_row, fold_config)
     type = fold_config.type,
   }
 
-  -- Only add inline extmarks for tool/context. Reasoning gets no extmarks.
-  local ns_to_use = nil
-  if fold_config.type == "tool" then
-    ns_to_use = CONSTANTS.NS_FOLD_TOOLS
-  elseif fold_config.type == "context" then
-    ns_to_use = CONSTANTS.NS_FOLD_CONTEXT
-  end
-
-  if ns_to_use then
-    api.nvim_buf_set_extmark(bufnr, ns_to_use, start_row, 0, {
-      virt_text = self._format_fold_text(fold_config.content or "", fold_config.type, { show_icon_only = true }),
+  -- Reasoning folds get no extmarks
+  if fold_config.type == "context" then
+    api.nvim_buf_set_extmark(bufnr, CONSTANTS.NS_FOLD_CONTEXT, start_row, 0, {
+      virt_text = self._format_fold_text({
+        content = fold_config.content or "",
+        fold_type = fold_config.type,
+        show_icon_only = true,
+      }),
       virt_text_pos = "inline",
       priority = 200,
     })
@@ -182,9 +157,7 @@ function Folds:recreate(bufnr, start_row, end_row, fold_config)
   end)
 
   local ns = nil
-  if fold_config.type == "tool" then
-    ns = CONSTANTS.NS_FOLD_TOOLS
-  elseif fold_config.type == "context" then
+  if fold_config.type == "context" then
     ns = CONSTANTS.NS_FOLD_CONTEXT
   elseif fold_config.type == "reasoning" then
     ns = CONSTANTS.NS_FOLD_REASONING
@@ -193,39 +166,12 @@ function Folds:recreate(bufnr, start_row, end_row, fold_config)
     api.nvim_buf_clear_namespace(bufnr, ns, start_row, end_row + 1)
   end
 
-  self:_delete(bufnr, start_row)
-  self:_create(bufnr, start_row, end_row, fold_config)
+  self:_delete({ bufnr = bufnr, line = start_row })
+  self:_create({ bufnr = bufnr, start_row = start_row, end_row = end_row, fold_config = fold_config })
 
   api.nvim_buf_call(bufnr, function()
     api.nvim_win_set_cursor(0, cursor_pos)
   end)
-end
-
----Create a tool fold (backward compatibility method)
----@param bufnr number
----@param start_row number (0-based)
----@param end_row number (0-based)
----@param foldtext string
-function Folds:create_tool_fold(bufnr, start_row, end_row, foldtext)
-  if not config.interactions.chat.tools.opts.folds.enabled then
-    return
-  end
-
-  -- Don't fold single lines
-  if start_row == end_row then
-    -- Still add the extmark for visual indication
-    api.nvim_buf_set_extmark(bufnr, CONSTANTS.NS_FOLD_TOOLS, start_row, 0, {
-      virt_text = self._format_fold_text(foldtext, "tool", { show_icon_only = true }),
-      virt_text_pos = "inline",
-      priority = 200,
-    })
-    return
-  end
-
-  self:_create(bufnr, start_row, end_row, {
-    type = "tool",
-    content = foldtext,
-  })
 end
 
 ---Create a context fold (backward compatibility method)
@@ -320,7 +266,6 @@ function Folds:cleanup(bufnr)
     self.fold_summaries[bufnr] = nil
   end
 
-  api.nvim_buf_clear_namespace(bufnr, CONSTANTS.NS_FOLD_TOOLS, 0, -1)
   api.nvim_buf_clear_namespace(bufnr, CONSTANTS.NS_FOLD_CONTEXT, 0, -1)
   api.nvim_buf_clear_namespace(bufnr, CONSTANTS.NS_FOLD_REASONING, 0, -1)
 end

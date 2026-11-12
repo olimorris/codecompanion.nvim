@@ -1,4 +1,4 @@
-*codecompanion.txt*         For NVIM v0.11        Last change: 2026 October 16
+*codecompanion.txt*        For NVIM v0.12        Last change: 2026 November 11
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -25,6 +25,7 @@ Table of Contents                            *codecompanion-table-of-contents*
 4. Guides                                               |codecompanion-guides|
   - Choosing an Adapter             |codecompanion-guides-choosing-an-adapter|
   - Coding with an Agent           |codecompanion-guides-coding-with-an-agent|
+  - Customising the Chat Experience|codecompanion-guides-customising-the-chat-experience|
   - Running Local Models           |codecompanion-guides-running-local-models|
   - Connecting an OpenAI-Compatible Provider|codecompanion-guides-connecting-an-openai-compatible-provider|
   - Controlling Tool Approvals|codecompanion-guides-controlling-tool-approvals|
@@ -269,7 +270,7 @@ the chat buffer:
 >lua
     {
       "MeanderingProgrammer/render-markdown.nvim",
-      ft = { "markdown", "codecompanion" }
+      ft = { "markdown", "codecompanion", "codecompanion_chat_input" }
     },
 <
 
@@ -281,7 +282,7 @@ the chat buffer:
       lazy = false,
       opts = {
         preview = {
-          filetypes = { "markdown", "codecompanion" },
+          filetypes = { "markdown", "codecompanion", "codecompanion_chat_input" },
           ignore_buftypes = {},
         },
       },
@@ -558,6 +559,7 @@ uses:
 NEXT STEPS                          *codecompanion-getting-started-next-steps*
 
 - |codecompanion-guides-coding-with-an-agent| - Use Claude Code, Codex and others from the chat buffer
+- |codecompanion-guides-customising-the-chat-experience| - Choose where the chat opens and where you write your message
 - |codecompanion-guides-tool-approvals| - Decide what an LLM can do without asking
 - |codecompanion-guides-sharing-rules-and-skills| - Give the LLM your project's conventions, like `AGENTS.md`
 - |codecompanion-guides-web-search| - Let the LLM look things up
@@ -1170,6 +1172,175 @@ LIMITATIONS ~
 - CodeCompanion doesn't |codecompanion-configuration-context-management| an agent's conversation. The agent manages its own context, and `\compact` asks it to
 - `/save`, `/rename` and `/fork` aren't available. The agent keeps its own sessions, which `/resume` lists in a new chat if the agent supports it
 - An agent's plan isn't shown in the chat buffer, and agents can't use a Neovim terminal. See |codecompanion-agent-client-protocol-limitations|
+
+
+CUSTOMISING THE CHAT EXPERIENCE*codecompanion-guides-customising-the-chat-experience*
+
+CodeCompanion's chat buffer opens beside your code and takes your message at
+the bottom of the conversation. That suits most people, but you can move it,
+write in a separate split and keep working whilst a response streams. Each
+section below starts with the situation it suits. For every option, see
+|codecompanion-configuration-ui|.
+
+
+WHERE THE CHAT OPENS ~
+
+The chat opens in a vertical split by default. Choose a layout under
+`display.chat.window` to suit your screen:
+
+  -----------------------------------------------------------------------
+  Layout                              Suits
+  ----------------------------------- -----------------------------------
+  vertical                            A wide screen, with code and chat
+                                      side by side
+
+  horizontal                          A narrow or portrait screen, with
+                                      the chat above or below your code
+
+  float                               Dipping in for a quick question,
+                                      then hiding it again
+
+  tab                                 Long conversations that deserve the
+                                      whole screen
+
+  buffer                              Treating the chat like any other
+                                      buffer in the current window
+  -----------------------------------------------------------------------
+To open the chat in a split beneath your code:
+
+>lua
+    require("codecompanion").setup({
+      display = {
+        chat = {
+          window = {
+            layout = "horizontal", -- Can be "float", "vertical", "horizontal", "tab" or "buffer"
+            position = "bottom", -- Can be "left", "right", "top" or "bottom"
+            height = 0.4,
+          },
+        },
+      },
+    })
+<
+
+If you work across several tabs, `pertab = true` gives each tab its own chat
+window, whilst `sticky = true` moves the one chat window with you as you switch
+tabs. With the `vertical` layout, `full_height = false` splits only the current
+window rather than the whole height of the editor. See
+|codecompanion-configuration-ui-layout| for the full list of options.
+
+
+
+
+WRITING YOUR MESSAGE ~
+
+By default, you write your message at the bottom of the chat buffer, beneath
+the conversation. That's the simplest setup, but your message shares a buffer
+with a response that's still streaming in.
+
+If you'd rather keep what you're writing apart from the conversation, write it
+in a separate split beneath the chat window:
+
+>lua
+    require("codecompanion").setup({
+      display = {
+        chat = {
+          input = {
+            layout = "split", -- Can be "buffer" or "split"
+            height = 8, -- lines
+          },
+        },
+      },
+    })
+<
+
+When you send it, your message is added to the chat buffer under your header.
+With the split:
+
+- **Chat buffer** - It's read-only, and the chat settings from `display.chat.show_settings` aren't shown at the top
+- **Filetype** - The input is a `codecompanion_chat_input` buffer, so it can be targeted separately from the chat buffer in your statusline or autocmds
+- **Keymaps** - Every chat buffer keymap works in both windows. Pressing `i`, `a`, `I`, `A`, `o` or `O` in the chat buffer moves you to the input
+- **Window** - Hiding or closing either window closes both. If you resize the input, that chat keeps the new height until you restart Neovim. New chats open at `height`
+
+
+
+
+WORKING WHILST IT STREAMS ~
+
+A long response or a run of tool calls can take a while, and you may think of
+your next message before it finishes.
+
+With the split, write and send it as normal. **A message sent whilst the LLM is
+responding is queued**, then sent once it's safe to do so. Sending another adds
+it to the same queued message. Stopping the response moves the queued message
+back into the input, above anything you're writing.
+
+With the default layout, press `gm` whilst the LLM is responding to send a
+follow-up, which CodeCompanion delivers in the same way. See
+|codecompanion-usage-chat-buffer-|.
+
+
+MOVING THROUGH A CONVERSATION ~
+
+The chat buffer follows the response as it streams in. Move the cursor away to
+read something earlier and it stops following, and moving back to the bottom
+starts it again. To turn this off:
+
+>lua
+    require("codecompanion").setup({
+      display = {
+        chat = {
+          auto_scroll = false,
+        },
+      },
+    })
+<
+
+`[[` and `]]` move between messages in the chat buffer, even when pressed in
+the input.
+
+With the split, the input also has keymaps to scroll the chat buffer without
+leaving it, in normal and insert mode:
+
+  -----------------------------------------------------------------------
+  Keymap                  Name                    Description
+  ----------------------- ----------------------- -----------------------
+  <M-j>                   scroll_chat_down        Scroll the chat down
+                                                  half a page
+
+  <M-k>                   scroll_chat_up          Scroll the chat up half
+                                                  a page
+
+  <M-g>                   scroll_chat_jump        Jump to the bottom of
+                                                  the chat, or to the top
+                                                  if you're already at
+                                                  the bottom
+  -----------------------------------------------------------------------
+Scrolling up stops the chat following the response, and jumping back to the
+bottom starts it again. To change these keymaps, see
+|codecompanion-configuration-chat-buffer-keymaps|.
+
+
+CONTEXT ~
+
+Context you share, such as a buffer or a file, is listed in a block above your
+message.
+
+With the default layout, the block sits under your header in the chat buffer.
+If a lot of context pushes your message too far from the last response, fold it
+into a single line with `display.chat.fold_context = true`. See
+|codecompanion-configuration-ui-context|.
+
+With the split, the block sits at the top of the input and stays there between
+messages. `fold_context` folds the items there too, leaving the header visible.
+Delete a line to remove that item from the chat.
+
+
+
+
+LIMITATIONS ~
+
+- The input split isn't available for the `float` layout, which keeps writing at the bottom of the chat buffer
+- On macOS, your terminal must send the Option key as Meta for `<M-j>`, `<M-k>` and `<M-g>` to reach Neovim
 
 
 RUNNING LOCAL MODELS               *codecompanion-guides-running-local-models*
@@ -3369,9 +3540,11 @@ The Lua equivalents, `require("codecompanion").chat()` and
 <
 
 Press `<CR>` or `<C-s>` in normal mode, or `<C-s>` in insert mode, to send your
-message. The response streams back into the buffer. While the LLM is running
-tools, press `gm` to send it a follow-up, which CodeCompanion delivers once
-it's safe to do so.
+message. The response streams back into the buffer. Whilst the LLM is
+responding, press `gm` to send it a follow-up, which CodeCompanion delivers
+once it's safe to do so. To write your messages in a separate split instead,
+see
+|codecompanion-guides-customising-the-chat-experience-writing-your-message|.
 
 
 ACTION PALETTE ~
@@ -3575,8 +3748,8 @@ are:
 
   gf                      fold_code                Fold all codeblocks
 
-  gm                      _btw                     Send a follow-up while
-                                                   the LLM is running
+  gm                      _btw                     Send a follow-up whilst
+                                                   the LLM is responding
 
   gM                      rules                    Remove rules from the
                                                    chat
@@ -3604,6 +3777,9 @@ are:
 
   gy                      yank_code                Yank code from the last
                                                    codeblock
+
+  K                       tool_call_details        Show the tool call
+                                                   under the cursor
 
   } {                     next_chat previous_chat  Move to the next or
                                                    previous chat
@@ -3701,6 +3877,11 @@ The harness runs the `agent loop`:
 The loop ends when the LLM responds without asking for a tool, or when you stop
 the request or cancel a tool. Rejecting a tool doesn't end the loop. The LLM is
 told you rejected it, along with your reason, and carries on.
+
+Each tool call is summarised in the chat buffer. Press `K` on a line to see the
+tool call in detail. Press `K` again to move into the tool call. For ACP
+adapters, an agent that sends no arguments shows the tool call's title and
+locations instead.
 
 The |codecompanion-extending-tools-architecture| is outlined in the extending
 section.
@@ -4253,11 +4434,19 @@ Approvals are kept per chat buffer and per tool. Approving a tool in one chat
 buffer doesn't approve it anywhere else, and approving it once means you're
 asked again next time.
 
+The request shows the tool call's summary line, the same one you see once it
+runs. Press `gv`, or `K` on that line, to see the full call in a floating
+window.
+
 When asked, you choose from:
 
   -----------------------------------------------------------------------
   Keymap                  Choice                  Description
   ----------------------- ----------------------- -----------------------
+  gv                      View                    Show the tool call's
+                                                  arguments in a floating
+                                                  window
+
   g1                      Always accept           Run this tool without
                                                   asking again in this
                                                   chat buffer
@@ -4913,6 +5102,8 @@ Slash commands add context to the chat buffer and act on the chat itself. Type
   -skills-group                       Add a group of skills
 
   -symbols                            Add a symbolic outline of a file
+
+  -tools                              Add tools and tool groups
   -----------------------------------------------------------------------
 Some commands only appear for one type of adapter. The section for each command
 says which.
@@ -5120,7 +5311,7 @@ whether to trim it to that many lines around the tag.
 
 The `mcp` slash command starts and stops |codecompanion-configuration-mcp|
 servers. **This applies globally, so starting or stopping a server affects
-every chat buffer**. It works with `vim.ui.select` and Snacks.
+every chat buffer**. Depending on your picker, several can be toggled at once.
 
 
 /MCP-PROMPTS ~
@@ -5228,6 +5419,14 @@ listed in the queries directory
 
 It works with the default picker, Telescope, fzf-lua, mini.pick and Snacks, and
 several files can be selected at once.
+
+
+/TOOLS ~
+
+The `tools` slash command adds |codecompanion-usage-chat-buffer-agents-tools|
+to the chat buffer without leaving an `@{tool}` reference in your message.
+Depending on your picker, several can be selected at once. Tools already in the
+chat aren't listed. It only appears for HTTP adapters.
 
 
 CLI                                                  *codecompanion-usage-cli*
@@ -5954,6 +6153,7 @@ keyed by buffer number:
   context_items    Number of context items in the chat
   cycles           Number of turns, from your message to the LLM's response
   id               The chat's ID
+  title            The chat's title, once it has one
   tokens           Running total of tokens
   tools            Number of tools in the chat
 `_G.codecompanion_current_context` holds the number of the buffer that
@@ -5988,25 +6188,17 @@ it until you override it.
   CodeCompanionChatTokens             Virtual text showing the token
                                       count
 
-  CodeCompanionChatFold               Folds, except for tool output
+  CodeCompanionChatFold               Folds
 
   CodeCompanionChatEditorContext      Editor context, such as #{buffer}
 
   CodeCompanionChatTool               Tools, such as @{agent}
 
-  CodeCompanionChatToolText           Tool output, overriding markdown
-                                      rendering
-
   CodeCompanionChatToolPending        A tool waiting to run
 
   CodeCompanionChatToolInProgress     A running tool
 
-  CodeCompanionChatToolSuccess        The summary of a tool that
-                                      succeeded
-
   CodeCompanionChatToolSuccessIcon    The icon of a tool that succeeded
-
-  CodeCompanionChatToolFailure        The summary of a tool that failed
 
   CodeCompanionChatToolFailureIcon    The icon of a tool that failed
   -----------------------------------------------------------------------
@@ -6307,6 +6499,79 @@ is set first, as it can change which other options are available. To see an
 agent's options and their values, open the
 |codecompanion-usage-chat-buffer--debug-window|.
 
+
+SETTING A SYSTEM PROMPT ~
+
+
+  [!IMPORTANT] This feature is in beta. It's built on an unstable part of the ACP
+  spec <https://agentclientprotocol.com/rfds/client-system-prompt>, so it may
+  change or break between releases
+Agents have their own system prompt. By default, CodeCompanion appends a single
+line to it:
+
+>txt
+    Do not use H1 or H2 headers in your response, unless writing the contents of a markdown file.
+<
+
+To replace that line with your own:
+
+>lua
+    require("codecompanion").setup({
+      adapters = {
+        acp = {
+          claude_code = function()
+            return require("codecompanion.adapters").extend("claude_code", {
+              defaults = {
+                system_prompt = {
+                  mode = "append", -- Can be "append" or "override"
+                  content = "Always reply in British English.",
+                },
+              },
+            })
+          end,
+        },
+      },
+    })
+<
+
+`mode` defaults to `append`. **override replaces the agent's own instructions,
+including how it uses its tools**, so only use it to supply a full replacement.
+
+`content` can also be a function, which receives the same context as the
+|codecompanion-configuration-system-prompt|. To keep CodeCompanion's line and
+add to it:
+
+>lua
+    require("codecompanion").setup({
+      adapters = {
+        acp = {
+          claude_code = function()
+            return require("codecompanion.adapters").extend("claude_code", {
+              defaults = {
+                system_prompt = {
+                  content = function(ctx)
+                    return ctx.default_system_prompt .. "\n\nAlways reply in British English."
+                  end,
+                },
+              },
+            })
+          end,
+        },
+      },
+    })
+<
+
+To send nothing, set `system_prompt = false`.
+
+The system prompt is sent whenever a session starts or loads. If the agent
+doesn't support it, or doesn't support the mode you picked, the session starts
+without it. CodeCompanion notifies you when this happens to a system prompt
+you've set.
+
+
+  [!NOTE] Agents already read their own instruction files, such as `CLAUDE.md`
+  and `AGENTS.md`. Put project rules there and use this for anything specific to
+  CodeCompanion
 
 MCP SERVERS ~
 
@@ -7300,6 +7565,7 @@ Adapters built by the community:
 - Fireworks.ai <https://github.com/olimorris/codecompanion.nvim/discussions/693>
 - InceptionLabs - Mercury 2 <https://github.com/olimorris/codecompanion.nvim/discussions/2867>
 - Nvidia NIM <https://github.com/olimorris/codecompanion.nvim/discussions/2810>
+- Opper <https://github.com/olimorris/codecompanion.nvim/discussions/3487>
 - Venice.ai <https://github.com/olimorris/codecompanion.nvim/discussions/972>
 - Vertex AI <https://github.com/viespejo/cc-adapter-vertex-ai.nvim>
 
@@ -7770,7 +8036,7 @@ EVENTS ~
                           message history         messages,
                                                   reported_tokens
 
-  on_tool_output          Before a tool's output  tool, content, display
+  on_tool_output          Before a tool's output  tool, content
                           is added to the chat    
 
   on_ready                When the chat is ready  -
@@ -7906,9 +8172,8 @@ To stop a message that's over a token limit:
 TRUNCATING TOOL OUTPUT ~
 
 `on_tool_output` fires before a tool's output is added to the chat. `data.tool`
-is the tool's name, `data.content` is the output sent to the LLM and
-`data.display` is what's shown in the chat buffer. Change either to change the
-output:
+is the tool's name and `data.content` is the output sent to the LLM. Change
+`data.content` to change the output:
 
 >lua
     vim.api.nvim_create_autocmd("User", {
@@ -7922,7 +8187,6 @@ output:
           if data.content and tokens.calculate(data.content) > max_tokens then
             local max_chars = max_tokens * 6
             data.content = data.content:sub(1, max_chars) .. "\n\n[Output truncated]"
-            data.display = data.content
             vim.notify(
               string.format("Tool output from '%s' truncated (~%d tokens)", data.tool, max_tokens),
               vim.log.levels.WARN
@@ -8700,6 +8964,29 @@ response. To fold the context into a single line:
 The `chat_context` icon is optional and appears at the start of the fold.
 
 
+INPUT ~
+
+By default, you write your message at the bottom of the chat buffer. To write
+it in a separate split beneath the chat window instead:
+
+>lua
+    require("codecompanion").setup({
+      display = {
+        chat = {
+          input = {
+            layout = "split", -- Can be "buffer" or "split"
+            height = 8, -- lines
+          },
+        },
+      },
+    })
+<
+
+The split isn't available for the `float` layout. For how it changes the chat
+buffer, see
+|codecompanion-guides-customising-the-chat-experience-writing-your-message|.
+
+
 LAYOUT ~
 
 The `display.chat.window` table sets where the chat buffer opens. The
@@ -8841,6 +9128,92 @@ the header text:
 By default, the LLM's header names the chat's adapter, such as `CodeCompanion
 (DeepSeek)`. `llm` can be a string, or a function that receives the adapter.
 `user` can only be a string.
+
+
+STREAMING ~
+
+A streamed response arrives in many small chunks, and Neovim redraws the chat
+buffer after every write. To save redrawing, CodeCompanion collects the chunks
+and writes them at most once every 25 milliseconds. To change this:
+
+>lua
+    require("codecompanion").setup({
+      display = {
+        chat = {
+          stream_interval = 50, -- milliseconds. 0 writes every chunk as it arrives
+        },
+      },
+    })
+<
+
+A longer interval makes the response arrive in larger pieces and uses less CPU,
+which is most noticeable in long chats.
+
+
+TITLE ~
+
+The chat's title appears as a heading at the top of the chat buffer, and
+scrolls away with the conversation. The `text.buffer` function builds it from
+the chat's |codecompanion-usage-ui-metadata|, and runs again whenever the
+metadata changes. It returns plain text, and CodeCompanion adds the `#`. To add
+the adapter's name:
+
+>lua
+    require("codecompanion").setup({
+      display = {
+        chat = {
+          title = {
+            text = {
+              buffer = function(metadata)
+                return string.format("%s (%s)", metadata.title or "CodeCompanion.nvim", metadata.adapter.name)
+              end,
+            },
+          },
+        },
+      },
+    })
+<
+
+To show the title in the chat window's winbar instead, so it stays in view as
+you scroll:
+
+>lua
+    require("codecompanion").setup({
+      display = {
+        chat = {
+          title = {
+            position = "winbar", -- Can be "buffer", "winbar" or false
+          },
+        },
+      },
+    })
+<
+
+The winbar also shows the adapter and model. `text.winbar` returns a string in
+Neovim's `'statusline'` format, so to show the token count instead:
+
+>lua
+    require("codecompanion").setup({
+      display = {
+        chat = {
+          title = {
+            position = "winbar",
+            text = {
+              winbar = function(metadata)
+                local title = (metadata.title or "CodeCompanion.nvim"):gsub("%%", "%%%%")
+                return string.format(" %s%%=%d tokens ", title, metadata.tokens)
+              end,
+            },
+          },
+        },
+      },
+    })
+<
+
+
+  [!IMPORTANT] Double any `%` in the title, as the `gsub` above does, or Neovim
+  reads it as a statusline item
+To turn the title off, set `position = false`.
 
 
 OTHERS ~
@@ -9781,7 +10154,7 @@ CodeCompanion gives it:
                     local content = stdout and stdout[#stdout]
                     local output = tool_bridge.format_tool_result_content(content)
                     local msg = string.format("%d + %d = %s", self.args.a, self.args.b, output)
-                    tools.chat:add_tool_output(self, { content = output, display = msg })
+                    tools.chat:add_tool_output(self, { content = msg })
                   end,
                 },
               },
@@ -11585,7 +11958,9 @@ CodeCompanion sends one with every request from a chat buffer, and a second one
 when |codecompanion-usage-chat-buffer-agents-tools| are in use.
 
 
-  [!NOTE] System prompts only apply to HTTP adapters. ACP agents bring their own
+  [!NOTE] System prompts only apply to HTTP adapters. ACP agents bring their own,
+  which you can
+  |codecompanion-configuration-adapters-acp-setting-a-system-prompt|
 
 CHAT SYSTEM PROMPT ~
 
@@ -13198,6 +13573,11 @@ A tool is a table with these fields:
   name                    string                  The tool's name, matching the schema's function
                                                   name and its key in the config
 
+  kind                    string                  How the tool is labelled in the chat buffer:
+                                                  read, edit, delete, move, search, execute,
+                                                  think, fetch or other. The tool's name is used
+                                                  when it's left out
+
   schema                  table                   The schema the LLM follows to call the tool
 
   cmds                    table                   The commands or functions to run, in order
@@ -13525,13 +13905,12 @@ For the calculator:
 >lua
     meta.tools.chat:add_tool_output(self, {
       content = "The result of 6 * 7 is 42",
-      display = "Calculated 6 * 7",
     })
 <
 
 The first argument is the tool that ran, `self` in an output function.
-`content` is sent to the LLM. `display` is shown in the chat buffer, `content`
-is shown when it's `nil`, and `false` or an empty string shows nothing.
+`content` is sent to the LLM. The chat buffer shows only the tool's summary
+line, and `K` on that line shows the full call and its output.
 
 
   [!IMPORTANT] If an output function you define doesn't call `add_tool_output`,
@@ -13542,7 +13921,7 @@ Leave an output function out and CodeCompanion uses a default:
   ------------ -----------------------------------------------
   success      Executed and the tool's name
   error        Error calling and the tool's name
-  prompt       Run the "calculator" tool?
+  prompt       The tool call's summary line
   rejected     The user rejected the tool, with their reason
   cancelled    The user cancelled the tool
   cmd_string   The tool's name alone
@@ -13825,6 +14204,10 @@ cover that. Set `extends = "cmd_tool"` to reuse them, and provide:
                                       to run, as a string
 
   system_prompt                       Optional instructions for the LLM
+
+  kind                                Optional. How the tool is labelled
+                                      in the chat buffer, defaulting to
+                                      execute
   -----------------------------------------------------------------------
 `cmd_tool` wraps `schema` in a full schema, runs the command from `build_cmd`
 and shows it in the approval prompt. Your own `handlers` and `output` functions
@@ -14495,6 +14878,9 @@ LIST OF EVENTS ~
 
   CodeCompanionChatModel              After the model is set
 
+  CodeCompanionChatTitle              After the title is set, with the
+                                      title in the payload
+
   CodeCompanionChatToolAdded          After a tool is added, with the
                                       tool in the payload
   -----------------------------------------------------------------------
@@ -14946,15 +15332,16 @@ SEE ALSO ~
 
 INTEGRATIONS                            *codecompanion-reference-integrations*
 
-CodeCompanion fires |codecompanion-usage-events| as it works, so other
-applications can follow what it's doing. Some integrations are built in.
+CodeCompanion fires |codecompanion-usage-events| at various points during the
+lifecycle, so other applications can follow what it's doing. Some integrations
+are built in.
 
 
 HERDR ~
 
 herdr <https://github.com/herdrdev/herdr> supervises terminal panes and shows
-which agent is running in each one. When Neovim runs in a herdr pane,
-CodeCompanion reports its state
+which agent is running in each one. When Neovim runs in a herdr pane, or a
+terminal in the Herdr app, CodeCompanion reports its state
 <https://herdr.dev/docs/integrations/#integrate-your-own-agent> to herdr, so
 the pane sits alongside panes running Claude Code or Codex:
 
@@ -14968,10 +15355,18 @@ the pane sits alongside panes running Claude Code or Codex:
   blocked                             A tool approval or a question from
                                       the LLM is waiting on you
 
+  done                                A turn finished whilst you were
+                                      looking elsewhere (Herdr app only)
+
   idle                                Nothing is in progress
   -----------------------------------------------------------------------
-Every chat buffer and CLI interaction in the Neovim instance counts towards the
-pane's state, and a `blocked` interaction takes priority.
+The status of a chat buffer or CLI interaction from within Neovim is shown as
+the pane's state. A `blocked` interaction takes priority and the Herdr app
+shows whether that pane is waiting on a tool approval or a question.
+
+In the Herdr app, panes are given the active chat's title, or `CodeCompanion
+[branch]`. This is skipped when Neovim's `'title'` option is on, as Neovim then
+sets the terminal title itself.
 
 The integration is enabled by default, and does nothing outside of herdr. To
 disable it:
@@ -14986,12 +15381,79 @@ disable it:
     })
 <
 
+The Herdr app shows an icon for each agent from its programs table. To give
+CodeCompanion the Neovim icon, add this to `~/.config/herdr-app/programs.json`:
+
+>json
+    {
+      "programs": {
+        "codecompanion": { "name": "CodeCompanion", "icon": "icons/nvim.svg", "tint": true, "tile": "#57a143", "color": "#ffffff" }
+      }
+    }
+<
+
+**Limitations**
+
+- In the Herdr app, the state doesn't reach herdr when Neovim runs inside tmux or another multiplexer
+
+
+REX ~
+
+Rex <https://www.superlogical.com/rex> is a terminal multiplexer that shows
+what the programs in its panes are doing. When Neovim runs in Rex,
+CodeCompanion reports each chat buffer and CLI interaction with the Program
+Status Protocol <https://www.superlogical.com/rex/docs/build/program-status>,
+so they appear in Rex's tabs, session picker and activity view:
+
+  State     Description
+  --------- --------------------------------------------------------------
+  working   Waiting on a response, compacting or running tools
+  blocked   A tool approval or a question from the LLM is waiting on you
+  done      Finished a response you haven't looked at yet
+  idle      Open, with nothing in progress
+Each chat buffer and CLI interaction is reported separately, under its title
+where it has one. Closing it removes it from Rex, as does quitting Neovim.
+
+The integration is enabled by default, and does nothing outside of Rex. To
+disable it:
+
+>lua
+    require("codecompanion").setup({
+      integrations = {
+        rex = {
+          enabled = false,
+        },
+      },
+    })
+<
+
 CodeCompanion follows semantic versioning <https://semver.org/>, so breaking
 changes only arrive in a major version. Each section below lists what changed
 and how to update your config.
 
 To upgrade when you're ready rather than when your plugin manager decides, pin
 CodeCompanion to a version. See the |codecompanion-installation|.
+
+
+CHAT
+
+Tool output is no longer written to the chat buffer. Each tool call is a single
+line, and pressing `K` on it shows the call's arguments and output. See
+|codecompanion-usage-chat-buffer-agents-tools-how-they-work|.
+
+These have been removed:
+
+- The `display` key in `add_tool_output`. Only `content` is used
+- `data.display` in the |codecompanion-configuration-callbacks-truncating-tool-output| callback
+- `interactions.chat.tools.opts.folds`, as there's no tool output left to fold
+- The `CodeCompanionChatToolText`, `CodeCompanionChatToolSuccess` and `CodeCompanionChatToolFailure` highlight groups
+
+In a tool's output handler:
+
+>lua
+    chat:add_tool_output(self, { content = "The result is 42", display = "Calculated 6 * 7" }) -- [!code --]
+    chat:add_tool_output(self, { content = "The result is 42" }) -- [!code ++]
+<
 
 
   [!IMPORTANT] The `openai` and `gemini` adapters now use different APIs. If you

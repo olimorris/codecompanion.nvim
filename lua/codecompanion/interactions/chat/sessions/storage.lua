@@ -68,13 +68,12 @@ function M.exists(stem)
   return files.exists(M.path(stem, "meta"))
 end
 
----@param path string
----@param contents string
+---@param opts { path: string, contents: string }
 ---@return boolean ok
-local function write_file(path, contents)
-  local ok, err = pcall(files.write_to_path, path, contents)
+local function write_file(opts)
+  local ok, err = pcall(files.write_to_path, opts.path, opts.contents)
   if not ok then
-    log:error("[sessions::storage] Could not write %s: %s", path, err)
+    log:error("[sessions::storage] Could not write %s: %s", opts.path, err)
     return false
   end
   return true
@@ -122,16 +121,15 @@ local function read_json(path)
   return decoded, nil
 end
 
----@param path string
----@param contents table
+---@param opts { path: string, contents: table }
 ---@return boolean ok
-local function write_json(path, contents)
-  local ok, encoded = pcall(vim.json.encode, contents)
+local function write_json(opts)
+  local ok, encoded = pcall(vim.json.encode, opts.contents)
   if not ok then
-    log:error("[sessions::storage] Failed to encode %s: %s", path, encoded)
+    log:error("[sessions::storage] Failed to encode %s: %s", opts.path, encoded)
     return false
   end
-  return write_file(path, encoded)
+  return write_file({ path = opts.path, contents = encoded })
 end
 
 ---Write a session. Meta is written last so a partial write is never listable
@@ -141,14 +139,14 @@ end
 function M.write(stem, opts)
   M.ensure_dir()
 
-  if not write_json(M.path(stem, "chat"), opts.chat) then
+  if not write_json({ path = M.path(stem, "chat"), contents = opts.chat }) then
     return false
   end
-  if opts.ui_lines and not write_file(M.path(stem, "ui"), table.concat(opts.ui_lines, "\n")) then
+  if opts.ui_lines and not write_file({ path = M.path(stem, "ui"), contents = table.concat(opts.ui_lines, "\n") }) then
     return false
   end
 
-  local ok = write_json(M.path(stem, "meta"), opts.meta)
+  local ok = write_json({ path = M.path(stem, "meta"), contents = opts.meta })
   if ok then
     M.invalidate()
   end

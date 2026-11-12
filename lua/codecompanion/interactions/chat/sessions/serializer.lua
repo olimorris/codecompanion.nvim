@@ -123,9 +123,10 @@ function M.to_chat_args(saved_chat)
 end
 
 ---@param chat CodeCompanion.Chat
----@param name string
+---@param opts { name: string }
 ---@return table|nil
-local function resolve_schema(chat, name)
+local function resolve_schema(chat, opts)
+  local name = opts.name
   local tool_config = config.interactions.chat.tools[name]
   if not tool_config then
     return nil
@@ -149,7 +150,7 @@ function M.restore_tools(chat, tools)
   local missing = {}
 
   for _, name in ipairs(tools.items or {}) do
-    local schema = resolve_schema(chat, name)
+    local schema = resolve_schema(chat, { name = name })
     if schema then
       registry.in_use[name] = true
       registry.schemas[ToolRegistry.tool_id(name)] = schema

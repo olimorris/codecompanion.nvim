@@ -23,12 +23,15 @@
 ---@field intro_message? string The welcome message that is displayed in the chat buffer
 ---@field messages? CodeCompanion.Chat.Messages The messages in the chat buffer
 ---@field opts CodeCompanion.ChatArgs Store all arguments in this table
----@field parsers { markdown: vim.treesitter.LanguageTree, markdown_inline?: vim.treesitter.LanguageTree, yaml?: vim.treesitter.LanguageTree } Tree-sitter parsers attached to the chat buffer
+---@field prompt CodeCompanion.Chat.Prompt Where the user writes their prompt, in the chat buffer or the input
+---@field parsers { markdown: vim.treesitter.LanguageTree, yaml?: vim.treesitter.LanguageTree } Tree-sitter parsers attached to the chat buffer
 ---@field session_id string An identifier for the life of the chat buffer (designed for external use)
 ---@field settings? table The settings that are used in the adapter of the chat buffer
 ---@field subscribers table The subscribers to the chat buffer
 ---@field title? string The title of the chat buffer
 ---@field tokens? number|table The tokens reported by the adapter
+---@field tool_calls { acp: table<string, table>, http: table<string, { call: table, output?: string }> } Tool calls by their ID, kept after they complete and when context management rewrites the messages
+---@field tool_call_marks table<number, string> Tool call IDs by the extmark on their summary line
 ---@field tools CodeCompanion.Tools The tools coordinator that executes available tools
 ---@field tool_orchestrator? CodeCompanion.Tools.Orchestrator Coordinates the tools that the LLM has asked to run
 ---@field tool_registry CodeCompanion.Chat.ToolRegistry Methods for handling interactions between the chat buffer and tools
@@ -40,6 +43,7 @@
 ---@field _compacting? boolean Whether a compaction request is currently in flight
 ---@field _last_role string The last role that was rendered in the chat buffer
 ---@field _status table Bookkeeping for the current status virtual text (extmark id + status flag)
+---@field _turn_in_progress? boolean Whether the LLM is still working on the user's last submission
 ---@field _tool_monitors? table A table of tool monitors that are currently running in the chat buffer
 
 ---@class CodeCompanion.ChatArgs Arguments that can be injected into the chat
@@ -77,6 +81,7 @@ local context_paths = require("codecompanion.interactions.chat.helpers.context_p
 local helpers = require("codecompanion.interactions.chat.helpers")
 local parser = require("codecompanion.interactions.chat.parser")
 local schema = require("codecompanion.schema")
+local system_prompt = require("codecompanion.interactions.shared.system_prompt")
 local tags = require("codecompanion.interactions.shared.tags")
 
 local hash = require("codecompanion.utils.hash")
@@ -96,6 +101,8 @@ local CONSTANTS = {
   STATUS_SUCCESS = "success",
 
   BLANK_DESC = "[No messages]",
+  INPUT_ONLY_KEYMAPS = { "scroll_chat_down", "scroll_chat_up", "scroll_chat_jump" },
+  CHAT_ONLY_KEYMAPS = { "tool_call_details" },
   INCOMPLETE_TOOL_CALL = "This tool call did not complete and produced no result",
 
   SYSTEM_PROMPT = [[You are an AI programming assistant named "CodeCompanion", working within the Neovim text editor.
@@ -133,6 +140,8 @@ local show_settings = config.display.chat.show_settings
 local function create_chat_buf()
   local bufnr = api.nvim_create_buf(config.display.chat.window.buflisted, true)
   api.nvim_buf_set_name(bufnr, fmt("[CodeCompanion] %d", bufnr))
+  -- Every streamed chunk is its own undo entry, so the default 1000 levels mostly holds the LLM's output
+  vim.bo[bufnr].undolevels = 100
 
   vim.schedule(function()
     pcall(vim.treesitter.start, bufnr)
@@ -216,12 +225,11 @@ local function get_client(adapter)
 end
 
 ---Find a message in the table that has a specific tool call ID
----@param id string
----@param messages CodeCompanion.Chat.Messages
+---@param opts { messages: CodeCompanion.Chat.Messages, id: string }
 ---@return table|nil
-local function find_tool_call(id, messages)
-  for _, msg in ipairs(messages) do
-    if msg.tools and msg.tools.call_id and msg.tools.call_id == id then
+local function find_tool_call(opts)
+  for _, msg in ipairs(opts.messages) do
+    if msg.tools and msg.tools.call_id and msg.tools.call_id == opts.id then
       return msg
     end
   end
@@ -239,29 +247,31 @@ local last_chat = {}
 local function set_autocmds(chat)
   local bufnr = chat.bufnr
 
-  api.nvim_create_autocmd("BufEnter", {
-    group = chat.aug,
-    buffer = bufnr,
-    desc = "Log the most recent chat buffer",
-    callback = function()
-      last_chat = chat
-    end,
-  })
+  for _, buf in ipairs(chat.prompt:get_bufnrs()) do
+    api.nvim_create_autocmd("BufEnter", {
+      group = chat.aug,
+      buffer = buf,
+      desc = "Log the most recent chat buffer",
+      callback = function()
+        last_chat = chat
+      end,
+    })
 
-  api.nvim_create_autocmd("CompleteDone", {
-    group = chat.aug,
-    buffer = bufnr,
-    callback = function()
-      local item = vim.v.completed_item
-      if item.user_data and item.user_data.type == "slash_command" then
-        -- Clear the word from the buffer
-        local row, col = unpack(api.nvim_win_get_cursor(0))
-        api.nvim_buf_set_text(bufnr, row - 1, col - #item.word, row - 1, col, { "" })
+    api.nvim_create_autocmd("CompleteDone", {
+      group = chat.aug,
+      buffer = buf,
+      callback = function()
+        local item = vim.v.completed_item
+        if item.user_data and item.user_data.type == "slash_command" then
+          -- Clear the word from the buffer
+          local row, col = unpack(api.nvim_win_get_cursor(0))
+          api.nvim_buf_set_text(buf, row - 1, col - #item.word, row - 1, col, { "" })
 
-        require("codecompanion.interactions.chat.slash_commands").run(item.user_data, chat)
-      end
-    end,
-  })
+          require("codecompanion.interactions.chat.slash_commands").run(item.user_data, chat)
+        end
+      end,
+    })
+  end
 
   if show_settings then
     api.nvim_create_autocmd("CursorMoved", {
@@ -382,19 +392,6 @@ Chat.MESSAGE_TYPES = {
 local function init_parsers(chat)
   chat.parsers = {}
 
-  local ok, markdown = pcall(vim.treesitter.get_parser, chat.bufnr, "markdown")
-  if not ok or not markdown then
-    log:error("[chat::init::new] Could not find the Markdown Tree-sitter parser")
-    return false
-  end
-  chat.parsers.markdown = markdown
-
-  -- markdown_inline drives image detection; cache once to avoid re-resolving per submit
-  local inline_ok, markdown_inline = pcall(vim.treesitter.get_parser, chat.bufnr, "markdown_inline")
-  if inline_ok and markdown_inline then
-    chat.parsers.markdown_inline = markdown_inline
-  end
-
   if show_settings then
     local yaml_ok, yaml = pcall(vim.treesitter.get_parser, chat.bufnr, "yaml", { ignore_injections = false })
     if not yaml_ok or not yaml then
@@ -403,6 +400,14 @@ local function init_parsers(chat)
     end
     chat.parsers.yaml = yaml
   end
+
+  -- Last, so Neovim's cached parser for the buffer is the one the highlighter reuses rather than duplicates
+  local ok, markdown = pcall(vim.treesitter.get_parser, chat.bufnr, "markdown")
+  if not ok or not markdown then
+    log:error("[chat::init::new] Could not find the Markdown Tree-sitter parser")
+    return false
+  end
+  chat.parsers.markdown = markdown
 
   return true
 end
@@ -477,6 +482,7 @@ local function init_components(chat, args)
     title = chat.title,
     window_opts = args.window_opts,
   })
+  chat.prompt = require("codecompanion.interactions.chat.prompt").new(chat)
   chat.watchers = require("codecompanion.interactions.chat.watchers").new()
 end
 
@@ -484,34 +490,37 @@ end
 ---@param chat CodeCompanion.Chat
 ---@return nil
 local function init_keymaps(chat)
-  if config.interactions.chat.keymaps then
-    local filtered_keymaps = {}
-    for k, v in pairs(config.interactions.chat.keymaps) do
-      if k:sub(1, 1) ~= "_" then
-        filtered_keymaps[k] = v
-      end
+  local filtered_keymaps = {}
+  for k, v in pairs(config.interactions.chat.keymaps or {}) do
+    if k:sub(1, 1) ~= "_" then
+      filtered_keymaps[k] = v
     end
+  end
+  local slash_command_keymaps = helpers.slash_command_keymaps(config.interactions.chat.slash_commands)
+
+  for _, bufnr in ipairs(chat.prompt:get_bufnrs()) do
     keymaps
       .new({
-        bufnr = chat.bufnr,
+        bufnr = bufnr,
         callbacks = require("codecompanion.interactions.chat.keymaps"),
         data = chat,
         keymaps = filtered_keymaps,
       })
-      :set()
+      :set({ exclude_keymaps = bufnr == chat.bufnr and CONSTANTS.INPUT_ONLY_KEYMAPS or CONSTANTS.CHAT_ONLY_KEYMAPS })
+
+    if vim.tbl_count(slash_command_keymaps) > 0 then
+      keymaps
+        .new({
+          bufnr = bufnr,
+          callbacks = require("codecompanion.interactions.chat.slash_commands.keymaps"),
+          data = chat,
+          keymaps = slash_command_keymaps,
+        })
+        :set()
+    end
   end
 
-  local slash_command_keymaps = helpers.slash_command_keymaps(config.interactions.chat.slash_commands)
-  if vim.tbl_count(slash_command_keymaps) > 0 then
-    keymaps
-      .new({
-        bufnr = chat.bufnr,
-        callbacks = require("codecompanion.interactions.chat.slash_commands.keymaps"),
-        data = chat,
-        keymaps = slash_command_keymaps,
-      })
-      :set()
-  end
+  chat.prompt:set_keymaps()
 end
 
 ---Preload default tools and any tools explicitly listed in args
@@ -614,6 +623,8 @@ function Chat.new(args)
     session_id = fmt("codecompanion-%d-%d", os.time(), id),
     status = "",
     title = args.title,
+    tool_call_marks = {},
+    tool_calls = { acp = {}, http = {} },
     _last_role = args.last_role or config.constants.USER_ROLE,
     _status = {},
   }, { __index = Chat })
@@ -681,11 +692,7 @@ function Chat.new(args)
     self.ui:render(self.buffer_context, self.messages, { stop_context_insertion = args.stop_context_insertion })
   end
 
-  -- For restored chats, locate the last user header via Tree-sitter once
-  if args.messages and vim.tbl_count(args.messages) > 0 then
-    local header_line = parser.headers(self)
-    self.header_line = header_line and (header_line + 1) or 1
-  end
+  self.prompt:set_header_line({ messages = args.messages })
 
   if vim.tbl_isempty(self.messages) or not helpers.has_user_messages(args.messages) then
     self.ui:set_intro_msg(self.intro_message)
@@ -909,58 +916,11 @@ function Chat:complete_models(callback)
   callback({ items = items, isIncomplete = false })
 end
 
----@class CodeCompanion.SystemPrompt.Context
----@field language string
----@field adapter CodeCompanion.HTTPAdapter|CodeCompanion.ACPAdapter
----@field date string
----@field nvim_version string
----@field os string the operating system that the user is using
----@field default_system_prompt string
----@field cwd string current working directory
----@field project_root? string The closest parent directory that contains either a `.git`, `.svn`, or `.hg` directory
-
 ---@return CodeCompanion.SystemPrompt.Context
 function Chat:make_system_prompt_context()
-  ---@type table<string, fun(_chat: CodeCompanion.Chat):any>
-  local dynamic_ctx = {
-    -- These can be slow-to-run or too complex for a one-liner. So wrap them in
-    -- functions and use a metatable to handle the eval when needed.
-    adapter = function()
-      return adapters.make_safe(self.adapter)
-    end,
-    os = function()
-      local machine = vim.uv.os_uname().sysname
-      if machine == "Darwin" then
-        machine = "Mac"
-      end
-      if machine:find("Windows") then
-        machine = "Windows"
-      end
-      return machine
-    end,
-  }
-
-  local bufnr = self.bufnr
-  local winid = vim.fn.bufwinid(bufnr)
-  local static_ctx = { ---@type CodeCompanion.SystemPrompt.Context|{}
-    cwd = winid ~= -1 and vim.fn.getcwd(winid) or vim.fn.getcwd(),
-    date = tostring(os.date(config.interactions.opts.date_format)),
-    default_system_prompt = CONSTANTS.SYSTEM_PROMPT,
-    language = config.opts.language or "English",
-    nvim_version = vim.version().major .. "." .. vim.version().minor .. "." .. vim.version().patch,
-    project_root = vim.fs.root(bufnr, { ".git", ".svn", "hg" }),
-  }
-
-  ---@type CodeCompanion.SystemPrompt.Context
-  return setmetatable(static_ctx, {
-    __index = function(_, key)
-      local val = dynamic_ctx[key]
-      if type(val) == "function" then
-        return val()
-      end
-      return val
-    end,
-  })
+  local context = system_prompt.make_context({ adapter = self.adapter, bufnr = self.bufnr })
+  context.default_system_prompt = CONSTANTS.SYSTEM_PROMPT
+  return context
 end
 
 ---Set the system prompt in the chat buffer
@@ -1023,6 +983,10 @@ end
 ---Toggle the system prompt in the chat buffer
 ---@return nil
 function Chat:toggle_system_prompt()
+  if self.adapter.type == "acp" then
+    return utils.notify("The system prompt can't be toggled in an ACP chat")
+  end
+
   if helpers.has_tag(tags.SYSTEM_PROMPT_FROM_CONFIG, self.messages) then
     self:remove_tagged_message(tags.SYSTEM_PROMPT_FROM_CONFIG)
     utils.notify("Removed system prompt")
@@ -1208,7 +1172,7 @@ function Chat:btw(content)
     return
   end
 
-  self._btw = content
+  self._btw = self._btw and (self._btw .. "\n\n" .. content) or content
   log:debug("BTW message queued: %s", content)
 end
 
@@ -1219,16 +1183,20 @@ function Chat:_inject_btw()
     return
   end
 
-  self:add_buf_message({
-    role = config.constants.USER_ROLE,
-    content = self._btw,
-  }, { type = self.MESSAGE_TYPES.USER_MESSAGE })
-  self:add_message({
-    role = config.constants.USER_ROLE,
-    content = self._btw,
-  })
-  log:debug("BTW message injected into message stack")
+  local message = { role = config.constants.USER_ROLE, content = self._btw }
   self._btw = nil
+
+  self:add_buf_message(
+    { role = config.constants.USER_ROLE, content = message.content },
+    { type = self.MESSAGE_TYPES.USER_MESSAGE }
+  )
+  -- Otherwise the links in the LLM's response above would be attached as context too
+  self.header_line = (self.builder.state.current_header_line or 0) + 1
+  self:replace_user_inputs(message)
+  context_paths.attach({ chat = self, message = message })
+
+  self:add_message({ role = config.constants.USER_ROLE, content = message.content })
+  log:debug("BTW message injected into message stack")
 end
 
 ---Make a request to the LLM using the HTTP client
@@ -1237,10 +1205,7 @@ end
 function Chat:_submit_http(payload)
   local adapter = self.adapter ---@cast adapter CodeCompanion.HTTPAdapter
 
-  if show_settings then
-    local settings = parser.settings(self.bufnr, self.parsers.yaml, adapter)
-    helpers.apply_settings_and_model(self, settings)
-  end
+  self.prompt:apply_settings()
 
   local mapped_settings = adapter:map_schema_to_params(self.settings)
   log:trace("Settings:\n%s", mapped_settings)
@@ -1366,11 +1331,15 @@ end
 ---@param opts? table
 ---@return nil
 function Chat:submit(opts)
+  opts = opts or {}
+
+  if not opts.auto_submit and not opts.regenerate and not self.prompt:prepare_submit() then
+    return
+  end
+
   if self.current_request then
     return log:debug("Chat request already in progress")
   end
-
-  opts = opts or {}
 
   if opts.callback then
     opts.callback()
@@ -1433,6 +1402,7 @@ function Chat:submit(opts)
     if self:message_too_big(message_to_submit) then
       return self:restore()
     end
+    self.prompt:mark_sent()
 
     if message_to_submit then
       context_paths.attach({ chat = self, message = message_to_submit })
@@ -1456,6 +1426,7 @@ function Chat:submit(opts)
 
     -- Allow users to send a btw message during an active request
     require("codecompanion.interactions.chat.keymaps").btw.set(self)
+    self._turn_in_progress = true
   end
 
   self:checkpoint()
@@ -1524,6 +1495,7 @@ function Chat:done(args)
     return
   end
 
+  self.builder:flush()
   self:_clear_status()
 
   if args.status == "stopped" then
@@ -1532,6 +1504,7 @@ function Chat:done(args)
 
   -- Commonly, a status may not be set if the message exceeds a token limit
   if not self.status or self.status == "" then
+    self._turn_in_progress = false
     return self:reset()
   end
   local has_output = output and not vim.tbl_isempty(output)
@@ -1782,6 +1755,8 @@ end
 ---Stop streaming the response from the LLM
 ---@return nil
 function Chat:stop()
+  self.prompt:restore_queued()
+
   self.status = CONSTANTS.STATUS_CANCELLING
   self:dispatch("on_cancelled")
   utils.fire("ChatStopped", { bufnr = self.bufnr, id = self.id })
@@ -1846,6 +1821,7 @@ function Chat:close()
   chats[self.bufnr] = nil
   approvals:reset(self.bufnr)
   registry.remove(self.bufnr)
+  self.prompt:close()
   pcall(api.nvim_buf_delete, self.bufnr, { force = true })
   if self.aug then
     api.nvim_clear_autocmds({ group = self.aug })
@@ -1898,18 +1874,23 @@ function Chat:update_buf_line(args)
   return self.builder:update_line(args.line_number, args.content, args)
 end
 
----Add the output from a tool to the message history and a message to the UI
+---Add the output from a tool to the message history
 ---@param tool table
----@param opts { content: string, display?: string|false }
+---@param opts { content: string }
 ---@return nil
 function Chat:add_tool_output(tool, opts)
   local tool_call = tool.function_call
   log:debug("Tool output: %s", tool_call)
 
   -- Allow users to modify the tool output before it's added to the message history
-  local tool_output = { tool = tool.name, content = opts.content, display = opts.display }
+  local tool_output = { tool = tool.name, content = opts.content }
   self:dispatch("on_tool_output", tool_output)
-  local content, display = tool_output.content, tool_output.display
+  local content = tool_output.content
+
+  local http_tool_call = self.tool_calls.http[adapter_utils.pairing_id(tool_call)]
+  if http_tool_call then
+    http_tool_call.output = http_tool_call.output and (http_tool_call.output .. "\n\n" .. content) or content
+  end
 
   local output = adapters.call_handler(self.adapter, "format_response", { tool_call = tool_call, output = content })
   if not output then
@@ -1923,7 +1904,7 @@ function Chat:add_tool_output(tool, opts)
   })
 
   -- Ensure that tool output is merged if it has the same tool call ID
-  local existing = find_tool_call(tool_call.id, self.messages)
+  local existing = find_tool_call({ messages = self.messages, id = adapter_utils.pairing_id(tool_call) })
   if existing then
     if existing.content ~= "" then
       existing.content = existing.content .. "\n\n" .. output.content
@@ -1941,15 +1922,6 @@ function Chat:add_tool_output(tool, opts)
     estimated_tokens = tokens.calculate(output.content),
   })
 
-  if display ~= false and display ~= "" then
-    self:add_buf_message({
-      role = config.constants.LLM_ROLE,
-      content = (display or content),
-    }, {
-      type = self.MESSAGE_TYPES.TOOL_MESSAGE,
-    })
-  end
-
   if not self:has_orphaned_tool_calls() then
     self:checkpoint()
   end
@@ -1963,10 +1935,9 @@ function Chat:ready_for_input(opts)
 
   if not opts.auto_submit and self._last_role ~= config.constants.USER_ROLE then
     self.cycle = self.cycle + 1
-    self:add_buf_message({ role = config.constants.USER_ROLE, content = "" })
 
-    self.header_line = (self.builder.state.current_header_line or 0) + 1
-    self.ui:display_tokens({ parser = self.parsers.markdown, start_row = self.header_line, tokens = self.tokens })
+    local next_message = self.prompt:start_next_message()
+    self.ui:display_tokens({ parser = self.parsers.markdown, start_row = next_message.tokens_row, tokens = self.tokens })
     self.context:render()
 
     self:dispatch("on_ready")
@@ -1981,6 +1952,7 @@ function Chat:ready_for_input(opts)
     self.ui:add_line_break()
   else
     require("codecompanion.interactions.chat.keymaps").btw.remove(self)
+    self._turn_in_progress = false
   end
 
   log:info("Chat request finished")
@@ -1991,13 +1963,15 @@ end
 ---@return nil
 function Chat:reset()
   self.status = ""
-  self.ui:unlock_buf()
+  self.prompt:make_editable()
 end
 
 ---Restore the chat buffer to an editable state (used when a submission is prevented)
 ---@return nil
 function Chat:restore()
   require("codecompanion.interactions.chat.keymaps").btw.remove(self)
+  self._turn_in_progress = false
+  self.prompt:undo_submit()
   self:reset()
   utils.fire("ChatRestored", { bufnr = self.bufnr, id = self.id })
 end
@@ -2016,9 +1990,13 @@ function Chat:clear()
   self.header_line = 1
   self.messages = {}
   self.context_items = {}
+  self.tool_call_marks = {}
+  self.tool_calls = { acp = {}, http = {} }
 
   self.watchers:clear()
   self.tool_registry:clear()
+  self.prompt:clear()
+  self.builder:discard()
 
   log:trace("Clearing chat buffer")
   self.ui:render(self.buffer_context, self.messages, self.opts):set_intro_msg(self.intro_message)
@@ -2067,7 +2045,7 @@ function Chat:update_metadata()
 
   _G.codecompanion_chat_metadata[self.bufnr] = {
     adapter = {
-      name = self.adapter.formatted_name,
+      name = self.adapter.formatted_name or self.adapter.name,
       model = model,
       model_info = (self.adapter.model and self.adapter.model.info) and self.adapter.model.info,
       type = self.adapter.type,
@@ -2076,9 +2054,11 @@ function Chat:update_metadata()
     context_items = #self.context_items,
     cycles = self.cycle,
     id = self.id,
+    title = self.title,
     tokens = self.tokens or 0,
     tools = vim.tbl_count(self.tool_registry.in_use) or 0,
   }
+  require("codecompanion.interactions.chat.ui.title").refresh(self.ui)
 
   if self.adapter.type == "acp" then
     if model and model ~= "default" then
@@ -2106,6 +2086,9 @@ function Chat:set_title(title)
   pcall(function()
     api.nvim_buf_set_name(self.bufnr, title)
   end)
+  _G.codecompanion_chat_metadata[self.bufnr].title = title
+  require("codecompanion.interactions.chat.ui.title").refresh(self.ui)
+  utils.fire("ChatTitle", { bufnr = self.bufnr, id = self.id, title = title })
 
   return self
 end
@@ -2133,7 +2116,14 @@ function Chat.buf_get_chat(bufnr)
   if bufnr == 0 then
     bufnr = api.nvim_get_current_buf()
   end
-  return chats[bufnr]
+  if chats[bufnr] then
+    return chats[bufnr]
+  end
+  for _, chat in pairs(chats) do
+    if vim.tbl_contains(chat.prompt:get_bufnrs(), bufnr) then
+      return chat
+    end
+  end
 end
 
 ---Returns the last chat that was visible

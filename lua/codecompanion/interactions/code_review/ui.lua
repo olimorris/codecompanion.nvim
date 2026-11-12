@@ -67,22 +67,21 @@ local function pending_comments()
 end
 
 ---The comments written against the file a buffer is showing, paired with their store index
----@param bufnr number
----@param review CodeCompanion.CodeReview.Pending
+---@param opts { bufnr: number, review: CodeCompanion.CodeReview.Pending }
 ---@return { comment: CodeCompanion.CodeReview.Comment, index: number }[]
-local function comments_in(bufnr, review)
-  local name = api.nvim_buf_get_name(bufnr)
+local function comments_in(opts)
+  local name = api.nvim_buf_get_name(opts.bufnr)
   if name == "" then
     return {}
   end
 
-  local path = vim.fs.relpath(review.root, name)
+  local path = vim.fs.relpath(opts.review.root, name)
   if not path then
     return {}
   end
 
   local found = {}
-  for index, comment in ipairs(review.comments) do
+  for index, comment in ipairs(opts.review.comments) do
     if comment.path == path then
       table.insert(found, { comment = comment, index = index })
     end
@@ -115,10 +114,10 @@ function M.place_comment(opts)
 end
 
 ---Draw the comments a review holds into a buffer
----@param bufnr number
----@param review CodeCompanion.CodeReview.Pending
+---@param opts { bufnr: number, review: CodeCompanion.CodeReview.Pending }
 ---@return nil
-local function draw(bufnr, review)
+local function draw(opts)
+  local bufnr = opts.bufnr
   M.clear(bufnr)
   if not display().enabled or not api.nvim_buf_is_loaded(bufnr) then
     return
@@ -126,7 +125,7 @@ local function draw(bufnr, review)
 
   local last_line = api.nvim_buf_line_count(bufnr)
 
-  for _, entry in ipairs(comments_in(bufnr, review)) do
+  for _, entry in ipairs(comments_in(opts)) do
     M.place_comment({
       bufnr = bufnr,
       comment = entry.comment.comment,
@@ -150,7 +149,7 @@ end
 ---@param bufnr number
 ---@return nil
 function M.render(bufnr)
-  draw(bufnr, pending_comments())
+  draw({ bufnr = bufnr, review = pending_comments() })
 end
 
 ---Redraw every loaded buffer, so a change to the store is reflected everywhere
@@ -167,7 +166,7 @@ function M.refresh()
 
   for _, bufnr in ipairs(api.nvim_list_bufs()) do
     if api.nvim_buf_is_loaded(bufnr) then
-      draw(bufnr, review)
+      draw({ bufnr = bufnr, review = review })
     end
   end
 end

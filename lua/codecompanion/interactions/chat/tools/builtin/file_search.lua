@@ -5,14 +5,12 @@ local markdown = require("codecompanion.utils.markdown")
 local fmt = string.format
 
 ---Search the current working directory for files matching the glob pattern.
----@param action { query: string, max_results: number }
----@param opts table
+---@param opts { action: { query: string, max_results: number }, max_results?: number }
 ---@return { status: "success"|"error", data: string }
-local function search(action, opts)
-  opts = opts or {}
-  local query = action.query
+local function search(opts)
+  local query = opts.action.query
 
-  local max_results = action.max_results or opts.max_results or 500 -- Default limit to prevent overwhelming results
+  local max_results = opts.action.max_results or opts.max_results or 500 -- Default limit to prevent overwhelming results
 
   if not query or query == "" then
     return {
@@ -64,6 +62,7 @@ end
 ---@class CodeCompanion.Tool.FileSearch: CodeCompanion.Tools.Tool
 return {
   name = "file_search",
+  kind = "search",
   cmds = {
     ---Execute the search commands
     ---@param self CodeCompanion.Tool.FileSearch
@@ -71,7 +70,8 @@ return {
     ---@param input? any The output from the previous function call
     ---@return { status: "success"|"error", data: string }
     function(self, args, input)
-      return search(args, self.tool.opts)
+      local tool_opts = self.tool.opts or {}
+      return search({ action = args, max_results = tool_opts.max_results })
     end,
   },
   schema = {
@@ -114,14 +114,6 @@ return {
       return self.args.query
     end,
 
-    ---The message which is shared with the user when asking for their approval
-    ---@param self CodeCompanion.Tools.Tool
-    ---@param meta { tools: CodeCompanion.Tools }
-    ---@return nil|string
-    prompt = function(self, meta)
-      return fmt("Search the cwd for `%s`?", self.args.query)
-    end,
-
     ---@param self CodeCompanion.Tool.FileSearch
     ---@param stdout table The output from the command
     ---@param meta { tools: CodeCompanion.Tools, cmd: table }
@@ -138,11 +130,11 @@ return {
         local files = #data
         local results_msg =
           fmt("Searched files for `%s`, %d results\n%s", query, files, markdown.form_codeblock(output))
-        chat:add_tool_output(self, { content = fmt(llm_output, results_msg), display = false })
+        chat:add_tool_output(self, { content = fmt(llm_output, results_msg) })
       else
         -- No files found - data is a string message
         local no_results_msg = fmt("Searched files for `%s`, no results", query)
-        chat:add_tool_output(self, { content = fmt(llm_output, no_results_msg), display = false })
+        chat:add_tool_output(self, { content = fmt(llm_output, no_results_msg) })
       end
     end,
 

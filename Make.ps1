@@ -5,9 +5,9 @@
 function Install-Deps
 {
     if (!(Test-Path "deps"))
-    { New-Item -ItemType Directory -Path "deps" 
+    { New-Item -ItemType Directory -Path "deps"
     }
-    
+
     $deps = @{
         "plenary.nvim"    = "https://github.com/nvim-lua/plenary.nvim.git"
         "nvim-treesitter" = "https://github.com/nvim-treesitter/nvim-treesitter.git"
@@ -38,7 +38,7 @@ function Invoke-Docs
     Write-Host "Generating Docs..." -ForegroundColor Cyan
     pandoc `
         --metadata="project:codecompanion" `
-        --metadata="vimversion:NVIM v0.11" `
+        --metadata="vimversion:NVIM v0.12" `
         --metadata="titledatepattern:%Y %B %d" `
         --metadata="toc:true" `
         --metadata="incrementheadinglevelby:0" `
@@ -61,7 +61,7 @@ function Invoke-Test
     param($File)
 
     Install-Deps
-    $env:HOME = $env:USERPROFILE  
+    $env:HOME = $env:USERPROFILE
     Write-Host "Testing..." -ForegroundColor Cyan
     if ($File)
     {
@@ -73,16 +73,16 @@ function Invoke-Test
 }
 
 if ($args[0] -eq "format")
-{ Invoke-Format 
+{ Invoke-Format
 } elseif ($args[0] -eq "docs")
 { Invoke-Docs
 } elseif ($args[0] -eq "test")
-{ Invoke-Test 
+{ Invoke-Test
 } elseif ($args[0] -eq "test_file")
-{ Invoke-Test -File $args[1] 
+{ Invoke-Test -File $args[1]
 } else
-{ 
+{
     Invoke-Format
     Invoke-Docs
-    Invoke-Test 
+    Invoke-Test
 }

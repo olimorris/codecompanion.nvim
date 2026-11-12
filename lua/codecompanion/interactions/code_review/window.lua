@@ -86,24 +86,23 @@ local function notify(message, level)
   return utils.notify(message, level or vim.log.levels.INFO, { title = "CodeCompanion Code Review" })
 end
 
----@param winnr number
----@param bufnr number
----@param lines string[]
+---@param opts { bufnr: number, winnr: number, lines: string[] }
 ---@return nil
-local function fill_panel(winnr, bufnr, lines)
-  api.nvim_win_set_buf(winnr, bufnr)
-  api.nvim_buf_set_lines(bufnr, 0, -1, false, lines)
+local function fill_panel(opts)
+  local bufnr = opts.bufnr
+  api.nvim_win_set_buf(opts.winnr, bufnr)
+  api.nvim_buf_set_lines(bufnr, 0, -1, false, opts.lines)
   vim.bo[bufnr].bufhidden = "wipe"
   vim.bo[bufnr].modifiable = false
   vim.bo[bufnr].swapfile = false
 end
 
----@param panel { bufnr: number, winnr: number }
----@param lines string[]
+---@param opts { panel: { bufnr: number, winnr: number }, lines: string[] }
 ---@return nil
-local function replace_lines(panel, lines)
+local function replace_lines(opts)
+  local panel = opts.panel
   vim.bo[panel.bufnr].modifiable = true
-  api.nvim_buf_set_lines(panel.bufnr, 0, -1, false, lines)
+  api.nvim_buf_set_lines(panel.bufnr, 0, -1, false, opts.lines)
   vim.bo[panel.bufnr].modifiable = false
 end
 
@@ -121,12 +120,12 @@ local function open_panels(lines)
   })
 
   local checklist_bufnr = api.nvim_create_buf(false, true)
-  fill_panel(checklist_winnr, checklist_bufnr, lines)
+  fill_panel({ bufnr = checklist_bufnr, winnr = checklist_winnr, lines = lines })
   vim.bo[checklist_bufnr].filetype = CONSTANTS.FILETYPE
   pcall(api.nvim_buf_set_name, checklist_bufnr, CONSTANTS.CHECKLIST_NAME)
 
   local pane_bufnr = api.nvim_create_buf(false, true)
-  fill_panel(pane_winnr, pane_bufnr, {})
+  fill_panel({ bufnr = pane_bufnr, winnr = pane_winnr, lines = {} })
   pcall(api.nvim_buf_set_name, pane_bufnr, CONSTANTS.PANE_NAME)
 
   -- A new window inherits the global gutter options, so every one of them is pinned here
@@ -227,7 +226,7 @@ local function show_file(path)
   local file_diff = review.diffs[path]
   review.active_path = path
 
-  replace_lines(review.pane, file_diff.merged.lines)
+  replace_lines({ panel = review.pane, lines = file_diff.merged.lines })
   vim.bo[review.pane.bufnr].filetype = file_diff.ft or "text"
 
   api.nvim_buf_clear_namespace(review.pane.bufnr, CONSTANTS.NAMESPACE, 0, -1)
@@ -236,12 +235,11 @@ local function show_file(path)
   show_comments()
 end
 
----@param winnr number
----@param row number
+---@param opts { winnr: number, row: number }
 ---@return nil
-local function centre_on(winnr, row)
-  pcall(api.nvim_win_set_cursor, winnr, { row, 0 })
-  api.nvim_win_call(winnr, function()
+local function centre_on(opts)
+  pcall(api.nvim_win_set_cursor, opts.winnr, { opts.row, 0 })
+  api.nvim_win_call(opts.winnr, function()
     vim.cmd("normal! zz")
   end)
 end
@@ -271,7 +269,7 @@ local function select_entry(row)
 
   show_file(entry.path)
 
-  centre_on(review.pane.winnr, entry.hunks and hunk_row(first_hunk(entry)) or 1)
+  centre_on({ winnr = review.pane.winnr, row = entry.hunks and hunk_row(first_hunk(entry)) or 1 })
 end
 
 ---The checklist row for the last hunk the review pane's cursor has reached
@@ -317,12 +315,12 @@ local function rebuild()
   review.diffs = built.diffs
   review.entries = built.entries
 
-  replace_lines(review.checklist, #built.lines > 0 and built.lines or { CONSTANTS.EMPTY })
+  replace_lines({ panel = review.checklist, lines = #built.lines > 0 and built.lines or { CONSTANTS.EMPTY } })
   highlight_checklist()
 
   if #built.entries == 0 then
     review.active_path = nil
-    replace_lines(review.pane, {})
+    replace_lines({ panel = review.pane, lines = {} })
     return api.nvim_buf_clear_namespace(review.pane.bufnr, CONSTANTS.NAMESPACE, 0, -1)
   end
 
@@ -354,7 +352,7 @@ local function jump_hunk(step)
   end
 
   if target then
-    centre_on(review.pane.winnr, target)
+    centre_on({ winnr = review.pane.winnr, row = target })
   end
 end
 

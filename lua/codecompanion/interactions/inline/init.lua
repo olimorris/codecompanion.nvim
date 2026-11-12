@@ -429,7 +429,7 @@ function Inline:done(result)
   self:save_conversation(result)
   if result.reply then
     self:reset()
-    return ui.show_reply(result.reply, { adapter = self.adapter })
+    return ui.show_reply({ reply = result.reply, adapter = self.adapter })
   end
 
   self:finish_request()

@@ -341,31 +341,45 @@ M.close = {
     end
     local window_opts = chat.ui.window_opts or { default = true }
 
-    chat:close()
+    local chat_entries = vim.tbl_filter(function(chat_entry)
+      return chat_entry.chat.bufnr ~= chat.bufnr
+    end, require("codecompanion").buf_get_chat())
 
-    local chats = require("codecompanion").buf_get_chat()
-    if vim.tbl_count(chats) == 0 then
-      return
-    end
-
-    local target = chats[1]
-
-    -- In pertab mode, prefer a chat that isn't already visible in another tab
-    -- so closing one chat doesn't steal a sibling chat from another tab.
-    if config.display.chat.window.pertab then
-      for _, c in ipairs(chats) do
-        if bufnr_available_to_current_tab(c.chat.bufnr) then
-          target = c
-          break
+    local target
+    if vim.tbl_count(chat_entries) > 0 then
+      target = chat_entries[1]
+      -- In pertab mode, prefer a chat that isn't already visible in another tab
+      -- so closing one chat doesn't steal a sibling chat from another tab.
+      if config.display.chat.window.pertab then
+        for _, chat_entry in ipairs(chat_entries) do
+          if bufnr_available_to_current_tab(chat_entry.chat.bufnr) then
+            target = chat_entry
+            break
+          end
         end
       end
     end
 
-    require("codecompanion.interactions.chat").open({
-      ui = target.chat.ui,
-      winnr = winnr,
-      window_opts = window_opts,
-    })
+    local function open_target(winnr)
+      require("codecompanion.interactions.chat").open({
+        ui = target.chat.ui,
+        winnr = winnr,
+        window_opts = window_opts,
+      })
+    end
+
+    -- Show the next chat first: deleting the only buffer in a window destroys it
+    if target and winnr then
+      open_target(winnr)
+      chat:close()
+      return
+    end
+
+    chat:close()
+
+    if target then
+      open_target()
+    end
   end,
 }
 
@@ -440,10 +454,11 @@ M.yank_code = {
 M.sync_all = {
   desc = "Sync the context item to share all of its content",
   callback = function(chat)
+    local bufnr = api.nvim_get_current_buf()
     local current_line = vim.api.nvim_win_get_cursor(0)[1]
-    local line = vim.api.nvim_buf_get_lines(chat.bufnr, current_line - 1, current_line, true)[1]
+    local line = vim.api.nvim_buf_get_lines(bufnr, current_line - 1, current_line, true)[1]
 
-    if not vim.startswith(line, "> - ") then
+    if not vim.startswith(line, "> - ") or not vim.bo[bufnr].modifiable then
       return
     end
 
@@ -465,7 +480,7 @@ M.sync_all = {
     -- Update the UI
     local new_line = (state == "synced") and string.format("> - %s", filename)
       or string.format("> - %s%s", icon, filename)
-    api.nvim_buf_set_lines(chat.bufnr, current_line - 1, current_line, true, { new_line })
+    api.nvim_buf_set_lines(bufnr, current_line - 1, current_line, true, { new_line })
 
     -- Update the context items on the chat buffer
     for _, item in ipairs(chat.context_items) do
@@ -480,10 +495,11 @@ M.sync_all = {
 M.sync_diff = {
   desc = "Sync the context item to share its diffs",
   callback = function(chat)
+    local bufnr = api.nvim_get_current_buf()
     local current_line = vim.api.nvim_win_get_cursor(0)[1]
-    local line = vim.api.nvim_buf_get_lines(chat.bufnr, current_line - 1, current_line, true)[1]
+    local line = vim.api.nvim_buf_get_lines(bufnr, current_line - 1, current_line, true)[1]
 
-    if not vim.startswith(line, "> - ") then
+    if not vim.startswith(line, "> - ") or not vim.bo[bufnr].modifiable then
       return
     end
 
@@ -532,7 +548,7 @@ M.sync_diff = {
         end
 
         -- Update only the current line
-        vim.api.nvim_buf_set_lines(chat.bufnr, current_line - 1, current_line, true, { new_line })
+        vim.api.nvim_buf_set_lines(bufnr, current_line - 1, current_line, true, { new_line })
         break
       end
     end
@@ -562,17 +578,68 @@ local function resolve_roles(chat)
   return { roles.user, llm_role }
 end
 
+---Move to a message in the chat window, even when the keymap is pressed in the input
+---@param chat CodeCompanion.Chat
+---@param opts { direction: "next"|"prev" }
+---@return nil
+local function goto_message(chat, opts)
+  local function goto_heading()
+    ts.goto_heading({ direction = opts.direction, count = 1, roles = resolve_roles(chat) })
+  end
+
+  if api.nvim_get_current_buf() == chat.bufnr then
+    return goto_heading()
+  end
+
+  api.nvim_win_call(chat.ui.winnr, goto_heading)
+  chat.ui:track_cursor()
+end
+
 M.next_header = {
   desc = "Go to the next message",
   callback = function(chat)
-    ts.goto_heading({ direction = "next", count = 1, roles = resolve_roles(chat) })
+    goto_message(chat, { direction = "next" })
   end,
 }
 
 M.previous_header = {
   desc = "Go to the previous message",
   callback = function(chat)
-    ts.goto_heading({ direction = "prev", count = 1, roles = resolve_roles(chat) })
+    goto_message(chat, { direction = "prev" })
+  end,
+}
+
+---Run normal mode keys in the chat window, leaving the cursor in the input
+---@param chat CodeCompanion.Chat
+---@param keys string
+---@return nil
+local function scroll_chat(chat, keys)
+  api.nvim_win_call(chat.ui.winnr, function()
+    vim.cmd("normal! " .. vim.keycode(keys))
+  end)
+  -- CursorMoved only fires in the current window, so auto-scroll would drag the chat back to the bottom
+  chat.ui:track_cursor()
+end
+
+M.scroll_chat_down = {
+  desc = "Scroll the chat down half a page",
+  callback = function(chat)
+    scroll_chat(chat, "<C-d>")
+  end,
+}
+
+M.scroll_chat_up = {
+  desc = "Scroll the chat up half a page",
+  callback = function(chat)
+    scroll_chat(chat, "<C-u>")
+  end,
+}
+
+M.scroll_chat_jump = {
+  desc = "Jump to the bottom of the chat, or to the top if you're already at the bottom",
+  callback = function(chat)
+    local is_at_bottom = api.nvim_win_get_cursor(chat.ui.winnr)[1] == api.nvim_buf_line_count(chat.bufnr)
+    scroll_chat(chat, is_at_bottom and "gg" or "G")
   end,
 }
 
@@ -672,8 +739,7 @@ M.goto_file_under_cursor = {
       if start_pos[1] > end_pos[1] or (start_pos[1] == end_pos[1] and start_pos[2] > end_pos[2]) then
         start_pos, end_pos = end_pos, start_pos
       end
-      local lines =
-        vim.api.nvim_buf_get_text(chat.bufnr, start_pos[2] - 1, start_pos[3] - 1, end_pos[2] - 1, end_pos[3], {})
+      local lines = vim.api.nvim_buf_get_text(0, start_pos[2] - 1, start_pos[3] - 1, end_pos[2] - 1, end_pos[3], {})
       if lines then
         file_name = table.concat(lines)
       end
@@ -715,7 +781,7 @@ M.btw = {
   ---@param chat CodeCompanion.Chat
   set = function(chat)
     local btw_keymap = config.interactions.chat.keymaps._btw
-    if not btw_keymap then
+    if not btw_keymap or chat.prompt.queues_messages then
       return
     end
 
@@ -748,6 +814,13 @@ M.copilot_stats = {
       return utils.notify("Stats are only available when using the Copilot adapter", vim.log.levels.WARN)
     end
     chat.adapter.show_copilot_stats()
+  end,
+}
+
+M.tool_call_details = {
+  desc = "Show the tool call under the cursor",
+  callback = function(chat)
+    require("codecompanion.interactions.chat.ui.tool_calls").show(chat)
   end,
 }
 

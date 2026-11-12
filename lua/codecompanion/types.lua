@@ -7,6 +7,7 @@
 
 ---@class ACP.sessionCapabilities
 ---@field list? table|nil
+---@field systemPrompt? { mode?: { override?: table } }|nil
 
 ---@class ACP.agentCapabilities
 ---@field loadSession boolean
@@ -186,6 +187,7 @@
 
 ---@class CodeCompanion.Tools.Tool
 ---@field name string The name of the tool
+---@field kind? "read"|"edit"|"delete"|"move"|"search"|"execute"|"think"|"fetch"|"other" The ACP tool kind, shown in place of the name in the chat buffer
 ---@field cmds table The commands to execute
 ---@field function_call table The function call from the LLM
 ---@field schema table The schema that the LLM must use in its response to execute a tool

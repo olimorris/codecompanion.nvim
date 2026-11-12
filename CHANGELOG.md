@@ -1,5 +1,39 @@
 # Changelog
 
+## [20.1.0](https://github.com/olimorris/codecompanion.nvim/compare/v20.0.1...v20.1.0) (2026-11-08)
+
+
+### Features
+
+* **acp:** customise the system prompt ([#3492](https://github.com/olimorris/codecompanion.nvim/issues/3492)) ([282a921](https://github.com/olimorris/codecompanion.nvim/commit/282a9210ea92169bb7708cf4e79a950fb5f754a4))
+* add `herdr-app` support ([#3500](https://github.com/olimorris/codecompanion.nvim/issues/3500)) ([85d0117](https://github.com/olimorris/codecompanion.nvim/commit/85d01170e11e6563f44e0c7993184adefa0826f5))
+* add `rex` support ([#3498](https://github.com/olimorris/codecompanion.nvim/issues/3498)) ([d0a8be3](https://github.com/olimorris/codecompanion.nvim/commit/d0a8be3c49e0b4d65a95a1eae46558fcd2728c65))
+* **chat:** better tool output ([#3478](https://github.com/olimorris/codecompanion.nvim/issues/3478)) ([052ad5a](https://github.com/olimorris/codecompanion.nvim/commit/052ad5ade662ea3e3a6b99bc39a6bf3ce1c42892))
+* **chat:** separate chat input from the conversation ([#3486](https://github.com/olimorris/codecompanion.nvim/issues/3486)) ([95dc20f](https://github.com/olimorris/codecompanion.nvim/commit/95dc20f0d2161803aa03903c0ea87b70110c07e7))
+* **slash_cmds:** add `tools` slash cmd ([#3473](https://github.com/olimorris/codecompanion.nvim/issues/3473)) ([6387171](https://github.com/olimorris/codecompanion.nvim/commit/6387171a2b44164566a9933e7a119683d034a919))
+
+
+### Bug Fixes
+
+* **chat:** keep the chat tab when closing a chat ([#3482](https://github.com/olimorris/codecompanion.nvim/issues/3482)) ([09b4b61](https://github.com/olimorris/codecompanion.nvim/commit/09b4b61b5d6af887cc144d43a901e4274a23850b))
+* **chat:** markdown rendering of tool calls and unify output ([#3493](https://github.com/olimorris/codecompanion.nvim/issues/3493)) ([b94c3aa](https://github.com/olimorris/codecompanion.nvim/commit/b94c3aabda4f227a8bcf29ec47fdfd10bbf57561))
+* **chat:** saving sessions with tool context ([#3468](https://github.com/olimorris/codecompanion.nvim/issues/3468)) ([799526f](https://github.com/olimorris/codecompanion.nvim/commit/799526fb35548c26e2dd74c3b282537bb8122a3b)), closes [#3407](https://github.com/olimorris/codecompanion.nvim/issues/3407)
+* **chat:** use pairing IDs for HTTP tool call references ([#3499](https://github.com/olimorris/codecompanion.nvim/issues/3499)) ([ef3d60b](https://github.com/olimorris/codecompanion.nvim/commit/ef3d60b581ef09e6bea327ea3fc2a609a51d973f))
+
+
+### Performance Improvements
+
+* **chat:** streamline tree-sitter and streaming ([#3485](https://github.com/olimorris/codecompanion.nvim/issues/3485)) ([8d3cf35](https://github.com/olimorris/codecompanion.nvim/commit/8d3cf350b79bb35b00da58dcc48dba656c36cfa7))
+
+## [20.0.1](https://github.com/olimorris/codecompanion.nvim/compare/v20.0.0...v20.0.1) (2026-10-17)
+
+
+### Bug Fixes
+
+* **acp:** claude code auth when CLAUDE_CODE_OAUTH_TOKEN is unset ([#3443](https://github.com/olimorris/codecompanion.nvim/issues/3443)) ([9284190](https://github.com/olimorris/codecompanion.nvim/commit/9284190b06b3a04c06b05961a3bcc1ead9bd2aac))
+* **adapters:** add kilocode to config ([#3454](https://github.com/olimorris/codecompanion.nvim/issues/3454)) ([aec5346](https://github.com/olimorris/codecompanion.nvim/commit/aec53462a7dadef4af52d36eb8297b6f14c19c08))
+* **chat:** don't read a closed buffer when replacing context tags ([#3467](https://github.com/olimorris/codecompanion.nvim/issues/3467)) ([1361b78](https://github.com/olimorris/codecompanion.nvim/commit/1361b7872b447c91b2d70359dfb86cbf9c247bd2))
+
 ## [20.0.0](https://github.com/olimorris/codecompanion.nvim/compare/v19.27.0...v20.0.0) (2026-10-16)
 
 

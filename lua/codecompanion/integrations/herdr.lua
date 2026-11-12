@@ -25,6 +25,15 @@ each other's reports.
 The sequence MUST increase. herdr discards any report arriving with a sequence
 lower than the last one it accepted, which is how a report still in flight
 is stopped from re-attaching an agent that has already been released.
+
+The Herdr app (herdr-core) sets HC_TERMINAL_ID in every terminal instead, and
+reads a program's status from an OSC 7501 sequence written to the terminal:
+  ESC ]7501;state=<idle|working|done|blocked>[:kind=<permission|question>]:app=<app> ESC \
+  ESC ]7501;state=clear ESC \
+
+`done` marks a finished turn until the user looks at the pane, when the app turns it into `idle`.
+
+The app names an agent after its terminal title (OSC 2), as the 7501 `title` field isn't accepted.
 --]]
 
 local log = require("codecompanion.utils.log")
@@ -35,22 +44,33 @@ local M = {}
 
 local CONSTANTS = {
   AGENT = "CodeCompanion.nvim",
+  APP = "codecompanion",
   SOURCE = "custom:codecompanion.nvim:" .. (vim.env.HERDR_PANE_ID or ""),
 }
 
+---@alias CodeCompanion.Herdr.Status { state: "idle"|"working"|"blocked", message?: string, kind?: "permission"|"question" }
+
 local herdr = nil ---@type string|nil
-local last_message = nil ---@type string|nil
-local last_state = nil ---@type string|nil
+local last_status = nil ---@type CodeCompanion.Herdr.Status|nil
+
+---@type { report: fun(opts: { status: CodeCompanion.Herdr.Status, previous_state?: string }), release: fun(), retitle?: fun() }|nil
+local reporter = nil
+
+local last_active_bufnr = nil ---@type number|nil
+local last_title = nil ---@type string|nil
 
 ---herdr discards a sequence if it's not greater than the previous one
 local seq = os.time() * 1000
 
 ---Enables multiple chat buffers to affect the pane's state
----@type table<number, { state: "working"|"blocked", message?: string }>
+---@type table<number, CodeCompanion.Herdr.Status>
 local in_flight_chats = {}
 
 ---@type table<number, boolean>
 local open_chats = {}
+
+---@type table<number, string>
+local chat_titles = {}
 
 ---@return string|nil
 local function resolve_herdr_path()
@@ -65,24 +85,18 @@ local function resolve_herdr_path()
   return nil
 end
 
----@return boolean
-local function herdr_active()
-  return vim.env.HERDR_ENV == "1" and vim.env.HERDR_PANE_ID ~= nil and herdr ~= nil
-end
-
 ---Aggregate every in-flight chat's state
----@return "idle"|"working"|"blocked" state
----@return string|nil message
+---@return CodeCompanion.Herdr.Status
 local function aggregate_in_flight_chats()
   local is_working = false
   for _, entry in pairs(in_flight_chats) do
     if entry.state == "blocked" then
-      return "blocked", entry.message
+      return entry
     end
     is_working = true
   end
 
-  return is_working and "working" or "idle", nil
+  return { state = is_working and "working" or "idle" }
 end
 
 ---@return string
@@ -92,15 +106,38 @@ local function next_seq()
   return string.format("%d", seq)
 end
 
----Release CodeCompanion from the pane in herdr
+---@param opts { status: CodeCompanion.Herdr.Status }
 ---@return nil
-local function release()
-  if not last_state then
-    return
+local function report_with_cli(opts)
+  local args = {
+    herdr,
+    "pane",
+    "report-agent",
+    vim.env.HERDR_PANE_ID,
+    "--source",
+    CONSTANTS.SOURCE,
+    "--agent",
+    CONSTANTS.AGENT,
+    "--state",
+    opts.status.state,
+  }
+  if opts.status.message then
+    vim.list_extend(args, { "--message", opts.status.message })
   end
-  last_message = nil
-  last_state = nil
+  vim.list_extend(args, { "--seq", next_seq() })
 
+  log:trace("[herdr] Reporting: %s", table.concat(args, " "))
+  vim.system(args, {}, function(result)
+    if result.code ~= 0 then
+      vim.schedule(function()
+        log:debug("[herdr] Report of `%s` exited with %d: %s", opts.status.state, result.code, result.stderr or "")
+      end)
+    end
+  end)
+end
+
+---@return nil
+local function release_with_cli()
   -- Carries a sequence so herdr discards any report still in flight, which would re-attach the agent
   local args = {
     herdr,
@@ -128,6 +165,113 @@ local function release()
   end
 end
 
+---@param fields string[]
+---@return nil
+local function send_osc(fields)
+  local payload = table.concat(fields, ":")
+  log:trace("[herdr] Reporting: %s", payload)
+
+  -- The TUI runs in a separate process, so the sequence must go through the UI rather than stdout
+  local ok, err = pcall(api.nvim_ui_send, "\027]7501;" .. payload .. "\027\\")
+  if not ok then
+    log:error("[herdr] Report of `%s` failed: %s", payload, err)
+  end
+end
+
+---@param opts { status: CodeCompanion.Herdr.Status, previous_state?: string }
+---@return nil
+local function report_with_osc(opts)
+  local state = opts.status.state ---@type string
+  if state == "idle" and opts.previous_state and opts.previous_state ~= "idle" then
+    state = "done"
+  end
+
+  local fields = { "state=" .. state }
+  if opts.status.kind then
+    table.insert(fields, "kind=" .. opts.status.kind)
+  end
+  table.insert(fields, "app=" .. CONSTANTS.APP)
+  send_osc(fields)
+end
+
+---@param title string
+---@return nil
+local function send_title(title)
+  title = title:gsub("%c", " ")
+  if title == last_title then
+    return
+  end
+  last_title = title
+
+  local ok, err = pcall(api.nvim_ui_send, "\027]2;" .. title .. "\027\\")
+  if not ok then
+    log:error("[herdr] Setting the title failed: %s", err)
+  end
+end
+
+---Name the pane after the most recently active chat, else the branch Neovim is on
+---@return nil
+local function update_title()
+  -- Neovim rewrites the terminal title itself when 'title' is on
+  if vim.o.title then
+    return
+  end
+
+  if chat_titles[last_active_bufnr] then
+    return send_title(chat_titles[last_active_bufnr])
+  end
+
+  if vim.fn.executable("git") == 0 then
+    return send_title("CodeCompanion")
+  end
+
+  vim.system({ "git", "branch", "--show-current" }, { text = true }, function(result)
+    local branch = result.code == 0 and vim.trim(result.stdout or "") or ""
+    vim.schedule(function()
+      -- A chat may have been titled or closed while git ran
+      if not last_status or chat_titles[last_active_bufnr] then
+        return
+      end
+      send_title(branch ~= "" and string.format("CodeCompanion [%s]", branch) or "CodeCompanion")
+    end)
+  end)
+end
+
+---@return nil
+local function release_with_osc()
+  send_osc({ "state=clear" })
+  if last_title then
+    send_title("")
+  end
+end
+
+---Pick how to report to herdr, or nil when Neovim isn't running inside it
+---@return table|nil
+local function resolve_reporter()
+  herdr = resolve_herdr_path()
+
+  -- A herdr pane inside the Herdr app inherits HC_TERMINAL_ID, but only the inner herdr sees the sequence
+  if vim.env.HERDR_ENV == "1" and vim.env.HERDR_PANE_ID ~= nil and herdr ~= nil then
+    return { report = report_with_cli, release = release_with_cli }
+  end
+
+  if vim.env.HC_TERMINAL_ID and vim.env.HC_TERMINAL_ID ~= "" then
+    return { report = report_with_osc, release = release_with_osc, retitle = update_title }
+  end
+
+  return nil
+end
+
+---Release CodeCompanion from the pane in herdr
+---@return nil
+local function release()
+  if not last_status then
+    return
+  end
+  last_status = nil
+  reporter.release()
+end
+
 ---Checks any open chat buffers and removes them if they no longer exist
 ---@return nil
 local function validate_chat_buffers()
@@ -141,6 +285,14 @@ local function validate_chat_buffers()
       in_flight_chats[bufnr] = nil
     end
   end
+  for bufnr in pairs(chat_titles) do
+    if not api.nvim_buf_is_loaded(bufnr) then
+      chat_titles[bufnr] = nil
+    end
+  end
+  if last_active_bufnr and not (in_flight_chats[last_active_bufnr] or open_chats[last_active_bufnr]) then
+    last_active_bufnr = next(in_flight_chats) or next(open_chats)
+  end
 end
 
 ---Sync CodeCompanion's status with herdr
@@ -153,45 +305,24 @@ local function update_herdr()
   end
 
   -- A blocked pane can change what it is waiting on so make sure we capture this
-  local state, message = aggregate_in_flight_chats()
-  if state == last_state and message == last_message then
-    return
+  local status = aggregate_in_flight_chats()
+  if not vim.deep_equal(status, last_status) then
+    local previous_state = last_status and last_status.state
+    last_status = status
+    reporter.report({ status = status, previous_state = previous_state })
   end
-  last_state = state
-  last_message = message
 
-  local args = {
-    herdr,
-    "pane",
-    "report-agent",
-    vim.env.HERDR_PANE_ID,
-    "--source",
-    CONSTANTS.SOURCE,
-    "--agent",
-    CONSTANTS.AGENT,
-    "--state",
-    state,
-  }
-  if message then
-    vim.list_extend(args, { "--message", message })
+  if reporter.retitle then
+    reporter.retitle()
   end
-  vim.list_extend(args, { "--seq", next_seq() })
-
-  log:trace("[herdr] Reporting: %s", table.concat(args, " "))
-  vim.system(args, {}, function(result)
-    if result.code ~= 0 then
-      vim.schedule(function()
-        log:debug("[herdr] Report of `%s` exited with %d: %s", state, result.code, result.stderr or "")
-      end)
-    end
-  end)
 end
 
 ---Track an in-flight chat with herdr
----@param args { bufnr: number, state: "working"|"blocked", message?: string }
+---@param args { bufnr: number, state: "working"|"blocked", message?: string, kind?: "permission"|"question" }
 ---@return nil
 local function track(args)
-  in_flight_chats[args.bufnr] = { state = args.state, message = args.message }
+  in_flight_chats[args.bufnr] = { state = args.state, message = args.message, kind = args.kind }
+  last_active_bufnr = args.bufnr
   update_herdr()
 end
 
@@ -217,18 +348,20 @@ end
 function M.agent_env()
   -- Empty so a spawned agent can't report against Neovim's pane
   -- NOTE: HERDR_ENV is the guard any hooks check first
-  return { HERDR_ENV = "", HERDR_PANE_ID = "" }
+  -- HC_TERMINAL_ID would make hc type notes about the agent's own `hc run` terminals into Neovim
+  return { HERDR_ENV = "", HERDR_PANE_ID = "", HC_TERMINAL_ID = "" }
 end
 
 ---@return nil
 function M.setup()
-  herdr = resolve_herdr_path()
-  if not herdr_active() then
+  reporter = resolve_reporter()
+  if not reporter then
     log:trace(
-      "[herdr] Not reporting: HERDR_ENV=%s HERDR_PANE_ID=%s herdr=%s",
+      "[herdr] Not reporting: HERDR_ENV=%s HERDR_PANE_ID=%s herdr=%s HC_TERMINAL_ID=%s",
       tostring(vim.env.HERDR_ENV),
       tostring(vim.env.HERDR_PANE_ID),
-      tostring(herdr)
+      tostring(herdr),
+      tostring(vim.env.HC_TERMINAL_ID)
     )
     return
   end
@@ -275,25 +408,38 @@ function M.setup()
 
   on({ "CodeCompanionChatCreated", "CodeCompanionCLICreated" }, function(data)
     open_chats[data.bufnr] = true
+    last_active_bufnr = data.bufnr
     update_herdr()
+  end)
+  on({ "CodeCompanionChatTitle" }, function(data)
+    chat_titles[data.bufnr] = data.title
+    if open_chats[data.bufnr] or in_flight_chats[data.bufnr] then
+      update_herdr()
+    end
   end)
   on({ "CodeCompanionChatDone", "CodeCompanionChatStopped", "CodeCompanionCLIDone" }, function(data)
     untrack({ bufnr = data.bufnr })
   end)
   on({ "CodeCompanionChatClosed", "CodeCompanionCLIClosed" }, function(data)
     open_chats[data.bufnr] = nil
+    chat_titles[data.bufnr] = nil
     untrack({ bufnr = data.bufnr })
   end)
 
   on({ "CodeCompanionToolApprovalRequested" }, function(data)
-    track({ bufnr = data.bufnr, state = "blocked", message = data.name and ("Approval needed: " .. data.name) or nil })
+    track({
+      bufnr = data.bufnr,
+      state = "blocked",
+      kind = "permission",
+      message = data.name and ("Approval needed: " .. data.name) or nil,
+    })
   end)
   on({ "CodeCompanionToolApprovalFinished" }, function(data)
     resume({ bufnr = data.bufnr })
   end)
 
   on({ "CodeCompanionCLIApprovalRequested" }, function(data)
-    track({ bufnr = data.bufnr, state = "blocked", message = data.message })
+    track({ bufnr = data.bufnr, state = "blocked", kind = "permission", message = data.message })
   end)
   on({ "CodeCompanionCLIApprovalFinished" }, function(data)
     resume({ bufnr = data.bufnr })
@@ -303,6 +449,7 @@ function M.setup()
     track({
       bufnr = data.bufnr,
       state = "blocked",
+      kind = "question",
       message = data.header and ("Question: " .. data.header) or "Question",
     })
   end)

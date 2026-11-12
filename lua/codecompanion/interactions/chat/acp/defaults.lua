@@ -4,10 +4,11 @@ local log = require("codecompanion.utils.log")
 local M = {}
 
 ---Resolve a value against an option's available values
----@param opt table SessionConfigOption
----@param value string
+---@param opts { opt: table, value: string }
 ---@return string|nil
-local function resolve_value(opt, value)
+local function resolve_value(opts)
+  local opt = opts.opt
+  local value = opts.value
   local value_lower = value:lower()
   for _, val in ipairs(ACP.flatten_config_options(opt.options or {})) do
     if val.value == value then
@@ -26,11 +27,11 @@ end
 
 ---Look up an option by category from the current connection
 ---@param connection CodeCompanion.ACP.Connection
----@param category string
+---@param opts { category: string }
 ---@return table|nil
-local function find_option(connection, category)
+local function find_option(connection, opts)
   for _, opt in ipairs(connection:get_config_options()) do
-    if opt.category == category and opt.type == "select" then
+    if opt.category == opts.category and opt.type == "select" then
       return opt
     end
   end
@@ -82,13 +83,13 @@ function M.apply(adapter, connection)
       goto continue
     end
 
-    local opt = find_option(connection, category)
+    local opt = find_option(connection, { category = category })
     if not opt then
       log:warn("[acp::defaults] No config option with category `%s`", category)
       goto continue
     end
 
-    local resolved = resolve_value(opt, value)
+    local resolved = resolve_value({ opt = opt, value = value })
     if not resolved then
       log:warn("[acp::defaults] Value `%s` not available for `%s`", value, category)
       goto continue

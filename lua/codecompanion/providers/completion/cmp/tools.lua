@@ -1,4 +1,5 @@
 local trigger = require("codecompanion.triggers").mappings.tools
+local utils = require("codecompanion.utils")
 
 local source = {}
 
@@ -7,7 +8,7 @@ function source.new(config)
 end
 
 function source:is_available()
-  return vim.bo.filetype == "codecompanion"
+  return utils.is_chat_ft(vim.bo.filetype)
 end
 
 source.get_position_encoding_kind = function()

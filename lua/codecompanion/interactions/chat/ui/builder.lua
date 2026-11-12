@@ -75,6 +75,7 @@ end
 ---@field chat CodeCompanion.Chat
 ---@field state CodeCompanion.Chat.UI.BuilderState
 ---@field _block_by_type table<string, string> Maps `MESSAGE_TYPES` to `BLOCK` values
+---@field _queue? { role?: string, type: string, chunks: string[] } Streamed chunks waiting to be written
 local Builder = {}
 
 ---@class CodeCompanion.Chat.UI.BuilderArgs
@@ -98,11 +99,10 @@ function Builder.new(args)
 end
 
 ---Do we need to render a role header before this message?
----@param data { role?: string }
----@param opts { force_role?: boolean }
+---@param opts { role?: string, force_role?: boolean }
 ---@return boolean
-function Builder:_needs_header(data, opts)
-  return data.role ~= nil and (data.role ~= self.state.last_role or opts.force_role == true)
+function Builder:_needs_header(opts)
+  return opts.role ~= nil and (opts.role ~= self.state.last_role or opts.force_role == true)
 end
 
 ---Map a message's wire type to its logical block type, defaulting to prose
@@ -112,22 +112,84 @@ function Builder:_block_type(opts)
   return self._block_by_type[opts.type] or BLOCK.LLM
 end
 
----Tool output folds unless folds are disabled or the tool carries a status (ACP)
----@param opts { status?: string }
+---Can this message be added to the queue rather than written immediately?
+---@param opts { message: { content?: string, role?: string }, render_opts: { type?: string } }
 ---@return boolean
-function Builder:_tool_folds_enabled(opts)
-  return config.interactions.chat.tools.opts.folds.enabled and not opts.status
+function Builder:_can_queue(opts)
+  local types = self.chat.MESSAGE_TYPES
+  local message_type = opts.render_opts.type
+  local is_streamed_text = message_type == types.LLM_MESSAGE or message_type == types.REASONING_MESSAGE
+  return config.display.chat.stream_interval > 0
+    and is_streamed_text
+    and vim.tbl_count(opts.render_opts) == 1
+    and type(opts.message.content) == "string"
+    and opts.message.content ~= ""
 end
 
----Add a streamed message to the chat buffer
----@param data { content?: string, role?: string }
+---Hold a streamed chunk until the next flush, writing out chunks of a different role or type first
+---@param opts { content: string, role?: string, type: string }
+---@return nil
+function Builder:_queue_message(opts)
+  if self._queue and (self._queue.role ~= opts.role or self._queue.type ~= opts.type) then
+    self:flush()
+  end
+
+  if not self._queue then
+    local queue = { role = opts.role, type = opts.type, chunks = {} }
+    self._queue = queue
+    local bufnr = self.chat.bufnr
+    vim.defer_fn(function()
+      -- An earlier flush or a cleared chat has already dealt with this queue, so leave its successor to its own timer
+      if self._queue == queue and api.nvim_buf_is_valid(bufnr) then
+        self:flush()
+      end
+    end, config.display.chat.stream_interval)
+  end
+
+  table.insert(self._queue.chunks, opts.content)
+end
+
+---Write any queued streamed chunks to the buffer
+---@return nil
+function Builder:flush()
+  local queue = self._queue
+  if not queue then
+    return
+  end
+
+  self._queue = nil
+  self:_render({ role = queue.role, content = table.concat(queue.chunks) }, { type = queue.type })
+end
+
+---Drop any queued streamed chunks without writing them
+---@return nil
+function Builder:discard()
+  self._queue = nil
+end
+
+---Add a message to the chat buffer, queueing streamed text so it's written once per interval
+---@param message { content?: string, role?: string }
 ---@param opts? { type?: string, force_role?: boolean, insert_at?: number, status?: string, _icon_info?: table, virt_text_pos?: string }
----@return number|nil insert_line The line after the write (1-based), or nil if nothing was written
+---@return number|nil insert_line The line after the write (1-based), or nil if nothing was written or it was queued
 ---@return number|nil icon_id
-function Builder:add_message(data, opts)
+function Builder:add_message(message, opts)
   opts = opts or {}
 
-  local role_changed = self:_needs_header(data, opts)
+  if self:_can_queue({ message = message, render_opts = opts }) then
+    return self:_queue_message({ content = message.content, role = message.role, type = opts.type })
+  end
+
+  self:flush()
+  return self:_render(message, opts)
+end
+
+---Write a message to the chat buffer
+---@param data { content?: string, role?: string }
+---@param opts { type?: string, force_role?: boolean, insert_at?: number, status?: string, _icon_info?: table, virt_text_pos?: string }
+---@return number|nil insert_line The line after the write (1-based), or nil if nothing was written
+---@return number|nil icon_id
+function Builder:_render(data, opts)
+  local role_changed = self:_needs_header({ role = data.role, force_role = opts.force_role })
 
   local content = data.content
   if content and opts.status then
@@ -177,14 +239,6 @@ function Builder:add_message(data, opts)
     write.content_start = #lines
     vim.list_extend(lines, content_lines)
 
-    if block == BLOCK.TOOL and #content_lines > 0 and self:_tool_folds_enabled(opts) then
-      write.fold_info = {
-        start_offset = write.content_start,
-        end_offset = write.content_start + #content_lines - 1,
-        first_line = content_lines[1] or "",
-      }
-    end
-
     self.state.block_type = block
   end
 
@@ -197,7 +251,7 @@ function Builder:add_message(data, opts)
     write.trailing_blanks = lines[2] == BLANK and 0 or 1
   end
 
-  return self:_write(lines, opts, write)
+  return self:_write(vim.tbl_extend("force", opts, write, { lines = lines }))
 end
 
 ---Trim or pad the buffer's trailing blank lines
@@ -229,15 +283,14 @@ function Builder:_set_trailing_blanks(n)
 end
 
 ---Write the assembled lines to the buffer and finalise icons, folds and headers
----@param lines string[]
----@param opts table The original message opts
----@param write { role_changed: boolean, content_start?: number, fold_info?: table, leaving_reasoning?: boolean, trailing_blanks?: number }
+---@param opts { lines: string[], role_changed: boolean, content_start?: number, leaving_reasoning?: boolean, trailing_blanks?: number, insert_at?: number, status?: string, _icon_info?: table, virt_text_pos?: string }
 ---@return number insert_line 1-based line after the write
 ---@return number|nil icon_id
-function Builder:_write(lines, opts, write)
+function Builder:_write(opts)
+  local lines = opts.lines
   self.chat.ui:unlock_buf()
-  if write.trailing_blanks and not opts.insert_at then
-    self:_set_trailing_blanks(write.trailing_blanks)
+  if opts.trailing_blanks and not opts.insert_at then
+    self:_set_trailing_blanks(opts.trailing_blanks)
   end
   local last_line, last_column = self.chat.ui:last()
 
@@ -247,32 +300,30 @@ function Builder:_write(lines, opts, write)
 
   api.nvim_buf_set_text(self.chat.bufnr, insert_line, column, insert_line, column, lines)
 
-  local icon_id = self:_apply_icon(insert_line, opts, write.content_start)
+  local icon_id = self:_apply_icon({
+    insert_line = insert_line,
+    status = opts.status,
+    _icon_info = opts._icon_info,
+    virt_text_pos = opts.virt_text_pos,
+    content_start = opts.content_start,
+  })
 
-  if write.role_changed then
+  if opts.role_changed then
     self.state.current_section_start = insert_line
     -- The write's first blank merges into the existing last line, so only the
     -- second blank costs a row before the header
     self.state.current_header_line = insert_line + 2
-    self.chat.ui:render_headers()
+    self.chat.ui:render_header(self.state.current_header_line)
   end
 
-  if write.fold_info then
-    local fold_start = insert_line + write.fold_info.start_offset
-    local fold_end = insert_line + write.fold_info.end_offset
-    vim.schedule(function()
-      self.chat.ui.folds:create_tool_fold(self.chat.bufnr, fold_start, fold_end, write.fold_info.first_line)
-    end)
-  end
-
-  if write.leaving_reasoning and config.display.chat.fold_reasoning then
+  if opts.leaving_reasoning and config.display.chat.fold_reasoning then
     local range_start = self.state.current_section_start or 0
     vim.schedule(function()
       self.chat.ui.folds:create_reasoning_fold(self.chat, range_start, insert_line)
     end)
   end
 
-  if self.state.last_role ~= config.constants.USER_ROLE then
+  if self:_should_lock_buf() then
     self.chat.ui:lock_buf()
   end
   self.chat.ui:move_cursor(was_following)
@@ -282,19 +333,17 @@ function Builder:_write(lines, opts, write)
 end
 
 ---Place a tool status icon on the block's first content line, if one is requested
----@param insert_line number 0-based line where the write began
----@param opts { status?: string, _icon_info?: table, virt_text_pos?: string }
----@param content_start? number Lines preceding the content within this write
+---@param opts { insert_line: number, status?: string, _icon_info?: table, virt_text_pos?: string, content_start?: number }
 ---@return number|nil icon_id
-function Builder:_apply_icon(insert_line, opts, content_start)
+function Builder:_apply_icon(opts)
   local info = opts._icon_info
   local status = (info and info.has_icon and info.status) or opts.status
   if not status then
     return nil
   end
 
-  local offset = (content_start or 0) + ((info and info.line_offset) or 0)
-  return Icons.apply(self.chat.bufnr, insert_line + offset, status, { virt_text_pos = opts.virt_text_pos })
+  local offset = (opts.content_start or 0) + ((info and info.line_offset) or 0)
+  return Icons.apply(self.chat.bufnr, opts.insert_line + offset, status, { virt_text_pos = opts.virt_text_pos })
 end
 
 ---Update a specific line in the chat buffer
@@ -306,6 +355,7 @@ end
 function Builder:update_line(line_number, content, opts)
   opts = opts or {}
   content = collapse_to_single_line(content)
+  self:flush()
 
   if line_number < 1 then
     return false
@@ -329,11 +379,17 @@ function Builder:update_line(line_number, content, opts)
     new_icon_id = Icons.apply(self.chat.bufnr, zero_based_line, opts.status, opts)
   end
 
-  if self.state.last_role ~= config.constants.USER_ROLE then
+  if self:_should_lock_buf() then
     self.chat.ui:lock_buf()
   end
 
   return true, new_icon_id
+end
+
+---The chat buffer stays editable whilst the user writes their prompt in it
+---@return boolean
+function Builder:_should_lock_buf()
+  return self.state.last_role ~= config.constants.USER_ROLE or self.chat.prompt.locks_chat_buffer
 end
 
 return Builder

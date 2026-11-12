@@ -13,13 +13,12 @@ local LETTER = "[%a\128-\255]"
 ---@field to_original fun(position: number): number
 
 ---Replace every match of the pattern, keeping a way to map positions back to the original text
----@param text string
----@param opts { pattern: string, replacements: table<string, string> }
+---@param opts { text: string, pattern: string, replacements: table<string, string> }
 ---@return CodeCompanion.Tool.EditFile.NormalizedText
-local function normalize(text, opts)
+local function normalize(opts)
   local shifts = {}
   local removed = 0
-  local normalized = text:gsub("()(" .. opts.pattern .. ")", function(position, match)
+  local normalized = opts.text:gsub("()(" .. opts.pattern .. ")", function(position, match)
     local replacement = opts.replacements[match]
     removed = removed + #match - #replacement
     table.insert(shifts, { from = position + #match - removed, shift = removed })
@@ -45,14 +44,13 @@ local function normalize(text, opts)
 end
 
 ---Return the start and exclusive finish of every non-overlapping match
----@param content string
----@param opts { search: string }
+---@param opts { content: string, search: string }
 ---@return { start: number, finish: number }[]
-local function find_all(content, opts)
+local function find_all(opts)
   local spans = {}
   local from = 1
   while true do
-    local start = content:find(opts.search, from, true)
+    local start = opts.content:find(opts.search, from, true)
     if not start then
       return spans
     end
@@ -62,19 +60,18 @@ local function find_all(content, opts)
 end
 
 ---Find every match in the original content, ignoring line endings and, if nothing matches, curly quotes
----@param content string
----@param opts { search: string }
+---@param opts { content: string, search: string }
 ---@return { spans: { start: number, finish: number }[], restyle: boolean }
-local function find_matches(content, opts)
-  local lf = normalize(content, { pattern = "\r\n", replacements = { ["\r\n"] = "\n" } })
-  local spans = find_all(lf.text, { search = opts.search })
+local function find_matches(opts)
+  local lf = normalize({ text = opts.content, pattern = "\r\n", replacements = { ["\r\n"] = "\n" } })
+  local spans = find_all({ content = lf.text, search = opts.search })
   local to_original = lf.to_original
   local restyle = false
 
   if #spans == 0 then
-    local quotes = { pattern = CURLY_QUOTE_PATTERN, replacements = CURLY_QUOTES }
-    local straight = normalize(lf.text, quotes)
-    spans = find_all(straight.text, { search = normalize(opts.search, quotes).text })
+    local straight = normalize({ text = lf.text, pattern = CURLY_QUOTE_PATTERN, replacements = CURLY_QUOTES })
+    local search = normalize({ text = opts.search, pattern = CURLY_QUOTE_PATTERN, replacements = CURLY_QUOTES })
+    spans = find_all({ content = straight.text, search = search.text })
     to_original = function(position)
       return lf.to_original(straight.to_original(position))
     end
@@ -88,10 +85,10 @@ local function find_matches(content, opts)
   return { spans = spans, restyle = restyle }
 end
 
----@param text string
----@param opts { position: number }
+---@param opts { text: string, position: number }
 ---@return boolean
-local function is_opening_quote(text, opts)
+local function is_opening_quote(opts)
+  local text = opts.text
   local position = opts.position
   if position == 1 then
     return true
@@ -101,56 +98,60 @@ local function is_opening_quote(text, opts)
 end
 
 ---Curl the straight quotes in the text to match the curly quotes in the file
----@param text string
----@param opts { matched: string }
+---@param opts { text: string, matched: string }
 ---@return string
-local function apply_quote_style(text, opts)
+local function apply_quote_style(opts)
+  local text = opts.text
   local has_curly_double = opts.matched:find("“", 1, true) or opts.matched:find("”", 1, true)
   local has_curly_single = opts.matched:find("‘", 1, true) or opts.matched:find("’", 1, true)
 
   return (
     text:gsub("()(['\"])", function(position, quote)
       if quote == '"' and has_curly_double then
-        return is_opening_quote(text, { position = position }) and "“" or "”"
+        return is_opening_quote({ text = text, position = position }) and "“" or "”"
       end
       if quote == "'" and has_curly_single then
         local is_apostrophe = text:sub(position - 1, position - 1):match(LETTER)
           and text:sub(position + 1, position + 1):match(LETTER)
-        return (not is_apostrophe and is_opening_quote(text, { position = position })) and "‘" or "’"
+        return (not is_apostrophe and is_opening_quote({ text = text, position = position })) and "‘" or "’"
       end
     end)
   )
 end
 
----@param content string
----@param opts { position: number }
+---@param opts { content: string, position: number }
 ---@return boolean
-local function is_line_start(content, opts)
-  return opts.position == 1 or content:sub(opts.position - 1, opts.position - 1) == "\n"
+local function is_line_start(opts)
+  return opts.position == 1 or opts.content:sub(opts.position - 1, opts.position - 1) == "\n"
 end
 
 ---Use the line ending inside the match, or else the one on the line the match sits on
----@param content string
----@param opts { span: { start: number, finish: number } }
+---@param opts { content: string, span: { start: number, finish: number } }
 ---@return string
-local function get_line_ending(content, opts)
+local function get_line_ending(opts)
+  local content = opts.content
   local span = opts.span
   return content:sub(span.start, span.finish - 1):match("\r?\n") or content:match("\r?\n", span.finish) or "\n"
 end
 
 ---Replace each match, consuming the trailing newline when whole lines are deleted
----@param content string
----@param opts { spans: { start: number, finish: number }[], replace: fun(match: { text: string, line_ending: string }): string }
+---@param opts { content: string, spans: { start: number, finish: number }[], replace: fun(match: { text: string, line_ending: string }): string }
 ---@return string
-local function splice(content, opts)
+local function splice(opts)
+  local content = opts.content
   local parts = {}
   local cursor = 1
 
   for _, span in ipairs(opts.spans) do
     local matched = content:sub(span.start, span.finish - 1)
-    local replacement = opts.replace({ text = matched, line_ending = get_line_ending(content, { span = span }) })
+    local replacement =
+      opts.replace({ text = matched, line_ending = get_line_ending({ content = content, span = span }) })
     local finish = span.finish
-    if replacement == "" and matched:sub(-1) ~= "\n" and is_line_start(content, { position = span.start }) then
+    if
+      replacement == ""
+      and matched:sub(-1) ~= "\n"
+      and is_line_start({ content = content, position = span.start })
+    then
       finish = finish + #(content:match("^\r?\n", finish) or "")
     end
     table.insert(parts, content:sub(cursor, span.start - 1))
@@ -182,7 +183,7 @@ function M.apply(content, opts)
     return { error = "`old_string` and `new_string` are identical, so there is nothing to change" }
   end
 
-  local matches = find_matches(content, { search = old_string })
+  local matches = find_matches({ content = content, search = old_string })
   if #matches.spans == 0 then
     return {
       error = "`old_string` was not found in the file. It must match the file exactly, including whitespace and indentation",
@@ -198,10 +199,12 @@ function M.apply(content, opts)
     }
   end
 
-  local edited = splice(content, {
+  local edited = splice({
+    content = content,
     spans = matches.spans,
     replace = function(match)
-      local replacement = matches.restyle and apply_quote_style(new_string, { matched = match.text }) or new_string
+      local replacement = matches.restyle and apply_quote_style({ text = new_string, matched = match.text })
+        or new_string
       return (replacement:gsub("\n", match.line_ending))
     end,
   })

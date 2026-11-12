@@ -53,13 +53,6 @@ return cmd_tool({
       return self.args.cmd
     end,
 
-    ---@param self CodeCompanion.Tool.RunCommand
-    ---@param meta {tools: CodeCompanion.Tools}
-    ---@return string
-    prompt = function(self, meta)
-      return fmt("Run the command `%s`?", self.args.cmd)
-    end,
-
     ---Rejection message back to the LLM
     ---@param self CodeCompanion.Tool.RunCommand
     ---@param meta {tools: CodeCompanion.Tools, cmd: string, opts: table}

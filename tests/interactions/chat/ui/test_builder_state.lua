@@ -28,6 +28,7 @@ T["Builder state"] = new_set()
 T["Builder state"]["follows the block type through a section and re-anchors on a role change"] = function()
   child.lua([[
     _G.chat:add_buf_message({ role = "llm", content = "Intro" }, { type = _G.MT.LLM_MESSAGE })
+    _G.chat.builder:flush()
   ]])
   local llm = child.lua_get([[_G.chat.builder.state]])
   h.eq(llm.last_role, "llm")
@@ -38,6 +39,7 @@ T["Builder state"]["follows the block type through a section and re-anchors on a
   child.lua([[
     _G.chat:add_buf_message({ role = "llm", content = "why step 1" }, { type = _G.MT.REASONING_MESSAGE })
     _G.chat:add_buf_message({ role = "llm", content = "why step 2" }, { type = _G.MT.REASONING_MESSAGE })
+    _G.chat.builder:flush()
   ]])
   local reasoning = child.lua_get([[_G.chat.builder.state]])
   h.eq(reasoning.block_type, "reasoning")
@@ -64,6 +66,7 @@ end
 T["Builder state"]["skips a stray empty chunk mid-section"] = function()
   child.lua([[
     _G.chat:add_buf_message({ role = "llm", content = "Intro" }, { type = _G.MT.LLM_MESSAGE })
+    _G.chat.builder:flush()
   ]])
   local before = child.lua_get([[vim.api.nvim_buf_get_lines(_G.chat.bufnr, 0, -1, true)]])
 
@@ -75,42 +78,17 @@ T["Builder state"]["skips a stray empty chunk mid-section"] = function()
   h.eq(child.lua_get([[vim.api.nvim_buf_get_lines(_G.chat.bufnr, 0, -1, true)]]), before)
 end
 
-T["Builder state"]["tool fold is placed on the content line when the tool message creates the header"] = function()
-  -- Mirrors adapters (e.g. OpenRouter) that emit a tool call with no rendered
-  -- text first, so the tool output is the message that renders the LLM header.
-  -- The fold must sit on the tool content, not back up in the user's section.
-  child.lua([[
-    require("codecompanion.config").interactions.chat.tools.opts.folds.enabled = true
-
-    _G.chat:add_buf_message(
-      { role = "llm", content = "tool line 1\ntool line 2\ntool line 3" },
-      { type = _G.MT.TOOL_MESSAGE }
-    )
-    vim.wait(200, function() return false end)
-  ]])
-
-  local res = child.lua([[
-    local bufnr = _G.chat.bufnr
-    local folds = require("codecompanion.interactions.chat.ui.folds").fold_summaries[bufnr] or {}
-    local lines = vim.api.nvim_buf_get_lines(bufnr, 0, -1, true)
-
-    local content_row0 = nil
-    for i, l in ipairs(lines) do
-      if l == "tool line 1" then
-        content_row0 = i - 1
-        break
-      end
-    end
-
-    return { content_row0 = content_row0, fold = content_row0 and folds[content_row0] or nil }
-  ]])
-
-  h.not_eq(res.content_row0, nil, "Expected to find the tool content in the buffer")
-  h.not_eq(res.fold, nil, "Expected a tool fold keyed on the content line")
-  h.eq(res.fold.type, "tool")
-end
-
 T["Builder"] = new_set()
+
+T["Builder"]["streamed text queued BEFORE a clear is not written after it"] = function()
+  child.lua([[
+    _G.chat:add_buf_message({ role = "llm", content = "Stale response" }, { type = _G.MT.LLM_MESSAGE })
+    _G.chat:clear()
+    vim.wait(100, function() return false end)
+  ]])
+  local lines = child.lua_get([[vim.api.nvim_buf_get_lines(_G.chat.bufnr, 0, -1, true)]])
+  h.eq(vim.tbl_contains(lines, "Stale response"), false)
+end
 
 T["Builder"]["a status write is collapsed onto a single line"] = function()
   child.lua([[

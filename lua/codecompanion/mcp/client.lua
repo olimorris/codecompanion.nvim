@@ -18,13 +18,12 @@ local CONSTANTS = {
 local msg_id_gen = jsonrpc.IdGenerator.new()
 
 ---Transform static methods for easier testing
----@param class table The class with static.methods definition
----@param methods? table<string, function> Optional method overrides for testing
+---@param opts { class: table, methods?: table<string, function> }
 ---@return table methods Transformed methods with overrides applied
-local function transform_static_methods(class, methods)
+local function transform_static_methods(opts)
   local ret = {}
-  for k, v in pairs(class.static.methods) do
-    ret[k] = (methods and methods[k]) or v.default
+  for k, v in pairs(opts.class.static.methods) do
+    ret[k] = (opts.methods and opts.methods[k]) or v.default
   end
   return ret
 end
@@ -70,7 +69,7 @@ function StdioTransport.new(args)
     cmd = args.cfg.cmd,
     env = args.cfg.env,
     name = args.name,
-    methods = transform_static_methods(StdioTransport, args.methods),
+    methods = transform_static_methods({ class = StdioTransport, methods = args.methods }),
     _line_buffer = jsonrpc.LineBuffer.new(),
   }, { __index = StdioTransport }) ---@cast self CodeCompanion.MCP.StdioTransport
 
@@ -244,7 +243,7 @@ Client.static.methods = {
 ---@param args CodeCompanion.MCP.ClientArgs
 ---@return CodeCompanion.MCP.Client
 function Client.new(args)
-  local static_methods = transform_static_methods(Client, args.methods)
+  local static_methods = transform_static_methods({ class = Client, methods = args.methods })
   local transport = args.transport
     or static_methods.new_transport({ name = args.name, cfg = args.cfg, methods = args.methods })
   local self = setmetatable({

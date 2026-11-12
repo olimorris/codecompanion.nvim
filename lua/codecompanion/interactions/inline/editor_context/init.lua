@@ -35,19 +35,18 @@ function EditorContext.new(args)
 end
 
 ---Creates a regex pattern to match editor context in a message
----@param item string The editor_context name to create a pattern for
----@param include_params? boolean Whether to include parameters in the pattern
+---@param opts { item: string, include_params?: boolean }
 ---@return string The compiled regex pattern
-function EditorContext:_pattern(item, include_params)
-  local escaped_ec = vim.pesc(item)
-  return CONSTANTS.PREFIX .. "{" .. escaped_ec .. "}" .. (include_params and "{[^}]*}" or "")
+function EditorContext:_pattern(opts)
+  local escaped_ec = vim.pesc(opts.item)
+  return CONSTANTS.PREFIX .. "{" .. escaped_ec .. "}" .. (opts.include_params and "{[^}]*}" or "")
 end
 
 ---Check a prompt for editor context
 ---@return CodeCompanion.Inline.EditorContext
 function EditorContext:find()
   for item, _ in pairs(self.config) do
-    if regex.find(self.prompt, self:_pattern(item)) then
+    if regex.find(self.prompt, self:_pattern({ item = item })) then
       table.insert(self.editor_context_items, item)
     end
   end
@@ -59,7 +58,7 @@ end
 ---@return CodeCompanion.Inline.EditorContext
 function EditorContext:replace()
   for item, _ in pairs(self.config) do
-    self.prompt = vim.trim(regex.replace(self.prompt, self:_pattern(item), ""))
+    self.prompt = vim.trim(regex.replace(self.prompt, self:_pattern({ item = item }), ""))
   end
   return self
 end

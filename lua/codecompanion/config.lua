@@ -7,7 +7,10 @@ local constants = {
   LLM_ROLE = "llm",
   USER_ROLE = "user",
   SYSTEM_ROLE = "system",
+
+  CHAT_FILETYPES = { "codecompanion", "codecompanion_chat_input" },
 }
+constants.PROMPT_FILETYPES = vim.list_extend(vim.deepcopy(constants.CHAT_FILETYPES), { "codecompanion_input" })
 
 local defaults = {
   adapters = {
@@ -54,6 +57,7 @@ local defaults = {
       copilot_acp = "copilot_acp",
       gemini_cli = "gemini_cli",
       goose = "goose",
+      kilocode = "kilocode",
       kimi_cli = "kimi_cli",
       kiro = "kiro",
       mistral_vibe = "mistral_vibe",
@@ -330,18 +334,6 @@ The user is working on a %s machine. Please respond with system specific command
           approval_mode = "ask",
           max_output_tokens = 30000, -- Truncate a tool's output above this many tokens, or the model's limit if lower
           notify_on_approval = true, -- Notify the user when a tool requires approval?,
-
-          folds = {
-            enabled = true, -- Fold tool output in the buffer?
-            failure_words = { -- Words that indicate an error in the tool output. Used to apply failure highlighting
-              "cancelled",
-              "error",
-              "failed",
-              "incorrect",
-              "invalid",
-              "rejected",
-            },
-          },
           ---Tools and/or groups that are always loaded in a chat buffer
           ---@type string[]
           default_tools = {},
@@ -505,7 +497,7 @@ If you are providing code changes, use the edit_file tool (if available to you) 
           description = "Toggle MCP servers",
           opts = {
             contains_code = false,
-            provider = "default", -- snacks|default
+            provider = providers.pickers, -- telescope|fzf_lua|mini_pick|snacks|default
           },
         },
         ["mcp-prompts"] = {
@@ -620,6 +612,22 @@ If you are providing code changes, use the edit_file tool (if available to you) 
           description = "Insert symbols for a selected file",
           opts = {
             contains_code = true,
+            provider = providers.pickers, -- telescope|fzf_lua|mini_pick|snacks|default
+          },
+        },
+        ["tools"] = {
+          path = "interactions.chat.slash_commands.builtin.tools",
+          description = "Add tools to the chat",
+          ---@param opts { adapter: CodeCompanion.HTTPAdapter|CodeCompanion.ACPAdapter }
+          ---@return boolean
+          enabled = function(opts)
+            if opts.adapter and opts.adapter.type == "http" then
+              return true
+            end
+            return false
+          end,
+          opts = {
+            contains_code = false,
             provider = providers.pickers, -- telescope|fzf_lua|mini_pick|snacks|default
           },
         },
@@ -769,7 +777,7 @@ If you are providing code changes, use the edit_file tool (if available to you) 
           modes = { n = "gty" },
           index = 20,
           callback = "keymaps.yolo_mode",
-          description = "Choose how tool calls are approved",
+          description = "Choose the mode for approving tool calls",
         },
         goto_file_under_cursor = {
           modes = { n = "gR" },
@@ -782,6 +790,31 @@ If you are providing code changes, use the edit_file tool (if available to you) 
           index = 22,
           callback = "keymaps.copilot_stats",
           description = "Show Copilot usage statistics",
+        },
+        tool_call_details = {
+          modes = { n = "K" },
+          index = 23,
+          callback = "keymaps.tool_call_details",
+          description = "Show the tool call under the cursor",
+        },
+        -- Note: These are only set in the input, when the chat has one
+        scroll_chat_down = {
+          modes = { n = "<M-j>", i = "<M-j>" },
+          index = 24,
+          callback = "keymaps.scroll_chat_down",
+          description = "Scroll the chat down half a page",
+        },
+        scroll_chat_up = {
+          modes = { n = "<M-k>", i = "<M-k>" },
+          index = 25,
+          callback = "keymaps.scroll_chat_up",
+          description = "Scroll the chat up half a page",
+        },
+        scroll_chat_jump = {
+          modes = { n = "<M-g>", i = "<M-g>" },
+          index = 26,
+          callback = "keymaps.scroll_chat_jump",
+          description = "Jump to the bottom of the chat, or to the top if you're already at the bottom",
         },
         -- Note: This is only available during streaming
         _btw = {
@@ -1102,7 +1135,7 @@ The user is working on a %s machine. Please respond with system specific command
       },
       keymaps = {
         view_diff = {
-          description = "View the proposed diff",
+          description = "View the proposed diff or tool call",
           modes = { n = "gv" },
           opts = { nowait = true },
         },
@@ -1171,6 +1204,9 @@ The user is working on a %s machine. Please respond with system specific command
   -- INTEGRATIONS -----------------------------------------------------------
   integrations = {
     herdr = {
+      enabled = true,
+    },
+    rex = {
       enabled = true,
     },
   },
@@ -1401,6 +1437,33 @@ The user is working on a %s machine. Please respond with system specific command
         opts = {},
       },
 
+      -- The chat's title, built from the chat's metadata
+      title = {
+        position = "buffer", -- buffer|winbar|false
+        text = {
+          ---@param metadata table
+          ---@return string In Neovim's `'statusline'` format
+          winbar = function(metadata)
+            -- A `%` would otherwise be read as the start of a statusline item
+            local title = (metadata.title or "CodeCompanion.nvim"):gsub("%%", "%%%%")
+            local adapter = metadata.adapter.model and (metadata.adapter.name .. " · " .. metadata.adapter.model)
+              or metadata.adapter.name
+            return string.format("%%#CodeCompanionChatHeader# %s%%*%%=%%#Comment#%s ", title, adapter)
+          end,
+          ---@param metadata table
+          ---@return string Written as an H1 at the top of the chat buffer
+          buffer = function(metadata)
+            return metadata.title or "CodeCompanion.nvim"
+          end,
+        },
+      },
+
+      -- Where the user writes their prompt
+      input = {
+        layout = "buffer", -- buffer|split
+        height = 8,
+      },
+
       -- Chat buffer options --------------------------------------------------
       auto_scroll = true, -- Automatically scroll down and place the cursor at the end?
       intro_message = "Welcome to CodeCompanion ✨! Press ? for options",
@@ -1417,6 +1480,7 @@ The user is working on a %s machine. Please respond with system specific command
       show_settings = false, -- Show an LLM's settings at the top of the chat buffer?
       show_token_count = true, -- Show the token count for each response?
       start_in_insert_mode = false, -- Open the chat buffer in insert mode?
+      stream_interval = 25, -- How often to write a response to the chat buffer (milliseconds)
 
       ---The function to display the token count
       ---@param tokens number

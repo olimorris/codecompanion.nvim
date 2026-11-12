@@ -280,12 +280,11 @@ end
 
 ---Write the summary back into the chat and trigger the next turn
 ---@param chat CodeCompanion.Chat
----@param retained CodeCompanion.Chat.Messages
----@param content string
+---@param opts { retained: CodeCompanion.Chat.Messages, content: string }
 ---@return nil
-local function apply_summary(chat, retained, content)
-  local summary = CONSTANTS.SUMMARY_PREFIX .. content
-  chat.messages = retained
+local function apply_summary(chat, opts)
+  local summary = CONSTANTS.SUMMARY_PREFIX .. opts.content
+  chat.messages = opts.retained
   chat:add_message(
     { role = config.constants.USER_ROLE, content = summary },
     { visible = true, _meta = { tag = tags.COMPACT_SUMMARY } }
@@ -299,41 +298,46 @@ end
 
 ---Release the compaction lock and log the failure
 ---@param chat CodeCompanion.Chat
----@param reason string
+---@param opts { reason: string }
 ---@return nil
-local function abort(chat, reason)
+local function abort(chat, opts)
   chat._compacting = false
   chat:finish()
-  log:error("[Compaction] Failed: %s", reason)
+  log:error("[Compaction] Failed: %s", opts.reason)
 end
 
 ---Send the request to summarise
 ---@param chat CodeCompanion.Chat
----@param retained CodeCompanion.Chat.Messages
----@param messages_text string
----@param adapter CodeCompanion.HTTPAdapter|string|table
----@param fallback_adapter? CodeCompanion.HTTPAdapter|string|table
+---@param opts { retained: CodeCompanion.Chat.Messages, messages_text: string, adapter: CodeCompanion.HTTPAdapter|string|table, fallback_adapter?: CodeCompanion.HTTPAdapter|string|table }
 ---@return nil
-local function run_summary(chat, retained, messages_text, adapter, fallback_adapter)
+local function run_summary(chat, opts)
   request_summary({
-    adapter = adapter,
-    messages_text = messages_text,
+    adapter = opts.adapter,
+    messages_text = opts.messages_text,
     on_done = function(content)
       if content and content ~= "" then
-        return apply_summary(chat, retained, content)
+        return apply_summary(chat, { retained = opts.retained, content = content })
       end
-      if fallback_adapter then
+      if opts.fallback_adapter then
         log:debug("[Compaction] Falling back to chat adapter (primary returned empty content)")
-        return run_summary(chat, retained, messages_text, fallback_adapter, nil)
+        return run_summary(chat, {
+          retained = opts.retained,
+          messages_text = opts.messages_text,
+          adapter = opts.fallback_adapter,
+        })
       end
-      abort(chat, "compaction adapter returned empty content")
+      abort(chat, { reason = "compaction adapter returned empty content" })
     end,
     on_error = function(err)
-      if fallback_adapter then
+      if opts.fallback_adapter then
         log:debug("[Compaction] Falling back to chat adapter: %s", err)
-        return run_summary(chat, retained, messages_text, fallback_adapter, nil)
+        return run_summary(chat, {
+          retained = opts.retained,
+          messages_text = opts.messages_text,
+          adapter = opts.fallback_adapter,
+        })
       end
-      abort(chat, err)
+      abort(chat, { reason = err })
     end,
   })
 end
@@ -388,7 +392,12 @@ function M.compact(chat, opts)
   local adapter = opts.adapter or chat.adapter
   local fallback_adapter = (opts.fallback_to_chat_adapter == true and adapter ~= chat.adapter) and chat.adapter or nil
 
-  run_summary(chat, retained, messages_text, adapter, fallback_adapter)
+  run_summary(chat, {
+    retained = retained,
+    messages_text = messages_text,
+    adapter = adapter,
+    fallback_adapter = fallback_adapter,
+  })
 
   return true
 end

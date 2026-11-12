@@ -1,4 +1,4 @@
-local Curl = require("plenary.curl")
+local Curl = require("codecompanion.utils.curl")
 local adapter_utils = require("codecompanion.adapters.utils")
 local config = require("codecompanion.config")
 local log = require("codecompanion.utils.log")
@@ -18,15 +18,14 @@ local _cached_models = {}
 
 ---@alias OllamaGetModelsOpts {last?: boolean, async?: boolean}
 
----@param url string
----@param opts? OllamaGetModelsOpts
+---@param opts { url: string, last?: boolean }
 ---@return table|string|nil
-local function get_cached_models(url, opts)
-  local models = _cached_models[url]
+local function get_cached_models(opts)
+  local models = _cached_models[opts.url]
   if not models or vim.tbl_isempty(models) then
-    return opts and opts.last and "" or {}
+    return opts.last and "" or {}
   end
-  if opts and opts.last then
+  if opts.last then
     return vim.tbl_keys(models)[1]
   end
   return models
@@ -47,20 +46,20 @@ local function build_headers(adapter)
 end
 
 ---Parse a model info response into a model entry
----@param name string The model's name, as returned by `/api/tags`
----@param output table The curl response from `/api/show`
+---@param opts { output: table, name: string }
 ---@return CodeCompanion.Adapter.ModelChoice entry
-local function parse_model_info(name, output)
+local function parse_model_info(opts)
+  local output = opts.output
   if output.status ~= 200 then
-    return model_transformers.from_ollama(name)
+    return model_transformers.from_ollama(opts.name)
   end
 
   local ok, json = pcall(vim.json.decode, output.body, { array = true, object = true })
   if not ok then
-    return model_transformers.from_ollama(name)
+    return model_transformers.from_ollama(opts.name)
   end
 
-  return model_transformers.from_ollama(name, json)
+  return model_transformers.from_ollama(opts.name, json)
 end
 
 ---Fetch model list and model info.
@@ -79,7 +78,8 @@ local function fetch_models(adapter)
   local headers = build_headers(adapter)
 
   pcall(function()
-    Curl.get(url .. "/api/tags", {
+    Curl.get({
+      url = url .. "/api/tags",
       headers = headers,
       insecure = config.adapters.http.opts.allow_insecure,
       proxy = config.adapters.http.opts.proxy,
@@ -99,14 +99,15 @@ local function fetch_models(adapter)
         local pending = {}
 
         for _, model_obj in ipairs(json.models) do
-          pending[model_obj.name] = Curl.post(url .. "/api/show", {
+          pending[model_obj.name] = Curl.post({
+            url = url .. "/api/show",
             body = vim.json.encode({ model = model_obj.name }),
             headers = headers,
             insecure = config.adapters.http.opts.allow_insecure,
             proxy = config.adapters.http.opts.proxy,
             timeout = CONSTANTS.TIMEOUT,
             callback = function(output)
-              _cached_models[url][model_obj.name] = parse_model_info(model_obj.name, output)
+              _cached_models[url][model_obj.name] = parse_model_info({ output = output, name = model_obj.name })
               pending[model_obj.name] = nil
               if vim.tbl_isempty(pending) then
                 _running[url] = false
@@ -147,7 +148,7 @@ function M.choices(self, opts)
       return not _running[url]
     end)
   end
-  return get_cached_models(url, opts)
+  return get_cached_models({ url = url, last = opts.last })
 end
 
 ---Return `true` if the model of the adapter supports thinking.

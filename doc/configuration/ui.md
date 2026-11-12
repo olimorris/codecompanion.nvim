@@ -1,5 +1,5 @@
 ---
-description: "Change the chat buffer's window layout, icons, folding, scrolling, headers and reasoning output."
+description: "Change the chat buffer's window layout, icons, folding, scrolling, headers, reasoning output, streaming and title."
 ---
 
 # Configuring the Chat Buffer UI
@@ -41,6 +41,25 @@ require("codecompanion").setup({
 ```
 
 The `chat_context` icon is optional and appears at the start of the fold.
+
+## Input
+
+By default, you write your message at the bottom of the chat buffer. To write it in a separate split beneath the chat window instead:
+
+```lua
+require("codecompanion").setup({
+  display = {
+    chat = {
+      input = {
+        layout = "split", -- Can be "buffer" or "split"
+        height = 8, -- lines
+      },
+    },
+  },
+})
+```
+
+The split isn't available for the `float` layout. For how it changes the chat buffer, see [Customising the Chat Experience](/guides/customising-the-chat-experience#writing-your-message).
 
 ## Layout
 
@@ -169,6 +188,81 @@ require("codecompanion").setup({
 ```
 
 By default, the LLM's header names the chat's adapter, such as `CodeCompanion (DeepSeek)`. `llm` can be a string, or a function that receives the adapter. `user` can only be a string.
+
+## Streaming
+
+A streamed response arrives in many small chunks, and Neovim redraws the chat buffer after every write. To save redrawing, CodeCompanion collects the chunks and writes them at most once every 25 milliseconds. To change this:
+
+```lua
+require("codecompanion").setup({
+  display = {
+    chat = {
+      stream_interval = 50, -- milliseconds. 0 writes every chunk as it arrives
+    },
+  },
+})
+```
+
+A longer interval makes the response arrive in larger pieces and uses less CPU, which is most noticeable in long chats.
+
+## Title
+
+The chat's title appears as a heading at the top of the chat buffer, and scrolls away with the conversation. The `text.buffer` function builds it from the chat's [metadata](/usage/ui#metadata), and runs again whenever the metadata changes. It returns plain text, and CodeCompanion adds the `# `. To add the adapter's name:
+
+```lua
+require("codecompanion").setup({
+  display = {
+    chat = {
+      title = {
+        text = {
+          buffer = function(metadata)
+            return string.format("%s (%s)", metadata.title or "CodeCompanion.nvim", metadata.adapter.name)
+          end,
+        },
+      },
+    },
+  },
+})
+```
+
+To show the title in the chat window's winbar instead, so it stays in view as you scroll:
+
+```lua
+require("codecompanion").setup({
+  display = {
+    chat = {
+      title = {
+        position = "winbar", -- Can be "buffer", "winbar" or false
+      },
+    },
+  },
+})
+```
+
+The winbar also shows the adapter and model. `text.winbar` returns a string in Neovim's `'statusline'` format, so to show the token count instead:
+
+```lua
+require("codecompanion").setup({
+  display = {
+    chat = {
+      title = {
+        position = "winbar",
+        text = {
+          winbar = function(metadata)
+            local title = (metadata.title or "CodeCompanion.nvim"):gsub("%%", "%%%%")
+            return string.format(" %s%%=%d tokens ", title, metadata.tokens)
+          end,
+        },
+      },
+    },
+  },
+})
+```
+
+> [!IMPORTANT]
+> Double any `%` in the title, as the `gsub` above does, or Neovim reads it as a statusline item
+
+To turn the title off, set `position = false`.
 
 ## Others
 

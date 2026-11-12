@@ -4,7 +4,7 @@
     "mermaid": "^12.2.0",
     "ufo": "^1.6.1",
     "vitepress": "^1.6.0",
-    "vitepress-plugin-llms": "^1.11.0",
+    "vitepress-plugin-llms": "^1.15.0",
     "vitepress-plugin-mermaid": "^2.0.17"
   },
   "scripts": {

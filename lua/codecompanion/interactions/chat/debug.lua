@@ -7,13 +7,10 @@ local utils = require("codecompanion.utils")
 
 local api = vim.api
 
----@param bufnr number
----@param opts? table
-local function _get_settings_key(bufnr, opts)
-  opts = vim.tbl_extend("force", opts or {}, {
-    lang = "lua",
-  })
-  local node = vim.treesitter.get_node(opts)
+---@param opts { bufnr: number, pos?: integer[] }
+local function _get_settings_key(opts)
+  local bufnr = opts.bufnr
+  local node = vim.treesitter.get_node({ pos = opts.pos, lang = "lua" })
 
   local current = node
   local in_settings = false
@@ -374,7 +371,7 @@ function Debug:setup_window()
     buffer = self.bufnr,
     desc = "Show settings information in the CodeCompanion chat buffer",
     callback = function()
-      local key_name, node = _get_settings_key(self.bufnr)
+      local key_name, node = _get_settings_key({ bufnr = self.bufnr })
       if not key_name or not node then
         return vim.diagnostic.set(config.INFO_NS, self.bufnr, {})
       end

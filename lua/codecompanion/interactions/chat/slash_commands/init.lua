@@ -8,9 +8,9 @@ local api = vim.api
 
 ---Add prompt-declared tools to the current chat
 ---@param chat CodeCompanion.Chat
----@param prompt_config table
-local function add_prompt_tools(chat, prompt_config)
-  local prompt_tools = prompt_config.tools or {}
+---@param opts { prompt_config: table }
+local function add_prompt_tools(chat, opts)
+  local prompt_tools = opts.prompt_config.tools or {}
   local tools_config = chat.tools.tools_config
 
   vim.iter(prompt_tools):each(function(tool_name)
@@ -24,9 +24,9 @@ end
 
 ---Add prompt-declared skills to the current chat
 ---@param chat CodeCompanion.Chat
----@param prompt_config table
-local function add_prompt_skills(chat, prompt_config)
-  local prompt_skills = prompt_config.skills
+---@param opts { prompt_config: table }
+local function add_prompt_skills(chat, opts)
+  local prompt_skills = opts.prompt_config.skills
   if not prompt_skills or prompt_skills == "none" then
     return
   end
@@ -61,7 +61,7 @@ function SlashCommands:set_provider(SlashCommand, providers)
     end
     return providers[SlashCommand.config.opts.provider](SlashCommand) --[[@type function]]
   end
-  return providers["default"] --[[@type function]]
+  return providers["default"](SlashCommand)
 end
 
 ---Execute the selected slash command
@@ -183,8 +183,8 @@ end
 ---@return nil
 function SlashCommands.run(selected, chat)
   if selected.from_prompt_library then
-    add_prompt_tools(chat, selected.config)
-    add_prompt_skills(chat, selected.config)
+    add_prompt_tools(chat, { prompt_config = selected.config })
+    add_prompt_skills(chat, { prompt_config = selected.config })
 
     local context = selected.config.context
     if context then
@@ -203,7 +203,7 @@ function SlashCommands.run(selected, chat)
       if prompt.role == config.constants.SYSTEM_ROLE then
         chat:add_message(prompt, { visible = false })
       elseif prompt.role == config.constants.USER_ROLE then
-        chat:add_buf_message(prompt)
+        chat.prompt:add({ content = prompt.content })
       end
     end)
   else

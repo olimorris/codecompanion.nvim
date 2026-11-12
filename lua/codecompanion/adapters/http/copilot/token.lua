@@ -1,4 +1,4 @@
-local Curl = require("plenary.curl")
+local Curl = require("codecompanion.utils.curl")
 
 local config = require("codecompanion.config")
 local files = require("codecompanion.utils.files")
@@ -142,27 +142,21 @@ local function get_copilot_token()
   _token_fetch_in_progress = true
   log:trace("Authorizing GitHub Copilot token")
 
-  local ok, request = pcall(function()
-    return Curl.get("https://api.github.com/copilot_internal/v2/token", {
-      headers = {
-        Authorization = "Bearer " .. (M._oauth_token or ""),
-        Accept = "application/json",
-        ["User-Agent"] = "CodeCompanion.nvim",
-      },
-      insecure = config.adapters.http.opts.allow_insecure,
-      proxy = config.adapters.http.opts.proxy,
-      on_error = function(err)
-        vim.schedule(function()
-          log:error("Copilot Adapter: Token request error %s", err)
-        end)
-      end,
-    })
-  end)
+  local request, err = Curl.get_sync({
+    url = "https://api.github.com/copilot_internal/v2/token",
+    headers = {
+      Authorization = "Bearer " .. (M._oauth_token or ""),
+      Accept = "application/json",
+      ["User-Agent"] = "CodeCompanion.nvim",
+    },
+    insecure = config.adapters.http.opts.allow_insecure,
+    proxy = config.adapters.http.opts.proxy,
+  })
 
   _token_fetch_in_progress = false
 
-  if not ok then
-    log:error("Copilot Adapter: Could not authorize your GitHub Copilot token: %s", request)
+  if not request then
+    log:error("Copilot Adapter: Could not authorize your GitHub Copilot token: %s", err.message)
     return nil
   end
 

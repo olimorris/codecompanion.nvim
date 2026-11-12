@@ -3,6 +3,7 @@
 local completion = require("codecompanion.providers.completion")
 local config = require("codecompanion.config")
 local triggers = require("codecompanion.triggers")
+local utils = require("codecompanion.utils")
 
 --- @class blink.cmp.Source
 local M = {}
@@ -21,7 +22,7 @@ function M:get_trigger_characters()
 end
 
 function M:enabled()
-  return vim.bo.filetype == "codecompanion" or vim.bo.filetype == "codecompanion_input"
+  return utils.is_prompt_ft(vim.bo.filetype)
 end
 
 function M:get_completions(ctx, callback)

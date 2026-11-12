@@ -104,6 +104,74 @@ T["Sessions"]["restores the buffer from the saved markdown"] = function()
   h.eq(child.lua_get([[_G.saved_lines]]), child.lua_get([[_G.restored_lines]]))
 end
 
+T["Sessions"]["restores into an input split with the context in the input"] = function()
+  local result = child.lua([[
+    local stem = _G.build_session()
+    require("codecompanion.config").display.chat.input.layout = "split"
+    local restored = _G.sessions.load(stem)
+    local lines = vim.api.nvim_buf_get_lines(restored.bufnr, 0, -1, false)
+    return {
+      modifiable = vim.bo[restored.bufnr].modifiable,
+      has_context = vim.tbl_contains(lines, "> Context:"),
+      input = vim.api.nvim_buf_get_lines(restored.ui.input.bufnr, 0, -1, false),
+    }
+  ]])
+
+  h.eq(false, result.modifiable)
+  h.eq(false, result.has_context)
+  h.eq({
+    "> Context:",
+    "> - <tool>weather</tool>",
+    "> - <group>test_group</group>",
+    "> - <file>init.lua</file>",
+    "",
+    "",
+  }, result.input)
+end
+
+T["Sessions"]["saves the chat WITHOUT its H1 and adds the H1 back on restore"] = function()
+  local result = child.lua([[
+    require("codecompanion.config").display.chat.title.position = "buffer"
+    local titled_chat = require("codecompanion.interactions.chat").new({
+      buffer_context = { bufnr = 1, filetype = "lua" },
+      adapter = "test_adapter",
+    })
+    table.insert(titled_chat.messages, { role = "user", content = "Hello there" })
+
+    _G.sessions.save(titled_chat, { title = "Fixing the parser" })
+    titled_chat:close()
+    local saved = _G.storage.read(_G.storage.list()[1].stem)
+    local restored = _G.sessions.load(_G.storage.list()[1].stem)
+    local lines = vim.api.nvim_buf_get_lines(restored.bufnr, 0, -1, false)
+    return {
+      saved_headings = #vim.tbl_filter(function(line) return vim.startswith(line, "# ") end, saved.ui_lines),
+      restored_headings = #vim.tbl_filter(function(line) return vim.startswith(line, "# ") end, lines),
+      first_line = lines[1],
+    }
+  ]])
+
+  h.eq({ saved_headings = 0, restored_headings = 1, first_line = "# Fixing the parser" }, result)
+end
+
+T["Sessions"]["restores an unsent draft into the input split"] = function()
+  local input = child.lua([[
+    require("codecompanion.config").display.chat.input.layout = "split"
+    local split_chat = require("codecompanion.interactions.chat").new({
+      buffer_context = { bufnr = 1, filetype = "lua" },
+      adapter = "test_adapter",
+    })
+    table.insert(split_chat.messages, { role = "user", content = "Hello there" })
+    vim.api.nvim_buf_set_lines(split_chat.ui.input.bufnr, 0, -1, false, { "Half written", "", "## Notes" })
+
+    _G.sessions.save(split_chat, { title = "Draft" })
+    split_chat:close()
+    local restored = _G.sessions.load(_G.storage.list()[1].stem)
+    return vim.api.nvim_buf_get_lines(restored.ui.input.bufnr, 0, -1, false)
+  ]])
+
+  h.eq({ "Half written", "", "## Notes" }, input)
+end
+
 T["Sessions"]["DROPS every rendered context block but the last"] = function()
   child.lua([[
     local stem = _G.build_session()
@@ -352,6 +420,19 @@ T["Sessions"]["saves a chat whose adapter resolves its model with a function"] =
 
   h.eq(vim.NIL, child.lua_get([[_G.saved.model]]))
   h.eq("test_adapter", child.lua_get([[_G.saved.adapter]]))
+end
+
+T["Sessions"]["saves a chat with a tool whose config holds a function"] = function()
+  child.lua([[
+    require("codecompanion.config").interactions.chat.tools.weather.enabled = function()
+      return true
+    end
+
+    local stem = _G.build_session()
+    _G.restored = _G.sessions.load(stem)
+  ]])
+
+  h.eq(true, child.lua_get([[_G.restored.tool_registry.in_use.weather]]))
 end
 
 T["Sessions"]["restores the model the session was saved with"] = function()

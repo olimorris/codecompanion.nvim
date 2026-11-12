@@ -1,4 +1,4 @@
-local Curl = require("plenary.curl")
+local Curl = require("codecompanion.utils.curl")
 
 local config = require("codecompanion.config")
 local log = require("codecompanion.utils.log")
@@ -27,21 +27,19 @@ local function get_statistics()
 
   local oauth_token = token.fetch({ force = true }).oauth_token
 
-  local ok, response = pcall(function()
-    return Curl.get("https://api.github.com/copilot_internal/user", {
-      sync = true,
-      headers = {
-        Authorization = "Bearer " .. oauth_token,
-        Accept = "*/*",
-        ["User-Agent"] = "CodeCompanion.nvim",
-      },
-      insecure = config.adapters.http.opts.allow_insecure,
-      proxy = config.adapters.http.opts.proxy,
-    })
-  end)
+  local response, err = Curl.get_sync({
+    url = "https://api.github.com/copilot_internal/user",
+    headers = {
+      Authorization = "Bearer " .. oauth_token,
+      Accept = "*/*",
+      ["User-Agent"] = "CodeCompanion.nvim",
+    },
+    insecure = config.adapters.http.opts.allow_insecure,
+    proxy = config.adapters.http.opts.proxy,
+  })
 
-  if not ok then
-    log:error("Copilot Adapter: Could not get stats: %s", response)
+  if not response then
+    log:error("Copilot Adapter: Could not get stats: %s", err.message)
     return nil
   end
 

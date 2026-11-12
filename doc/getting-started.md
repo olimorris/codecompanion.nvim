@@ -179,6 +179,7 @@ vim.cmd([[cab cc CodeCompanion]])
 ## Next Steps
 
 - [Coding with an Agent](/guides/coding-with-an-agent) - Use Claude Code, Codex and others from the chat buffer
+- [Customising the Chat Experience](/guides/customising-the-chat-experience) - Choose where the chat opens and where you write your message
 - [Controlling Tool Approvals](/guides/tool-approvals) - Decide what an LLM can do without asking
 - [Sharing Rules and Skills Across Projects](/guides/sharing-rules-and-skills) - Give the LLM your project's conventions, like `AGENTS.md`
 - [Setting Up Web Search](/guides/web-search) - Let the LLM look things up

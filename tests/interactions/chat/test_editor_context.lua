@@ -170,6 +170,24 @@ T["Editor Context"][":replace"]["should partly replace #buffer with params in th
   h.expect_starts_with("what does file ", result)
 end
 
+T["Editor Context"][":replace"]["should replace a tag when the chat's originating buffer has closed"] = function()
+  child.lua([[
+    _G.closed = vim.api.nvim_create_buf(false, true)
+    vim.api.nvim_buf_delete(_G.closed, { force = true })
+    _G.result = _G.ec:replace("#{foo} please", _G.closed)
+  ]])
+  h.eq("foo please", child.lua_get([[_G.result]]))
+end
+
+T["Editor Context"][":replace"]["should leave buffer tags untouched when the originating buffer has closed"] = function()
+  child.lua([[
+    _G.closed = vim.api.nvim_create_buf(false, true)
+    vim.api.nvim_buf_delete(_G.closed, { force = true })
+    _G.result = _G.ec:replace("what does #{buffer} and #{buffer:gone.lua} do?", _G.closed)
+  ]])
+  h.eq("what does #{buffer} and #{buffer:gone.lua} do?", child.lua_get([[_G.result]]))
+end
+
 T["Editor Context"][":replace"]["should be in sync with finding logic"] = function()
   local result = child.lua_get(
     [[_G.ec:replace("#{foo}{doesnotsupport} #{bar}{supports} #{foo://10-20-30:40} pre#{foo} #{baz}! Use these editor context items and handle newline editor context #{foo}\n", 0)]]

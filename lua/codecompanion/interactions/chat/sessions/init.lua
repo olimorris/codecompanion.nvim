@@ -14,6 +14,7 @@ local log = require("codecompanion.utils.log")
 local serializer = require("codecompanion.interactions.chat.sessions.serializer")
 local slug = require("codecompanion.interactions.chat.sessions.utils.slug")
 local storage = require("codecompanion.interactions.chat.sessions.storage")
+local title_ui = require("codecompanion.interactions.chat.ui.title")
 local utils = require("codecompanion.utils")
 
 local api = vim.api
@@ -132,7 +133,9 @@ local function write_session(chat)
   local ok = storage.write(stem, {
     chat = session.chat,
     meta = session.meta,
-    ui_lines = api.nvim_buf_is_valid(chat.bufnr) and api.nvim_buf_get_lines(chat.bufnr, 0, -1, false) or nil,
+    ui_lines = api.nvim_buf_is_valid(chat.bufnr)
+        and title_ui.remove_title_line(chat.ui, { lines = chat.prompt:get_session_lines() })
+      or nil,
   })
   if ok then
     log:debug("[sessions] Wrote session %s for chat %d", stem, chat.id)
@@ -143,14 +146,14 @@ end
 
 ---Start tracking a chat as a session and write it out
 ---@param chat CodeCompanion.Chat
----@param title string Used until the chat has a title of its own
+---@param opts { title: string }
 ---@return boolean ok
-local function start_session(chat, title)
+local function start_session(chat, opts)
   local created_at = os.time()
   sessions[chat.id] = {
     created_at = created_at,
-    slug = resolve_slug(chat, { title = title, created_at = created_at }),
-    title = title,
+    slug = resolve_slug(chat, { title = opts.title, created_at = created_at }),
+    title = opts.title,
   }
 
   if not write_session(chat) then
@@ -204,7 +207,7 @@ function M.register_chat_callbacks(chat)
         write_session(c)
       end
     elseif autosave_enabled() then
-      start_session(c, get_title_from_message(c) or "Untitled")
+      start_session(c, { title = get_title_from_message(c) or "Untitled" })
     end
   end)
 
@@ -240,7 +243,7 @@ function M.save(chat, opts)
 
   if sessions[chat.id] then
     if opts.title and opts.title ~= "" and opts.title ~= chat.title then
-      M._rename(chat, opts.title)
+      M._rename(chat, { new_title = opts.title })
     end
     if write_session(chat) then
       utils.notify("Session saved: " .. sessions[chat.id].slug)
@@ -255,7 +258,7 @@ function M.save(chat, opts)
     if chat.title ~= title then
       chat:set_title(title)
     end
-    if start_session(chat, title) then
+    if start_session(chat, { title = title }) then
       utils.notify("Session saved: " .. sessions[chat.id].slug)
     end
   end
@@ -305,11 +308,12 @@ function M.load(stem, opts)
   serializer.restore_tools(chat, saved_chat.chat.tools)
   chat:set_title(saved_chat.meta.title)
 
-  -- The saved markdown already carries the context block, so replant rather than re-render
-  if saved_chat.ui_lines then
-    api.nvim_buf_set_lines(chat.bufnr, 0, -1, false, prune_context_blocks(saved_chat.ui_lines))
+  local lines = saved_chat.ui_lines and prune_context_blocks(saved_chat.ui_lines)
+  local title_row = lines and title_ui.add_title_line(chat.ui, { lines = lines })
+  chat.prompt:restore_lines({ lines = lines })
+  if title_row then
+    title_ui.mark(chat.ui, { row = title_row })
   end
-  chat.context:create_folds()
 
   -- Opening the chat counts as a user cursor move, which would stop `follow` short
   chat.ui.cursor.moved_by_user = false
@@ -372,9 +376,10 @@ end
 
 ---Rename a tracked session by moving its files on disk
 ---@param chat CodeCompanion.Chat
----@param new_title string
+---@param opts { new_title: string }
 ---@return nil
-function M._rename(chat, new_title)
+function M._rename(chat, opts)
+  local new_title = opts.new_title
   local entry = sessions[chat.id]
   if not entry then
     return

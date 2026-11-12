@@ -73,15 +73,15 @@ local function read_set(path)
 end
 
 ---Append a line to a file, skipped when it's already present
----@param path string
----@param value string
+---@param opts { path: string, value: string }
 ---@return nil
-local function append(path, value)
-  if read_set(path)[value] then
+local function append(opts)
+  local path = opts.path
+  if read_set(path)[opts.value] then
     return
   end
   local existing = files.exists(path) and files.read(path) or ""
-  files.write_to_path(path, existing .. value .. "\n")
+  files.write_to_path(path, existing .. opts.value .. "\n")
 end
 
 ---Format a comment as a markdown section
@@ -99,20 +99,19 @@ local function format(comment)
 end
 
 ---Close off a comment section being parsed, keeping it only if it has any text
----@param comments CodeCompanion.CodeReview.Comment[]
----@param comment? table
----@param prose string[]
+---@param opts { comment?: table, comments: CodeCompanion.CodeReview.Comment[], prose: string[] }
 ---@return nil
-local function finish(comments, comment, prose)
+local function finish(opts)
+  local comment = opts.comment
   if not comment then
     return
   end
   comment.code = comment.code or ""
-  comment.comment = vim.trim(table.concat(prose, "\n"))
+  comment.comment = vim.trim(table.concat(opts.prose, "\n"))
   if comment.comment == "" then
     return log:warn("[Code Review] Skipping a comment with no text (%s:%d)", comment.path, comment.start_line)
   end
-  table.insert(comments, comment)
+  table.insert(opts.comments, comment)
 end
 
 ---Parse the markdown comments file back into comments
@@ -126,7 +125,7 @@ local function parse(contents)
   for _, line in ipairs(vim.split(contents, "\n", { plain = true })) do
     local path, start_line, end_line = line:match("^## (.+):(%d+)%-(%d+)%s*$")
     if path and not open_backticks then
-      finish(comments, comment, prose or {})
+      finish({ comment = comment, comments = comments, prose = prose or {} })
       comment = { path = path, start_line = tonumber(start_line), end_line = tonumber(end_line) }
       prose, code = {}, nil
     elseif comment then
@@ -145,7 +144,7 @@ local function parse(contents)
       end
     end
   end
-  finish(comments, comment, prose or {})
+  finish({ comment = comment, comments = comments, prose = prose or {} })
 
   return comments
 end
@@ -167,20 +166,19 @@ local function read_blocks(path)
 end
 
 ---Write comments as markdown sections, or delete the file when there are none
----@param path string
----@param comments CodeCompanion.CodeReview.Comment[]
+---@param opts { path: string, comments: CodeCompanion.CodeReview.Comment[] }
 ---@return nil
-local function write_blocks(path, comments)
-  if #comments == 0 then
-    return delete(path)
+local function write_blocks(opts)
+  if #opts.comments == 0 then
+    return delete(opts.path)
   end
 
   local blocks = {}
-  for _, comment in ipairs(comments) do
+  for _, comment in ipairs(opts.comments) do
     table.insert(blocks, format(comment))
   end
 
-  files.write_to_path(path, table.concat(blocks, "\n") .. "\n")
+  files.write_to_path(opts.path, table.concat(blocks, "\n") .. "\n")
 end
 
 ---Return all pending comments for a repo
@@ -190,14 +188,13 @@ function M.comments(root)
   return read_blocks(M.comments_path(root))
 end
 
----@param path string
----@param comment CodeCompanion.CodeReview.Comment
+---@param opts { path: string, comment: CodeCompanion.CodeReview.Comment }
 ---@return nil
-local function append_block(path, comment)
-  local existing = files.exists(path) and files.read(path) or ""
+local function append_block(opts)
+  local existing = files.exists(opts.path) and files.read(opts.path) or ""
   local separator = existing ~= "" and "\n" or ""
 
-  files.write_to_path(path, existing .. separator .. format(comment) .. "\n")
+  files.write_to_path(opts.path, existing .. separator .. format(opts.comment) .. "\n")
 end
 
 ---Append a comment to the store
@@ -205,7 +202,7 @@ end
 ---@param comment CodeCompanion.CodeReview.Comment
 ---@return nil
 function M.add_comment(root, comment)
-  append_block(M.comments_path(root), comment)
+  append_block({ path = M.comments_path(root), comment = comment })
 end
 
 ---Write the pending comments to disk, or, delete the file if there are none
@@ -213,7 +210,7 @@ end
 ---@param comments CodeCompanion.CodeReview.Comment[]
 ---@return nil
 function M.write_comments(root, comments)
-  write_blocks(M.comments_path(root), comments)
+  write_blocks({ path = M.comments_path(root), comments = comments })
 end
 
 ---Delete all pending comments for a repo
@@ -268,7 +265,7 @@ end
 ---@return nil
 function M.write_sent(root, comments)
   -- Only the next review's markers depend on this file, so failing to write it must not stop the comments being sent
-  local ok, error = pcall(write_blocks, sent_path(root), comments)
+  local ok, error = pcall(write_blocks, { path = sent_path(root), comments = comments })
   if not ok then
     log:error("[Code Review] Could not record the sent comments: `%s`", error)
   end
@@ -317,7 +314,7 @@ end
 ---@param id number
 ---@return nil
 function M.accept(root, id)
-  append(accepted_path(root), tostring(id))
+  append({ path = accepted_path(root), value = tostring(id) })
 end
 
 ---Take a hunk back out of the accepted set

@@ -5,6 +5,7 @@ local M = {}
 
 local INTEGRATIONS = {
   "herdr",
+  "rex",
 }
 
 ---Call a function for every integration that's enabled in the user's config

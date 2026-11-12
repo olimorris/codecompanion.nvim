@@ -35,7 +35,7 @@ T["copilot.models"]["choices() synchronous returns expected models"] = function(
     end
 
     -- Mock Curl.get to trigger the scheduled callback with a stub response
-    local curl = require("plenary.curl")
+    local curl = require("codecompanion.utils.curl")
     local body = vim.json.encode({
       data = {
         {
@@ -73,10 +73,11 @@ T["copilot.models"]["choices() synchronous returns expected models"] = function(
       },
     })
 
-    curl.get = function(url, opts)
+    curl.get = function(opts)
       if opts and type(opts.callback) == "function" then
-        -- opts.callback is wrapped with vim.schedule_wrap in the module
-        opts.callback({ status = 200, body = body })
+        vim.schedule(function()
+          opts.callback({ status = 200, body = body })
+        end)
       end
       return { status = 200, body = body }
     end
@@ -127,7 +128,7 @@ T["copilot.models"]["choices() async populates cache and returns later"] = funct
     end
 
     -- Mock Curl.get to trigger the scheduled callback with a stub response
-    local curl = require("plenary.curl")
+    local curl = require("codecompanion.utils.curl")
     local body = vim.json.encode({
       data = {
         {
@@ -151,9 +152,11 @@ T["copilot.models"]["choices() async populates cache and returns later"] = funct
       },
     })
 
-    curl.get = function(url, opts)
+    curl.get = function(opts)
       if opts and type(opts.callback) == "function" then
-        opts.callback({ status = 200, body = body })
+        vim.schedule(function()
+          opts.callback({ status = 200, body = body })
+        end)
       end
       return { status = 200, body = body }
     end

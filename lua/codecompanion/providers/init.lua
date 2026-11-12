@@ -50,13 +50,11 @@ local configs = {
   },
 }
 
----@param providers table<string> Provider names
----@param providers_config Providers<ProviderSpec> Provider configs
----@param fallback string Fallback provider name
+---@param opts { providers: table<string>, providers_config: Providers<ProviderSpec>, fallback: string }
 ---@return string available provider name
-local function find_provider(providers, providers_config, fallback)
-  for _, key in ipairs(providers) do
-    local config = providers_config[key]
+local function find_provider(opts)
+  for _, key in ipairs(opts.providers) do
+    local config = opts.providers_config[key]
     if config then
       local success, loaded_module = pcall(require, config.module)
       if success then
@@ -76,21 +74,21 @@ local function find_provider(providers, providers_config, fallback)
       end
     end
   end
-  return fallback
+  return opts.fallback
 end
 
 ---Get the default Action Palette provider
 ---@return string
 local function action_palette_providers()
   local providers = { "telescope", "fzf_lua", "mini_pick", "snacks" }
-  return find_provider(providers, configs, "default")
+  return find_provider({ providers = providers, providers_config = configs, fallback = "default" })
 end
 
 ---Get the default Completion provider
 ---@return string
 local function completion_providers()
   local providers = { "blink", "cmp", "coc", "default" }
-  return find_provider(providers, configs, "default")
+  return find_provider({ providers = providers, providers_config = configs, fallback = "default" })
 end
 
 ---Get the default Vim Help provider
@@ -98,14 +96,14 @@ end
 local function help_providers()
   local providers = { "telescope", "fzf_lua", "mini_pick", "snacks" }
   -- TODO: warn if falling back to telescope when it's also the first choice but others failed
-  return find_provider(providers, configs, "telescope")
+  return find_provider({ providers = providers, providers_config = configs, fallback = "telescope" })
 end
 
 ---Get the default picker provider
 ---@return string
 local function pick_providers()
   local providers = { "telescope", "fzf_lua", "mini_pick", "snacks" }
-  return find_provider(providers, configs, "default")
+  return find_provider({ providers = providers, providers_config = configs, fallback = "default" })
 end
 
 return {

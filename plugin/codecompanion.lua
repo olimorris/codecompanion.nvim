@@ -7,6 +7,8 @@ if vim.fn.has("nvim-0.12") == 0 then
   return vim.notify("CodeCompanion.nvim requires Neovim 0.12+", vim.log.levels.ERROR)
 end
 
+local constants = require("codecompanion.config").constants
+
 local api = vim.api
 
 api.nvim_set_hl(0, "CodeCompanionChatError", { link = "DiagnosticError", default = true })
@@ -17,16 +19,13 @@ api.nvim_set_hl(0, "CodeCompanionChatSeparator", { link = "@punctuation.special.
 api.nvim_set_hl(0, "CodeCompanionChatSubtext", { link = "Comment", default = true })
 api.nvim_set_hl(0, "CodeCompanionChatTokens", { link = "Comment", default = true })
 api.nvim_set_hl(0, "CodeCompanionChatTool", { link = "Special", default = true })
-api.nvim_set_hl(0, "CodeCompanionChatToolFailure", { link = "DiagnosticError", default = true })
 api.nvim_set_hl(0, "CodeCompanionChatToolFailureIcon", { link = "Error", default = true })
 api.nvim_set_hl(0, "CodeCompanionChatToolGroup", { link = "Constant", default = true })
 api.nvim_set_hl(0, "CodeCompanionChatToolInProgress", { link = "DiagnosticInfo", default = true })
 api.nvim_set_hl(0, "CodeCompanionChatToolInProgressIcon", { link = "DiagnosticInfo", default = true })
 api.nvim_set_hl(0, "CodeCompanionChatToolPending", { link = "DiagnosticWarn", default = true })
 api.nvim_set_hl(0, "CodeCompanionChatToolPendingIcon", { link = "DiagnosticWarn", default = true })
-api.nvim_set_hl(0, "CodeCompanionChatToolSuccess", { link = "DiagnosticOK", default = true })
 api.nvim_set_hl(0, "CodeCompanionChatToolSuccessIcon", { link = "DiagnosticOK", default = true })
-api.nvim_set_hl(0, "CodeCompanionChatToolText", { link = "Comment", default = true })
 api.nvim_set_hl(0, "CodeCompanionChatEditorContext", { link = "Identifier", default = true })
 api.nvim_set_hl(0, "CodeCompanionChatWarn", { link = "DiagnosticWarn", default = true })
 api.nvim_set_hl(0, "CodeCompanionDiffAdd", { link = "DiffAdd", default = true })
@@ -81,7 +80,7 @@ local make_hl_syntax = vim.schedule_wrap(function(bufnr)
 end)
 
 api.nvim_create_autocmd("FileType", {
-  pattern = { "codecompanion", "codecompanion_input" },
+  pattern = constants.PROMPT_FILETYPES,
   group = syntax_group,
   callback = function(args)
     make_hl_syntax(args.buf)
@@ -133,5 +132,4 @@ api.nvim_create_autocmd("BufEnter", {
   end,
 })
 
-vim.treesitter.language.register("markdown", "codecompanion")
-vim.treesitter.language.register("markdown", "codecompanion_input")
+vim.treesitter.language.register("markdown", constants.PROMPT_FILETYPES)

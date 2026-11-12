@@ -56,11 +56,10 @@ local function is_auto_accepted(path)
 end
 
 ---Error and warning counts for a file, which are only known while it is loaded in a buffer
----@param root string
----@param path string
+---@param opts { path: string, root: string }
 ---@return { errors: number, warnings: number }
-local function count_diagnostics(root, path)
-  local bufnr = buffers.get_bufnr_from_path(vim.fs.joinpath(root, path))
+local function count_diagnostics(opts)
+  local bufnr = buffers.get_bufnr_from_path(vim.fs.joinpath(opts.root, opts.path))
   if not bufnr or not api.nvim_buf_is_loaded(bufnr) then
     return { errors = 0, warnings = 0 }
   end
@@ -364,19 +363,21 @@ local function summarise_file(opts)
   local text = shorten_path(opts.path)
   local spans = { path = { 0, #text } }
 
-  local function append(name, label, separator)
-    text = text .. separator .. label
-    spans[name] = { #text - #label, #text }
+  ---@param append_opts { label: string, name: string, separator: string }
+  local function append(append_opts)
+    local label = append_opts.label
+    text = text .. append_opts.separator .. label
+    spans[append_opts.name] = { #text - #label, #text }
   end
 
-  append("added", fmt("+%d", added), "  ")
-  append("removed", fmt("-%d", removed), " ")
+  append({ label = fmt("+%d", added), name = "added", separator = "  " })
+  append({ label = fmt("-%d", removed), name = "removed", separator = " " })
 
   local separator = "  "
   for _, severity in ipairs({ { "errors", "E" }, { "warnings", "W" } }) do
     local count = opts.diagnostics[severity[1]]
     if count > 0 then
-      append(severity[1], severity[2] .. count, separator)
+      append({ label = severity[2] .. count, name = severity[1], separator = separator })
       separator = " "
     end
   end
@@ -487,7 +488,7 @@ function M.build(opts)
 
     if #file_diff.hunks > 0 then
       diffs[path] = file_diff
-      diagnostics[path] = count_diagnostics(root, path)
+      diagnostics[path] = count_diagnostics({ path = path, root = root })
       table.insert(paths, path)
     else
       M.discard({ file_diff })

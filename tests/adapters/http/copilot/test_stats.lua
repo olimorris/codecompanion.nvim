@@ -39,10 +39,10 @@ local T = new_set({
         _G.notify_args = {}
 
         -- Stub dependencies before requiring subject module
-        package.loaded["plenary.curl"] = {
-          get = function(_, _)
+        package.loaded["codecompanion.utils.curl"] = {
+          get_sync = function()
             if _G.fail_request then
-              error("network error")
+              return nil, { message = "network error", stderr = "network error", exit = 7 }
             end
             return { status = 200, body = vim.json.encode(_G.mock_stats) }
           end,

@@ -22,10 +22,10 @@ end
 local get_storage_root = baseline.storage_root --[[@as function]]
 
 ---Fetch the context of where the use is commenting in the buffer
----@param bufnr number
----@param args? table
+---@param args { bufnr: number, range?: number, user_prompt?: string }
 ---@return { code: string, filetype: string, path: string, start_line: number, end_line: number }
-local function get_context(bufnr, args)
+local function get_context(args)
+  local bufnr = args.bufnr
   local buffer_context = require("codecompanion.utils.context").get(bufnr, args)
   local lines = buffer_context.lines
 
@@ -131,7 +131,7 @@ function M.comment(args)
     return M.edit_comment(existing)
   end
 
-  M.add_comment(get_context(bufnr, args))
+  M.add_comment(get_context(vim.tbl_extend("force", args or {}, { bufnr = bufnr })))
 end
 
 ---Return all pending review comments

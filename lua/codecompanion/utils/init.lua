@@ -4,6 +4,20 @@ local api = vim.api
 
 local M = {}
 
+---Is the filetype the chat buffer or its input?
+---@param ft string
+---@return boolean
+function M.is_chat_ft(ft)
+  return vim.tbl_contains(require("codecompanion.config").constants.CHAT_FILETYPES, ft)
+end
+
+---Is the filetype anywhere the user writes a prompt, including the inline prompt box?
+---@param ft string
+---@return boolean
+function M.is_prompt_ft(ft)
+  return vim.tbl_contains(require("codecompanion.config").constants.PROMPT_FILETYPES, ft)
+end
+
 ---Fire an event
 ---@param event string
 ---@param opts? table

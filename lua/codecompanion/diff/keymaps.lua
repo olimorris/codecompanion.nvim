@@ -6,12 +6,11 @@ local api = vim.api
 local M = {}
 
 ---Clear a keymap from a specific buffer
----@param keymaps table
----@param bufnr? number
-local function clear_map(keymaps, bufnr)
-  bufnr = bufnr or 0
+---@param opts { keymaps: table, bufnr?: number }
+local function clear_map(opts)
+  local bufnr = opts.bufnr or 0
 
-  for _, map in pairs(keymaps) do
+  for _, map in pairs(opts.keymaps) do
     for mode, lhs in pairs(map.modes) do
       pcall(vim.keymap.del, mode, lhs, { buffer = bufnr })
     end
@@ -40,7 +39,7 @@ local function resolve_diff(diff_ui, opts)
 
   diff_ui:clear()
   diff_ui:close()
-  clear_map(config.interactions.shared.keymaps, diff_ui.bufnr)
+  clear_map({ keymaps = config.interactions.shared.keymaps, bufnr = diff_ui.bufnr })
 
   return true
 end

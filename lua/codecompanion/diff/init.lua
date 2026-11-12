@@ -114,32 +114,27 @@ function M._diff(a, b, opts)
 end
 
 ---Add a highlight entry with optional word-level ranges
----@param highlights table[] The highlights table to append to
----@param merged_row number The row number in merged view
----@param type "addition"|"deletion" The type of highlight
----@param word_ranges? { col: number, end_col: number }[] Optional word-level highlight ranges
-local function add_highlight(highlights, merged_row, type, word_ranges)
-  local hl_entry = { row = merged_row, type = type }
-  if word_ranges then
-    hl_entry.word_hl = word_ranges
+---@param opts { highlights: table[], merged_row: number, type: "addition"|"deletion", word_ranges?: { col: number, end_col: number }[] }
+local function add_highlight(opts)
+  local hl_entry = { row = opts.merged_row, type = opts.type }
+  if opts.word_ranges then
+    hl_entry.word_hl = opts.word_ranges
   end
-  table.insert(highlights, hl_entry)
+  table.insert(opts.highlights, hl_entry)
 end
 
 ---Add an extmark entry to a hunk
----@param hunk CodeCompanion.diff.Hunk The hunk to add the extmark to
----@param merged_row number The row number in merged view (1-indexed)
----@param type "addition"|"deletion" The type of extmark
-local function add_extmark(hunk, merged_row, type)
-  table.insert(hunk.extmarks, { row = merged_row - 1, col = 0, type = type })
+---@param opts { hunk: CodeCompanion.diff.Hunk, merged_row: number, type: "addition"|"deletion" }
+local function add_extmark(opts)
+  table.insert(opts.hunk.extmarks, { row = opts.merged_row - 1, col = 0, type = opts.type })
 end
 
 ---Process diff hunks to create merged lines for display
----@param diff CC.Diff
----@param opts? vim.text.diff.Opts
+---@param opts { diff: CC.Diff, diff_opts?: vim.text.diff.Opts }
 ---@return CC.Diff
-function M._diff_lines(diff, opts)
-  local hunks = M._diff(diff.from.lines, diff.to.lines, opts or CONSTANTS.DIFF_LINE_OPTS)
+function M._diff_lines(opts)
+  local diff = opts.diff
+  local hunks = M._diff(diff.from.lines, diff.to.lines, opts.diff_opts or CONSTANTS.DIFF_LINE_OPTS)
 
   -- Instead of using virtual text, we create a merged view of the lines and we
   -- build out the highlights for the possible hunk types
@@ -194,24 +189,24 @@ function M._diff_lines(diff, opts)
     -- Add deletion lines
     for i = 0, from_count - 1 do
       merged_row = merged_row + 1
-      add_extmark(h, merged_row, "deletion")
+      add_extmark({ hunk = h, merged_row = merged_row, type = "deletion" })
       table.insert(merged_lines, diff.from.lines[from_start + i])
       rows[merged_row] = { from = from_start + i }
 
       local word_ranges = word_diff_results[i] and word_diff_results[i].del_ranges or nil
-      add_highlight(highlights, merged_row, "deletion", word_ranges)
+      add_highlight({ highlights = highlights, merged_row = merged_row, type = "deletion", word_ranges = word_ranges })
     end
     from_pos = from_pos + from_count
 
     -- Add addition lines
     for i = 0, to_count - 1 do
       merged_row = merged_row + 1
-      add_extmark(h, merged_row, "addition")
+      add_extmark({ hunk = h, merged_row = merged_row, type = "addition" })
       table.insert(merged_lines, diff.to.lines[to_start + i])
       rows[merged_row] = { to = to_start + i }
 
       local word_ranges = word_diff_results[i] and word_diff_results[i].add_ranges or nil
-      add_highlight(highlights, merged_row, "addition", word_ranges)
+      add_highlight({ highlights = highlights, merged_row = merged_row, type = "addition", word_ranges = word_ranges })
       to_pos = to_pos + 1
     end
   end
@@ -298,9 +293,8 @@ function M.create(args)
   local to_text = table.concat(args.to_lines, "\n")
   local diff_opts = args.inline and CONSTANTS.DIFF_INLINE_OPTS or CONSTANTS.DIFF_LINE_OPTS
 
-  local diff = M._diff_lines(
-    ---@type CC.Diff
-    {
+  local diff = M._diff_lines({
+    diff = {
       bufnr = args.bufnr,
       ft = args.ft,
       hunks = {},
@@ -316,8 +310,8 @@ function M.create(args)
       marker_add = args.marker_add,
       marker_delete = args.marker_delete,
     },
-    diff_opts
-  )
+    diff_opts = diff_opts,
+  })
 
   return diff
 end

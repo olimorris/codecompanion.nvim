@@ -65,11 +65,11 @@ local function resolve_buffer(path)
 end
 
 ---Call back once the buffer's diagnostics have stopped arriving, or the waits elapse
----@param bufnr number
----@param opts { freshly_loaded: boolean }
+---@param opts { bufnr: number, freshly_loaded: boolean }
 ---@param callback fun()
 ---@return nil
-local function on_diagnostics(bufnr, opts, callback)
+local function on_diagnostics(opts, callback)
+  local bufnr = opts.bufnr
   if not opts.freshly_loaded and vim.tbl_isempty(vim.lsp.get_clients({ bufnr = bufnr })) then
     return callback()
   end
@@ -224,7 +224,7 @@ local function get_diagnostics(action, callback)
     end
   end
 
-  on_diagnostics(bufnr, { freshly_loaded = buffer.freshly_loaded }, function()
+  on_diagnostics({ bufnr = bufnr, freshly_loaded = buffer.freshly_loaded }, function()
     if not api.nvim_buf_is_valid(bufnr) then
       return callback({
         status = "error",
@@ -250,6 +250,7 @@ end
 ---@class CodeCompanion.Tool.GetDiagnostics: CodeCompanion.Tools.Tool
 return {
   name = "get_diagnostics",
+  kind = "read",
   cmds = {
     ---Execute the diagnostics commands
     ---@param self CodeCompanion.Tool.GetDiagnostics
@@ -298,15 +299,7 @@ return {
     ---@param opts { tools: CodeCompanion.Tools }
     ---@return string
     cmd_string = function(self, opts)
-      return self.args.filepath
-    end,
-
-    ---The message which is shared with the user when asking for their approval
-    ---@param self CodeCompanion.Tool.GetDiagnostics
-    ---@param meta { tools: CodeCompanion.Tools }
-    ---@return nil|string
-    prompt = function(self, meta)
-      return fmt("Get diagnostics for `%s`?", vim.fn.fnamemodify(self.args.filepath, ":."))
+      return fmt("diagnostics for %s", self.args.filepath)
     end,
 
     ---@param self CodeCompanion.Tool.GetDiagnostics
@@ -315,7 +308,7 @@ return {
     success = function(self, stdout, meta)
       local chat = meta.tools.chat
       local llm_output = vim.iter(stdout):flatten():join("\n")
-      chat:add_tool_output(self, { content = llm_output, display = false })
+      chat:add_tool_output(self, { content = llm_output })
     end,
 
     ---@param self CodeCompanion.Tool.GetDiagnostics

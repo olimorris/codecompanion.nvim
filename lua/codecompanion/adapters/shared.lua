@@ -36,14 +36,14 @@ end
 
 ---Read a field from an adapter's meta data
 ---@param adapter CodeCompanion.HTTPAdapter
----@param fields string[]
+---@param opts { fields: string[] }
 ---@return number|nil
-local function from_model_meta(adapter, fields)
+local function from_model_meta(adapter, opts)
   local function pick(meta)
     if type(meta) ~= "table" then
       return nil
     end
-    for _, field in ipairs(fields) do
+    for _, field in ipairs(opts.fields) do
       if meta[field] then
         return meta[field]
       end
@@ -78,14 +78,14 @@ end
 ---@param adapter CodeCompanion.HTTPAdapter
 ---@return number|nil
 function M.context_window(adapter)
-  return from_model_meta(adapter, { "context_window" })
+  return from_model_meta(adapter, { fields = { "context_window" } })
 end
 
 ---Resolve the largest prompt the current model will accept
 ---@param adapter CodeCompanion.HTTPAdapter
 ---@return number|nil
 function M.input_limit(adapter)
-  return from_model_meta(adapter, { "max_prompt_tokens", "context_window" })
+  return from_model_meta(adapter, { fields = { "max_prompt_tokens", "context_window" } })
 end
 
 ---Whether the provider compacts its own context server-side for the current model

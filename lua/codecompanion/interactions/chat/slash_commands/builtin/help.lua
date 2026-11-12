@@ -16,27 +16,25 @@ local CONSTANTS = {
 }
 
 ---Find the tag row
----@param tag string The tag to find
----@param content string The content of the file
+---@param opts { content: string, tag: string }
 ---@return number The row of the tag
-local function get_tag_row(tag, content)
+local function get_tag_row(opts)
   local ft = "vimdoc"
-  local parser = vim.treesitter.get_string_parser(content, "vimdoc")
+  local parser = vim.treesitter.get_string_parser(opts.content, "vimdoc")
   local root = parser:parse()[1]:root()
-  local query = ts.query.parse(ft, '((tag) @tag (#eq? @tag "*' .. tag .. '*"))')
-  for _, node, _ in query:iter_captures(root, content) do
+  local query = ts.query.parse(ft, '((tag) @tag (#eq? @tag "*' .. opts.tag .. '*"))')
+  for _, node, _ in query:iter_captures(root, opts.content) do
     local tag_row = node:range()
     return tag_row
   end
 end
 
 ---Trim the content around the tag
----@param content string The content of the file
----@param tag string The tag to find
+---@param opts { content: string, tag: string }
 ---@return string The trimmed content
-local function trim_content(content, tag)
-  local lines = vim.split(content, "\n")
-  local tag_row = get_tag_row(tag, content)
+local function trim_content(opts)
+  local lines = vim.split(opts.content, "\n")
+  local tag_row = get_tag_row({ content = opts.content, tag = opts.tag })
 
   local prefix = ""
   local suffix = ""
@@ -56,19 +54,19 @@ local function trim_content(content, tag)
     suffix = "\n..."
   end
 
-  content = table.concat(vim.list_slice(lines, start_, end_), "\n")
+  local content = table.concat(vim.list_slice(lines, start_, end_), "\n")
 
   return prefix .. content .. suffix
 end
 
 ---Send the output to the chat buffer
 ---@param SlashCommand CodeCompanion.SlashCommand
----@param content string The content of the help file
----@param selected table The selected item from the provider { tag = string, path = string }
+---@param opts { content: string, selected: { tag: string, path: string } }
 ---@return nil
-local function send_output(SlashCommand, content, selected)
+local function send_output(SlashCommand, opts)
   local ft = "vimdoc"
   local Chat = SlashCommand.Chat
+  local selected = opts.selected
   local id = "<help>" .. selected.tag .. "</help>"
 
   Chat:add_message({
@@ -80,7 +78,7 @@ local function send_output(SlashCommand, content, selected)
 Note the path to the help file is `%s`.
 ]],
       selected.tag,
-      markdown.form_codeblock(content, { ft = ft }),
+      markdown.form_codeblock(opts.content, { ft = ft }),
       selected.path
     ),
   }, { context = { id = id }, visible = false })
@@ -96,9 +94,10 @@ end
 
 ---Output from the slash command in the chat buffer
 ---@param SlashCommand CodeCompanion.SlashCommand
----@param selected table The selected item from the provider { tag = string, path = string }
+---@param opts { selected: { tag: string, path: string } }
 ---@return nil
-local function output(SlashCommand, selected)
+local function output(SlashCommand, opts)
+  local selected = opts.selected
   if not config.can_send_code() and (SlashCommand.config.opts and SlashCommand.config.opts.contains_code) then
     return log:warn("Sending of code has been disabled")
   end
@@ -115,13 +114,13 @@ local function output(SlashCommand, selected)
         return
       end
       if choice == "No" then
-        return send_output(SlashCommand, content, selected)
+        return send_output(SlashCommand, { content = content, selected = selected })
       end
-      content = trim_content(content, selected.tag)
-      return send_output(SlashCommand, content, selected)
+      content = trim_content({ content = content, tag = selected.tag })
+      return send_output(SlashCommand, { content = content, selected = selected })
     end)
   else
-    return send_output(SlashCommand, content, selected)
+    return send_output(SlashCommand, { content = content, selected = selected })
   end
 end
 
@@ -135,8 +134,10 @@ local providers = {
       title = CONSTANTS.PROMPT .. ": ",
       output = function(selection)
         return output(SlashCommand, {
-          path = selection.file,
-          tag = selection.tag,
+          selected = {
+            path = selection.file,
+            tag = selection.tag,
+          },
         })
       end,
     })
@@ -158,8 +159,10 @@ local providers = {
       title = CONSTANTS.PROMPT,
       output = function(selection)
         return output(SlashCommand, {
-          path = selection.filename,
-          tag = selection.display,
+          selected = {
+            path = selection.filename,
+            tag = selection.display,
+          },
         })
       end,
     })
@@ -178,7 +181,7 @@ local providers = {
     mini_pick = mini_pick.new({
       title = CONSTANTS.PROMPT,
       output = function(selected)
-        return output(SlashCommand, selected)
+        return output(SlashCommand, { selected = selected })
       end,
     })
 
@@ -201,7 +204,7 @@ local providers = {
     fzf = fzf.new({
       title = CONSTANTS.PROMPT,
       output = function(selected)
-        return output(SlashCommand, selected)
+        return output(SlashCommand, { selected = selected })
       end,
     })
 

@@ -11,10 +11,10 @@ local function get_model_id(model)
   return type(model) == "table" and (model.id or model.modelId) or model
 end
 
----@param model string|table
----@param opts { adapter: CodeCompanion.HTTPAdapter|CodeCompanion.ACPAdapter }
+---@param opts { model: string|table, adapter: CodeCompanion.HTTPAdapter|CodeCompanion.ACPAdapter }
 ---@return string
-local function get_model_label(model, opts)
+local function get_model_label(opts)
+  local model = opts.model
   if type(model) ~= "table" then
     return model
   end
@@ -142,7 +142,8 @@ function M.select_model(opts)
     prompt = "Select Model",
     kind = "codecompanion.nvim",
     format_item = function(model)
-      return (get_model_id(model) == current_id and "* " or "  ") .. get_model_label(model, opts)
+      return (get_model_id(model) == current_id and "* " or "  ")
+        .. get_model_label({ model = model, adapter = opts.adapter })
     end,
   }, function(model)
     opts.on_choice(model and get_model_id(model))

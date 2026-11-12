@@ -90,15 +90,14 @@ local function extract_file_symbols(path)
 end
 
 ---Find which symbol contains a diagnostic line
----@param diagnostic_line number Line number of the diagnostic
----@param symbols table[] Array of symbols to search through
+---@param opts { symbols: table[], diagnostic_line: number }
 ---@return table|nil symbol The smallest containing symbol or nil
-local function find_containing_symbol(diagnostic_line, symbols)
+local function find_containing_symbol(opts)
   local best_symbol = nil
   local best_size = math.huge
 
-  for _, symbol in ipairs(symbols) do
-    if symbol.start_line <= diagnostic_line and symbol.end_line >= diagnostic_line then
+  for _, symbol in ipairs(opts.symbols) do
+    if symbol.start_line <= opts.diagnostic_line and symbol.end_line >= opts.diagnostic_line then
       local symbol_size = symbol.end_line - symbol.start_line
       if symbol_size < best_size then
         best_symbol = symbol
@@ -138,15 +137,14 @@ local function group_by_proximity(diagnostics)
 end
 
 ---Group diagnostics by symbol they belong to
----@param path string Path to the file
----@param diagnostics table[] Array of diagnostic entries
----@param file_content? string Optional file content to avoid re-reading
+---@param opts { path: string, diagnostics: table[], file_content?: string }
 ---@return table[] diagnostic_groups Array of groups with diagnostics and symbol info
 ---@return string|nil content File content if available
-local function group_diagnostics_by_symbol(path, diagnostics, file_content)
-  local symbols, content = extract_file_symbols(path)
-  if not content and file_content then
-    content = file_content
+local function group_diagnostics_by_symbol(opts)
+  local diagnostics = opts.diagnostics
+  local symbols, content = extract_file_symbols(opts.path)
+  if not content and opts.file_content then
+    content = opts.file_content
   end
   if not symbols or #symbols == 0 then
     return group_by_proximity(diagnostics), content
@@ -155,7 +153,7 @@ local function group_diagnostics_by_symbol(path, diagnostics, file_content)
   local symbol_groups = {}
   local ungrouped_diagnostics = {}
   for _, diagnostic in ipairs(diagnostics) do
-    local containing_symbol = find_containing_symbol(diagnostic.lnum, symbols)
+    local containing_symbol = find_containing_symbol({ symbols = symbols, diagnostic_line = diagnostic.lnum })
     if containing_symbol then
       local symbol_key =
         fmt("%s_%d_%d", containing_symbol.name, containing_symbol.start_line, containing_symbol.end_line)
@@ -196,15 +194,12 @@ local function group_diagnostics_by_symbol(path, diagnostics, file_content)
 end
 
 ---Generate context for a group of diagnostics
----@param group_info table Group containing diagnostics and symbol
----@param file_content string Content of the file
----@param group_index number Index of this group
----@param total_groups number Total number of groups
+---@param opts { group_info: table, file_content: string, group_index: number, total_groups: number }
 ---@return string context Formatted context with line numbers
-local function generate_context_for_group(group_info, file_content, group_index, total_groups)
-  local lines = vim.split(file_content, "\n")
-  local diagnostics = group_info.diagnostics
-  local symbol = group_info.symbol
+local function generate_context_for_group(opts)
+  local lines = vim.split(opts.file_content, "\n")
+  local diagnostics = opts.group_info.diagnostics
+  local symbol = opts.group_info.symbol
   local context_start, context_end, header
   if symbol then
     context_start = math.max(1, symbol.start_line - 3)
@@ -223,19 +218,20 @@ local function generate_context_for_group(group_info, file_content, group_index,
     table.insert(context_lines, fmt("%d: %s", i, lines[i]))
   end
   local context = table.concat(context_lines, "\n")
-  if total_groups > 1 then
-    context = fmt("--- Group %d (%s) ---\n%s", group_index, header, context)
+  if opts.total_groups > 1 then
+    context = fmt("--- Group %d (%s) ---\n%s", opts.group_index, header, context)
   end
 
   return context
 end
 
 ---Process a single file and generate description for chat
----@param path string Path to the file
----@param file_data table File data with diagnostics
+---@param opts { path: string, file_data: table }
 ---@return string|nil description Formatted description for chat or nil if failed
 ---@return string id Context ID for the file
-local function process_single_file(path, file_data)
+local function process_single_file(opts)
+  local path = opts.path
+  local file_data = opts.file_data
   local ft = vim.filetype.match({ filename = path })
   local id = "<quickfix>" .. vim.fn.fnamemodify(path, ":.") .. "</quickfix>"
 
@@ -268,7 +264,8 @@ local function process_single_file(path, file_data)
         markdown.form_codeblock(content, { ft = ft })
       )
     else
-      local diagnostic_groups, _ = group_diagnostics_by_symbol(path, file_data.diagnostics, file_content)
+      local diagnostic_groups, _ =
+        group_diagnostics_by_symbol({ path = path, diagnostics = file_data.diagnostics, file_content = file_content })
       local diagnostic_summary = {}
       for group_idx, group_info in ipairs(diagnostic_groups) do
         if #diagnostic_groups > 1 then
@@ -290,7 +287,12 @@ local function process_single_file(path, file_data)
       end
       local contexts = {}
       for i, group_info in ipairs(diagnostic_groups) do
-        local group_context = generate_context_for_group(group_info, file_content, i, #diagnostic_groups)
+        local group_context = generate_context_for_group({
+          group_info = group_info,
+          file_content = file_content,
+          group_index = i,
+          total_groups = #diagnostic_groups,
+        })
         table.insert(contexts, group_context)
       end
       content = table.concat(contexts, "\n\n")
@@ -333,7 +335,7 @@ function EditorContext:chat_render()
   local files = group_entries_by_file(entries)
 
   for path, file_data in pairs(files) do
-    local description, id = process_single_file(path, file_data)
+    local description, id = process_single_file({ path = path, file_data = file_data })
     if description then
       self.Chat:add_message({
         role = config.constants.USER_ROLE,

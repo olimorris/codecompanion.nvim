@@ -21,6 +21,7 @@ CodeCompanion changes as little of your UI as it can. Instead, it exposes chat m
 | `context_items` | Number of context items in the chat |
 | `cycles` | Number of turns, from your message to the LLM's response |
 | `id` | The chat's ID |
+| `title` | The chat's title, once it has one |
 | `tokens` | Running total of tokens |
 | `tools` | Number of tools in the chat |
 
@@ -43,15 +44,12 @@ Every group links to a built-in group by default, so your colourscheme styles it
 | `CodeCompanionChatError` | Error messages |
 | `CodeCompanionChatSubtext` | Text under an information, warning or error message |
 | `CodeCompanionChatTokens` | Virtual text showing the token count |
-| `CodeCompanionChatFold` | Folds, except for tool output |
+| `CodeCompanionChatFold` | Folds |
 | `CodeCompanionChatEditorContext` | Editor context, such as `#{buffer}` |
 | `CodeCompanionChatTool` | Tools, such as `@{agent}` |
-| `CodeCompanionChatToolText` | Tool output, overriding markdown rendering |
 | `CodeCompanionChatToolPending` | A tool waiting to run |
 | `CodeCompanionChatToolInProgress` | A running tool |
-| `CodeCompanionChatToolSuccess` | The summary of a tool that succeeded |
 | `CodeCompanionChatToolSuccessIcon` | The icon of a tool that succeeded |
-| `CodeCompanionChatToolFailure` | The summary of a tool that failed |
 | `CodeCompanionChatToolFailureIcon` | The icon of a tool that failed |
 
 **Diffs**

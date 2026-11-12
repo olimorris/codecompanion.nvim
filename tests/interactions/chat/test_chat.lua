@@ -863,7 +863,6 @@ T["Chat"]["on_tool_output callback receives correct args"] = function()
       callback_args = {
         tool = args.tool,
         content = args.content,
-        display = args.display,
       }
       args.content = "Modified: " .. args.content
     end)
@@ -880,7 +879,7 @@ T["Chat"]["on_tool_output callback receives correct args"] = function()
         type = "function",
       },
     }
-    chat:add_tool_output(tool, { content = "LLM output", display = "User output" })
+    chat:add_tool_output(tool, { content = "LLM output" })
 
     return {
       callback_args = callback_args,
@@ -890,8 +889,47 @@ T["Chat"]["on_tool_output callback receives correct args"] = function()
 
   h.eq(result.callback_args.tool, "weather")
   h.eq(result.callback_args.content, "LLM output")
-  h.eq(result.callback_args.display, "User output")
   h.eq(result.message_content, "Modified: LLM output")
+end
+
+T["Chat"]["merges tool output when the call ID DIFFERS from the item ID"] = function()
+  local tool_messages = child.lua([[
+    local chat = _G.chat
+    chat.adapter = require("codecompanion.adapters").resolve("openai")
+
+    local tool = {
+      name = "weather",
+      function_call = {
+        ["function"] = { arguments = "{}", name = "weather" },
+        call_id = "call_1",
+        id = "fc_1",
+        type = "function",
+      },
+    }
+    chat:add_tool_output(tool, { content = "first" })
+    chat:add_tool_output(tool, { content = "second" })
+
+    return vim.iter(chat.messages):filter(function(message) return message.role == "tool" end):map(function(message)
+      return message.content
+    end):totable()
+  ]])
+
+  h.eq({ "first\n\nsecond" }, tool_messages)
+end
+
+T["Chat"]["updates the float's border title when the title is set"] = function()
+  local title = child.lua([[
+    chat.ui:hide()
+    local float_chat = require("codecompanion.interactions.chat").new({
+      buffer_context = { bufnr = 1, filetype = "lua" },
+      adapter = "test_adapter",
+      window_opts = { layout = "float", border = "single" },
+    })
+    float_chat:set_title("Explaining the parser")
+    return vim.api.nvim_win_get_config(float_chat.ui.winnr).title
+  ]])
+
+  h.eq({ { " Explaining the parser " } }, title)
 end
 
 T["Chat"]["btw"] = new_set()
@@ -915,14 +953,14 @@ T["Chat"]["btw"]["ignores empty input"] = function()
   h.eq(vim.NIL, queued)
 end
 
-T["Chat"]["btw"]["last message wins when queued multiple times"] = function()
+T["Chat"]["btw"]["appends messages when queued multiple times"] = function()
   child.lua([[
     chat:btw("first")
     chat:btw("second")
   ]])
 
   local queued = child.lua_get([[chat._btw]])
-  h.eq("second", queued)
+  h.eq("first\n\nsecond", queued)
 end
 
 T["Chat"]["inject"] = new_set()

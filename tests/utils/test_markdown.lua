@@ -25,7 +25,75 @@ local function read_back(str)
   return content, blocks
 end
 
+local FORMATTING_NODES = {
+  code_span = true,
+  emphasis = true,
+  html_tag = true,
+  inline_link = true,
+  latex_block = true,
+  strikethrough = true,
+  strong_emphasis = true,
+}
+
+---Render `str` as inline markdown, returning the visible text and whether any of it is formatted
+---@param str string
+---@return string text
+---@return boolean formatted
+local function render_inline(str)
+  local root = vim.treesitter.get_string_parser(str, "markdown_inline"):parse()[1]:root()
+  local formatted = false
+  local escaped_bytes = {}
+
+  local function walk(node)
+    if FORMATTING_NODES[node:type()] then
+      formatted = true
+    end
+    if node:type() == "backslash_escape" then
+      local _, _, start_byte = node:start()
+      escaped_bytes[start_byte + 1] = true
+    end
+    for child in node:iter_children() do
+      walk(child)
+    end
+  end
+  walk(root)
+
+  local text = {}
+  for i = 1, #str do
+    if not escaped_bytes[i] then
+      table.insert(text, str:sub(i, i))
+    end
+  end
+  return table.concat(text), formatted
+end
+
 T["Markdown utils"] = new_set()
+
+T["Markdown utils"]["escape_formatting"] = new_set({
+  parametrize = {
+    { "**bold**" },
+    { "`code`" },
+    { "~~struck~~" },
+    { "*.lua or tests/*" },
+    { "C:\\Users\\*" },
+    { "a\\`b`" },
+    { "echo $HOME $PATH" },
+    { "rm __init__.py" },
+    { "echo [a](b)" },
+    { "echo <div>" },
+  },
+})
+
+T["Markdown utils"]["escape_formatting"]["renders the text as written"] = function(text)
+  local rendered, formatted = render_inline(markdown.escape_formatting(text))
+  h.eq(text, rendered)
+  h.eq(false, formatted)
+end
+
+T["Markdown utils"]["escape_formatting"]["DOES NOT render as written WITHOUT escaping"] = function(text)
+  local rendered, formatted = render_inline(text)
+  h.eq(true, rendered ~= text or formatted)
+end
 
 T["Markdown utils"]["form_codeblock"] = new_set()
 
