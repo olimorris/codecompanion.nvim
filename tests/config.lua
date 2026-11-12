@@ -436,6 +436,9 @@ return {
         tool_failure = "xx ",
       },
       intro_message = "", -- Keep this blank or it messes up the screenshot tests
+      title = {
+        position = false, -- A winbar would shift every screenshot down a line
+      },
     },
     diff = {
       enabled = false,

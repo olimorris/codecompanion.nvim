@@ -84,33 +84,6 @@ T["Input"]["writes the prompt into the chat buffer under a user header on submit
   h.expect_contains("What does this do?", table.concat(result.chat, "\n"))
 end
 
-T["Input"]["shows the title, adapter and model in the chat window's winbar"] = function()
-  local result = child.lua([[
-    local function winbar()
-      local expression = vim.wo[chat.ui.winnr].winbar
-      return vim.api.nvim_eval_statusline(expression, { winid = chat.ui.winnr, use_winbar = true, maxwidth = 80 }).str
-    end
-    local before = winbar()
-    chat:set_title("100% explained")
-    return { before = before, after = winbar() }
-  ]])
-
-  h.expect_match(result.before, "^ CodeCompanion.nvim%s+test_adapter · gpt%-3.5%-turbo $")
-  h.expect_match(result.after, "^ 100%% explained%s+")
-end
-
-T["Input"]["clears the winbar from a reused window when the chat is hidden"] = function()
-  local winbar = child.lua([[
-    h.teardown_chat_buffer()
-    _G.chat = h.setup_chat_buffer({ display = { chat = { window = { layout = "buffer" }, input = { layout = "split" } } } })
-    local winnr = chat.ui.winnr
-    chat.ui:hide()
-    return { shows_chat = vim.api.nvim_win_get_buf(winnr) == chat.bufnr, winbar = vim.wo[winnr].winbar }
-  ]])
-
-  h.eq({ shows_chat = false, winbar = "" }, winbar)
-end
-
 T["Input"]["keeps the context block in the input and OUT of the chat buffer"] = function()
   local result = child.lua([[
     chat.context:add({ id = "<buf>foo.lua</buf>", source = "test" })

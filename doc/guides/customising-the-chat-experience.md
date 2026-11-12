@@ -51,8 +51,6 @@ require("codecompanion").setup({
       input = {
         layout = "split", -- Can be "buffer" or "split"
         height = 8, -- lines
-        title = "CodeCompanion.nvim",
-        winbar = true,
       },
     },
   },
@@ -62,7 +60,6 @@ require("codecompanion").setup({
 When you send it, your message is added to the chat buffer under your header. With the split:
 
 - **Chat buffer** - It's read-only, and the chat settings from `display.chat.show_settings` aren't shown at the top
-- **Winbar** - The chat window's winbar shows the chat's title, or `title` until it has one, with the adapter and model on the right. Set `winbar = false` if a plugin already manages your winbar
 - **Filetype** - The input is a `codecompanion_chat_input` buffer, so it can be targeted separately from the chat buffer in your statusline or autocmds
 - **Keymaps** - Every chat buffer keymap works in both windows. Pressing `i`, `a`, `I`, `A`, `o` or `O` in the chat buffer moves you to the input
 - **Window** - Hiding or closing either window closes both. If you resize the input, that chat keeps the new height until you restart Neovim. New chats open at `height`

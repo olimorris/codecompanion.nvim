@@ -1,4 +1,4 @@
-*codecompanion.txt*        For NVIM v0.12        Last change: 2026 November 08
+*codecompanion.txt*        For NVIM v0.12        Last change: 2026 November 11
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -1247,8 +1247,6 @@ in a separate split beneath the chat window:
           input = {
             layout = "split", -- Can be "buffer" or "split"
             height = 8, -- lines
-            title = "CodeCompanion.nvim",
-            winbar = true,
           },
         },
       },
@@ -1259,7 +1257,6 @@ When you send it, your message is added to the chat buffer under your header.
 With the split:
 
 - **Chat buffer** - It's read-only, and the chat settings from `display.chat.show_settings` aren't shown at the top
-- **Winbar** - The chat window's winbar shows the chat's title, or `title` until it has one, with the adapter and model on the right. Set `winbar = false` if a plugin already manages your winbar
 - **Filetype** - The input is a `codecompanion_chat_input` buffer, so it can be targeted separately from the chat buffer in your statusline or autocmds
 - **Keymaps** - Every chat buffer keymap works in both windows. Pressing `i`, `a`, `I`, `A`, `o` or `O` in the chat buffer moves you to the input
 - **Window** - Hiding or closing either window closes both. If you resize the input, that chat keeps the new height until you restart Neovim. New chats open at `height`
@@ -6156,6 +6153,7 @@ keyed by buffer number:
   context_items    Number of context items in the chat
   cycles           Number of turns, from your message to the LLM's response
   id               The chat's ID
+  title            The chat's title, once it has one
   tokens           Running total of tokens
   tools            Number of tools in the chat
 `_G.codecompanion_current_context` holds the number of the buffer that
@@ -8978,8 +8976,6 @@ it in a separate split beneath the chat window instead:
           input = {
             layout = "split", -- Can be "buffer" or "split"
             height = 8, -- lines
-            title = "CodeCompanion.nvim", -- shown in the winbar until the chat has a title
-            winbar = true, -- set to false if a plugin manages your winbar
           },
         },
       },
@@ -9152,6 +9148,72 @@ and writes them at most once every 25 milliseconds. To change this:
 
 A longer interval makes the response arrive in larger pieces and uses less CPU,
 which is most noticeable in long chats.
+
+
+TITLE ~
+
+The chat's title appears as a heading at the top of the chat buffer, and
+scrolls away with the conversation. The `text.buffer` function builds it from
+the chat's |codecompanion-usage-ui-metadata|, and runs again whenever the
+metadata changes. It returns plain text, and CodeCompanion adds the `#`. To add
+the adapter's name:
+
+>lua
+    require("codecompanion").setup({
+      display = {
+        chat = {
+          title = {
+            text = {
+              buffer = function(metadata)
+                return string.format("%s (%s)", metadata.title or "CodeCompanion.nvim", metadata.adapter.name)
+              end,
+            },
+          },
+        },
+      },
+    })
+<
+
+To show the title in the chat window's winbar instead, so it stays in view as
+you scroll:
+
+>lua
+    require("codecompanion").setup({
+      display = {
+        chat = {
+          title = {
+            position = "winbar", -- Can be "buffer", "winbar" or false
+          },
+        },
+      },
+    })
+<
+
+The winbar also shows the adapter and model. `text.winbar` returns a string in
+Neovim's `'statusline'` format, so to show the token count instead:
+
+>lua
+    require("codecompanion").setup({
+      display = {
+        chat = {
+          title = {
+            position = "winbar",
+            text = {
+              winbar = function(metadata)
+                local title = (metadata.title or "CodeCompanion.nvim"):gsub("%%", "%%%%")
+                return string.format(" %s%%=%d tokens ", title, metadata.tokens)
+              end,
+            },
+          },
+        },
+      },
+    })
+<
+
+
+  [!IMPORTANT] Double any `%` in the title, as the `gsub` above does, or Neovim
+  reads it as a statusline item
+To turn the title off, set `position = false`.
 
 
 OTHERS ~
