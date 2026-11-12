@@ -215,11 +215,10 @@ end
 ---@return table Request object
 function ACPHandler:create_and_send_prompt(payload)
   -- Transform ACP commands before sending
-  local transformed_payload = vim.deepcopy(payload)
-  transformed_payload.messages = self:transform_acp_commands(payload.messages)
+  local messages = self:transform_acp_commands(payload.messages)
 
   return self.chat.acp_connection
-    :session_prompt(transformed_payload.messages)
+    :session_prompt(messages)
     :on_message_chunk(function(content)
       self:handle_message_chunk(content)
     end)
