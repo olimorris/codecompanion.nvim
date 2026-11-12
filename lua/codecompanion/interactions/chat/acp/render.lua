@@ -56,6 +56,7 @@ function M.restore_session(chat, updates)
   process_user_chunks()
   process_llm_chunks()
 
+  chat.builder:flush()
   chat:ready_for_input()
 end
 
