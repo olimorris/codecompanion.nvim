@@ -191,7 +191,7 @@ end
 ---@param callback fun(msg: { status: "success"|"error", data: string })
 ---@return nil
 local function get_diagnostics(action, callback)
-  if not action.filepath or action.filepath == "" then
+  if type(action.filepath) ~= "string" or action.filepath == "" then
     return callback({
       status = "error",
       data = "filepath parameter is required and cannot be empty",
@@ -217,8 +217,9 @@ local function get_diagnostics(action, callback)
   end
 
   local min_severity = vim.diagnostic.severity.HINT
-  if action.severity then
-    local key = severity_map[string.upper(action.severity)]
+  local severity = helpers.normalise_null(action.severity)
+  if severity then
+    local key = severity_map[string.upper(severity)]
     if key then
       min_severity = vim.diagnostic.severity[key] or min_severity
     end

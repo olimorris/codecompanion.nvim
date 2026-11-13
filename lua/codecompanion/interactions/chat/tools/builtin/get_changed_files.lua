@@ -40,14 +40,32 @@ local function get_git_diff(opts)
   return result, desc
 end
 
+---@param opts { source_control_state: any }
+---@return { states: string[] }|{ error_message: string }
+local function validate_states(opts)
+  local states = helpers.normalise_null(opts.source_control_state) or DEFAULT_STATES
+  if type(states) ~= "table" or not vim.islist(states) then
+    return { error_message = "source_control_state must be an array of valid git states" }
+  end
+  for _, state in ipairs(states) do
+    if not vim.tbl_contains(DEFAULT_STATES, state) then
+      return { error_message = "source_control_state must contain only valid git states" }
+    end
+  end
+  return { states = states }
+end
+
 ---Get changed files in the current working directory based on the git state.
 ---@param opts { action: {source_control_state?: string[]}, max_lines: number }
 ---@return {status: "success"|"error", data: string}
 local function get_changed_files(opts)
-  local states = opts.action.source_control_state or DEFAULT_STATES
+  local validation = validate_states({ source_control_state = opts.action.source_control_state })
+  if validation.error_message then
+    return { status = "error", data = validation.error_message }
+  end
   local output = {}
 
-  for _, state in ipairs(states) do
+  for _, state in ipairs(validation.states) do
     local result, desc = get_git_diff({ state = state, max_lines = opts.max_lines })
     if desc then
       if state == "merge-conflicts" then
@@ -136,7 +154,15 @@ return {
     ---@param opts { tools: CodeCompanion.Tools }
     ---@return string
     cmd_string = function(self, opts)
-      local states = self.args.source_control_state or DEFAULT_STATES
+      local states = helpers.normalise_null(self.args.source_control_state) or DEFAULT_STATES
+      if type(states) ~= "table" or not vim.islist(states) then
+        return "git changes"
+      end
+      for _, state in ipairs(states) do
+        if type(state) ~= "string" then
+          return "git changes"
+        end
+      end
       return fmt("git changes (%s)", table.concat(states, ", "))
     end,
 

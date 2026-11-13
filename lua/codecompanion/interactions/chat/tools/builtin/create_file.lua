@@ -55,6 +55,10 @@ return {
     ---@param opts { output_cb: fun(response: {status: "success"|"error", data: string}) }
     ---@return nil
     function(self, args, opts)
+      if type(args.content) ~= "string" then
+        return opts.output_cb({ status = "error", data = "content parameter is required and must be a string" })
+      end
+
       local filepath = vim.fs.normalize(args.filepath)
 
       local ok, error_message = validate_creation_path(filepath)

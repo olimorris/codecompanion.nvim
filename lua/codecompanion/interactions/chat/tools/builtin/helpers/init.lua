@@ -2,6 +2,16 @@ local fmt = string.format
 
 local M = {}
 
+---@generic T
+---@param value T
+---@return T|nil
+M.normalise_null = function(value)
+  if value == vim.NIL then
+    return nil
+  end
+  return value
+end
+
 ---Rejection message back to the LLM
 ---@param self CodeCompanion.Tools.Tool
 ---@param opts table

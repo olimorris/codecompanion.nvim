@@ -542,12 +542,12 @@ T["Responses"]["build_tools"]["format available tools to call"] = function()
       properties = {
         location = {
           description = "City and country e.g. Bogotá, Colombia",
-          type = { "string", "null" },
+          type = "string",
         },
         units = {
           description = "Units the temperature will be returned in.",
           enum = { "celsius", "fahrenheit" },
-          type = { "string", "null" },
+          type = "string",
         },
       },
       required = { "location", "units" },
