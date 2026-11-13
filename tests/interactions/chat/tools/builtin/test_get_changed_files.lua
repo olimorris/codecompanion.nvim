@@ -28,7 +28,9 @@ local T = new_set({
   },
 })
 
-T["includes unstaged changes when source_control_state is null"] = function()
+T["get_changed_files"] = new_set()
+
+T["get_changed_files"]["includes unstaged changes when source_control_state is null"] = function()
   child.lua([[
     local builtin = require("codecompanion.interactions.chat.tools.builtin.get_changed_files")
     _G.result = builtin.cmds[1]({ tool = { opts = { max_lines = 100 } } },

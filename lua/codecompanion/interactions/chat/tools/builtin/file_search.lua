@@ -11,7 +11,7 @@ local function search(opts)
   local query = opts.action.query
 
   -- Default limit to prevent overwhelming results
-  local max_results = helpers.null_to_nil(opts.action.max_results) or opts.max_results or 500
+  local max_results = helpers.normalise_null(opts.action.max_results) or opts.max_results or 500
 
   if type(query) ~= "string" or query == "" then
     return {

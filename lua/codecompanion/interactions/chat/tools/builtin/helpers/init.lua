@@ -5,7 +5,7 @@ local M = {}
 ---@generic T
 ---@param value T
 ---@return T|nil
-M.null_to_nil = function(value)
+M.normalise_null = function(value)
   if value == vim.NIL then
     return nil
   end

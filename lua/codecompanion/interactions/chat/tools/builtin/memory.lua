@@ -333,7 +333,7 @@ return {
         "old_path",
         "new_path",
       }) do
-        args[key] = helpers.null_to_nil(args[key])
+        args[key] = helpers.normalise_null(args[key])
       end
 
       local command = args.command
@@ -537,7 +537,7 @@ return {
       elseif command == "str_replace" then
         return fmt("replace text in %s", args.path)
       elseif command == "insert" then
-        return fmt("insert text at line %d in %s", helpers.null_to_nil(args.insert_line) or 0, args.path)
+        return fmt("insert text at line %d in %s", helpers.normalise_null(args.insert_line) or 0, args.path)
       elseif command == "delete" then
         return fmt("delete %s", args.path)
       elseif command == "rename" then

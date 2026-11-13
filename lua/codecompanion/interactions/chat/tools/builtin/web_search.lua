@@ -6,6 +6,30 @@ local log = require("codecompanion.utils.log")
 
 local fmt = string.format
 
+---@param opts { query: string, domains: string[]?, arguments: table, adapter_opts: table, callback: fun(result: table) }
+local function request_search(opts)
+  local tool_adapter = config.interactions.chat.tools.web_search.opts.adapter
+  local adapter = vim.deepcopy(adapters.resolve(tool_adapter))
+  adapter.methods.tools.web_search.setup(adapter, opts.adapter_opts, opts.arguments)
+
+  client.new({ adapter = adapter }):request({ query = opts.query, domains = opts.domains }, {
+    callback = function(err, data)
+      local error_message = [[Error searching for "%s"]]
+      local error_message_expanded = error_message .. " %s"
+
+      if data then
+        local output = adapter.methods.tools.web_search.callback(adapter, data)
+        if output.status == "error" then
+          log:error("[Web Search Tool] " .. error_message, opts.query)
+          return opts.callback({ status = "error", data = fmt(error_message_expanded, opts.query, output.content) })
+        end
+
+        return opts.callback({ status = "success", data = output.content })
+      end
+    end,
+  })
+end
+
 ---@class CodeCompanion.Tool.WebSearch: CodeCompanion.Tools.Tool
 return {
   name = "web_search",
@@ -35,7 +59,7 @@ return {
 
       -- Keep the recorded tool call unchanged when cleaning the query
       args = vim.tbl_extend("force", {}, args)
-      args.domains = helpers.null_to_nil(args.domains)
+      args.domains = helpers.normalise_null(args.domains)
       if args.domains == "" then
         args.domains = nil
       end
@@ -51,32 +75,13 @@ return {
       end
       args.query = string.gsub(args.query, "%f[%w_]web_search%f[^%w_]", "", 1)
 
-      local tool_adapter = config.interactions.chat.tools.web_search.opts.adapter
-      local adapter = vim.deepcopy(adapters.resolve(tool_adapter))
-      adapter.methods.tools.web_search.setup(adapter, opts.opts, args)
-
-      local query = args.query
-
-      client
-        .new({
-          adapter = adapter,
-        })
-        :request({ query = query, domains = args.domains }, {
-          callback = function(err, data)
-            local error_message = [[Error searching for "%s"]]
-            local error_message_expanded = error_message .. " %s"
-
-            if data then
-              local output = adapter.methods.tools.web_search.callback(adapter, data)
-              if output.status == "error" then
-                log:error("[Web Search Tool] " .. error_message, query)
-                return cb({ status = "error", data = fmt(error_message_expanded, query, output.content) })
-              end
-
-              return cb({ status = "success", data = output.content })
-            end
-          end,
-        })
+      request_search({
+        query = args.query,
+        domains = args.domains,
+        arguments = args,
+        adapter_opts = opts.opts,
+        callback = cb,
+      })
     end,
   },
   schema = {

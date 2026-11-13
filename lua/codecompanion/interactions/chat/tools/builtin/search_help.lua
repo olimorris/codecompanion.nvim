@@ -467,10 +467,10 @@ return {
       if type(command) ~= "string" or command == "" then
         return { status = "error", data = "The `command` parameter must be a non-empty string." }
       end
-      local section = tool_helpers.null_to_nil(args.section)
+      local section = tool_helpers.normalise_null(args.section)
 
       if command == "outline" then
-        return run_outline({ doc = doc, section = section, max_level = tool_helpers.null_to_nil(args.max_level) })
+        return run_outline({ doc = doc, section = section, max_level = tool_helpers.normalise_null(args.max_level) })
       end
       if command == "read" then
         return run_read({ doc = doc, section = section, max_lines = opts.max_lines or 200 })
@@ -478,8 +478,8 @@ return {
       if command == "search" then
         return run_search({
           doc = doc,
-          query = tool_helpers.null_to_nil(args.query),
-          regex = tool_helpers.null_to_nil(args.regex),
+          query = tool_helpers.normalise_null(args.query),
+          regex = tool_helpers.normalise_null(args.regex),
           max_results = opts.max_results or 50,
         })
       end
@@ -539,9 +539,9 @@ return {
     ---@return string
     cmd_string = function(self, opts)
       local args = self.args or {}
-      return tool_helpers.null_to_nil(args.query)
-        or tool_helpers.null_to_nil(args.section)
-        or tool_helpers.null_to_nil(args.command)
+      return tool_helpers.normalise_null(args.query)
+        or tool_helpers.normalise_null(args.section)
+        or tool_helpers.normalise_null(args.command)
         or ""
     end,
 

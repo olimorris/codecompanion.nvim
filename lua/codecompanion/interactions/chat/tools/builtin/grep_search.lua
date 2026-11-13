@@ -12,8 +12,8 @@ local function build_command(opts)
   local cmd = { "rg" }
   local cwd = vim.fn.getcwd()
   local max_results = opts.max_results or 100
-  local is_regexp = helpers.null_to_nil(action.is_regexp) or false
-  local include_pattern = helpers.null_to_nil(action.include_pattern)
+  local is_regexp = helpers.normalise_null(action.is_regexp) or false
+  local include_pattern = helpers.normalise_null(action.include_pattern)
   local respect_gitignore = opts.respect_gitignore
   if respect_gitignore == nil then
     respect_gitignore = opts.respect_gitignore ~= false

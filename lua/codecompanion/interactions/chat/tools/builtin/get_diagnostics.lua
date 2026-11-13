@@ -217,7 +217,7 @@ local function get_diagnostics(action, callback)
   end
 
   local min_severity = vim.diagnostic.severity.HINT
-  local severity = helpers.null_to_nil(action.severity)
+  local severity = helpers.normalise_null(action.severity)
   if severity then
     local key = severity_map[string.upper(severity)]
     if key then

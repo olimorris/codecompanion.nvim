@@ -68,8 +68,8 @@ return {
         if type(question) ~= "table" or type(question.header) ~= "string" or type(question.question) ~= "string" then
           return { status = "error", data = "Each question requires a string header and question" }
         end
-        question.multiSelect = helpers.null_to_nil(question.multiSelect)
-        question.options = helpers.null_to_nil(question.options)
+        question.multiSelect = helpers.normalise_null(question.multiSelect)
+        question.options = helpers.normalise_null(question.options)
         if question.options and type(question.options) ~= "table" then
           return { status = "error", data = "Question options must be an array" }
         end
@@ -77,8 +77,8 @@ return {
           if type(option) ~= "table" or type(option.label) ~= "string" then
             return { status = "error", data = "Each option requires a string label" }
           end
-          option.description = helpers.null_to_nil(option.description)
-          option.recommended = helpers.null_to_nil(option.recommended)
+          option.description = helpers.normalise_null(option.description)
+          option.recommended = helpers.normalise_null(option.recommended)
         end
       end
 
