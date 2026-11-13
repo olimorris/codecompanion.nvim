@@ -170,6 +170,26 @@ T["handles empty filepath"] = function()
   h.expect_contains("required and cannot be empty", output)
 end
 
+T["includes hints when severity is null"] = function()
+  child.lua([[
+    vim.fn.writefile({ "hello" }, _G.TEST_TMPFILE_ABSOLUTE)
+    local bufnr = vim.fn.bufadd(_G.TEST_TMPFILE_ABSOLUTE)
+    vim.fn.bufload(bufnr)
+    vim.diagnostic.set(vim.api.nvim_create_namespace("null_severity"), bufnr, {
+      { lnum = 0, col = 0, severity = vim.diagnostic.severity.HINT, message = "Hint for null severity" },
+    })
+    tools:execute(chat, { {
+      ["function"] = {
+        name = "get_diagnostics",
+        arguments = vim.json.encode({ filepath = _G.TEST_TMPFILE_ABSOLUTE, severity = vim.NIL }),
+      },
+    } })
+    assert(vim.wait(2000, function() return #chat.messages > 1 end))
+  ]])
+
+  h.expect_contains("Hint for null severity", child.lua_get("chat.messages[#chat.messages].content"))
+end
+
 T["returns multiple diagnostics with code context"] = function()
   child.lua([[
     vim.uv.chdir(_G.TEST_CWD)

@@ -222,6 +222,23 @@ T["handles empty query"] = function()
   h.expect_contains("Searched files for ``, error:", output)
 end
 
+T["uses the configured result limit when max_results is null"] = function()
+  child.lua([[
+    chat, tools = h.setup_chat_buffer({
+      interactions = { chat = { tools = { file_search = { opts = { max_results = 1 } } } } },
+    })
+    tools:execute(chat, { {
+      ["function"] = {
+        name = "file_search",
+        arguments = '{"query":"**/*","max_results":null}',
+      },
+    } })
+  ]])
+
+  local output = child.lua_get("chat.messages[#chat.messages].content")
+  h.expect_contains("1 results", output)
+end
+
 T["respects max_results parameter"] = function()
   child.lua([[
      local tool = {

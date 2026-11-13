@@ -65,6 +65,23 @@ T["can create files"] = function()
   h.eq(output, { "import pygame", "import time", "import random" }, "File was not created")
 end
 
+T["rejects null content without creating a file"] = function()
+  child.lua([[
+    tools:execute(chat, { {
+      ["function"] = {
+        name = "create_file",
+        arguments = vim.json.encode({ filepath = _G.TEST_TMPFILE_ABSOLUTE, content = vim.NIL }),
+      },
+    } })
+  ]])
+
+  h.expect_contains(
+    "content parameter is required and must be a string",
+    child.lua_get("chat.messages[#chat.messages].content")
+  )
+  h.eq(false, child.lua_get("vim.uv.fs_stat(_G.TEST_TMPFILE_ABSOLUTE) ~= nil"))
+end
+
 T["fires FileEdited when a file is created"] = function()
   child.lua([[
     vim.uv.chdir(_G.TEST_CWD)

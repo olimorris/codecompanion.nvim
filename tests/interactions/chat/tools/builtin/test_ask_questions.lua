@@ -96,6 +96,34 @@ T["ask_questions"]["answers a free text question"] = function()
   h.expect_contains("You answered: Use TypeScript", buffer)
 end
 
+T["ask_questions"]["accepts null for optional question and option fields"] = function()
+  child.lua([[
+    local question_prompt = require("codecompanion.interactions.chat.helpers.question_prompt")
+    question_prompt.ask = function(_, opts)
+      _G.prompt_question = opts.question
+      opts.callback("React")
+    end
+
+    tools:execute(chat, { {
+      ["function"] = {
+        name = "ask_questions",
+        arguments = vim.json.encode({ questions = { {
+          header = "Framework",
+          question = "Which framework?",
+          multiSelect = vim.NIL,
+          options = { { label = "React", description = vim.NIL, recommended = vim.NIL } },
+        } } }),
+      },
+    } })
+    assert(vim.wait(2000, function() return _G.prompt_question ~= nil end))
+  ]])
+
+  h.eq(false, child.lua_get("_G.prompt_question.multiSelect ~= nil"))
+  h.eq(false, child.lua_get("_G.prompt_question.options[1].description ~= nil"))
+  h.eq(false, child.lua_get("_G.prompt_question.options[1].recommended ~= nil"))
+  h.expect_contains("React", child.lua_get("chat.messages[#chat.messages].content"))
+end
+
 T["ask_questions"]["answers a single select question with a keymap"] = function()
   child.lua([[
     local tool = {

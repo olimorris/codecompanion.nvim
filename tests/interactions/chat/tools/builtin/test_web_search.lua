@@ -80,6 +80,98 @@ local T = new_set({
   },
 })
 
+T["rejects a null query"] = function()
+  child.lua([[
+    local tool_call = {
+      ["function"] = {
+        name = "web_search",
+        arguments = '{"query": null, "domains": null}'
+      },
+      id = "test_call_id",
+      type = "function"
+    }
+
+    tools:execute(chat, { tool_call })
+  ]])
+
+  local messages = child.lua_get("chat.messages")
+  local tool_message = vim.tbl_filter(function(message)
+    return message.role == "tool"
+  end, messages)[1]
+
+  h.expect_contains("No query provided for the web_search tool", tool_message.content)
+end
+
+T["searches across all domains when domains is an empty string"] = function()
+  child.lua([[
+    package.loaded["codecompanion.http"].new = function()
+      return {
+        request = function(_, payload, handlers)
+          _G.request_called = true
+          _G.request_domains = payload.domains
+          vim.schedule(function()
+            handlers.callback(nil, { results = {} })
+          end)
+        end,
+      }
+    end
+
+    tools:execute(chat, { {
+      ["function"] = { name = "web_search", arguments = '{"query":"neovim plugins","domains":""}' },
+      id = "test_call_id",
+      type = "function",
+    } })
+    vim.wait(200)
+  ]])
+
+  h.eq(true, child.lua_get("_G.request_called"))
+  h.eq(true, child.lua_get("_G.request_domains == nil"))
+  h.eq(1, #vim.tbl_filter(function(message)
+    return message.role == "tool"
+  end, child.lua_get("chat.messages")))
+end
+
+T["searches across all domains when domains is null"] = function()
+  child.lua([[
+    package.loaded["codecompanion.http"].new = function()
+      return {
+        request = function(_, payload, handlers)
+          _G.request_called = true
+          _G.request_domains = payload.domains
+          vim.schedule(function()
+            handlers.callback(nil, { results = {} })
+          end)
+        end,
+      }
+    end
+
+    tools:execute(chat, { {
+      ["function"] = { name = "web_search", arguments = '{"query":"neovim plugins","domains":null}' },
+      id = "test_call_id",
+      type = "function",
+    } })
+    assert(vim.wait(2000, function()
+      return vim.iter(chat.messages):any(function(message) return message.role == "tool" end)
+    end))
+  ]])
+
+  h.eq(true, child.lua_get("_G.request_called"))
+  h.eq(true, child.lua_get("_G.request_domains == nil"))
+end
+
+T["rejects invalid domains and reports the reason to the LLM"] = function()
+  child.lua([[
+    tools:execute(chat, { {
+      ["function"] = { name = "web_search", arguments = '{"query":"neovim plugins","domains":[null]}' },
+      id = "test_call_id",
+      type = "function",
+    } })
+  ]])
+
+  local output = child.lua_get("chat.messages[#chat.messages].content")
+  h.expect_contains("domains must be an array of strings", output)
+end
+
 T["searches web successfully"] = function()
   child.lua([[
     local tool_call = {
