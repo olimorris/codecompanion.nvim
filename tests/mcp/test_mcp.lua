@@ -58,7 +58,7 @@ T["MCP"]["start() starts and initializes the client once"] = function()
       command = "npx",
       args = { "-y", "tavily-mcp@latest" },
       env = {
-        TAVILY_API_KEY = "ABC-123",
+        { name = "TAVILY_API_KEY", value = "ABC-123" },
       },
     },
   }, transformed_config)
@@ -170,6 +170,52 @@ T["MCP"]["transform_to_acp()"]["excludes all servers when default_servers is emp
   ]])
 
   h.eq({}, result)
+end
+
+T["MCP"]["transform_to_acp()"]["resolves env values"] = function()
+  child.lua([[
+    vim.env.CODECOMPANION_MCP_TOKEN = "token-from-env"
+    package.loaded["codecompanion.mcp"] = nil
+
+    MCP = require("codecompanion.mcp")
+    h = require("tests.helpers")
+    h.setup_plugin({
+      mcp = {
+        servers = {
+          ["env-server"] = {
+            cmd = { "npx", "-y", "env-server" },
+            env = {
+              API_TOKEN = "CODECOMPANION_MCP_TOKEN",
+              COMMAND_VALUE = "cmd:echo from-command",
+              STATIC_VALUE = "static",
+            },
+          },
+        },
+        opts = {
+          default_servers = { "env-server" },
+        },
+      },
+    })
+  ]])
+
+  local result = child.lua([[
+    local transformed = MCP.transform_to_acp()
+    table.sort(transformed[1].env, function(a, b) return a.name < b.name end)
+    return transformed
+  ]])
+
+  h.eq({
+    {
+      name = "env-server",
+      command = "npx",
+      args = { "-y", "env-server" },
+      env = {
+        { name = "API_TOKEN", value = "token-from-env" },
+        { name = "COMMAND_VALUE", value = "from-command" },
+        { name = "STATIC_VALUE", value = "static" },
+      },
+    },
+  }, result)
 end
 
 return T
