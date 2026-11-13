@@ -147,7 +147,9 @@ local function create_chat_buf()
     pcall(vim.treesitter.start, bufnr)
   end)
 
-  if config.interactions.chat.opts.completion_provider == "default" then
+  if
+    require("codecompanion.providers").resolve_name(config.interactions.chat.opts.completion_provider) == "default"
+  then
     vim.bo[bufnr].omnifunc = "v:lua.require'codecompanion.providers.completion.default.omnifunc'.omnifunc"
   end
 
@@ -863,22 +865,33 @@ function Chat:change_model(args)
     return adapters.set_model({ acp_connection = self.acp_connection, adapter = self.adapter, model = args.model })
   end
 
+  local function announce()
+    self:update_metadata()
+    utils.fire("ChatModel", {
+      adapter = adapters.make_safe(self.adapter),
+      bufnr = self.bufnr,
+      model = args.model,
+    })
+  end
+
+  if self.adapter.type == "acp" then
+    -- Inside a coroutine the connection yields for the agent's reply, rather than blocking the editor
+    require("codecompanion.utils.async").sync(function()
+      apply()
+      announce()
+    end)()
+    return self
+  end
+
   if self.adapter.type == "http" then
     self.settings.model = args.model
     self.adapter = apply()
 
     self:set_system_prompt()
     self:apply_settings()
-  elseif self.adapter.type == "acp" then
-    apply()
   end
 
-  self:update_metadata()
-  utils.fire("ChatModel", {
-    adapter = adapters.make_safe(self.adapter),
-    bufnr = self.bufnr,
-    model = args.model,
-  })
+  announce()
 
   return self
 end

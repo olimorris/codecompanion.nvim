@@ -31,8 +31,8 @@ end
 function Subscribers:unsubscribe(event)
   local name = event.data and event.data.name or ""
 
-  for i, subscriber in ipairs(self.queue) do
-    if subscriber.id == event.id then
+  for i = #self.queue, 1, -1 do
+    if self.queue[i].id == event.id then
       log:debug("[Subscription] Unsubscribing %s (%s)", name, event.id)
       table.remove(self.queue, i)
     end

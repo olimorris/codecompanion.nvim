@@ -319,6 +319,78 @@ T["HTTP Adapter"]["returns nil when the file for an environment variable doesn't
   h.eq(vim.NIL, result)
 end
 
+T["HTTP Adapter"]["runs a cmd environment variable once across requests"] = function()
+  local runs = child.lua([[
+    local utils = require("codecompanion.adapters.utils")
+    local counter = vim.fn.tempname()
+    local adapter = { env = { api_key = "cmd:echo run >> " .. counter .. "; echo secret" } }
+    utils.get_env_vars(adapter)
+    utils.get_env_vars(adapter)
+    return { runs = #vim.fn.readfile(counter), value = adapter.env_replaced.api_key }
+  ]])
+
+  h.eq(1, runs.runs)
+  h.eq("secret", runs.value)
+end
+
+T["HTTP Adapter"]["runs a cmd environment variable again once its cache is cleared"] = function()
+  local runs = child.lua([[
+    local utils = require("codecompanion.adapters.utils")
+    local counter = vim.fn.tempname()
+    local adapter = { env = { api_key = "cmd:echo run >> " .. counter .. "; echo secret" } }
+    utils.get_env_vars(adapter)
+    utils.clear_cached_cmds(adapter)
+    utils.get_env_vars(adapter)
+    return #vim.fn.readfile(counter)
+  ]])
+
+  h.eq(2, runs)
+end
+
+T["HTTP Adapter"]["DOES NOT cache a cmd environment variable that fails"] = function()
+  local runs = child.lua([[
+    local utils = require("codecompanion.adapters.utils")
+    local counter = vim.fn.tempname()
+    local adapter = { env = { api_key = "cmd:echo run >> " .. counter .. "; exit 1" } }
+    utils.get_env_vars(adapter)
+    utils.get_env_vars(adapter)
+    return #vim.fn.readfile(counter)
+  ]])
+
+  h.eq(2, runs)
+end
+
+T["HTTP Adapter"]["keeps cmd environment variables with different commands apart"] = function()
+  local result = child.lua([[
+    local utils = require("codecompanion.adapters.utils")
+    local adapter = { env = { first = "cmd:echo one", second = "cmd:echo two" } }
+    utils.get_env_vars(adapter)
+    return adapter.env_replaced
+  ]])
+
+  h.eq("one", result.first)
+  h.eq("two", result.second)
+end
+
+T["HTTP Adapter"]["keeps a cmd environment variable apart per working directory"] = function()
+  local result = child.lua([[
+    local utils = require("codecompanion.adapters.utils")
+    local adapter = { env = { api_key = "cmd:cat .api-key" } }
+    local values = {}
+    for _, key in ipairs({ "first", "second" }) do
+      local dir = vim.fn.tempname()
+      vim.fn.mkdir(dir, "p")
+      vim.fn.writefile({ key }, vim.fs.joinpath(dir, ".api-key"))
+      vim.cmd.cd(dir)
+      utils.get_env_vars(adapter)
+      table.insert(values, adapter.env_replaced.api_key)
+    end
+    return values
+  ]])
+
+  h.eq({ "first", "second" }, result)
+end
+
 T["HTTP Adapter"]["can update a model on the adapter"] = function()
   local result = child.lua([[
     local adapter = require("codecompanion.adapters").extend(test_adapter)

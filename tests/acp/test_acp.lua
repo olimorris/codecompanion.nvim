@@ -111,7 +111,8 @@ T["ACP Connection"]["connect_and_initialize() end-to-end with real responses"] =
     local sess_resp = vim.json.decode(load_acp_stub('session_new_response.txt'))
 
     local connection = create_init_connection()
-    function connection:send_rpc_request(method, params)
+    function connection:send_rpc_request(request)
+      local method = request.method
       if method == "initialize" then
         return init_resp.result
       elseif method == "authenticate" then
@@ -141,7 +142,8 @@ T["ACP Connection"]["skips authenticate when agent has no auth methods"] = funct
   local result = child.lua([[
     local calls = {}
     local connection = create_init_connection()
-    function connection:send_rpc_request(method, params)
+    function connection:send_rpc_request(request)
+      local method = request.method
       table.insert(calls, method)
       if method == "initialize" then
         return { protocolVersion = 1, authMethods = {}, agentCapabilities = { loadSession = false } }
@@ -170,7 +172,8 @@ T["ACP Connection"]["uses session/load when agent supports it"] = function()
     local calls = {}
     local connection = create_init_connection()
     connection.session_id = "prev-session"
-    function connection:send_rpc_request(method, params)
+    function connection:send_rpc_request(request)
+      local method = request.method
       table.insert(calls, method)
       if method == "initialize" then
         return { protocolVersion = 1, authMethods = {}, agentCapabilities = { loadSession = true } }
@@ -193,7 +196,8 @@ T["ACP Connection"]["session/load restores config options metadata"] = function(
   local result = child.lua([[
     local connection = create_init_connection()
     connection.session_id = "prev-session"
-    function connection:send_rpc_request(method, params)
+    function connection:send_rpc_request(request)
+      local method = request.method
       if method == "initialize" then
         return { protocolVersion = 1, authMethods = {}, agentCapabilities = { loadSession = true } }
       elseif method == "session/load" then
@@ -237,7 +241,8 @@ end
 T["ACP Connection"]["session/new stores config options metadata"] = function()
   local result = child.lua([[
     local connection = create_init_connection()
-    function connection:send_rpc_request(method, params)
+    function connection:send_rpc_request(request)
+      local method = request.method
       if method == "initialize" then
         return { protocolVersion = 1, authMethods = {}, agentCapabilities = { loadSession = false } }
       elseif method == "session/new" then
@@ -304,7 +309,8 @@ T["ACP Connection"]["falls back to session/new if session/load fails"] = functio
     local calls = {}
     local connection = create_init_connection()
     connection.session_id = "prev-session"
-    function connection:send_rpc_request(method, params)
+    function connection:send_rpc_request(request)
+      local method = request.method
       table.insert(calls, method)
       if method == "initialize" then
         return { protocolVersion = 1, authMethods = {}, agentCapabilities = { loadSession = true } }
@@ -343,7 +349,8 @@ local function open_session_with_system_prompt(opts)
     function connection:prepare_adapter() return adapter end
 
     local sent = {}
-    function connection:send_rpc_request(method, params)
+    function connection:send_rpc_request(request)
+      local method, params = request.method, request.params
       if method == "initialize" then
         return {
           protocolVersion = 1,

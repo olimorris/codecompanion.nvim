@@ -20,7 +20,9 @@ function Input.new(args)
   local bufnr = api.nvim_create_buf(false, true)
   api.nvim_buf_set_name(bufnr, string.format("[CodeCompanion] %d input", args.chat_bufnr))
 
-  if config.interactions.chat.opts.completion_provider == "default" then
+  if
+    require("codecompanion.providers").resolve_name(config.interactions.chat.opts.completion_provider) == "default"
+  then
     vim.bo[bufnr].omnifunc = "v:lua.require'codecompanion.providers.completion.default.omnifunc'.omnifunc"
   end
 

@@ -223,6 +223,7 @@ end
 CodeCompanion.chat_refresh_cache = function()
   require("codecompanion.interactions.chat.tools.filter").refresh_cache()
   require("codecompanion.interactions.chat.slash_commands.filter").refresh_cache()
+  require("codecompanion.adapters.utils").clear_cached_cmds()
   require("codecompanion.utils").notify("Refreshed the cache for all chat buffers", vim.log.levels.INFO)
 end
 
@@ -519,6 +520,37 @@ local function adapter_config(opts)
   end
 end
 
+---@return nil
+local function load_completion_provider()
+  local providers = require("codecompanion.providers")
+  local completion = providers.resolve_name(config.interactions.chat.opts.completion_provider)
+  local ok, err = pcall(require, "codecompanion.providers.completion." .. completion .. ".setup")
+  if not ok then
+    log:warn("Failed to load completion provider `%s`: %s", completion, err)
+  end
+end
+
+---Set up completion when the first prompt buffer opens, so the user's completion plugin isn't loaded at startup
+---@return nil
+local function setup_completion_provider()
+  local providers = require("codecompanion.providers")
+  local configured = config.interactions.chat.opts.completion_provider
+
+  -- coc.nvim calls into its source as it starts, which is before any prompt buffer exists
+  if configured == "coc" or (type(configured) == "function" and providers.is_coc_installed()) then
+    return load_completion_provider()
+  end
+
+  api.nvim_create_autocmd("FileType", {
+    group = api.nvim_create_augroup("codecompanion.completion_provider", { clear = true }),
+    pattern = config.constants.PROMPT_FILETYPES,
+    once = true,
+    callback = function()
+      load_completion_provider()
+    end,
+  })
+end
+
 ---Setup the plugin
 ---@param opts? table
 ---@return nil
@@ -542,11 +574,7 @@ CodeCompanion.setup = function(opts)
 
   -- Load the main completion module first to register its autocmds
   require("codecompanion.providers.completion")
-  local completion = config.interactions.chat.opts.completion_provider
-  local ok, completion_module = pcall(require, "codecompanion.providers.completion." .. completion .. ".setup")
-  if not ok then
-    log:warn("Failed to load completion provider `%s`: %s", completion, completion_module)
-  end
+  setup_completion_provider()
 
   -- Set the log root
   log.set_root(log.new({

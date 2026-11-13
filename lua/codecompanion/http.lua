@@ -54,10 +54,13 @@ local function write_headers_file(headers)
   return path
 end
 
----@param opts { paths: string[], status?: string }
+---@param opts { paths: string[], status?: string, response?: { discard: fun() } }
 local function delete_temp_files(opts)
   if opts.status == "error" or not vim.tbl_contains({ "ERROR", "INFO" }, config.opts.log_level) then
     return
+  end
+  if opts.response then
+    opts.response.discard()
   end
   for _, path in ipairs(opts.paths) do
     files.delete(path)
@@ -78,6 +81,12 @@ local function transform_static_methods(opts)
   end
 
   return ret
+end
+
+---@param status? number
+---@return boolean
+local function is_auth_failure(status)
+  return status == 401 or status == 403
 end
 
 ---@param self CodeCompanion.HTTPClient
@@ -344,6 +353,9 @@ function Client:send_sync(payload, opts)
 
   local response, err = self.methods[Client.resolve_method(adapter) .. "_sync"](request_opts)
   if response and response.status >= 400 then
+    if is_auth_failure(response.status) then
+      adapter_utils.clear_cached_cmds(adapter)
+    end
     err = { message = string.format([[%d error: ]], response.status), stderr = response, status = response.status }
     response = nil
   end
@@ -423,6 +435,9 @@ function Client:request(payload, actions, opts)
         opts.status = "success"
         if data and data.status and data.status >= 400 then
           opts.status = "error"
+          if is_auth_failure(data.status) then
+            adapter_utils.clear_cached_cmds(adapter)
+          end
           actions.callback({ message = string.format([[%d error: ]], data.status), stderr = data }, nil)
         elseif stream_error_body then
           opts.status = "error"
@@ -432,7 +447,7 @@ function Client:request(payload, actions, opts)
         if not opts.silent then
           utils.fire("RequestFinished", opts)
         end
-        delete_temp_files({ paths = { body_file, headers_file, response.path }, status = opts.status })
+        delete_temp_files({ paths = { body_file, headers_file }, status = opts.status, response = response })
         if self.user_args.event then
           if not opts.silent then
             utils.fire(self.user_args.event, opts)
@@ -451,12 +466,12 @@ function Client:request(payload, actions, opts)
   }
 
   if adapter.opts and adapter.opts.stream then
-    local has_started_steaming = false
+    local has_started_streaming = false
 
     request_opts["compressed"] = adapter.opts.compress or false
 
     -- This will be called multiple times until the stream is finished
-    request_opts["stream"] = self.methods.schedule_wrap(function(data)
+    request_opts["stream"] = function(data)
       if data and data ~= "" then
         response.write(data)
         if data:match('^%s*{"error"') or data:match('^%s*{"type"%s*:%s*"error"') then
@@ -464,14 +479,14 @@ function Client:request(payload, actions, opts)
           return
         end
       end
-      if not has_started_steaming then
-        has_started_steaming = true
+      if not has_started_streaming then
+        has_started_streaming = true
         if not opts.silent then
           utils.fire("RequestStreaming", opts)
         end
       end
       cb(nil, data, adapter)
-    end)
+    end
   end
 
   opts.id = opts.id or math.random(10000000)

@@ -56,10 +56,11 @@ end
 ---@return function
 function SlashCommands:set_provider(SlashCommand, providers)
   if SlashCommand.config.opts and SlashCommand.config.opts.provider then
-    if not providers[SlashCommand.config.opts.provider] then
-      return log:error("Provider for the slash command could not be found: %s", SlashCommand.config.opts.provider)
+    local provider = require("codecompanion.providers").resolve_name(SlashCommand.config.opts.provider)
+    if not providers[provider] then
+      return log:error("Provider for the slash command could not be found: %s", provider)
     end
-    return providers[SlashCommand.config.opts.provider](SlashCommand) --[[@type function]]
+    return providers[provider](SlashCommand) --[[@type function]]
   end
   return providers["default"](SlashCommand)
 end
