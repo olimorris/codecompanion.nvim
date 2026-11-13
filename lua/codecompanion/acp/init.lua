@@ -209,7 +209,7 @@ function Connection:_initialize()
     return true
   end
 
-  local initialized = self:send_rpc_request(METHODS.INITIALIZE, self.adapter_modified.parameters)
+  local initialized = self:send_rpc_request({ method = METHODS.INITIALIZE, params = self.adapter_modified.parameters })
   if not initialized then
     log:error("[acp::_initialize] Failed to initialize")
     return false
@@ -296,7 +296,7 @@ function Connection:_authenticate()
       method_id = method_id or (auth_methods[1] and auth_methods[1].id)
 
       if method_id then
-        local ok = self:send_rpc_request(METHODS.AUTHENTICATE, { methodId = method_id })
+        local ok = self:send_rpc_request({ method = METHODS.AUTHENTICATE, params = { methodId = method_id } })
         if not ok then
           log:error("[acp::_authenticate] Failed to authenticate with method %s", method_id)
           return false
@@ -396,7 +396,7 @@ function Connection:session_list(opts)
       params.cursor = cursor
     end
 
-    local result = self:send_rpc_request(METHODS.SESSION_LIST, params, { times_out = true })
+    local result = self:send_rpc_request({ method = METHODS.SESSION_LIST, params = params, times_out = true })
     if not result then
       break
     end
@@ -540,10 +540,10 @@ function Connection:_establish_session()
   end
 
   if self.session_id and can_load then
-    local loaded_session = self:send_rpc_request(
-      METHODS.SESSION_LOAD,
-      vim.tbl_extend("force", session_args, { sessionId = self.session_id })
-    )
+    local loaded_session = self:send_rpc_request({
+      method = METHODS.SESSION_LOAD,
+      params = vim.tbl_extend("force", session_args, { sessionId = self.session_id }),
+    })
     if loaded_session then
       apply_session_metadata({ session_data = loaded_session, source = "Loaded session" })
     else
@@ -552,7 +552,7 @@ function Connection:_establish_session()
   end
 
   if not self.session_id or not can_load then
-    local new_session = self:send_rpc_request(METHODS.SESSION_NEW, session_args)
+    local new_session = self:send_rpc_request({ method = METHODS.SESSION_NEW, params = session_args })
     if not new_session or not new_session.sessionId then
       log:error("[acp::_establish_session] Failed to create session")
       return false
@@ -619,18 +619,15 @@ function Connection:start_agent_process()
 end
 
 ---If called inside an async coroutine, yields until the response arrives, or fallback to sync
----@param method string
----@param params table
----@param opts? { times_out?: boolean }
+---@param opts { method: string, params: table, times_out?: boolean }
 ---@return table|nil
-function Connection:send_rpc_request(method, params, opts)
-  opts = opts or {}
+function Connection:send_rpc_request(opts)
   if not self._state.handle then
     return nil
   end
 
   local id = self._state.id_gen:next()
-  local request = jsonrpc.request(id, method, params)
+  local request = jsonrpc.request(id, opts.method, opts.params)
 
   if not self:write_message(self.methods.encode(request) .. "\n") then
     return nil
@@ -1167,11 +1164,11 @@ function Connection:set_config_option(config_id, value)
   end
 
   -- Ref: https://agentclientprotocol.com/protocol/session-config-options#from-the-client
-  local result = self:send_rpc_request(METHODS.SESSION_SET_CONFIG_OPTION, {
-    sessionId = self.session_id,
-    configId = config_id,
-    value = value,
-  }, { times_out = true })
+  local result = self:send_rpc_request({
+    method = METHODS.SESSION_SET_CONFIG_OPTION,
+    params = { sessionId = self.session_id, configId = config_id, value = value },
+    times_out = true,
+  })
 
   if not result then
     log:error("[acp::set_config_option] Failed to set %s to %s", config_id, value)
