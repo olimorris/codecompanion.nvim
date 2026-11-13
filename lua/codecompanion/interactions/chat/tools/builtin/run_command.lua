@@ -37,8 +37,9 @@ return cmd_tool({
       local args = self.args
 
       local cmd = { cmd = vim.split(args.cmd, " ") }
-      if args.flag then
-        cmd.flag = args.flag
+      local flag = helpers.null_to_nil(args.flag)
+      if flag then
+        cmd.flag = flag
       end
 
       table.insert(self.cmds, cmd)

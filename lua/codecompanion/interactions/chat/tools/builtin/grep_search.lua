@@ -12,7 +12,8 @@ local function build_command(opts)
   local cmd = { "rg" }
   local cwd = vim.fn.getcwd()
   local max_results = opts.max_results or 100
-  local is_regexp = action.is_regexp or false
+  local is_regexp = helpers.null_to_nil(action.is_regexp) or false
+  local include_pattern = helpers.null_to_nil(action.include_pattern)
   local respect_gitignore = opts.respect_gitignore
   if respect_gitignore == nil then
     respect_gitignore = opts.respect_gitignore ~= false
@@ -38,9 +39,9 @@ local function build_command(opts)
   end
 
   -- File pattern filtering
-  if action.include_pattern and action.include_pattern ~= "" then
+  if include_pattern and include_pattern ~= "" then
     table.insert(cmd, "--glob")
-    table.insert(cmd, action.include_pattern)
+    table.insert(cmd, include_pattern)
   end
 
   -- Limit results per file - we'll limit total results in post-processing
@@ -139,7 +140,7 @@ return {
     ---@param opts { input: any, output_cb: fun(msg: table), register_job: fun(job: vim.SystemObj) }
     ---@return { status: "success"|"error", data: string|table }|nil
     function(self, args, opts)
-      if not args.query or args.query == "" then
+      if type(args.query) ~= "string" or args.query == "" then
         return { status = "error", data = "Query parameter is required and cannot be empty" }
       end
       if vim.fn.executable("rg") ~= 1 then

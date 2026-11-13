@@ -464,15 +464,24 @@ return {
 
       local opts = self.tool and self.tool.opts or {}
       local command = args.command or "search"
+      if type(command) ~= "string" or command == "" then
+        return { status = "error", data = "The `command` parameter must be a non-empty string." }
+      end
+      local section = tool_helpers.null_to_nil(args.section)
 
       if command == "outline" then
-        return run_outline({ doc = doc, section = args.section, max_level = args.max_level })
+        return run_outline({ doc = doc, section = section, max_level = tool_helpers.null_to_nil(args.max_level) })
       end
       if command == "read" then
-        return run_read({ doc = doc, section = args.section, max_lines = opts.max_lines or 200 })
+        return run_read({ doc = doc, section = section, max_lines = opts.max_lines or 200 })
       end
       if command == "search" then
-        return run_search({ doc = doc, query = args.query, regex = args.regex, max_results = opts.max_results or 50 })
+        return run_search({
+          doc = doc,
+          query = tool_helpers.null_to_nil(args.query),
+          regex = tool_helpers.null_to_nil(args.regex),
+          max_results = opts.max_results or 50,
+        })
       end
 
       return { status = "error", data = fmt("Unknown command: %s. Use `search`, `read` or `outline`.", command) }
@@ -530,7 +539,10 @@ return {
     ---@return string
     cmd_string = function(self, opts)
       local args = self.args or {}
-      return args.query or args.section or args.command or ""
+      return tool_helpers.null_to_nil(args.query)
+        or tool_helpers.null_to_nil(args.section)
+        or tool_helpers.null_to_nil(args.command)
+        or ""
     end,
 
     ---@param self CodeCompanion.Tool.SearchHelp

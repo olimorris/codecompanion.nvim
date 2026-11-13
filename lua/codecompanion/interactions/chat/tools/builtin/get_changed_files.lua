@@ -44,7 +44,15 @@ end
 ---@param opts { action: {source_control_state?: string[]}, max_lines: number }
 ---@return {status: "success"|"error", data: string}
 local function get_changed_files(opts)
-  local states = opts.action.source_control_state or DEFAULT_STATES
+  local states = helpers.null_to_nil(opts.action.source_control_state) or DEFAULT_STATES
+  if type(states) ~= "table" or not vim.islist(states) then
+    return { status = "error", data = "source_control_state must be an array of valid git states" }
+  end
+  for _, state in ipairs(states) do
+    if not vim.tbl_contains(DEFAULT_STATES, state) then
+      return { status = "error", data = "source_control_state must contain only valid git states" }
+    end
+  end
   local output = {}
 
   for _, state in ipairs(states) do
@@ -136,7 +144,15 @@ return {
     ---@param opts { tools: CodeCompanion.Tools }
     ---@return string
     cmd_string = function(self, opts)
-      local states = self.args.source_control_state or DEFAULT_STATES
+      local states = helpers.null_to_nil(self.args.source_control_state) or DEFAULT_STATES
+      if type(states) ~= "table" or not vim.islist(states) then
+        return "git changes"
+      end
+      for _, state in ipairs(states) do
+        if type(state) ~= "string" then
+          return "git changes"
+        end
+      end
       return fmt("git changes (%s)", table.concat(states, ", "))
     end,
 

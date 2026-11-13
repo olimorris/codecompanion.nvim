@@ -21,7 +21,7 @@ end
 ---@return number? line
 ---@return string? error_msg
 local function normalize_bound(bound)
-  if bound.value == nil or bound.value == vim.NIL or bound.value == "" then
+  if tool_helpers.null_to_nil(bound.value) == nil or bound.value == "" then
     return bound.default
   end
 
