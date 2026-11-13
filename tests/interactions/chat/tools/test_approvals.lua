@@ -475,4 +475,52 @@ T["command-level approvals"]["respects an always-accepted command for a protecte
   h.eq(other_cmd, false)
 end
 
+T["patterns"] = new_set()
+
+T["patterns"]["allows Vim regex alternatives and counted repetition"] = function()
+  child.lua([=[
+    permission = Approvals.get_pattern_permission({
+      value = "/project/src/test_12.lua",
+      always_allow = { { pattern = [[/(src|tests)/test_\d{2}\.lua$]] } },
+    })
+  ]=])
+
+  h.eq("allow", child.lua_get("permission"))
+end
+
+T["patterns"]["confirmation overrides a matching allowance"] = function()
+  child.lua([=[
+    permission = Approvals.get_pattern_permission({
+      value = "/project/src/secrets.lua",
+      always_allow = { { pattern = [[/src/]] } },
+      always_confirm = { { pattern = [[/secrets\.lua$]] } },
+    })
+  ]=])
+
+  h.eq("confirm", child.lua_get("permission"))
+end
+
+T["patterns"]["requires confirmation for an invalid pattern after a match"] = function()
+  child.lua([[
+    permission = Approvals.get_pattern_permission({
+      value = "/project/src/file.lua",
+      always_allow = { { pattern = "/src/" }, { pattern = "(" } },
+    })
+  ]])
+
+  h.eq("confirm", child.lua_get("permission"))
+end
+
+T["patterns"]["requires confirmation for an invalid confirmation pattern"] = function()
+  child.lua([[
+    permission = Approvals.get_pattern_permission({
+      value = "/project/src/file.lua",
+      always_allow = { { pattern = "/src/" } },
+      always_confirm = { { pattern = "(" } },
+    })
+  ]])
+
+  h.eq("confirm", child.lua_get("permission"))
+end
+
 return T

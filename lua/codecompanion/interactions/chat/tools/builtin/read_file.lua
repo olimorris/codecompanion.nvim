@@ -1,3 +1,4 @@
+local approvals = require("codecompanion.interactions.chat.tools.approvals")
 local tool_helpers = require("codecompanion.interactions.chat.tools.builtin.helpers")
 
 local file_utils = require("codecompanion.utils.files")
@@ -116,6 +117,22 @@ local function extract_range(opts)
   }
 end
 
+---@param tool CodeCompanion.Tool.ReadFile
+---@return "allow"|"confirm"|nil
+---@return string? error
+local function get_permission(tool)
+  local path = file_utils.validate_and_normalize_path(tool.args.filepath)
+  local permission, err = approvals.get_path_permission({
+    path = path,
+    always_allow = tool.opts.always_allow,
+    always_confirm = tool.opts.always_confirm,
+  })
+  if err then
+    return nil, on_error({ filepath = path, message = err }).data
+  end
+  return permission
+end
+
 ---@class CodeCompanion.Tool.ReadFile: CodeCompanion.Tools.Tool
 return {
   name = "read_file",
@@ -169,6 +186,9 @@ return {
         },
       },
     },
+  },
+  gates = {
+    permission = get_permission,
   },
   handlers = {
     ---@param self CodeCompanion.Tool.ReadFile
