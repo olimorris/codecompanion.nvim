@@ -396,7 +396,7 @@ function Connection:session_list(opts)
       params.cursor = cursor
     end
 
-    local result = self:send_rpc_request(METHODS.SESSION_LIST, params)
+    local result = self:send_rpc_request(METHODS.SESSION_LIST, params, { times_out = true })
     if not result then
       break
     end
@@ -621,8 +621,10 @@ end
 ---If called inside an async coroutine, yields until the response arrives, or fallback to sync
 ---@param method string
 ---@param params table
+---@param opts? { times_out?: boolean }
 ---@return table|nil
-function Connection:send_rpc_request(method, params)
+function Connection:send_rpc_request(method, params, opts)
+  opts = opts or {}
   if not self._state.handle then
     return nil
   end
@@ -638,6 +640,15 @@ function Connection:send_rpc_request(method, params)
   if coroutine.running() then
     return async.wait(function(callback)
       self._pending_callbacks[id] = callback
+      if opts.times_out then
+        vim.defer_fn(function()
+          if self._pending_callbacks[id] == callback then
+            self._pending_callbacks[id] = nil
+            log:error("[acp::send_rpc_request] Request timeout ID %s", id)
+            callback(nil)
+          end
+        end, self.adapter_modified.defaults.timeout or TIMEOUTS.DEFAULT)
+      end
     end)
   end
 
@@ -1160,7 +1171,7 @@ function Connection:set_config_option(config_id, value)
     sessionId = self.session_id,
     configId = config_id,
     value = value,
-  })
+  }, { times_out = true })
 
   if not result then
     log:error("[acp::set_config_option] Failed to set %s to %s", config_id, value)

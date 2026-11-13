@@ -101,6 +101,28 @@ local function load_session(chat, selected)
   end
 end
 
+---@param chat CodeCompanion.Chat
+---@param sessions table[]
+---@return nil
+local function pick_session(chat, sessions)
+  local choices = vim.tbl_map(format_session, sessions)
+
+  vim.ui.select(choices, {
+    prompt = "Resume Session",
+    kind = "codecompanion.nvim",
+  }, function(_, idx)
+    if not idx then
+      return
+    end
+
+    if chat.current_request then
+      return utils.notify("A session can't be resumed while a request is in progress", vim.log.levels.WARN)
+    end
+
+    load_session(chat, sessions[idx])
+  end)
+end
+
 ---Execute the slash command
 ---@return nil
 function SlashCommand:execute()
@@ -126,34 +148,17 @@ function SlashCommand:execute()
 
   -- Inside a coroutine the connection yields for the agent's reply, rather than blocking the editor
   async.sync(function()
-    local sessions = Chat.acp_connection:session_list({
+    local listed = Chat.acp_connection:session_list({
       max_sessions = (self.config.opts and self.config.opts.max_sessions) or 500,
     })
 
-    if #sessions == 0 then
+    if #listed == 0 then
       return utils.notify("No previous sessions found", vim.log.levels.INFO)
     end
 
-    local choices = {}
-    local session_map = {}
-    for i, session in ipairs(sessions) do
-      table.insert(choices, format_session(session))
-      session_map[i] = session
-    end
-
-    vim.ui.select(choices, {
-      prompt = "Resume Session",
-      kind = "codecompanion.nvim",
-    }, function(_, idx)
-      if not idx then
-        return
-      end
-
-      local selected = session_map[idx]
-
-      async.sync(function()
-        load_session(Chat, selected)
-      end)()
+    -- Scheduled so the load runs outside this coroutine and blocks, keeping the user from submitting over it
+    vim.schedule(function()
+      pick_session(Chat, listed)
     end)
   end)()
 end

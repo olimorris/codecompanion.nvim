@@ -66,7 +66,19 @@ local function async_writer(path)
   local is_writing = false
   local is_discarded = false
 
-  local function process_queue()
+  local process_queue
+
+  local function finish_write()
+    is_writing = false
+    if is_discarded then
+      return vim.schedule(function()
+        require("codecompanion.utils.files").delete(path)
+      end)
+    end
+    vim.schedule(process_queue)
+  end
+
+  process_queue = function()
     if is_discarded or is_writing or #write_queue == 0 then
       return
     end
@@ -80,8 +92,7 @@ local function async_writer(path)
       local err, fd = a.uv.fs_open(path, "a", 438)
       if err then
         vim.notify(string.format("Failed to open %s: %s", path, err), vim.log.levels.ERROR, { title = "CodeCompanion" })
-        is_writing = false
-        return
+        return finish_write()
       end
 
       err, _ = a.uv.fs_write(fd, text)
@@ -102,14 +113,7 @@ local function async_writer(path)
         )
       end
 
-      is_writing = false
-      if is_discarded then
-        vim.schedule(function()
-          vim.uv.fs_unlink(path)
-        end)
-        return
-      end
-      vim.schedule(process_queue)
+      finish_write()
     end)
   end
 
@@ -122,7 +126,7 @@ local function async_writer(path)
       is_discarded = true
       write_queue = {}
       if not is_writing then
-        vim.uv.fs_unlink(path)
+        require("codecompanion.utils.files").delete(path)
       end
     end,
   }

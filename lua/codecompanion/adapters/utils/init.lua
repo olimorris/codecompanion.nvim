@@ -219,8 +219,11 @@ local cmd_cache = {}
 ---@param opts { var: string, timeout: number }
 ---@return string|nil
 local function run_cmd(opts)
-  if cmd_cache[opts.var] then
-    return cmd_cache[opts.var]
+  -- The command runs in the working directory, so the same command can give another project's value
+  local cwd = vim.uv.cwd() or ""
+  local cached = cmd_cache[opts.var]
+  if cached and cached[cwd] then
+    return cached[cwd]
   end
 
   log:trace("[Adapters] Detected cmd in environment variable")
@@ -245,12 +248,13 @@ local function run_cmd(opts)
   local output = result.stdout or ""
   output = output:gsub("%s+$", "")
 
-  cmd_cache[opts.var] = output
+  cmd_cache[opts.var] = cmd_cache[opts.var] or {}
+  cmd_cache[opts.var][cwd] = output
   return output
 end
 
 ---Drop the cached output of `cmd:` env values so the next request runs them again
----@param adapter? table Limits this to one adapter's commands
+---@param adapter? table
 function M.clear_cached_cmds(adapter)
   if not adapter then
     cmd_cache = {}

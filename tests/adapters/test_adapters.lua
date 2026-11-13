@@ -372,6 +372,25 @@ T["HTTP Adapter"]["keeps cmd environment variables with different commands apart
   h.eq("two", result.second)
 end
 
+T["HTTP Adapter"]["keeps a cmd environment variable apart per working directory"] = function()
+  local result = child.lua([[
+    local utils = require("codecompanion.adapters.utils")
+    local adapter = { env = { api_key = "cmd:cat .api-key" } }
+    local values = {}
+    for _, key in ipairs({ "first", "second" }) do
+      local dir = vim.fn.tempname()
+      vim.fn.mkdir(dir, "p")
+      vim.fn.writefile({ key }, vim.fs.joinpath(dir, ".api-key"))
+      vim.cmd.cd(dir)
+      utils.get_env_vars(adapter)
+      table.insert(values, adapter.env_replaced.api_key)
+    end
+    return values
+  ]])
+
+  h.eq({ "first", "second" }, result)
+end
+
 T["HTTP Adapter"]["can update a model on the adapter"] = function()
   local result = child.lua([[
     local adapter = require("codecompanion.adapters").extend(test_adapter)
