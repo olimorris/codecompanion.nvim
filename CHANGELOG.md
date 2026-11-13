@@ -1,5 +1,25 @@
 # Changelog
 
+## [20.2.0](https://github.com/olimorris/codecompanion.nvim/compare/v20.1.0...v20.2.0) (2026-11-13)
+
+
+### Features
+
+* **tools:** add `overwrite_file` tool ([#3512](https://github.com/olimorris/codecompanion.nvim/issues/3512)) ([e34bbda](https://github.com/olimorris/codecompanion.nvim/commit/e34bbdae7d9a5271329d6659e7c4ecd2e3c125c1))
+* **ui:** add a header to the chat ([#3494](https://github.com/olimorris/codecompanion.nvim/issues/3494)) ([ddf1929](https://github.com/olimorris/codecompanion.nvim/commit/ddf192986fea39c3fc0cb4d07d1e51b22d2a1d48))
+
+
+### Bug Fixes
+
+* **acp:** flush restored messages before handing the buffer back ([#3509](https://github.com/olimorris/codecompanion.nvim/issues/3509)) ([71795b4](https://github.com/olimorris/codecompanion.nvim/commit/71795b41e3cce4f4c38af53f8f092973346aac15))
+* **acp:** send queued message ([#3421](https://github.com/olimorris/codecompanion.nvim/issues/3421)) ([36587a0](https://github.com/olimorris/codecompanion.nvim/commit/36587a09d7afa65ca9970475b037e6c747afe7a0))
+* **http:** decompress DuckDuckGo search responses ([#3510](https://github.com/olimorris/codecompanion.nvim/issues/3510)) ([04ec639](https://github.com/olimorris/codecompanion.nvim/commit/04ec639167e721143d73242df2aff18145ebb10f))
+
+
+### Performance Improvements
+
+* many optimisations ([#3514](https://github.com/olimorris/codecompanion.nvim/issues/3514)) ([49d9763](https://github.com/olimorris/codecompanion.nvim/commit/49d97631720485b0e2c8e4a45140fcb679b1b487))
+
 ## [20.1.0](https://github.com/olimorris/codecompanion.nvim/compare/v20.0.1...v20.1.0) (2026-11-08)
 
 
