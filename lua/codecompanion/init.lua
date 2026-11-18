@@ -120,6 +120,22 @@ CodeCompanion.add = function(args)
     ),
   })
   chat.ui:open()
+
+  vim.schedule(function()
+    local input = chat.ui.input
+    if not input or not input:is_visible() then
+      return
+    end
+
+    if config.display.chat.start_in_insert_mode then
+      input:focus()
+    else
+      local ok, err = pcall(api.nvim_set_current_win, input.winnr)
+      if not ok then
+        return log:error("Could not focus the chat input: %s", err)
+      end
+    end
+  end)
 end
 
 ---Carry out a code review on an agent's edits
