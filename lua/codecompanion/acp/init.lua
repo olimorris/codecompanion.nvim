@@ -36,6 +36,7 @@ local DEFAULT_SYSTEM_PROMPT =
 local TIMEOUTS = {
   DEFAULT = 2e4, -- 20 seconds
   RESPONSE_POLL = 10, -- 10ms
+  TEARDOWN = 2e3, -- 2 seconds
 }
 
 local api = vim.api
@@ -371,11 +372,10 @@ end
 ---Check if the agent supports session/close
 ---@return boolean
 function Connection:can_close_session()
-  return self._agent_info
-      and self._agent_info.agentCapabilities
-      and self._agent_info.agentCapabilities.sessionCapabilities
-      and self._agent_info.agentCapabilities.sessionCapabilities.close ~= nil
-    or false
+  local capabilities = self._agent_info and self._agent_info.agentCapabilities
+  local session_capabilities = capabilities and capabilities.sessionCapabilities
+  -- Agents send null for a capability they don't support, which decodes to vim.NIL
+  return type(session_capabilities) == "table" and type(session_capabilities.close) == "table"
 end
 
 ---Check if the agent supports session/load
@@ -629,7 +629,7 @@ function Connection:start_agent_process()
 end
 
 ---If called inside an async coroutine, yields until the response arrives, or fallback to sync
----@param opts { method: string, params: table, times_out?: boolean }
+---@param opts { method: string, params: table, times_out?: boolean, timeout?: number Timeout in milliseconds, overriding the adapter default }
 ---@return table|nil
 function Connection:send_rpc_request(opts)
   if not self._state.handle then
@@ -643,6 +643,8 @@ function Connection:send_rpc_request(opts)
     return nil
   end
 
+  local timeout = opts.timeout or self.adapter_modified.defaults.timeout or TIMEOUTS.DEFAULT
+
   -- Async path: yield and let store_rpc_response resume us
   if coroutine.running() then
     return async.wait(function(callback)
@@ -654,13 +656,13 @@ function Connection:send_rpc_request(opts)
             log:error("[acp::send_rpc_request] Request timeout ID %s", id)
             callback(nil)
           end
-        end, self.adapter_modified.defaults.timeout or TIMEOUTS.DEFAULT)
+        end, timeout)
       end
     end)
   end
 
   -- Sync fallback
-  return self:wait_for_rpc_response(id)
+  return self:wait_for_rpc_response(id, timeout)
 end
 
 ---Send a result response to the ACP process
@@ -682,10 +684,11 @@ end
 
 ---Wait for a specific response ID
 ---@param id number
+---@param timeout_ms? number Timeout in milliseconds, overriding the adapter default
 ---@return nil
-function Connection:wait_for_rpc_response(id)
+function Connection:wait_for_rpc_response(id, timeout_ms)
   local start_time = uv.hrtime()
-  local timeout = (self.adapter_modified.defaults.timeout or TIMEOUTS.DEFAULT) * 1e6 -- Nanoseconds to milliseconds
+  local timeout = (timeout_ms or self.adapter_modified.defaults.timeout or TIMEOUTS.DEFAULT) * 1e6 -- Nanoseconds to milliseconds
 
   while uv.hrtime() - start_time < timeout do
     vim.wait(TIMEOUTS.RESPONSE_POLL)
@@ -717,17 +720,14 @@ end
 ---Disconnect and clean up the ACP process
 ---@return nil
 function Connection:disconnect()
-  -- Close the session first so agents can release it and clean up after
-  -- themselves (e.g. agents like OpenCode remove sessions that were created
-  -- via session/new but never prompted). Only sent when the agent advertises
-  -- the sessionCapabilities.close capability; failures are ignored as the
-  -- process is about to be terminated anyway.
+  -- Let the agent clean up its session (e.g. OpenCode removes unprompted ones) before it's killed
   if self.session_id and self:is_ready() and self:can_close_session() then
     pcall(function()
       self:send_rpc_request({
         method = METHODS.SESSION_CLOSE,
         params = { sessionId = self.session_id },
         times_out = true,
+        timeout = TIMEOUTS.TEARDOWN,
       })
     end)
   end
