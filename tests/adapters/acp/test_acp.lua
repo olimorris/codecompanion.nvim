@@ -107,4 +107,29 @@ T["ACP Adapter"]["extends adapters correctly"] = function()
   h.eq({ max_tokens = 1000 }, result.parameters)
 end
 
+T["ACP Connection"] = new_set()
+
+T["ACP Connection"]["can_close_session follows the advertised close capability"] = function()
+  local result = child.lua([[
+    local Connection = require("codecompanion.acp")
+    local with_close = setmetatable({
+      _agent_info = { agentCapabilities = { sessionCapabilities = { close = {} } } },
+    }, { __index = Connection })
+    local without_close = setmetatable({
+      _agent_info = { agentCapabilities = { sessionCapabilities = {} } },
+    }, { __index = Connection })
+    local without_agent_info = setmetatable({}, { __index = Connection })
+
+    return {
+      with_close = with_close:can_close_session(),
+      without_close = without_close:can_close_session(),
+      without_agent_info = without_agent_info:can_close_session(),
+    }
+  ]])
+
+  h.eq(true, result.with_close)
+  h.eq(false, result.without_close)
+  h.eq(false, result.without_agent_info)
+end
+
 return T

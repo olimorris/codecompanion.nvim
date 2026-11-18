@@ -368,6 +368,16 @@ function Connection:can_list_sessions()
     or false
 end
 
+---Check if the agent supports session/close
+---@return boolean
+function Connection:can_close_session()
+  return self._agent_info
+      and self._agent_info.agentCapabilities
+      and self._agent_info.agentCapabilities.sessionCapabilities
+      and self._agent_info.agentCapabilities.sessionCapabilities.close ~= nil
+    or false
+end
+
 ---Check if the agent supports session/load
 ---@return boolean
 function Connection:can_load_session()
@@ -707,6 +717,21 @@ end
 ---Disconnect and clean up the ACP process
 ---@return nil
 function Connection:disconnect()
+  -- Close the session first so agents can release it and clean up after
+  -- themselves (e.g. agents like OpenCode remove sessions that were created
+  -- via session/new but never prompted). Only sent when the agent advertises
+  -- the sessionCapabilities.close capability; failures are ignored as the
+  -- process is about to be terminated anyway.
+  if self.session_id and self:is_ready() and self:can_close_session() then
+    pcall(function()
+      self:send_rpc_request({
+        method = METHODS.SESSION_CLOSE,
+        params = { sessionId = self.session_id },
+        times_out = true,
+      })
+    end)
+  end
+
   assert(self._state.handle):kill("sigterm")
 end
 
