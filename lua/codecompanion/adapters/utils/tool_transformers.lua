@@ -20,22 +20,35 @@ M.to_anthropic = function(schema)
   }
 end
 
----Recursively make all properties required and add null types
+---Recursively make all properties required and allow null for optional properties
 ---@param obj table Object with properties field
 local function make_all_properties_required(obj)
   if not obj.properties then
     return
   end
 
+  local required = obj.required or {}
   local property_keys = {}
   for k, v in pairs(obj.properties) do
     table.insert(property_keys, k)
 
-    if type(v.type) == "string" then
-      v.type = { v.type, "null" }
-    elseif type(v.type) == "table" and not vim.tbl_contains(v.type, "null") then
-      table.insert(v.type, "null")
-      table.sort(v.type)
+    if not vim.tbl_contains(required, k) then
+      if type(v.type) == "string" and v.type ~= "null" then
+        v.type = { v.type, "null" }
+      elseif type(v.type) == "table" and not vim.tbl_contains(v.type, "null") then
+        table.insert(v.type, "null")
+        table.sort(v.type)
+      elseif v.anyOf then
+        local allows_null = vim.iter(v.anyOf):any(function(branch)
+          return branch.type == "null" or (type(branch.type) == "table" and vim.tbl_contains(branch.type, "null"))
+        end)
+        if not allows_null then
+          table.insert(v.anyOf, { type = "null" })
+        end
+      end
+      if v.enum and not vim.tbl_contains(v.enum, vim.NIL) then
+        table.insert(v.enum, vim.NIL)
+      end
     end
 
     -- Recurse for array items with object type

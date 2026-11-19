@@ -10,9 +10,10 @@ local fmt = string.format
 local function search(opts)
   local query = opts.action.query
 
-  local max_results = opts.action.max_results or opts.max_results or 500 -- Default limit to prevent overwhelming results
+  -- Default limit to prevent overwhelming results
+  local max_results = helpers.normalise_null(opts.action.max_results) or opts.max_results or 500
 
-  if not query or query == "" then
+  if type(query) ~= "string" or query == "" then
     return {
       status = "error",
       data = "Query parameter is required and cannot be empty",

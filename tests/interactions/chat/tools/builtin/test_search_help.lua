@@ -108,6 +108,19 @@ T["search treats the query as a pattern when regex is set"] = function()
   h.expect_not_contains("No matches", output)
 end
 
+T["outline lists the whole document when section and max_level are null"] = function()
+  local output = execute({ command = "outline", section = vim.NIL, max_level = vim.NIL })
+
+  h.expect_contains("Configuration", output)
+  h.expect_contains("codecompanion-usage-chat-buffer", output)
+end
+
+T["search reports a missing query when query is null"] = function()
+  local output = execute({ command = "search", query = vim.NIL })
+
+  h.expect_contains("requires a `query` parameter", output)
+end
+
 T["search reports when nothing matches"] = function()
   local output = execute({ command = "search", query = "zzzznotinthedocszzzz" })
 

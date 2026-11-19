@@ -1,9 +1,34 @@
 local adapters = require("codecompanion.adapters")
 local client = require("codecompanion.http")
 local config = require("codecompanion.config")
+local helpers = require("codecompanion.interactions.chat.tools.builtin.helpers")
 local log = require("codecompanion.utils.log")
 
 local fmt = string.format
+
+---@param opts { query: string, domains: string[]?, arguments: table, adapter_opts: table, callback: fun(result: table) }
+local function request_search(opts)
+  local tool_adapter = config.interactions.chat.tools.web_search.opts.adapter
+  local adapter = vim.deepcopy(adapters.resolve(tool_adapter))
+  adapter.methods.tools.web_search.setup(adapter, opts.adapter_opts, opts.arguments)
+
+  client.new({ adapter = adapter }):request({ query = opts.query, domains = opts.domains }, {
+    callback = function(err, data)
+      local error_message = [[Error searching for "%s"]]
+      local error_message_expanded = error_message .. " %s"
+
+      if data then
+        local output = adapter.methods.tools.web_search.callback(adapter, data)
+        if output.status == "error" then
+          log:error("[Web Search Tool] " .. error_message, opts.query)
+          return opts.callback({ status = "error", data = fmt(error_message_expanded, opts.query, output.content) })
+        end
+
+        return opts.callback({ status = "success", data = output.content })
+      end
+    end,
+  })
+end
 
 ---@class CodeCompanion.Tool.WebSearch: CodeCompanion.Tools.Tool
 return {
@@ -27,39 +52,36 @@ return {
         return cb({ status = "error", data = "No args for the web_search tool" })
       end
 
-      if not args.query or args.query == "" then
+      if type(args.query) ~= "string" or args.query == "" then
         log:error("[Web Search Tool] No query provided")
         return cb({ status = "error", data = "No query provided for the web_search tool" })
       end
 
+      -- Keep the recorded tool call unchanged when cleaning the query
+      args = vim.tbl_extend("force", {}, args)
+      args.domains = helpers.normalise_null(args.domains)
+      if args.domains == "" then
+        args.domains = nil
+      end
+      if args.domains then
+        if type(args.domains) ~= "table" or not vim.islist(args.domains) then
+          return cb({ status = "error", data = "domains must be an array of strings" })
+        end
+        for _, domain in ipairs(args.domains) do
+          if type(domain) ~= "string" then
+            return cb({ status = "error", data = "domains must be an array of strings" })
+          end
+        end
+      end
       args.query = string.gsub(args.query, "%f[%w_]web_search%f[^%w_]", "", 1)
 
-      local tool_adapter = config.interactions.chat.tools.web_search.opts.adapter
-      local adapter = vim.deepcopy(adapters.resolve(tool_adapter))
-      adapter.methods.tools.web_search.setup(adapter, opts.opts, args)
-
-      local query = args.query
-
-      client
-        .new({
-          adapter = adapter,
-        })
-        :request({ query = query, domains = args.domains }, {
-          callback = function(err, data)
-            local error_message = [[Error searching for "%s"]]
-            local error_message_expanded = error_message .. " %s"
-
-            if data then
-              local output = adapter.methods.tools.web_search.callback(adapter, data)
-              if output.status == "error" then
-                log:error("[Web Search Tool] " .. error_message, query)
-                return cb({ status = "error", data = fmt(error_message_expanded, query, output.content) })
-              end
-
-              return cb({ status = "success", data = output.content })
-            end
-          end,
-        })
+      request_search({
+        query = args.query,
+        domains = args.domains,
+        arguments = args,
+        adapter_opts = opts.opts,
+        callback = cb,
+      })
     end,
   },
   schema = {
@@ -74,6 +96,7 @@ return {
             type = "string",
             description = "The query to search the web for.",
           },
+          -- TODO: Fix in schema: domains is a required array, but the description allows an empty string.
           domains = {
             type = "array",
             items = {
@@ -108,12 +131,8 @@ return {
     ---@param stderr table The error output from the command
     ---@param meta { tools: CodeCompanion.Tools, cmd: table }
     error = function(self, stderr, meta)
-      local chat = meta.tools.chat
-      local args = self.args
-
-      local error_output = fmt([[Error searching for `%s`]], args.query)
-
-      chat:add_tool_output(self, { content = error_output })
+      local errors = vim.iter(stderr or {}):flatten():join("\n")
+      meta.tools.chat:add_tool_output(self, { content = errors })
     end,
   },
 }
