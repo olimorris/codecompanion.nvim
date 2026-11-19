@@ -406,7 +406,11 @@ function Connection:session_list(opts)
       params.cursor = cursor
     end
 
-    local result = self:send_rpc_request({ method = METHODS.SESSION_LIST, params = params, times_out = true })
+    local result = self:send_rpc_request({
+      method = METHODS.SESSION_LIST,
+      params = params,
+      timeout = self.adapter_modified.defaults.timeout or TIMEOUTS.DEFAULT,
+    })
     if not result then
       break
     end
@@ -629,7 +633,7 @@ function Connection:start_agent_process()
 end
 
 ---If called inside an async coroutine, yields until the response arrives, or fallback to sync
----@param opts { method: string, params: table, times_out?: boolean, timeout?: number Timeout in milliseconds, overriding the adapter default }
+---@param opts { method: string, params: table, timeout?: number }
 ---@return table|nil
 function Connection:send_rpc_request(opts)
   if not self._state.handle then
@@ -643,26 +647,24 @@ function Connection:send_rpc_request(opts)
     return nil
   end
 
-  local timeout = opts.timeout or self.adapter_modified.defaults.timeout or TIMEOUTS.DEFAULT
-
   -- Async path: yield and let store_rpc_response resume us
   if coroutine.running() then
     return async.wait(function(callback)
       self._pending_callbacks[id] = callback
-      if opts.times_out then
+      if opts.timeout then
         vim.defer_fn(function()
           if self._pending_callbacks[id] == callback then
             self._pending_callbacks[id] = nil
             log:error("[acp::send_rpc_request] Request timeout ID %s", id)
             callback(nil)
           end
-        end, timeout)
+        end, opts.timeout)
       end
     end)
   end
 
   -- Sync fallback
-  return self:wait_for_rpc_response(id, timeout)
+  return self:wait_for_rpc_response({ id = id, timeout = opts.timeout })
 end
 
 ---Send a result response to the ACP process
@@ -683,24 +685,23 @@ function Connection:send_error(id, message, code)
 end
 
 ---Wait for a specific response ID
----@param id number
----@param timeout_ms? number Timeout in milliseconds, overriding the adapter default
+---@param opts { id: number, timeout?: number }
 ---@return nil
-function Connection:wait_for_rpc_response(id, timeout_ms)
+function Connection:wait_for_rpc_response(opts)
   local start_time = uv.hrtime()
-  local timeout = (timeout_ms or self.adapter_modified.defaults.timeout or TIMEOUTS.DEFAULT) * 1e6 -- Nanoseconds to milliseconds
+  local timeout = (opts.timeout or self.adapter_modified.defaults.timeout or TIMEOUTS.DEFAULT) * 1e6 -- Nanoseconds to milliseconds
 
   while uv.hrtime() - start_time < timeout do
     vim.wait(TIMEOUTS.RESPONSE_POLL)
 
-    if self.pending_responses[id] then
-      local result, err = unpack(self.pending_responses[id])
-      self.pending_responses[id] = nil
+    if self.pending_responses[opts.id] then
+      local result, err = unpack(self.pending_responses[opts.id])
+      self.pending_responses[opts.id] = nil
       return err and nil or result
     end
   end
 
-  log:error("[acp::wait_for_rpc_response] Request timeout ID %s", id)
+  log:error("[acp::wait_for_rpc_response] Request timeout ID %s", opts.id)
   return nil
 end
 
@@ -726,7 +727,6 @@ function Connection:disconnect()
       self:send_rpc_request({
         method = METHODS.SESSION_CLOSE,
         params = { sessionId = self.session_id },
-        times_out = true,
         timeout = TIMEOUTS.TEARDOWN,
       })
     end)
@@ -1192,7 +1192,7 @@ function Connection:set_config_option(config_id, value)
   local result = self:send_rpc_request({
     method = METHODS.SESSION_SET_CONFIG_OPTION,
     params = { sessionId = self.session_id, configId = config_id, value = value },
-    times_out = true,
+    timeout = self.adapter_modified.defaults.timeout or TIMEOUTS.DEFAULT,
   })
 
   if not result then
