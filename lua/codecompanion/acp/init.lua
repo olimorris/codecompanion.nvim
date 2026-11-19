@@ -36,6 +36,7 @@ local DEFAULT_SYSTEM_PROMPT =
 local TIMEOUTS = {
   DEFAULT = 2e4, -- 20 seconds
   RESPONSE_POLL = 10, -- 10ms
+  TEARDOWN = 2e3, -- 2 seconds
 }
 
 local api = vim.api
@@ -368,6 +369,15 @@ function Connection:can_list_sessions()
     or false
 end
 
+---Check if the agent supports session/close
+---@return boolean
+function Connection:can_close_session()
+  local capabilities = self._agent_info and self._agent_info.agentCapabilities
+  local session_capabilities = capabilities and capabilities.sessionCapabilities
+  -- Agents send null for a capability they don't support, which decodes to vim.NIL
+  return type(session_capabilities) == "table" and type(session_capabilities.close) == "table"
+end
+
 ---Check if the agent supports session/load
 ---@return boolean
 function Connection:can_load_session()
@@ -396,7 +406,11 @@ function Connection:session_list(opts)
       params.cursor = cursor
     end
 
-    local result = self:send_rpc_request({ method = METHODS.SESSION_LIST, params = params, times_out = true })
+    local result = self:send_rpc_request({
+      method = METHODS.SESSION_LIST,
+      params = params,
+      timeout = self.adapter_modified.defaults.timeout or TIMEOUTS.DEFAULT,
+    })
     if not result then
       break
     end
@@ -619,7 +633,7 @@ function Connection:start_agent_process()
 end
 
 ---If called inside an async coroutine, yields until the response arrives, or fallback to sync
----@param opts { method: string, params: table, times_out?: boolean }
+---@param opts { method: string, params: table, timeout?: number }
 ---@return table|nil
 function Connection:send_rpc_request(opts)
   if not self._state.handle then
@@ -637,20 +651,20 @@ function Connection:send_rpc_request(opts)
   if coroutine.running() then
     return async.wait(function(callback)
       self._pending_callbacks[id] = callback
-      if opts.times_out then
+      if opts.timeout then
         vim.defer_fn(function()
           if self._pending_callbacks[id] == callback then
             self._pending_callbacks[id] = nil
             log:error("[acp::send_rpc_request] Request timeout ID %s", id)
             callback(nil)
           end
-        end, self.adapter_modified.defaults.timeout or TIMEOUTS.DEFAULT)
+        end, opts.timeout)
       end
     end)
   end
 
   -- Sync fallback
-  return self:wait_for_rpc_response(id)
+  return self:wait_for_rpc_response({ id = id, timeout = opts.timeout })
 end
 
 ---Send a result response to the ACP process
@@ -671,23 +685,23 @@ function Connection:send_error(id, message, code)
 end
 
 ---Wait for a specific response ID
----@param id number
+---@param opts { id: number, timeout?: number }
 ---@return nil
-function Connection:wait_for_rpc_response(id)
+function Connection:wait_for_rpc_response(opts)
   local start_time = uv.hrtime()
-  local timeout = (self.adapter_modified.defaults.timeout or TIMEOUTS.DEFAULT) * 1e6 -- Nanoseconds to milliseconds
+  local timeout = (opts.timeout or self.adapter_modified.defaults.timeout or TIMEOUTS.DEFAULT) * 1e6 -- Nanoseconds to milliseconds
 
   while uv.hrtime() - start_time < timeout do
     vim.wait(TIMEOUTS.RESPONSE_POLL)
 
-    if self.pending_responses[id] then
-      local result, err = unpack(self.pending_responses[id])
-      self.pending_responses[id] = nil
+    if self.pending_responses[opts.id] then
+      local result, err = unpack(self.pending_responses[opts.id])
+      self.pending_responses[opts.id] = nil
       return err and nil or result
     end
   end
 
-  log:error("[acp::wait_for_rpc_response] Request timeout ID %s", id)
+  log:error("[acp::wait_for_rpc_response] Request timeout ID %s", opts.id)
   return nil
 end
 
@@ -707,6 +721,17 @@ end
 ---Disconnect and clean up the ACP process
 ---@return nil
 function Connection:disconnect()
+  -- Let the agent clean up its session (e.g. OpenCode removes unprompted ones) before it's killed
+  if self.session_id and self:is_ready() and self:can_close_session() then
+    pcall(function()
+      self:send_rpc_request({
+        method = METHODS.SESSION_CLOSE,
+        params = { sessionId = self.session_id },
+        timeout = TIMEOUTS.TEARDOWN,
+      })
+    end)
+  end
+
   assert(self._state.handle):kill("sigterm")
 end
 
@@ -1167,7 +1192,7 @@ function Connection:set_config_option(config_id, value)
   local result = self:send_rpc_request({
     method = METHODS.SESSION_SET_CONFIG_OPTION,
     params = { sessionId = self.session_id, configId = config_id, value = value },
-    times_out = true,
+    timeout = self.adapter_modified.defaults.timeout or TIMEOUTS.DEFAULT,
   })
 
   if not result then

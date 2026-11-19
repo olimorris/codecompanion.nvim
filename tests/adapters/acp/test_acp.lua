@@ -107,4 +107,108 @@ T["ACP Adapter"]["extends adapters correctly"] = function()
   h.eq({ max_tokens = 1000 }, result.parameters)
 end
 
+T["ACP Connection"] = new_set()
+
+T["ACP Connection"]["can_close_session follows the advertised close capability"] = function()
+  local result = child.lua([[
+    local Connection = require("codecompanion.acp")
+    local with_close = setmetatable({
+      _agent_info = { agentCapabilities = { sessionCapabilities = { close = {} } } },
+    }, { __index = Connection })
+    local without_close = setmetatable({
+      _agent_info = { agentCapabilities = { sessionCapabilities = {} } },
+    }, { __index = Connection })
+    local null_close = setmetatable({
+      _agent_info = { agentCapabilities = { sessionCapabilities = { close = vim.NIL } } },
+    }, { __index = Connection })
+    local without_agent_info = setmetatable({}, { __index = Connection })
+
+    return {
+      with_close = with_close:can_close_session(),
+      without_close = without_close:can_close_session(),
+      null_close = null_close:can_close_session(),
+      without_agent_info = without_agent_info:can_close_session(),
+    }
+  ]])
+
+  h.eq(true, result.with_close)
+  h.eq(false, result.without_close)
+  h.eq(false, result.null_close)
+  h.eq(false, result.without_agent_info)
+end
+
+T["ACP Connection"]["disconnect closes the session before killing a capable agent"] = function()
+  local result = child.lua([[
+    local Connection = require("codecompanion.acp")
+    local events = {}
+    local connection = setmetatable({
+      session_id = "ses_test",
+      _agent_info = { agentCapabilities = { sessionCapabilities = { close = {} } } },
+      _initialized = true,
+      _authenticated = true,
+      _state = {
+        handle = { kill = function(_, signal) table.insert(events, "kill:" .. signal) end },
+      },
+      send_rpc_request = function(_, request)
+        table.insert(events, request.method .. ":" .. request.timeout)
+        return {}
+      end,
+    }, { __index = Connection })
+
+    connection:disconnect()
+    return events
+  ]])
+
+  h.eq({ "session/close:2000", "kill:sigterm" }, result)
+end
+
+T["ACP Connection"]["disconnect skips session/close when the agent doesn't advertise it"] = function()
+  local result = child.lua([[
+    local Connection = require("codecompanion.acp")
+    local events = {}
+    local connection = setmetatable({
+      session_id = "ses_test",
+      _agent_info = { agentCapabilities = { sessionCapabilities = {} } },
+      _initialized = true,
+      _authenticated = true,
+      _state = {
+        handle = { kill = function(_, signal) table.insert(events, "kill:" .. signal) end },
+      },
+      send_rpc_request = function(_, request)
+        table.insert(events, request.method)
+        return {}
+      end,
+    }, { __index = Connection })
+
+    connection:disconnect()
+    return events
+  ]])
+
+  h.eq({ "kill:sigterm" }, result)
+end
+
+T["ACP Connection"]["disconnect still kills the process when session/close fails"] = function()
+  local result = child.lua([[
+    local Connection = require("codecompanion.acp")
+    local events = {}
+    local connection = setmetatable({
+      session_id = "ses_test",
+      _agent_info = { agentCapabilities = { sessionCapabilities = { close = {} } } },
+      _initialized = true,
+      _authenticated = true,
+      _state = {
+        handle = { kill = function(_, signal) table.insert(events, "kill:" .. signal) end },
+      },
+      send_rpc_request = function()
+        error("agent hung up")
+      end,
+    }, { __index = Connection })
+
+    connection:disconnect()
+    return events
+  ]])
+
+  h.eq({ "kill:sigterm" }, result)
+end
+
 return T

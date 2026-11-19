@@ -6,6 +6,7 @@
 ---@field image boolean
 
 ---@class ACP.sessionCapabilities
+---@field close? table|nil
 ---@field list? table|nil
 ---@field systemPrompt? { mode?: { override?: table } }|nil
 
