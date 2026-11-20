@@ -136,4 +136,144 @@ T["rejects a start_line beyond the end of the file"] = function()
   expect_error(output, "start_line")
 end
 
+---@param opts? { mode?: string, protect?: boolean, cached?: boolean, require_approval_before?: boolean, always_allow?: table, always_confirm?: table, filepath?: string }
+local function queue_permission_read(opts)
+  opts = opts or {}
+  child.lua(
+    [[
+    local options = ...
+    local config = require("codecompanion.config")
+    config.interactions.chat.tools.read_file.opts = vim.tbl_extend("force",
+      config.interactions.chat.tools.read_file.opts, {
+        protect = options.protect == true,
+        require_approval_before = options.require_approval_before ~= false,
+        always_allow = options.always_allow or {},
+        always_confirm = options.always_confirm or {},
+      })
+    tools.tools_config.read_file.opts = config.interactions.chat.tools.read_file.opts
+    local approvals = require("codecompanion.interactions.chat.tools.approvals")
+    approvals:set_mode(tools.bufnr, { mode = options.mode or "auto" })
+    if options.cached then
+      approvals:always(tools.bufnr, { tool_name = "read_file" })
+    end
+    _G.permission_prompts = {}
+    require("codecompanion.interactions.chat.helpers.approval_prompt").request = function(_, request)
+      table.insert(_G.permission_prompts, request)
+    end
+    _G.permission_message_count = #chat.messages
+    _G.permission_call = {
+      { ["function"] = {
+        name = "read_file",
+        arguments = vim.json.encode({ filepath = options.filepath or _G.TEST_TMPFILE_ABSOLUTE }),
+      } },
+    }
+    tools:execute(chat, _G.permission_call)
+    vim.wait(1000, function()
+      return #_G.permission_prompts > 0 or #chat.messages > _G.permission_message_count
+    end)
+  ]],
+    { opts }
+  )
+end
+
+local function expect_permission_read()
+  h.eq(0, child.lua_get("#_G.permission_prompts"))
+  h.expect_contains("alpha", child.lua_get("chat.messages[#chat.messages].content"))
+end
+
+T["permissions"] = new_set()
+
+T["permissions"]["returns an error without prompting for a missing file"] = function()
+  queue_permission_read({ filepath = "missing.txt" })
+
+  h.eq(0, child.lua_get("#_G.permission_prompts"))
+  expect_error(child.lua_get("chat.messages[#chat.messages].content"), "missing.txt", "ENOENT")
+end
+
+T["permissions"]["returns an error without prompting for a broken symlink despite an allowance"] = function()
+  child.lua([[
+    assert(vim.uv.fs_symlink(
+      vim.fs.joinpath(_G.TEST_CWD, "missing.txt"),
+      vim.fs.joinpath(_G.TEST_CWD, "broken.txt")
+    ))
+  ]])
+  queue_permission_read({
+    protect = true,
+    filepath = "broken.txt",
+    always_allow = { { pattern = ".*" } },
+  })
+
+  h.eq(0, child.lua_get("#_G.permission_prompts"))
+  expect_error(child.lua_get("chat.messages[#chat.messages].content"), "broken.txt", "ENOENT")
+end
+
+T["permissions"]["bypasses protection for an allowed path"] = function()
+  queue_permission_read({
+    protect = true,
+    filepath = "tests/stubs/read_file/../read_file/cc_readfile_test.txt",
+    always_allow = { { pattern = [[^/.*/tests/stubs/read_file/cc_readfile_test\.txt$]] } },
+  })
+
+  expect_permission_read()
+end
+
+T["permissions"]["DOES NOT bypass protection for an unmatched path"] = function()
+  queue_permission_read({ protect = true, always_allow = { { pattern = "/other/" } } })
+
+  h.eq(1, child.lua_get("#_G.permission_prompts"))
+  h.eq(true, child.lua_get("#chat.messages == _G.permission_message_count"))
+end
+
+T["permissions"]["requires confirmation despite cached approval and a matching allowance"] = function()
+  queue_permission_read({
+    cached = true,
+    require_approval_before = false,
+    always_allow = { { pattern = "/read_file/" } },
+    always_confirm = { { pattern = "/read_file/" } },
+  })
+
+  h.eq(1, child.lua_get("#_G.permission_prompts"))
+  h.eq(true, child.lua_get("#chat.messages == _G.permission_message_count"))
+  h.eq(3, child.lua_get("#_G.permission_prompts[1].choices"))
+  child.lua([[
+    _G.permission_prompts[1].choices[1].callback()
+    assert(vim.wait(1000, function()
+      return #chat.messages > _G.permission_message_count
+    end))
+    tools:execute(chat, _G.permission_call)
+  ]])
+  h.eq(2, child.lua_get("#_G.permission_prompts"))
+end
+
+T["permissions"]["DOES NOT prompt for an unmatched confirmation pattern"] = function()
+  queue_permission_read({ always_confirm = { { pattern = "/other/" } } })
+
+  expect_permission_read()
+end
+
+T["permissions"]["requires confirmation for invalid patterns"] = function()
+  queue_permission_read({ always_allow = { { pattern = "(" } } })
+
+  h.eq(1, child.lua_get("#_G.permission_prompts"))
+  h.eq(true, child.lua_get("#chat.messages == _G.permission_message_count"))
+end
+
+T["permissions"]["DOES NOT bypass approval in ask mode"] = function()
+  queue_permission_read({ mode = "ask", always_allow = { { pattern = "/read_file/" } } })
+
+  h.eq(1, child.lua_get("#_G.permission_prompts"))
+end
+
+T["permissions"]["DOES NOT override cached approval in ask mode"] = function()
+  queue_permission_read({ mode = "ask", cached = true, always_confirm = { { pattern = "/read_file/" } } })
+
+  expect_permission_read()
+end
+
+T["permissions"]["DOES NOT override yolo mode"] = function()
+  queue_permission_read({ mode = "yolo", always_confirm = { { pattern = "/read_file/" } } })
+
+  expect_permission_read()
+end
+
 return T
