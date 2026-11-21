@@ -232,4 +232,51 @@ T["Subagents"]["opens the subagent a tool call REFERENCES"] = function()
   h.is_true(result)
 end
 
+T["Subagents"]["shows the parent's message in the float"] = function()
+  local result = child.lua([[
+    update({ title = "Test investigator" })
+    subagents.handle_parent_message(chat, {
+      update = { sessionUpdate = "session_message", messageId = "msg_to_child", recipientSessionId = "sess_child" },
+    })
+    subagents.handle_parent_message(chat, {
+      update = { sessionUpdate = "session_message_chunk", messageId = "msg_to_child", content = { type = "text", text = "Check Windows" } },
+    })
+    return subagents.format(chat, { subagent = chat.subagents["sess_child"] }).lines
+  ]])
+  h.eq(result[#result - 1], "**Sent by parent**")
+  h.eq(result[#result], "> Check Windows")
+end
+
+T["Subagents"]["DOES NOT repeat a parent's message the subagent REPORTED"] = function()
+  local result = child.lua([[
+    update({ title = "Test investigator" })
+    subagents.handle_parent_message(chat, {
+      update = {
+        sessionUpdate = "session_message",
+        messageId = "msg_to_child",
+        recipientSessionId = "sess_child",
+        content = { { type = "text", text = "Check Windows" } },
+      },
+    })
+    subagents.handle_session_update(chat, {
+      session_id = "sess_child",
+      update = {
+        sessionUpdate = "session_message",
+        messageId = "msg_from_parent",
+        senderSessionId = "sess_parent",
+        senderMessageId = "msg_to_child",
+        content = { { type = "text", text = "Check Windows" } },
+      },
+    })
+    return subagents.format(chat, { subagent = chat.subagents["sess_child"] }).lines
+  ]])
+  h.eq(
+    vim.tbl_filter(function(line)
+      return line == "> Check Windows"
+    end, result),
+    { "> Check Windows" }
+  )
+  h.eq(result[#result - 1], "**From parent**")
+end
+
 return T

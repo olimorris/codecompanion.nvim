@@ -290,9 +290,6 @@ local SESSION_UPDATES = {
   session_message = function(subagent, update)
     apply_message_update(find_or_add_message(subagent, update.messageId), { update = update })
   end,
-  session_message_chunk = function(subagent, update)
-    apply_message_update(find_or_add_message(subagent, update.messageId), { update = update })
-  end,
   config_option_update = function(subagent, update)
     local option = vim.iter(update.configOptions or {}):find(function(item)
       return item.category == "model"
@@ -308,6 +305,7 @@ local SESSION_UPDATES = {
   end,
 }
 SESSION_UPDATES.tool_call_update = SESSION_UPDATES.tool_call
+SESSION_UPDATES.session_message_chunk = SESSION_UPDATES.session_message
 
 ---Record an update from a subagent's own session, for its transcript
 ---@param chat CodeCompanion.Chat
@@ -407,7 +405,10 @@ local function format_item(chat, opts)
     return vim.list_extend({ "_Thinking_" }, vim.split(item.text, "\n", { plain = true }))
   end
   if item.type == "session_message" then
-    return format_quote({ header = describe_participant(chat, { subagent = subagent, message = item }), text = item.text })
+    return format_quote({
+      header = describe_participant(chat, { subagent = subagent, message = item }),
+      text = item.text,
+    })
   end
   if item.type == "parent_message" then
     local message = chat.messages_to_subagents[item.message_id]

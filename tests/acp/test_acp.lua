@@ -964,11 +964,12 @@ T["ACP Subagents"] = new_set({
   hooks = {
     pre_case = function()
       child.lua([[
-        subagent_calls = { updates = {}, session_updates = {}, invalidated = {} }
+        subagent_calls = { updates = {}, session_updates = {}, invalidated = {}, parent_messages = {} }
         package.loaded["codecompanion.interactions.chat.acp.subagents"] = {
           update = function(_, opts) table.insert(subagent_calls.updates, vim.deepcopy(opts.subagent)) end,
           handle_session_update = function(_, opts) table.insert(subagent_calls.session_updates, opts) end,
           invalidate = function(_, opts) table.insert(subagent_calls.invalidated, opts or {}) end,
+          handle_parent_message = function(_, opts) table.insert(subagent_calls.parent_messages, opts.update) end,
         }
 
         function create_subagent_connection()
@@ -1041,6 +1042,20 @@ T["ACP Subagents"]["routes an ANNOUNCED subagent's updates to the chat"] = funct
   h.eq(result.updates[1].parent_id, "sess_parent")
   h.eq(result.session_updates[1].session_id, "sess_child")
   h.eq(result.session_updates[1].update.toolCallId, "call_001")
+end
+
+T["ACP Subagents"]["routes the session's messages to its subagents"] = function()
+  local result = child.lua([[
+    local connection = create_subagent_connection()
+    announce(connection, { fields = { sessionId = "sess_child" } })
+    send(connection, "session/update", {
+      sessionId = "sess_parent",
+      update = { sessionUpdate = "session_message", messageId = "msg_to_child", recipientSessionId = "sess_child" },
+    })
+    return subagent_calls.parent_messages
+  ]])
+  h.eq(#result, 1)
+  h.eq(result[1].messageId, "msg_to_child")
 end
 
 T["ACP Subagents"]["DOES NOT route updates for an UNANNOUNCED session"] = function()
