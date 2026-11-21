@@ -288,7 +288,7 @@ function ToolCalls.open(chat, opts)
   local acp_call = chat.tool_calls.acp[call_id]
   local subagent = chat.subagents[call_id] or (acp_call and find_referenced_subagent(chat, acp_call))
   if subagent then
-    return require("codecompanion.interactions.chat.acp.subagents").open(chat, { subagent = subagent })
+    return require("codecompanion.interactions.chat.acp.subagents.float").open(chat, { subagent = subagent })
   elseif acp_call then
     details = format_acp_call(acp_call)
   else

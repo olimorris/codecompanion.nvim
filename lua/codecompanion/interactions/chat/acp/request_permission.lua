@@ -3,7 +3,7 @@ local log = require("codecompanion.utils.log")
 local approvals = require("codecompanion.interactions.chat.tools.approvals")
 local formatter = require("codecompanion.interactions.chat.acp.formatters")
 local labels = require("codecompanion.interactions.chat.tools.labels")
-local subagents = require("codecompanion.interactions.chat.acp.subagents")
+local subagent_summary = require("codecompanion.interactions.chat.acp.subagents.summary")
 local tool_calls = require("codecompanion.interactions.chat.ui.tool_calls")
 
 local fmt = string.format
@@ -322,7 +322,7 @@ function M.confirm(chat, request)
 
   -- `K` on a subagent's prompt opens the subagent, as its tool call ID would clash with the parent's
   local subagent = request.session_id and chat.subagents[request.session_id]
-  local requester = subagent and fmt("_%s:_ ", subagents.get_label(subagent)) or ""
+  local requester = subagent and fmt("_%s:_ ", subagent_summary.get_label(subagent)) or ""
   local call_id = subagent and subagent.info.id or (tool_call and tool_call.toolCallId)
 
   if not has_diff then

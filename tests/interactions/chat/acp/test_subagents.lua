@@ -11,6 +11,7 @@ local T = new_set({
         h = require("tests.helpers")
         chat = h.setup_chat_buffer()
         subagents = require("codecompanion.interactions.chat.acp.subagents")
+        float = require("codecompanion.interactions.chat.acp.subagents.float")
 
         function update(fields)
           subagents.update(chat, {
@@ -77,7 +78,7 @@ T["Subagents"]["formats the transcript for the float"] = function()
       status = "in_progress",
     })
     session_update({ sessionUpdate = "tool_call_update", toolCallId = "call_001", status = "completed" })
-    return subagents.format(chat, { subagent = chat.subagents["sess_child"] })
+    return float.format(chat, { subagent = chat.subagents["sess_child"] })
   ]])
   h.eq(result.title, "Test investigator")
   h.eq(result.lines[1], "_Investigates failing tests_")
@@ -95,7 +96,7 @@ T["Subagents"]["DOES NOT present a running subagent as running after a disconnec
     subagents.invalidate(chat, { is_disconnected = true })
     return {
       status = chat.subagents["sess_child"].ui.status,
-      state = subagents.format(chat, { subagent = chat.subagents["sess_child"] }).lines[1],
+      state = float.format(chat, { subagent = chat.subagents["sess_child"] }).lines[1],
     }
   ]])
   h.eq(result.status, "pending")
@@ -128,7 +129,7 @@ end
 T["Subagents"]["updates an open float as the subagent works"] = function()
   local result = child.lua([[
     update({ title = "Test investigator", state = { state = "running" } })
-    subagents.open(chat, { subagent = chat.subagents["sess_child"] })
+    float.open(chat, { subagent = chat.subagents["sess_child"] })
     subagents.handle_session_update(chat, {
       session_id = "sess_child",
       update = { sessionUpdate = "agent_message_chunk", content = { type = "text", text = "Still looking" } },
@@ -154,7 +155,7 @@ T["Subagents"]["shows a message the subagent SENT as outgoing"] = function()
         content = { { type = "text", text = "Done" } },
       },
     })
-    return subagents.format(chat, { subagent = chat.subagents["sess_child"] }).lines
+    return float.format(chat, { subagent = chat.subagents["sess_child"] }).lines
   ]])
   h.eq(result[#result - 1], "**To another session**")
 end
@@ -168,7 +169,7 @@ T["Subagents"]["marks unfinished tool calls as cancelled when the subagent is CA
         update = { sessionUpdate = "tool_call", toolCallId = id, title = "Run the tests", status = status },
       })
     end
-    update({ title = "Test investigator", state = { state = "idle", stopReason = "cancelled" } })
+    subagents.cancel(chat, { session_id = "sess_child" })
     local calls = chat.subagents["sess_child"].tool_calls
     return { completed = calls.call_001.status, unfinished = calls.call_002.status }
   ]])
@@ -181,7 +182,7 @@ T["Subagents"]["shows a subagent's work state as unconfirmed once invalidated"] 
     subagents.invalidate(chat)
     return {
       status = chat.subagents["sess_child"].ui.status,
-      state = subagents.format(chat, { subagent = chat.subagents["sess_child"] }).lines[1],
+      state = float.format(chat, { subagent = chat.subagents["sess_child"] }).lines[1],
     }
   ]])
   h.eq(result.status, "pending")
@@ -203,7 +204,7 @@ T["Subagents"]["formats thoughts, plan and token usage for the float"] = functio
       },
     })
     session_update({ sessionUpdate = "usage_update", used = 1200, size = 200000 })
-    return subagents.format(chat, { subagent = chat.subagents["sess_child"] }).lines
+    return float.format(chat, { subagent = chat.subagents["sess_child"] }).lines
   ]])
   h.eq(result, {
     "**State** running",
@@ -235,13 +236,15 @@ end
 T["Subagents"]["shows the parent's message in the float"] = function()
   local result = child.lua([[
     update({ title = "Test investigator" })
-    subagents.handle_parent_message(chat, {
+    subagents.handle_session_update(chat, {
+      session_id = "sess_parent",
       update = { sessionUpdate = "session_message", messageId = "msg_to_child", recipientSessionId = "sess_child" },
     })
-    subagents.handle_parent_message(chat, {
+    subagents.handle_session_update(chat, {
+      session_id = "sess_parent",
       update = { sessionUpdate = "session_message_chunk", messageId = "msg_to_child", content = { type = "text", text = "Check Windows" } },
     })
-    return subagents.format(chat, { subagent = chat.subagents["sess_child"] }).lines
+    return float.format(chat, { subagent = chat.subagents["sess_child"] }).lines
   ]])
   h.eq(result[#result - 1], "**Sent by parent**")
   h.eq(result[#result], "> Check Windows")
@@ -250,7 +253,8 @@ end
 T["Subagents"]["DOES NOT repeat a parent's message the subagent REPORTED"] = function()
   local result = child.lua([[
     update({ title = "Test investigator" })
-    subagents.handle_parent_message(chat, {
+    subagents.handle_session_update(chat, {
+      session_id = "sess_parent",
       update = {
         sessionUpdate = "session_message",
         messageId = "msg_to_child",
@@ -268,7 +272,7 @@ T["Subagents"]["DOES NOT repeat a parent's message the subagent REPORTED"] = fun
         content = { { type = "text", text = "Check Windows" } },
       },
     })
-    return subagents.format(chat, { subagent = chat.subagents["sess_child"] }).lines
+    return float.format(chat, { subagent = chat.subagents["sess_child"] }).lines
   ]])
   h.eq(
     vim.tbl_filter(function(line)

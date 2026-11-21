@@ -964,12 +964,12 @@ T["ACP Subagents"] = new_set({
   hooks = {
     pre_case = function()
       child.lua([[
-        subagent_calls = { updates = {}, session_updates = {}, invalidated = {}, parent_messages = {} }
+        subagent_calls = { updates = {}, session_updates = {}, invalidated = {}, cancelled = {} }
         package.loaded["codecompanion.interactions.chat.acp.subagents"] = {
           update = function(_, opts) table.insert(subagent_calls.updates, vim.deepcopy(opts.subagent)) end,
           handle_session_update = function(_, opts) table.insert(subagent_calls.session_updates, opts) end,
           invalidate = function(_, opts) table.insert(subagent_calls.invalidated, opts or {}) end,
-          handle_parent_message = function(_, opts) table.insert(subagent_calls.parent_messages, opts.update) end,
+          cancel = function(_, opts) table.insert(subagent_calls.cancelled, opts.session_id) end,
         }
 
         function create_subagent_connection()
@@ -1052,10 +1052,11 @@ T["ACP Subagents"]["routes the session's messages to its subagents"] = function(
       sessionId = "sess_parent",
       update = { sessionUpdate = "session_message", messageId = "msg_to_child", recipientSessionId = "sess_child" },
     })
-    return subagent_calls.parent_messages
+    return subagent_calls.session_updates
   ]])
   h.eq(#result, 1)
-  h.eq(result[1].messageId, "msg_to_child")
+  h.eq(result[1].session_id, "sess_parent")
+  h.eq(result[1].update.messageId, "msg_to_child")
 end
 
 T["ACP Subagents"]["DOES NOT route updates for an UNANNOUNCED session"] = function()
@@ -1079,7 +1080,7 @@ T["ACP Subagents"]["patches fields, clearing those sent as null"] = function()
     announce(connection, {
       fields = { sessionId = "sess_child", description = vim.NIL, state = { state = "running" } },
     })
-    return connection._subagents["sess_child"]
+    return connection.subagents.sessions["sess_child"]
   ]])
   h.eq(result.title, "Test investigator")
   h.eq(result.description, nil)
@@ -1091,7 +1092,7 @@ T["ACP Subagents"]["ACCEPTS a NESTED subagent"] = function()
     local connection = create_subagent_connection()
     announce(connection, { fields = { sessionId = "sess_child" } })
     announce(connection, { parent = "sess_child", fields = { sessionId = "sess_grandchild" } })
-    return connection._subagents["sess_grandchild"]
+    return connection.subagents.sessions["sess_grandchild"]
   ]])
   h.eq(result.parent_id, "sess_child")
 end
@@ -1102,7 +1103,7 @@ T["ACP Subagents"]["IGNORES a subagent that MOVES parent"] = function()
     announce(connection, { fields = { sessionId = "sess_child" } })
     announce(connection, { parent = "sess_child", fields = { sessionId = "sess_grandchild" } })
     announce(connection, { fields = { sessionId = "sess_grandchild", title = "Moved" } })
-    return connection._subagents["sess_grandchild"]
+    return connection.subagents.sessions["sess_grandchild"]
   ]])
   h.eq(result.parent_id, "sess_child")
   h.eq(result.title, nil)
@@ -1134,7 +1135,7 @@ T["ACP Subagents"]["cancels a subagent ONLY when it advertises cancel, answering
     function connection:send_result(id, result) table.insert(results, { id = id, result = result }) end
 
     announce(connection, { fields = { sessionId = "sess_child" } })
-    local refused = connection:cancel_subagent("sess_child")
+    local refused = connection.subagents:cancel("sess_child")
 
     announce(connection, { fields = { sessionId = "sess_child", capabilities = { cancel = {} } } })
     connection._active_prompt = {
@@ -1143,9 +1144,9 @@ T["ACP Subagents"]["cancels a subagent ONLY when it advertises cancel, answering
       end,
     }
     send(connection, "session/request_permission", { sessionId = "sess_child", options = {}, toolCall = { toolCallId = "call_001" } }, 7)
-    local accepted = connection:cancel_subagent("sess_child")
+    local accepted = connection.subagents:cancel("sess_child")
 
-    return { refused = refused, accepted = accepted, written = written, results = results }
+    return { refused = refused, accepted = accepted, written = written, results = results, cancelled = subagent_calls.cancelled }
   ]])
   h.is_false(result.refused)
   h.is_true(result.accepted)
@@ -1153,6 +1154,28 @@ T["ACP Subagents"]["cancels a subagent ONLY when it advertises cancel, answering
   h.eq(result.written[1].method, "session/cancel")
   h.eq(result.written[1].params.sessionId, "sess_child")
   h.eq(result.results, { { id = 7, result = { outcome = { outcome = "cancelled" } } } })
+  h.eq(result.cancelled, { "sess_child" })
+end
+
+T["ACP Subagents"]["answers a subagent's requests when it reports it was CANCELLED"] = function()
+  local result = child.lua([[
+    local connection = create_subagent_connection()
+    local results = {}
+    function connection:send_result(id, result) table.insert(results, { id = id, result = result }) end
+
+    announce(connection, { fields = { sessionId = "sess_child", state = { state = "running" } } })
+    connection._active_prompt = {
+      handle_permission_request = function(_, id, params)
+        connection:build_permission_request({ id = id, params = params })
+      end,
+    }
+    send(connection, "session/request_permission", { sessionId = "sess_child", options = {}, toolCall = { toolCallId = "call_001" } }, 7)
+    announce(connection, { fields = { sessionId = "sess_child", state = { state = "idle", stopReason = "cancelled" } } })
+
+    return { results = results, cancelled = subagent_calls.cancelled }
+  ]])
+  h.eq(result.results, { { id = 7, result = { outcome = { outcome = "cancelled" } } } })
+  h.eq(result.cancelled, { "sess_child" })
 end
 
 T["ACP Subagents"]["forgets its subagents when a session LOADS"] = function()
@@ -1162,7 +1185,7 @@ T["ACP Subagents"]["forgets its subagents when a session LOADS"] = function()
     function connection:is_ready() return true end
     function connection:_establish_session() return true end
     connection:load_session("sess_parent")
-    return { can_cancel = connection:can_cancel_subagent("sess_child"), invalidated = #subagent_calls.invalidated }
+    return { can_cancel = connection.subagents:can_cancel("sess_child"), invalidated = #subagent_calls.invalidated }
   ]])
   h.is_false(result.can_cancel)
   h.eq(result.invalidated, 1)
@@ -1175,7 +1198,7 @@ T["ACP Subagents"]["DOES NOT take capabilities or state from a REPLAYED session"
     announce(connection, {
       fields = { sessionId = "sess_child", title = "Replayed", capabilities = { cancel = {} }, state = { state = "running" } },
     })
-    return connection._subagents["sess_child"]
+    return connection.subagents.sessions["sess_child"]
   ]])
   h.eq(result.title, "Replayed")
   h.eq(result.capabilities, nil)
@@ -1186,14 +1209,9 @@ T["ACP Subagents"]["asks the chat about a permission request that arrives AFTER 
   local result = child.lua([[
     local connection = create_subagent_connection()
     local asked = {}
-    package.loaded["codecompanion.interactions.chat.acp.handler"] = {
-      new = function()
-        return { handle_permission_request = function(_, request) table.insert(asked, request) end }
-      end,
-    }
+    connection.chat.acp_permissions = { push = function(_, request) table.insert(asked, request) end }
     announce(connection, { fields = { sessionId = "sess_child" } })
     send(connection, "session/request_permission", { sessionId = "sess_child", options = {}, toolCall = { toolCallId = "call_001" } }, 8)
-    package.loaded["codecompanion.interactions.chat.acp.handler"] = nil
     return { count = #asked, id = asked[1].id, session_id = asked[1].session_id }
   ]])
   h.eq(result, { count = 1, id = 8, session_id = "sess_child" })

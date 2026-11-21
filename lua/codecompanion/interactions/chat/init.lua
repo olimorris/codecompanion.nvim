@@ -4,7 +4,7 @@
 
 ---@class CodeCompanion.Chat
 ---@field acp_connection? CodeCompanion.ACP.Connection The ACP session ID and connection
----@field acp_permissions? CodeCompanion.Chat.ACPPermissions ACP permission requests awaiting the user, shared by every turn
+---@field acp_permissions CodeCompanion.Chat.ACPPermissions ACP permission requests awaiting the user, shared by every turn
 ---@field adapter CodeCompanion.HTTPAdapter|CodeCompanion.ACPAdapter The adapter to use for the chat
 ---@field aug number The ID for the autocmd group
 ---@field buffer_context table The context of the buffer that the chat was initiated from
@@ -636,6 +636,8 @@ function Chat.new(args)
     _status = {},
   }, { __index = Chat })
   ---@cast self CodeCompanion.Chat
+  -- A subagent's request can outlive the turn that queued it, so every turn in the chat shares one queue
+  self.acp_permissions = require("codecompanion.interactions.chat.acp.permissions").new(self)
 
   self.bufnr = create_chat_buf()
   self.aug = api.nvim_create_augroup(CONSTANTS.AUTOCMD_GROUP .. ":" .. self.bufnr, { clear = false })
