@@ -4,6 +4,7 @@
 
 ---@class CodeCompanion.Chat
 ---@field acp_connection? CodeCompanion.ACP.Connection The ACP session ID and connection
+---@field acp_permissions? CodeCompanion.Chat.ACPPermissions ACP permission requests awaiting the user, shared by every turn
 ---@field adapter CodeCompanion.HTTPAdapter|CodeCompanion.ACPAdapter The adapter to use for the chat
 ---@field aug number The ID for the autocmd group
 ---@field buffer_context table The context of the buffer that the chat was initiated from
@@ -22,11 +23,13 @@
 ---@field id number The unique identifier for the chat (internal use only)
 ---@field intro_message? string The welcome message that is displayed in the chat buffer
 ---@field messages? CodeCompanion.Chat.Messages The messages in the chat buffer
+---@field messages_to_subagents table<string, table> The ACP session's messages to its subagents, by message ID
 ---@field opts CodeCompanion.ChatArgs Store all arguments in this table
 ---@field prompt CodeCompanion.Chat.Prompt Where the user writes their prompt, in the chat buffer or the input
 ---@field parsers { markdown: vim.treesitter.LanguageTree, yaml?: vim.treesitter.LanguageTree } Tree-sitter parsers attached to the chat buffer
 ---@field session_id string An identifier for the life of the chat buffer (designed for external use)
 ---@field settings? table The settings that are used in the adapter of the chat buffer
+---@field subagents table<string, CodeCompanion.Chat.ACPSubagent> ACP subagents by their session ID
 ---@field subscribers table The subscribers to the chat buffer
 ---@field title? string The title of the chat buffer
 ---@field tokens? number|table The tokens reported by the adapter
@@ -621,9 +624,11 @@ function Chat.new(args)
     id = id,
     intro_message = args.intro_message or config.display.chat.intro_message,
     messages = args.messages or {},
+    messages_to_subagents = {},
     opts = args,
     session_id = fmt("codecompanion-%d-%d", os.time(), id),
     status = "",
+    subagents = {},
     title = args.title,
     tool_call_marks = {},
     tool_calls = { acp = {}, http = {} },
@@ -2003,6 +2008,8 @@ function Chat:clear()
   self.header_line = 1
   self.messages = {}
   self.context_items = {}
+  self.messages_to_subagents = {}
+  self.subagents = {}
   self.tool_call_marks = {}
   self.tool_calls = { acp = {}, http = {} }
 

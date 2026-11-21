@@ -65,6 +65,7 @@ local defaults = {
       extend = nil, -- Per-adapter overrides keyed by config key e.g. { codex = { env = { OPENAI_API_KEY = "ABC-123" } } }
       opts = {
         show_presets = true,
+        subagents = true,
       },
     },
     opts = {

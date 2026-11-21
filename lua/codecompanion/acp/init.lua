@@ -69,6 +69,10 @@ local uv = vim.uv
 ---@field methods table
 local Connection = {}
 
+local SUBAGENT_FIELDS = { "title", "description", "capabilities", "state", "cwd", "additionalDirectories" }
+local REPLAYED_SUBAGENT_FIELDS = { "title", "description", "cwd", "additionalDirectories" }
+local SESSION_MESSAGE_UPDATES = { session_message = true, session_message_chunk = true }
+
 Connection.METHODS = METHODS
 
 ---@class CodeCompanion.ACP.Connection.PendingResponse
@@ -114,7 +118,9 @@ function Connection.new(args)
     _in_flight = {},
     _initialized = false,
     _pending_callbacks = {},
+    _pending_permissions = {},
     _session_config_options = {},
+    _subagents = {},
     _state = { handle = nil, id_gen = jsonrpc.IdGenerator.new(), line_buffer = jsonrpc.LineBuffer.new() },
   }, { __index = Connection }) ---@cast self CodeCompanion.ACP.Connection
 
@@ -210,7 +216,14 @@ function Connection:_initialize()
     return true
   end
 
-  local initialized = self:send_rpc_request({ method = METHODS.INITIALIZE, params = self.adapter_modified.parameters })
+  local params = vim.deepcopy(self.adapter_modified.parameters)
+  if config.adapters.acp.opts.subagents then
+    params.clientCapabilities = vim.tbl_extend("force", params.clientCapabilities or {}, {
+      subagents = vim.empty_dict(),
+    })
+  end
+
+  local initialized = self:send_rpc_request({ method = METHODS.INITIALIZE, params = params })
   if not initialized then
     log:error("[acp::_initialize] Failed to initialize")
     return false
@@ -441,6 +454,7 @@ function Connection:load_session(session_id, opts)
   end
 
   self.session_id = session_id
+  self:_forget_subagents()
   self._loading_session = true
   self._on_session_update = opts.on_session_update
 
@@ -448,6 +462,7 @@ function Connection:load_session(session_id, opts)
     self.session_id = nil
     self._loading_session = nil
     self._on_session_update = nil
+    self:_forget_subagents()
     return false
   end
 
@@ -829,7 +844,22 @@ end
 ---@private
 local DISPATCH = {
   [METHODS.SESSION_UPDATE] = function(self, m)
-    if m.params.update and m.params.update.sessionUpdate == "available_commands_update" then
+    if m.params.update and m.params.update.sessionUpdate == "subagent_update" then
+      self:handle_subagent_update({ parent_id = m.params.sessionId, update = m.params.update })
+    elseif self._subagents[m.params.sessionId] then
+      if self.chat and m.params.update then
+        require("codecompanion.interactions.chat.acp.subagents").handle_session_update(self.chat, {
+          session_id = m.params.sessionId,
+          update = m.params.update,
+        })
+      end
+    elseif m.params.update and SESSION_MESSAGE_UPDATES[m.params.update.sessionUpdate] then
+      if self.chat then
+        require("codecompanion.interactions.chat.acp.subagents").handle_parent_message(self.chat, {
+          update = m.params.update,
+        })
+      end
+    elseif m.params.update and m.params.update.sessionUpdate == "available_commands_update" then
       self:handle_available_commands_update(m.params.sessionId, m.params.update.availableCommands)
     elseif m.params.update and m.params.update.sessionUpdate == "config_option_update" then
       self:handle_config_option_update(m.params.sessionId, m.params.update.configOptions)
@@ -852,8 +882,15 @@ local DISPATCH = {
   end,
   [METHODS.SESSION_REQUEST_PERMISSION] = function(self, m)
     if self._active_prompt then
-      self._active_prompt:handle_permission_request(m.id, m.params)
+      return self._active_prompt:handle_permission_request(m.id, m.params)
     end
+
+    -- A background subagent keeps working, and asking, after the prompt turn has ended
+    local request = self:build_permission_request({ id = m.id, params = m.params })
+    if not self.chat then
+      return request.respond(nil, true)
+    end
+    require("codecompanion.interactions.chat.acp.handler").new(self.chat):handle_permission_request(request)
   end,
   [METHODS.FS_READ_TEXT_FILE] = function(self, m)
     self:handle_fs_read_text_file_request(m.id, m.params)
@@ -872,7 +909,7 @@ function Connection:handle_incoming_request_or_notification(notification)
 
   local sid = notification.params and notification.params.sessionId
   local is_request = notification.id ~= nil
-  if sid and self.session_id and sid ~= self.session_id then
+  if sid and self.session_id and not self:_is_known_session(sid) then
     if is_request then
       return self:send_error(notification.id, "invalid sessionId", jsonrpc.errors.INVALID_PARAMS)
     end
@@ -910,11 +947,146 @@ function Connection:write_message(data)
   return true
 end
 
----Check if params target the active session
+---Check if params target the active session or one of its subagents
 ---@param params table
----@return boolean valid true if an active session exists and sessionId matches it
+---@return boolean
 function Connection:_has_valid_session_id(params)
-  return self.session_id ~= nil and params.sessionId == self.session_id
+  return self.session_id ~= nil and self:_is_known_session(params.sessionId)
+end
+
+---Check if a session is the active session or a subagent descended from it
+---@param session_id? string
+---@return boolean
+function Connection:_is_known_session(session_id)
+  if session_id == nil then
+    return false
+  end
+  if session_id == self.session_id then
+    return true
+  end
+  local subagent = self._subagents[session_id]
+  return subagent ~= nil and self:_is_known_session(subagent.parent_id)
+end
+
+---Copy an update's fields onto a record, leaving an omitted field unchanged and clearing one sent as null
+---@param opts { record: table, update: table, fields: string[] }
+---@return nil
+function Connection.patch(opts)
+  for _, field in ipairs(opts.fields) do
+    if opts.update[field] == vim.NIL then
+      opts.record[field] = nil
+    elseif opts.update[field] ~= nil then
+      opts.record[field] = opts.update[field]
+    end
+  end
+end
+
+---Register or patch a subagent that a known session announced
+---Ref: https://agentclientprotocol.com/rfds/subagents
+---@param opts { parent_id: string, update: table }
+---@return nil
+function Connection:handle_subagent_update(opts)
+  local parent_id, update = opts.parent_id, opts.update
+  local child_id = update.sessionId
+  if type(child_id) ~= "string" or child_id == self.session_id or not self:_is_known_session(parent_id) then
+    return
+  end
+
+  local subagent = self._subagents[child_id]
+  if subagent and subagent.parent_id ~= parent_id then
+    return log:warn("[acp] Ignoring a subagent_update that moves %s to another parent", child_id)
+  end
+
+  subagent = subagent or { id = child_id, parent_id = parent_id }
+  -- session/load replays history, so its capabilities and state aren't current and can't permit a cancel
+  local fields = self._loading_session and REPLAYED_SUBAGENT_FIELDS or SUBAGENT_FIELDS
+  Connection.patch({ record = subagent, update = update, fields = fields })
+  self._subagents[child_id] = subagent
+
+  local state = subagent.state
+  if type(state) == "table" and state.state == "idle" and state.stopReason == "cancelled" then
+    self:_cancel_pending_permissions(child_id)
+  end
+
+  if self.chat then
+    require("codecompanion.interactions.chat.acp.subagents").update(self.chat, { subagent = subagent })
+  end
+end
+
+---Build a permission request that answers the agent at most once
+---@param opts { id: number, params: table }
+---@return table
+function Connection:build_permission_request(opts)
+  local id, params = opts.id, opts.params
+  local request = {
+    id = id,
+    session_id = params.sessionId,
+    tool_call = params.toolCall,
+    options = params.options or {},
+  }
+
+  request.is_pending = function()
+    return self._pending_permissions[id] == request
+  end
+
+  request.respond = function(option_id, cancelled)
+    -- A cancelled subagent's request is answered for the user, so a later click on its prompt must not answer again
+    if not request.is_pending() then
+      return
+    end
+    self._pending_permissions[id] = nil
+
+    local outcome = { outcome = "selected", optionId = option_id }
+    if cancelled or not option_id then
+      outcome = { outcome = "cancelled" }
+    end
+    self:send_result(id, { outcome = outcome })
+  end
+
+  self._pending_permissions[id] = request
+  return request
+end
+
+---Answer a session's outstanding permission requests as cancelled
+---@param session_id string
+---@return nil
+function Connection:_cancel_pending_permissions(session_id)
+  for _, request in pairs(self._pending_permissions) do
+    if request.session_id == session_id then
+      request.respond(nil, true)
+    end
+  end
+end
+
+---Drop what the connection knows of its subagents, so the chat stops presenting their work state as current
+---@param opts? { is_disconnected?: boolean }
+---@return nil
+function Connection:_forget_subagents(opts)
+  self._subagents = {}
+  if self.chat then
+    require("codecompanion.interactions.chat.acp.subagents").invalidate(self.chat, opts)
+  end
+end
+
+---@param session_id string
+---@return boolean
+function Connection:can_cancel_subagent(session_id)
+  local subagent = self._subagents[session_id]
+  local capabilities = subagent and subagent.capabilities
+  return type(capabilities) == "table" and type(capabilities.cancel) == "table"
+end
+
+---Cancel a subagent's current work, if the agent allows the client to
+---@param session_id string
+---@return boolean
+function Connection:cancel_subagent(session_id)
+  if not self:can_cancel_subagent(session_id) then
+    return false
+  end
+
+  self:send_notification(METHODS.SESSION_CANCEL, { sessionId = session_id })
+  self:_cancel_pending_permissions(session_id)
+  return true
 end
 
 ---Handle fs/read_text_file requests
@@ -1073,6 +1245,8 @@ function Connection:handle_process_exit(code, signal)
   self._pending_callbacks = {}
   self.pending_responses = {}
   self.session_id = nil
+  self._pending_permissions = {}
+  self:_forget_subagents({ is_disconnected = true })
 
   if self._active_prompt and self._active_prompt.handle_done then
     pcall(function()

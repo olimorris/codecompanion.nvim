@@ -368,7 +368,7 @@ T["ACPHandler"]["hydrates permission request with cached diff tool_call"] = func
 
     -- Pre-populate cache with a diff tool call
     local id = "toolu_abc123"
-    handler.tools[id] = {
+    chat.tool_calls.acp[id] = {
       toolCallId = id,
       kind = "edit",
       status = "pending",
@@ -388,6 +388,7 @@ T["ACPHandler"]["hydrates permission request with cached diff tool_call"] = func
 
     -- Simulate a permission request that only includes toolCallId
     handler:handle_permission_request({
+      is_pending = function() return true end,
       tool_call = { toolCallId = id },
       options = {
         { kind = "allow_once", optionId = "allow", name = "Allow" },
@@ -434,6 +435,7 @@ T["ACPHandler"]["permission request passes through when toolCallId unknown"] = f
 
     -- Simulate a permission request that references an unknown toolCallId
     handler:handle_permission_request({
+      is_pending = function() return true end,
       tool_call = { toolCallId = "unknown_tool_id" },
       options = {
         { kind = "allow_once", optionId = "allow", name = "Allow" },
@@ -853,16 +855,19 @@ T["ACPHandler"]["Permission Queue"]["queues concurrent requests and presents one
 
     -- Send three permission requests concurrently
     handler:handle_permission_request({
+      is_pending = function() return true end,
       tool_call = { toolCallId = "tool_1", kind = "edit", title = "Edit file A" },
       options = { { kind = "allow_once", optionId = "allow", name = "Allow" } },
       respond = function() end,
     })
     handler:handle_permission_request({
+      is_pending = function() return true end,
       tool_call = { toolCallId = "tool_2", kind = "edit", title = "Edit file B" },
       options = { { kind = "allow_once", optionId = "allow", name = "Allow" } },
       respond = function() end,
     })
     handler:handle_permission_request({
+      is_pending = function() return true end,
       tool_call = { toolCallId = "tool_3", kind = "edit", title = "Edit file C" },
       options = { { kind = "allow_once", optionId = "allow", name = "Allow" } },
       respond = function() end,
@@ -911,11 +916,13 @@ T["ACPHandler"]["Permission Queue"]["presents next request after user responds"]
     end
 
     handler:handle_permission_request({
+      is_pending = function() return true end,
       tool_call = { toolCallId = "tool_1" },
       options = { { kind = "allow_once", optionId = "allow", name = "Allow" } },
       respond = make_respond("tool_1"),
     })
     handler:handle_permission_request({
+      is_pending = function() return true end,
       tool_call = { toolCallId = "tool_2" },
       options = { { kind = "allow_once", optionId = "allow", name = "Allow" } },
       respond = make_respond("tool_2"),
@@ -973,16 +980,19 @@ T["ACPHandler"]["Permission Queue"]["clears queue on completion"] = function()
 
     -- Queue up three requests
     handler:handle_permission_request({
+      is_pending = function() return true end,
       tool_call = { toolCallId = "tool_1" },
       options = {},
       respond = make_respond("tool_1"),
     })
     handler:handle_permission_request({
+      is_pending = function() return true end,
       tool_call = { toolCallId = "tool_2" },
       options = {},
       respond = make_respond("tool_2"),
     })
     handler:handle_permission_request({
+      is_pending = function() return true end,
       tool_call = { toolCallId = "tool_3" },
       options = {},
       respond = make_respond("tool_3"),
@@ -1035,11 +1045,13 @@ T["ACPHandler"]["Permission Queue"]["clears queue on error"] = function()
     end
 
     handler:handle_permission_request({
+      is_pending = function() return true end,
       tool_call = { toolCallId = "tool_1" },
       options = {},
       respond = make_respond("tool_1"),
     })
     handler:handle_permission_request({
+      is_pending = function() return true end,
       tool_call = { toolCallId = "tool_2" },
       options = {},
       respond = make_respond("tool_2"),
@@ -1060,6 +1072,94 @@ T["ACPHandler"]["Permission Queue"]["clears queue on error"] = function()
   h.is_true(result.queue_empty)
   h.is_false(result.active)
   h.eq({ "tool_1", "tool_2" }, result.rejected)
+end
+
+T["ACPHandler"]["Permission Queue"]["KEEPS a subagent's request when the turn completes"] = function()
+  local result = child.lua([[
+    local chat = h.setup_chat_buffer({}, {
+      name = "test_acp",
+      config = {
+        name = "test_acp",
+        type = "acp",
+        handlers = { form_messages = function(a, m) return m end }
+      }
+    })
+    chat.subagents["sess_child"] = { info = { id = "sess_child" }, tool_calls = {}, transcript = {} }
+
+    local ACPHandler = require("codecompanion.interactions.chat.acp.handler")
+    local handler = ACPHandler.new(chat)
+
+    local confirmed = {}
+    package.loaded["codecompanion.interactions.chat.acp.request_permission"] = {
+      confirm = function(chat_arg, request)
+        table.insert(confirmed, request.tool_call.toolCallId)
+      end
+    }
+
+    local cancelled = {}
+    local function add_request(opts)
+      handler:handle_permission_request({
+        is_pending = function() return true end,
+        session_id = opts.session_id,
+        tool_call = { toolCallId = opts.id },
+        options = {},
+        respond = function(_, is_cancelled)
+          if is_cancelled then
+            table.insert(cancelled, opts.id)
+          end
+        end,
+      })
+    end
+    add_request({ id = "parent_1", session_id = "sess_parent" })
+    add_request({ id = "child_1", session_id = "sess_child" })
+    add_request({ id = "parent_2", session_id = "sess_parent" })
+
+    chat.done = function() end
+    handler:handle_complete()
+
+    return { cancelled = cancelled, confirmed = confirmed, active = chat.acp_permissions.active }
+  ]])
+
+  h.eq({ "parent_1", "parent_2" }, result.cancelled)
+  h.eq({ "parent_1", "child_1" }, result.confirmed)
+  h.is_true(result.active)
+end
+
+T["ACPHandler"]["Permission Queue"]["SKIPS a request that was answered while it waited"] = function()
+  local result = child.lua([[
+    local chat = h.setup_chat_buffer({}, {
+      name = "test_acp",
+      config = {
+        name = "test_acp",
+        type = "acp",
+        handlers = { form_messages = function(a, m) return m end }
+      }
+    })
+
+    local ACPHandler = require("codecompanion.interactions.chat.acp.handler")
+    local handler = ACPHandler.new(chat)
+
+    local confirmed = {}
+    package.loaded["codecompanion.interactions.chat.acp.request_permission"] = {
+      confirm = function(chat_arg, request)
+        table.insert(confirmed, request)
+      end
+    }
+
+    for _, id in ipairs({ "tool_1", "tool_2", "tool_3" }) do
+      handler:handle_permission_request({
+        is_pending = function() return id ~= "tool_2" end,
+        tool_call = { toolCallId = id },
+        options = {},
+        respond = function() end,
+      })
+    end
+    confirmed[1].respond("allow", false)
+
+    return vim.tbl_map(function(request) return request.tool_call.toolCallId end, confirmed)
+  ]])
+
+  h.eq({ "tool_1", "tool_3" }, result)
 end
 
 T["ACPHandler"]["Config Options"] = new_set()

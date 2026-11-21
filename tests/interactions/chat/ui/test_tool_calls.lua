@@ -155,6 +155,7 @@ T["Tool Calls"]["asks to approve a command on ONE line and views it in FULL"] = 
     local command = "bash -c '\n  ls\n  pwd\n'"
     local handler = require("codecompanion.interactions.chat.acp.handler").new(_G.chat)
     handler:handle_permission_request({
+      is_pending = function() return true end,
       tool_call = { toolCallId = "3", kind = "execute", title = command, rawInput = { command = command } },
       options = { { optionId = "allow", name = "Allow", kind = "allow_once" } },
       respond = function() end,
@@ -181,6 +182,7 @@ local function get_acp_approval_lines(title)
     [[
     local handler = require("codecompanion.interactions.chat.acp.handler").new(_G.chat)
     handler:handle_permission_request({
+      is_pending = function() return true end,
       tool_call = { toolCallId = "4", kind = "execute", title = ... },
       options = { { optionId = "allow", name = "Allow", kind = "allow_once" } },
       respond = function() end,

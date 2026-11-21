@@ -210,26 +210,8 @@ function PromptBuilder:handle_permission_request(id, params)
   if not id or not params then
     return
   end
-  local tool_call = params.toolCall
-  local options = params.options or {}
 
-  local function respond(outcome)
-    self.connection:send_result(id, { outcome = outcome })
-  end
-
-  local request = {
-    id = id,
-    session_id = params.sessionId,
-    tool_call = tool_call,
-    options = options,
-    respond = function(option_id, cancelled)
-      if cancelled or not option_id then
-        respond({ outcome = "cancelled" })
-      else
-        respond({ outcome = "selected", optionId = option_id })
-      end
-    end,
-  }
+  local request = self.connection:build_permission_request({ id = id, params = params })
 
   if self.handlers.permission_request then
     self.handlers.permission_request(request)

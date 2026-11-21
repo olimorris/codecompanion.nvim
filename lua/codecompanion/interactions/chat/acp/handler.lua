@@ -9,6 +9,12 @@ local tool_calls = require("codecompanion.interactions.chat.ui.tool_calls")
 local utils = require("codecompanion.utils")
 local watch = require("codecompanion.interactions.shared.watch")
 
+---@class CodeCompanion.Chat.ACPPermissions
+---@field queue CodeCompanion.Queue
+---@field active boolean
+---@field request? table The request the user is being asked about
+---@field respond? function The active request's original respond, which answers the agent directly
+
 ---@class CodeCompanion.Chat.ACPHandler
 ---@field chat CodeCompanion.Chat
 ---@field output table Standard output message from the Agent
@@ -16,7 +22,7 @@ local watch = require("codecompanion.interactions.shared.watch")
 ---@field tools table<string, table> Cache of tool calls by their ID
 ---@field edits table<string, { path: string, line?: number }[]> Files each tool call has edited, by tool call ID
 ---@field ui_state table<string, table> Cache of tool call UI states (line_number, icon_id) by tool call ID
----@field _permission { queue: CodeCompanion.Queue, active: boolean, respond: function|nil } Internal state for managing permission requests
+---@field _permission CodeCompanion.Chat.ACPPermissions
 local ACPHandler = {}
 
 ---@param chat CodeCompanion.Chat
@@ -29,28 +35,26 @@ function ACPHandler.new(chat)
     tools = {},
     edits = {},
     ui_state = {},
-    _permission = {
-      active = false,
-      queue = Queue.new(),
-      respond = nil,
-    },
   }, { __index = ACPHandler })
+
+  -- A subagent's request can outlive the turn that queued it, so every turn in the chat shares one queue
+  chat.acp_permissions = chat.acp_permissions or { active = false, queue = Queue.new() }
+  self._permission = chat.acp_permissions
 
   return self --[[@type CodeCompanion.Chat.ACPHandler]]
 end
 
----Merge an incoming tool call/update into the cache
----@param existing table|nil
----@param incoming table|nil
+---Merge an incoming tool call or update into the cached tool call
+---@param opts { existing?: table, incoming?: table }
 ---@return table
-local function merge_tool_call(existing, incoming)
-  local out = vim.deepcopy(existing or {})
-  for k, v in pairs(incoming or {}) do
-    if v ~= vim.NIL then
-      out[k] = v
+function ACPHandler.merge_tool_call(opts)
+  local merged = vim.deepcopy(opts.existing or {})
+  for key, value in pairs(opts.incoming or {}) do
+    if value ~= vim.NIL then
+      merged[key] = value
     end
   end
-  return out
+  return merged
 end
 
 ---The files a tool call update edits, alongside locations and diffs
@@ -349,7 +353,7 @@ end
 function ACPHandler:process_tool_call(tool_call)
   local id = tool_call.toolCallId
 
-  local merged = merge_tool_call(self.tools[id], tool_call)
+  local merged = ACPHandler.merge_tool_call({ existing = self.tools[id], incoming = tool_call })
   tool_call = merged
 
   self:track_edits(id, tool_call)
@@ -392,15 +396,33 @@ function ACPHandler:handle_permission_request(request)
   self:_process_next_permission()
 end
 
+---Pop the next permission request that still awaits an answer
+---@return table|nil
+function ACPHandler:_pop_pending_permission()
+  local request = self._permission.queue:pop()
+  -- A cancelled subagent has its requests answered while they wait in the queue
+  while request and not request.is_pending() do
+    request = self._permission.queue:pop()
+  end
+  return request
+end
+
 ---Pop the next permission request from the queue and present it
 ---@return nil
 function ACPHandler:_process_next_permission()
-  if self._permission.active or self._permission.queue:is_empty() then
+  if self._permission.active then
     return
   end
-
+  local request = self:_pop_pending_permission()
+  if not request then
+    return
+  end
   self._permission.active = true
-  local request = self._permission.queue:pop()
+  self._permission.request = request
+
+  -- A tool call ID is only unique within its session, so a subagent's request looks up the subagent's own calls
+  local subagent = self.chat.subagents[request.session_id]
+  local cached_calls = subagent and subagent.tool_calls or self.chat.tool_calls.acp
 
   -- Merge cached tool call data so the diff UI can activate
   local tool_call = request.tool_call
@@ -409,15 +431,16 @@ function ACPHandler:_process_next_permission()
     and tool_call.toolCallId
     and (tool_call.content == nil or tool_call.content == vim.NIL)
   then
-    local cached = self.tools[tool_call.toolCallId]
+    local cached = cached_calls[tool_call.toolCallId]
     if cached then
-      request.tool_call = merge_tool_call(cached, tool_call)
+      request.tool_call = ACPHandler.merge_tool_call({ existing = cached, incoming = tool_call })
     end
   end
   -- The permission request can carry details the announcement lacked, such as the `rawInput` being approved
-  if type(tool_call) == "table" and tool_call.toolCallId then
+  if not subagent and type(tool_call) == "table" and tool_call.toolCallId then
     local stored = self.chat.tool_calls.acp[tool_call.toolCallId]
-    self.chat.tool_calls.acp[tool_call.toolCallId] = merge_tool_call(stored, request.tool_call)
+    self.chat.tool_calls.acp[tool_call.toolCallId] =
+      ACPHandler.merge_tool_call({ existing = stored, incoming = request.tool_call })
   end
 
   -- The original respond function is stored so that if the user cancels the request, we can respond as per the spec
@@ -426,39 +449,56 @@ function ACPHandler:_process_next_permission()
   -- Ensure that the next item in the queue is processed after the user's response
   local send_response = request.respond
   request.respond = function(option_id, cancelled)
-    if not self._permission.respond then
+    if self._permission.request ~= request then
       return
     end
     send_response(option_id, cancelled)
-    self._permission.active = false
-    self._permission.respond = nil
+    self:_release_active_permission()
     self:_process_next_permission()
   end
 
   return require("codecompanion.interactions.chat.acp.request_permission").confirm(self.chat, request)
 end
 
----Clear any requests in the queue
+---@return nil
+function ACPHandler:_release_active_permission()
+  self._permission.active = false
+  self._permission.request = nil
+  self._permission.respond = nil
+end
+
+---Cancel the requests the turn left unanswered, keeping those of subagents that may still be working
 ---@return nil
 function ACPHandler:_clear_permission_queue()
-  local had_pending = self._permission.respond ~= nil or not self._permission.queue:is_empty()
-
-  -- Cancel the currently active permission request (if any)
-  if self._permission.respond then
-    pcall(self._permission.respond, nil, true)
-    self._permission.respond = nil
+  local permission = self._permission
+  local is_subagent_request = function(request)
+    return self.chat.subagents[request.session_id] ~= nil
   end
 
-  -- Cancel all queued permission requests
-  while not self._permission.queue:is_empty() do
-    local request = self._permission.queue:pop()
+  local cancelled = {}
+  if permission.request and not is_subagent_request(permission.request) then
+    table.insert(cancelled, { respond = permission.respond })
+    self:_release_active_permission()
+  end
+
+  local queued = permission.queue:contents()
+  permission.queue = Queue.new()
+  for _, request in ipairs(queued) do
+    if is_subagent_request(request) then
+      permission.queue:push(request)
+    else
+      table.insert(cancelled, request)
+    end
+  end
+
+  for _, request in ipairs(cancelled) do
     pcall(request.respond, nil, true)
   end
-  self._permission.active = false
-
-  if had_pending then
+  if #cancelled > 0 then
     utils.fire("ToolApprovalFinished", { bufnr = self.chat.bufnr, choice = "cancelled" })
   end
+
+  self:_process_next_permission()
 end
 
 ---Handle the prompt response when it's complete
