@@ -21,6 +21,7 @@ An _adapter_ connects CodeCompanion to an LLM provider or an agent. HTTP adapter
 | `gemini_legacy` | `GEMINI_API_KEY` | `gemini-3.1-pro-preview` |
 | `huggingface` | `HUGGINGFACE_API_KEY` | `Qwen/Qwen2.5-32B-Instruct` |
 | `kimi` | `MOONSHOT_API_KEY` | `kimi-k2.7-code` |
+| `crowllm` | `CROWLLM_API_KEY` | `glm-5.3` |
 | `mistral` | `MISTRAL_API_KEY` | `mistral-small-latest` |
 | `novita` | `NOVITA_API_KEY` | `meta-llama/llama-3.1-8b-instruct` |
 | `ollama` | None, set `OLLAMA_HOST` for a remote server | A model from your Ollama server |
