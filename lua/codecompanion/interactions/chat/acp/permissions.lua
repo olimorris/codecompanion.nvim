@@ -1,4 +1,5 @@
 local Queue = require("codecompanion.utils.queue")
+local config = require("codecompanion.config")
 local utils = require("codecompanion.utils")
 
 ---@class CodeCompanion.Chat.ACPPermissions
@@ -85,6 +86,7 @@ function Permissions:_present_next()
     send_response(option_id, cancelled)
     self:_release()
     self:_present_next()
+    self:_hand_back_prompt()
   end
 
   return require("codecompanion.interactions.chat.acp.request_permission").confirm(self.chat, request)
@@ -97,15 +99,38 @@ function Permissions:_release()
   self.respond = nil
 end
 
+---Give the prompt back once the user has answered a subagent that asked after the turn ended
+---@return nil
+function Permissions:_hand_back_prompt()
+  -- The approval was written as the LLM's message, which locks the prompt until a turn ends, and no turn will
+  if self.active or self.chat._turn_in_progress or self.chat._last_role == config.constants.USER_ROLE then
+    return
+  end
+  self.chat:ready_for_input()
+end
+
 ---Cancel the requests the turn left unanswered, keeping those of subagents that may still be working
 ---@return nil
 function Permissions:cancel_turn()
-  local is_subagent_request = function(request)
-    return self.chat.subagents[request.session_id] ~= nil
-  end
+  self:_cancel(function(request)
+    return self.chat.subagents[request.session_id] == nil
+  end)
+end
 
+---Cancel every request, as the agent that made them has gone
+---@return nil
+function Permissions:cancel_all()
+  self:_cancel(function()
+    return true
+  end)
+  self:_hand_back_prompt()
+end
+
+---@param should_cancel fun(request: table): boolean
+---@return nil
+function Permissions:_cancel(should_cancel)
   local cancelled = {}
-  if self.request and not is_subagent_request(self.request) then
+  if self.request and should_cancel(self.request) then
     table.insert(cancelled, { respond = self.respond })
     self:_release()
   end
@@ -113,10 +138,10 @@ function Permissions:cancel_turn()
   local queued = self.queue:contents()
   self.queue = Queue.new()
   for _, request in ipairs(queued) do
-    if is_subagent_request(request) then
-      self.queue:push(request)
-    else
+    if should_cancel(request) then
       table.insert(cancelled, request)
+    else
+      self.queue:push(request)
     end
   end
 

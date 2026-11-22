@@ -61,7 +61,7 @@ local uv = vim.uv
 ---@field _active_prompt CodeCompanion.ACP.PromptBuilder|nil
 ---@field _state {handle: table, id_gen: CodeCompanion.JsonRPC.IdGenerator, line_buffer: CodeCompanion.JsonRPC.LineBuffer}
 ---@field _loading_session boolean|nil
----@field _on_session_update function|nil
+---@field _on_session_update fun(update: table, opts?: { session_id: string })|nil
 ---@field _config_options table[] Raw configOptions from the agent
 ---@field _session_config_options table<string, table[]> The configOptions of each session, restored when switching back to it
 ---@field _in_flight table<string, CodeCompanion.ACP.Connection.InFlight> Establishment steps currently underway
@@ -441,7 +441,7 @@ end
 
 ---Load an existing session by ID
 ---@param session_id string
----@param opts? { on_session_update?: fun(update: table) }
+---@param opts? { on_session_update?: fun(update: table, opts?: { session_id: string }) }
 ---@return boolean success
 function Connection:load_session(session_id, opts)
   opts = opts or {}
@@ -1152,6 +1152,9 @@ function Connection:handle_process_exit(code, signal)
   self.session_id = nil
   self._pending_permissions = {}
   self.subagents:forget({ is_disconnected = true })
+  if self.chat then
+    self.chat.acp_permissions:cancel_all()
+  end
 
   if self._active_prompt and self._active_prompt.handle_done then
     pcall(function()

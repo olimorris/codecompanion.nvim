@@ -111,4 +111,32 @@ T["Permissions"]["looks up a subagent's request in the SUBAGENT'S tool calls"] =
   h.eq(result, { title = "Subagent's call", parent_title = "Parent's call" })
 end
 
+T["Permissions"]["cancels EVERY request, including a subagent's, once the agent has gone"] = function()
+  local result = child.lua([[
+    chat.subagents["sess_child"] = { info = { id = "sess_child" }, tool_calls = {}, transcript = {} }
+    add_request({ id = "child_1", session_id = "sess_child" })
+    add_request({ id = "child_2", session_id = "sess_child" })
+    permissions:cancel_all()
+    add_request({ id = "child_3", session_id = "sess_child" })
+    return { cancelled = cancelled, confirmed = get_confirmed_ids() }
+  ]])
+  h.eq(result.cancelled, { "child_1", "child_2" })
+  h.eq(result.confirmed, { "child_1", "child_3" })
+end
+
+T["Permissions"]["gives the prompt back once a request made AFTER the turn is answered"] = function()
+  local result = child.lua([[
+    package.loaded["codecompanion.interactions.chat.acp.request_permission"].confirm = function(_, request)
+      chat:add_buf_message({ role = "llm", content = "Approve?" })
+      table.insert(confirmed, request)
+    end
+    add_request({ id = "child_1", session_id = "sess_child" })
+    vim.wait(1000, function() return chat.builder._queue == nil end)
+    local locked = not vim.bo[chat.bufnr].modifiable
+    confirmed[1].respond("allow", false)
+    return { locked = locked, modifiable = vim.bo[chat.bufnr].modifiable }
+  ]])
+  h.eq(result, { locked = true, modifiable = true })
+end
+
 return T

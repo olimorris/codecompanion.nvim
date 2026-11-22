@@ -283,4 +283,29 @@ T["Subagents"]["DOES NOT repeat a parent's message the subagent REPORTED"] = fun
   h.eq(result[#result - 1], "**From parent**")
 end
 
+T["Subagents"]["fires FileEdited for a subagent's FINISHED edit"] = function()
+  local result = child.lua([[
+    local edited = {}
+    vim.api.nvim_create_autocmd("User", {
+      pattern = "CodeCompanionFileEdited",
+      callback = function(args) table.insert(edited, args.data.path) end,
+    })
+    update({ title = "Editor", state = { state = "running" } })
+    local function session_update(update)
+      subagents.handle_session_update(chat, { session_id = "sess_child", update = update })
+    end
+    session_update({
+      sessionUpdate = "tool_call",
+      toolCallId = "call_001",
+      kind = "edit",
+      status = "in_progress",
+      locations = { { path = "/tmp/file.lua" } },
+    })
+    local before = #edited
+    session_update({ sessionUpdate = "tool_call_update", toolCallId = "call_001", status = "completed" })
+    return { before = before, edited = edited }
+  ]])
+  h.eq(result, { before = 0, edited = { "/tmp/file.lua" } })
+end
+
 return T

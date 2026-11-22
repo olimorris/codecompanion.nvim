@@ -263,13 +263,12 @@ function ACPHandler:handle_thought_chunk(content)
 end
 
 ---Remember the files a tool call names, as a later update can arrive without them
----@param id string
----@param tool_call table
+---@param opts { edits: table<string, table[]>, id: string, tool_call: table }
 ---@return nil
-function ACPHandler:track_edits(id, tool_call)
-  local edits = self.edits[id] or {}
+function ACPHandler.track_edits(opts)
+  local edits = opts.edits[opts.id] or {}
 
-  for _, file in ipairs(touched_files(tool_call)) do
+  for _, file in ipairs(touched_files(opts.tool_call)) do
     local existing = vim.iter(edits):find(function(edit)
       return edit.path == file.path
     end)
@@ -281,27 +280,27 @@ function ACPHandler:track_edits(id, tool_call)
     end
   end
 
-  self.edits[id] = edits
+  opts.edits[opts.id] = edits
 end
 
 ---Release a finished tool call's files, firing an event for each one it edited
----@param id string
----@param tool_call table
+---@param opts { edits: table<string, table[]>, id: string, tool_call: table, tool: string }
 ---@return nil
-function ACPHandler:flush_edits(id, tool_call)
+function ACPHandler.flush_edits(opts)
+  local tool_call = opts.tool_call
   if tool_call.status ~= "completed" and tool_call.status ~= "failed" then
     return
   end
 
-  local edits = self.edits[id]
-  self.edits[id] = nil
+  local edits = opts.edits[opts.id]
+  opts.edits[opts.id] = nil
 
   if tool_call.status == "failed" or tool_call.kind ~= "edit" then
     return
   end
 
   for _, file in ipairs(edits or {}) do
-    utils.fire("FileEdited", { path = file.path, tool = self.chat.adapter.name, line = file.line })
+    utils.fire("FileEdited", { path = file.path, tool = opts.tool, line = file.line })
   end
 end
 
@@ -343,7 +342,7 @@ function ACPHandler:process_tool_call(tool_call)
   local merged = ACPHandler.merge_tool_call({ existing = self.tools[id], incoming = tool_call })
   tool_call = merged
 
-  self:track_edits(id, tool_call)
+  ACPHandler.track_edits({ edits = self.edits, id = id, tool_call = tool_call })
   self.chat.tool_calls.acp[id] = merged
 
   -- Cache or cleanup
@@ -353,7 +352,7 @@ function ACPHandler:process_tool_call(tool_call)
     self.tools[id] = merged
   end
 
-  self:flush_edits(id, tool_call)
+  ACPHandler.flush_edits({ edits = self.edits, id = id, tool_call = tool_call, tool = self.chat.adapter.name })
 
   -- Pending tool calls are awaiting approval or streaming input, so hold them
   -- back from the buffer until the agent moves them out of the pending state

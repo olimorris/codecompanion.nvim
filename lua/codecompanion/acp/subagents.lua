@@ -65,7 +65,15 @@ end
 function Subagents:handle(opts)
   local update = opts.update
   if update.sessionUpdate == "subagent_update" then
-    self:_upsert(opts)
+    local subagent = self:_upsert(opts)
+    if not subagent then
+      return true
+    end
+    self:_forward(opts)
+    local state = subagent.state
+    if type(state) == "table" and state.state == "idle" and state.stopReason == "cancelled" then
+      self:_handle_cancelled(subagent.id)
+    end
     return true
   end
 
@@ -74,15 +82,41 @@ function Subagents:handle(opts)
   if not self.sessions[opts.session_id] and not is_parent_message then
     return false
   end
-  if self.connection.chat then
-    get_chat_ui().handle_session_update(self.connection.chat, { session_id = opts.session_id, update = update })
-  end
+  self:_forward(opts)
   return true
+end
+
+---Show an update in the chat, or hold a replayed one for the chat to show once it's restored
+---@param opts { session_id: string, update: table, is_replayed?: boolean }
+---@return nil
+function Subagents:_forward(opts)
+  local connection = self.connection
+  -- Restoring the session clears the chat, which would wipe whatever a replayed update showed in it
+  if opts.is_replayed and connection._on_session_update then
+    return connection._on_session_update(opts.update, { session_id = opts.session_id })
+  end
+  if connection.chat then
+    self:show(connection.chat, opts)
+  end
+end
+
+---Show a subagent's announcement, or an update to its transcript, in the chat
+---@param chat CodeCompanion.Chat
+---@param opts { session_id: string, update: table, is_replayed?: boolean }
+---@return nil
+function Subagents:show(chat, opts)
+  if opts.update.sessionUpdate ~= "subagent_update" then
+    return get_chat_ui().handle_session_update(chat, opts)
+  end
+  local subagent = self.sessions[opts.update.sessionId]
+  if subagent then
+    get_chat_ui().update(chat, { subagent = subagent })
+  end
 end
 
 ---Register or patch a subagent that a known session announced
 ---@param opts { session_id: string, update: table, is_replayed?: boolean }
----@return nil
+---@return CodeCompanion.ACP.Subagent|nil
 function Subagents:_upsert(opts)
   local parent_id, update = opts.session_id, opts.update
   local child_id = update.sessionId
@@ -92,7 +126,8 @@ function Subagents:_upsert(opts)
 
   local subagent = self.sessions[child_id]
   if subagent and subagent.parent_id ~= parent_id then
-    return log:warn("[acp] Ignoring a subagent_update that moves %s to another parent", child_id)
+    log:warn("[acp] Ignoring a subagent_update that moves %s to another parent", child_id)
+    return nil
   end
 
   subagent = subagent or { id = child_id, parent_id = parent_id }
@@ -103,14 +138,7 @@ function Subagents:_upsert(opts)
   end
   Subagents.patch({ record = subagent, update = update, fields = fields })
   self.sessions[child_id] = subagent
-
-  if self.connection.chat then
-    get_chat_ui().update(self.connection.chat, { subagent = subagent })
-  end
-  local state = subagent.state
-  if type(state) == "table" and state.state == "idle" and state.stopReason == "cancelled" then
-    self:_handle_cancelled(child_id)
-  end
+  return subagent
 end
 
 ---Answer a cancelled subagent's permission requests and show its unfinished tool calls as cancelled

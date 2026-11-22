@@ -23,9 +23,9 @@ end
 ---@param message table
 ---@return boolean
 local function is_reported_by_subagent(subagent, message)
-  return vim.iter(subagent.transcript):any(function(item)
-    return item.type == "session_message"
-      and (item.senderMessageId == message.message_id or item.message_id == message.recipientMessageId)
+  return vim.iter(subagent.transcript):any(function(entry)
+    return entry.type == "session_message"
+      and (entry.senderMessageId == message.message_id or entry.message_id == message.recipientMessageId)
   end)
 end
 
@@ -64,37 +64,37 @@ local function describe_participant(chat, opts)
 end
 
 ---@param chat CodeCompanion.Chat
----@param opts { subagent: CodeCompanion.Chat.ACPSubagent, item: table }
+---@param opts { subagent: CodeCompanion.Chat.ACPSubagent, entry: table }
 ---@return string[]
-local function format_item(chat, opts)
-  local subagent, item = opts.subagent, opts.item
+local function format_entry(chat, opts)
+  local subagent, entry = opts.subagent, opts.entry
 
-  if item.type == "message" then
-    return vim.split(item.text, "\n", { plain = true })
+  if entry.type == "message" then
+    return vim.split(entry.text, "\n", { plain = true })
   end
-  if item.type == "thought" then
-    return vim.list_extend({ "_Thinking_" }, vim.split(item.text, "\n", { plain = true }))
+  if entry.type == "thought" then
+    return vim.list_extend({ "_Thinking_" }, vim.split(entry.text, "\n", { plain = true }))
   end
-  if item.type == "session_message" then
+  if entry.type == "session_message" then
     return format_quote({
-      header = describe_participant(chat, { subagent = subagent, message = item }),
-      text = item.text,
+      header = describe_participant(chat, { subagent = subagent, message = entry }),
+      text = entry.text,
     })
   end
-  if item.type == "parent_message" then
-    local message = chat.messages_to_subagents[item.message_id]
+  if entry.type == "parent_message" then
+    local message = chat.messages_to_subagents[entry.message_id]
     if not message or is_reported_by_subagent(subagent, message) then
       return {}
     end
     return format_quote({ header = "Sent by parent", text = message.text })
   end
-  if item.type == "tool_call" then
-    local call = subagent.tool_calls[item.id]
+  if entry.type == "tool_call" then
+    local call = subagent.tool_calls[entry.id]
     local ok, message = pcall(formatter.tool_message, { tool_call = call, adapter = chat.adapter })
     return { fmt("- %s (%s)", ok and message.summary or "Tool call", call.status or "pending") }
   end
-  if item.type == "subagent" then
-    local nested = chat.subagents[item.id]
+  if entry.type == "subagent" then
+    local nested = chat.subagents[entry.id]
     return { fmt("- **Subagent** %s (%s)", summary.get_label(nested), summary.get_state(nested).description) }
   end
   return {}
@@ -129,11 +129,11 @@ function M.format(chat, opts)
     end
   end
 
-  for _, item in ipairs(subagent.transcript) do
-    local item_lines = format_item(chat, { subagent = subagent, item = item })
-    if #item_lines > 0 then
+  for _, entry in ipairs(subagent.transcript) do
+    local entry_lines = format_entry(chat, { subagent = subagent, entry = entry })
+    if #entry_lines > 0 then
       table.insert(lines, "")
-      vim.list_extend(lines, item_lines)
+      vim.list_extend(lines, entry_lines)
     end
   end
 

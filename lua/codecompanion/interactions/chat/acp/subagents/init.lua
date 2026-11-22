@@ -6,6 +6,7 @@ local fmt = string.format
 
 ---@class CodeCompanion.Chat.ACPSubagent
 ---@field disconnected? boolean
+---@field edits table<string, table[]> The files each unfinished tool call names, by the tool call's ID
 ---@field float? { bufnr: number, winnr: number }
 ---@field info { additionalDirectories?: string[], capabilities?: { cancel?: table }, cwd?: string, description?: string, id: string, parent_id: string, state?: { error?: table, state: string, stopReason?: string }, title?: string }
 ---@field model? string
@@ -28,7 +29,7 @@ function M.update(chat, opts)
   local subagent = chat.subagents[info.id]
 
   if not subagent then
-    subagent = { info = info, transcript = {}, tool_calls = {}, order = vim.tbl_count(chat.subagents) + 1 }
+    subagent = { edits = {}, info = info, order = vim.tbl_count(chat.subagents) + 1, tool_calls = {}, transcript = {} }
     chat.subagents[info.id] = subagent
   end
   subagent.info = info
@@ -37,8 +38,8 @@ function M.update(chat, opts)
 
   local parent = chat.subagents[info.parent_id]
   if parent then
-    local is_listed = vim.iter(parent.transcript):any(function(item)
-      return item.type == "subagent" and item.id == info.id
+    local is_listed = vim.iter(parent.transcript):any(function(entry)
+      return entry.type == "subagent" and entry.id == info.id
     end)
     if not is_listed then
       table.insert(parent.transcript, { type = "subagent", id = info.id })
@@ -67,7 +68,7 @@ end
 
 ---Record an update from a subagent's session, or a message the chat's own session sent to a subagent
 ---@param chat CodeCompanion.Chat
----@param opts { session_id: string, update: table }
+---@param opts { session_id: string, update: table, is_replayed?: boolean }
 ---@return nil
 function M.handle_session_update(chat, opts)
   local subagent = chat.subagents[opts.session_id]
@@ -78,7 +79,9 @@ function M.handle_session_update(chat, opts)
     end
     return
   end
-  if not transcript.apply(subagent, { update = opts.update }) then
+  if
+    not transcript.apply(subagent, { update = opts.update, tool = chat.adapter.name, is_replayed = opts.is_replayed })
+  then
     return
   end
 
@@ -109,9 +112,9 @@ function M.list(chat)
 
   local function add(subagent, depth)
     table.insert(listed, { subagent = subagent, depth = depth })
-    for _, item in ipairs(subagent.transcript) do
-      if item.type == "subagent" and chat.subagents[item.id] then
-        add(chat.subagents[item.id], depth + 1)
+    for _, entry in ipairs(subagent.transcript) do
+      if entry.type == "subagent" and chat.subagents[entry.id] then
+        add(chat.subagents[entry.id], depth + 1)
       end
     end
   end

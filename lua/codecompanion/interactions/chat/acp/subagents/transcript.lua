@@ -23,8 +23,8 @@ end
 ---@param message_id string
 ---@return table
 local function find_or_add_message(subagent, message_id)
-  local message = vim.iter(subagent.transcript):find(function(item)
-    return item.type == "session_message" and item.message_id == message_id
+  local message = vim.iter(subagent.transcript):find(function(entry)
+    return entry.type == "session_message" and entry.message_id == message_id
   end)
   if not message then
     message = { type = "session_message", message_id = message_id, text = "" }
@@ -48,11 +48,10 @@ local function append_text(subagent, opts)
 end
 
 ---Apply a `session_message` upsert or a `session_message_chunk` to a stored message
----@param message table
----@param opts { update: table }
+---@param opts { message: table, update: table }
 ---@return nil
-local function apply_message_update(message, opts)
-  local update = opts.update
+local function apply_message_update(opts)
+  local message, update = opts.message, opts.update
   if update.sessionUpdate == "session_message_chunk" then
     message.text = message.text .. join_text(update.content)
     return
@@ -70,39 +69,55 @@ local function apply_message_update(message, opts)
   end
 end
 
+---Record a tool call, firing `FileEdited` for each file a finished edit changed
+---@param subagent CodeCompanion.Chat.ACPSubagent
+---@param opts { update: table, tool: string, is_replayed?: boolean }
+---@return nil
+local function apply_tool_call(subagent, opts)
+  local id = opts.update.toolCallId
+  if not subagent.tool_calls[id] then
+    table.insert(subagent.transcript, { type = "tool_call", id = id })
+  end
+  local tool_call = handler.merge_tool_call({ existing = subagent.tool_calls[id], incoming = opts.update })
+  subagent.tool_calls[id] = tool_call
+
+  -- A restored session replays edits made long ago, which listeners have already heard about
+  if opts.is_replayed then
+    return
+  end
+  handler.track_edits({ edits = subagent.edits, id = id, tool_call = tool_call })
+  handler.flush_edits({ edits = subagent.edits, id = id, tool_call = tool_call, tool = opts.tool })
+end
+
 local SESSION_UPDATES = {
-  agent_message_chunk = function(subagent, update)
-    append_text(subagent, { type = "message", content = update.content })
+  agent_message_chunk = function(subagent, opts)
+    append_text(subagent, { type = "message", content = opts.update.content })
   end,
-  agent_thought_chunk = function(subagent, update)
-    append_text(subagent, { type = "thought", content = update.content })
+  agent_thought_chunk = function(subagent, opts)
+    append_text(subagent, { type = "thought", content = opts.update.content })
   end,
-  plan = function(subagent, update)
-    subagent.plan = update.entries
+  plan = function(subagent, opts)
+    subagent.plan = opts.update.entries
   end,
-  usage_update = function(subagent, update)
-    subagent.usage = { used = update.used, size = update.size }
+  usage_update = function(subagent, opts)
+    subagent.usage = { used = opts.update.used, size = opts.update.size }
   end,
-  tool_call = function(subagent, update)
-    local id = update.toolCallId
-    if not subagent.tool_calls[id] then
-      table.insert(subagent.transcript, { type = "tool_call", id = id })
-    end
-    subagent.tool_calls[id] = handler.merge_tool_call({ existing = subagent.tool_calls[id], incoming = update })
+  tool_call = apply_tool_call,
+  session_message = function(subagent, opts)
+    local message = find_or_add_message(subagent, opts.update.messageId)
+    apply_message_update({ message = message, update = opts.update })
   end,
-  session_message = function(subagent, update)
-    apply_message_update(find_or_add_message(subagent, update.messageId), { update = update })
-  end,
-  config_option_update = function(subagent, update)
-    local option = vim.iter(update.configOptions or {}):find(function(item)
-      return item.category == "model"
+  config_option_update = function(subagent, opts)
+    local update = opts.update
+    local option = vim.iter(update.configOptions or {}):find(function(config_option)
+      return config_option.category == "model"
     end)
     if not option then
       subagent.model = nil
       return
     end
-    local selected = vim.iter(acp.flatten_config_options(option.options or {})):find(function(item)
-      return item.value == option.currentValue
+    local selected = vim.iter(acp.flatten_config_options(option.options or {})):find(function(choice)
+      return choice.value == option.currentValue
     end)
     subagent.model = selected and selected.name or option.currentValue
   end,
@@ -112,14 +127,14 @@ SESSION_UPDATES.session_message_chunk = SESSION_UPDATES.session_message
 
 ---Record an update from a subagent's own session, returning false for one the transcript doesn't keep
 ---@param subagent CodeCompanion.Chat.ACPSubagent
----@param opts { update: table }
+---@param opts { update: table, tool: string, is_replayed?: boolean }
 ---@return boolean
 function M.apply(subagent, opts)
   local apply_update = SESSION_UPDATES[opts.update.sessionUpdate]
   if not apply_update then
     return false
   end
-  apply_update(subagent, opts.update)
+  apply_update(subagent, opts)
   return true
 end
 
@@ -131,7 +146,7 @@ function M.apply_parent_message(chat, opts)
   local update = opts.update
   local message = chat.messages_to_subagents[update.messageId] or { message_id = update.messageId, text = "" }
   chat.messages_to_subagents[update.messageId] = message
-  apply_message_update(message, { update = update })
+  apply_message_update({ message = message, update = update })
 
   -- A message can stream before the agent names its recipient, so it joins a transcript once that's known
   local recipient = chat.subagents[message.recipientSessionId]
