@@ -14,7 +14,7 @@ return {
   opts = {
     stream = true,
     tools = true,
-    vision = true,
+    vision = false,
   },
   features = {
     text = true,
@@ -51,21 +51,23 @@ return {
       ---@param args { messages: table }
       ---@return table
       build_messages = function(self, args)
-        return deepseek.build_messages(self, args.messages, function(msg)
-          if msg._meta and msg._meta.tag == tags.IMAGE and msg.context and msg.context.mimetype then
+        return deepseek.build_messages(self, args.messages, function(message)
+          if message._meta and message._meta.tag == tags.IMAGE and message.context and message.context.mimetype then
             if not (self.opts and self.opts.vision) then
-              return nil
+              -- keep the turn honest: say the image was dropped instead of sending text silently
+              message.content = "[image omitted: the selected model does not accept image input]"
+              return message
             end
-            msg.content = {
+            message.content = {
               {
                 type = "image_url",
                 image_url = {
-                  url = string.format("data:%s;base64,%s", msg.context.mimetype, msg.content),
+                  url = string.format("data:%s;base64,%s", message.context.mimetype, message.content),
                 },
               },
             }
           end
-          return msg
+          return message
         end)
       end,
 
