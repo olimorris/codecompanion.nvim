@@ -1,5 +1,18 @@
 # Changelog
 
+## [20.3.0](https://github.com/olimorris/codecompanion.nvim/compare/v20.2.0...v20.3.0) (2026-11-22)
+
+
+### Features
+
+* **acp:** send session/close before terminating the agent process ([#3520](https://github.com/olimorris/codecompanion.nvim/issues/3520)) ([14b4993](https://github.com/olimorris/codecompanion.nvim/commit/14b4993a24fac8bb122ce524e25bb0f7f392afd6))
+* **acp:** support for subagents ([#3523](https://github.com/olimorris/codecompanion.nvim/issues/3523)) ([70c2cb4](https://github.com/olimorris/codecompanion.nvim/commit/70c2cb439240c93651160ee40de963f29c971475))
+
+
+### Bug Fixes
+
+* **chat:** focus the input window after :CodeCompanionChat Add ([#3517](https://github.com/olimorris/codecompanion.nvim/issues/3517)) ([5a454c9](https://github.com/olimorris/codecompanion.nvim/commit/5a454c91d77c8464dad6ef12e663618cd427ad9e))
+
 ## [20.2.0](https://github.com/olimorris/codecompanion.nvim/compare/v20.1.0...v20.2.0) (2026-11-13)
 
 
