@@ -102,6 +102,8 @@ local function get_extracted_message()
 local function add_response(response, lines)
 ```
 
+**Read a public name at its call site.** Callers see `module.func(...)` or `object:method(...)`, so judge the name with the module or object in front of it. `subagents.patch` reads as patching subagents, and `subagents.cancel` reads as cancelling one, even when each is accurate inside its own file.
+
 **Boolean-returning helpers read as a question or a state:** `has_user_messages`, `is_visible`, `should_include`. Don't invent poetic predicates - `hidden_by_open_fence` is cleverer than it is clear; `is_inside_unclosed_fence` is not.
 
 ## 4. Functions and type annotations

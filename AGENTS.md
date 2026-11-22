@@ -1,6 +1,6 @@
 # CodeCompanion.nvim
 
-This is a Neovim plugin written in Lua, which allows developers to code with LLMs and agents from within Neovim. Tests use Mini.Test with child processes. Always run the full test suite after changes and ensure all tests pass before considering work complete.
+This is a Neovim plugin written in Lua, which allows developers to code with LLMs and agents from within Neovim. Tests use Mini.Test with child processes. Before considering work complete, follow `.codecompanion/skills/reviewing-changes/SKILL.md`, which ends with the full test suite passing.
 
 ## Commands
 
