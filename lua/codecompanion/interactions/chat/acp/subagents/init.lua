@@ -8,7 +8,7 @@ local fmt = string.format
 ---@field disconnected? boolean
 ---@field edits table<string, table[]> The files each unfinished tool call names, by the tool call's ID
 ---@field float? { bufnr: number, winnr: number }
----@field info { additionalDirectories?: string[], capabilities?: { cancel?: table }, cwd?: string, description?: string, id: string, parent_id: string, state?: { error?: table, state: string, stopReason?: string }, title?: string }
+---@field info CodeCompanion.ACP.Subagent
 ---@field model? string
 ---@field order number When the subagent was announced, relative to the chat's others
 ---@field plan? table[] The subagent's latest plan entries
@@ -34,7 +34,7 @@ function M.update(chat, opts)
   end
   subagent.info = info
   subagent.disconnected = nil
-  float.refresh_with_ancestors(chat, subagent)
+  float.refresh_with_ancestors(chat, { subagent = subagent })
 
   local parent = chat.subagents[info.parent_id]
   if parent then
@@ -47,7 +47,7 @@ function M.update(chat, opts)
     return
   end
 
-  summary.render(chat, subagent)
+  summary.render(chat, { subagent = subagent })
 end
 
 ---Stop presenting any subagent's work state as current, after a session load or once the agent's process has gone
@@ -59,9 +59,9 @@ function M.invalidate(chat, opts)
   for _, subagent in pairs(chat.subagents) do
     subagent.info.state = nil
     subagent.disconnected = opts.is_disconnected or nil
-    float.refresh(chat, subagent)
+    float.refresh(chat, { subagent = subagent })
     if not chat.subagents[subagent.info.parent_id] then
-      summary.render(chat, subagent)
+      summary.render(chat, { subagent = subagent })
     end
   end
 end
@@ -75,7 +75,7 @@ function M.handle_session_update(chat, opts)
   if not subagent then
     local recipient = transcript.apply_parent_message(chat, { update = opts.update })
     if recipient then
-      float.refresh(chat, recipient)
+      float.refresh(chat, { subagent = recipient })
     end
     return
   end
@@ -85,9 +85,9 @@ function M.handle_session_update(chat, opts)
     return
   end
 
-  float.refresh_with_ancestors(chat, subagent)
+  float.refresh_with_ancestors(chat, { subagent = subagent })
   if opts.update.sessionUpdate == "config_option_update" and not chat.subagents[subagent.info.parent_id] then
-    summary.render(chat, subagent)
+    summary.render(chat, { subagent = subagent })
   end
 end
 
@@ -95,13 +95,13 @@ end
 ---@param chat CodeCompanion.Chat
 ---@param opts { session_id: string }
 ---@return nil
-function M.cancel(chat, opts)
+function M.mark_cancelled(chat, opts)
   local subagent = chat.subagents[opts.session_id]
   if not subagent then
     return
   end
-  transcript.cancel_tool_calls(subagent)
-  float.refresh(chat, subagent)
+  transcript.mark_tool_calls_cancelled(subagent)
+  float.refresh(chat, { subagent = subagent })
 end
 
 ---List the chat's subagents in the order they were announced, each followed by the subagents it started

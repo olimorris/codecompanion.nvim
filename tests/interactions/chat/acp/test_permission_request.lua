@@ -189,6 +189,39 @@ T["diff flow -> approval prompt shows view option"] = function()
   h.eq("Reject", result.choice_labels[4])
 end
 
+T["diff flow -> names the SUBAGENT that asked"] = function()
+  local title = child.lua([[
+    local ap = require("codecompanion.interactions.chat.helpers.approval_prompt")
+    _G.__title = nil
+    ap.request = function(_, opts)
+      _G.__title = opts.title
+    end
+
+    local chat = {
+      adapter = {},
+      bufnr = 0,
+      subagents = { ["sub-1"] = { info = { id = "sub-1", parent_id = "parent", title = "Explore" } } },
+    }
+    local request = {
+      session_id = "sub-1",
+      tool_call = {
+        toolCallId = "tc-diff",
+        kind = "edit",
+        title = "Apply changes",
+        status = "pending",
+        content = { { type = "diff", path = "file.txt", oldText = "old line", newText = "new line" } },
+      },
+      options = { { optionId = "allow_once_id", name = "Allow", kind = "allow_once" } },
+      respond = function() end,
+    }
+
+    require("codecompanion.interactions.chat.acp.request_permission").confirm(chat, request)
+    return _G.__title
+  ]])
+
+  h.eq("_Explore:_ Proposed edits for `file.txt`:", title)
+end
+
 T["diff flow -> view opens diff with keymaps"] = function()
   local result = child.lua([[
     -- Stub approval_prompt to auto-select "View"

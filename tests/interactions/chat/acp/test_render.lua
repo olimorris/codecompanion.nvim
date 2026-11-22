@@ -51,7 +51,7 @@ T["ACP Render"]["restores the subagents a session started, as clearing the chat 
       table.insert(updates, { update = update, session_id = opts and opts.session_id })
     end
     local function replay(session_id, update)
-      if not connection.subagents:handle({ session_id = session_id, update = update, is_replayed = true }) then
+      if not connection.subagents:handle_session_update({ session_id = session_id, update = update, is_replayed = true }) then
         table.insert(updates, { update = update })
       end
     end

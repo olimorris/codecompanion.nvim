@@ -1,7 +1,6 @@
 local acp = require("codecompanion.acp")
 local handler = require("codecompanion.interactions.chat.acp.handler")
 local prompt_builder = require("codecompanion.acp.prompt_builder")
-local protocol = require("codecompanion.acp.subagents")
 
 local M = {}
 
@@ -57,7 +56,7 @@ local function apply_message_update(opts)
     return
   end
 
-  protocol.patch({
+  acp.apply_upsert({
     record = message,
     update = update,
     fields = { "senderSessionId", "recipientSessionId", "senderMessageId", "recipientMessageId" },
@@ -159,7 +158,7 @@ end
 
 ---@param subagent CodeCompanion.Chat.ACPSubagent
 ---@return nil
-function M.cancel_tool_calls(subagent)
+function M.mark_tool_calls_cancelled(subagent)
   for _, call in pairs(subagent.tool_calls) do
     if call.status ~= "completed" and call.status ~= "failed" then
       call.status = "cancelled"

@@ -169,7 +169,7 @@ T["Subagents"]["marks unfinished tool calls as cancelled when the subagent is CA
         update = { sessionUpdate = "tool_call", toolCallId = id, title = "Run the tests", status = status },
       })
     end
-    subagents.cancel(chat, { session_id = "sess_child" })
+    subagents.mark_cancelled(chat, { session_id = "sess_child" })
     local calls = chat.subagents["sess_child"].tool_calls
     return { completed = calls.call_001.status, unfinished = calls.call_002.status }
   ]])

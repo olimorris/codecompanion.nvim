@@ -845,7 +845,7 @@ local DISPATCH = {
     local update = m.params.update
     if
       update
-      and self.subagents:handle({
+      and self.subagents:handle_session_update({
         session_id = m.params.sessionId,
         update = update,
         is_replayed = self._loading_session == true,
@@ -904,7 +904,7 @@ function Connection:handle_incoming_request_or_notification(notification)
 
   local sid = notification.params and notification.params.sessionId
   local is_request = notification.id ~= nil
-  if sid and self.session_id and not self.subagents:is_known(sid) then
+  if sid and self.session_id and not self.subagents:is_known_session(sid) then
     if is_request then
       return self:send_error(notification.id, "invalid sessionId", jsonrpc.errors.INVALID_PARAMS)
     end
@@ -946,7 +946,7 @@ end
 ---@param params table
 ---@return boolean
 function Connection:_has_valid_session_id(params)
-  return self.session_id ~= nil and self.subagents:is_known(params.sessionId)
+  return self.session_id ~= nil and self.subagents:is_known_session(params.sessionId)
 end
 
 ---Build a permission request that answers the agent at most once
@@ -1288,6 +1288,19 @@ function Connection:set_config_option(config_id, value)
 
   log:debug("[acp::set_config_option] Changed %s to %s", config_id, value)
   return true
+end
+
+---Apply an ACP upsert to a record, leaving an omitted field unchanged and clearing one sent as null
+---@param opts { record: table, update: table, fields: string[] }
+---@return nil
+function Connection.apply_upsert(opts)
+  for _, field in ipairs(opts.fields) do
+    if opts.update[field] == vim.NIL then
+      opts.record[field] = nil
+    elseif opts.update[field] ~= nil then
+      opts.record[field] = opts.update[field]
+    end
+  end
 end
 
 ---Flatten session config options

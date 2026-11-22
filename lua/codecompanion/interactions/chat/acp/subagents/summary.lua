@@ -43,9 +43,10 @@ end
 
 ---Write the subagent's summary line, or rewrite it when its title or state changed
 ---@param chat CodeCompanion.Chat
----@param subagent CodeCompanion.Chat.ACPSubagent
+---@param opts { subagent: CodeCompanion.Chat.ACPSubagent }
 ---@return nil
-function M.render(chat, subagent)
+function M.render(chat, opts)
+  local subagent = opts.subagent
   local summary =
     tool_calls.format_summary({ kind = "subagent", detail = M.get_label(subagent), tag = subagent.model }).text
   local status = M.get_state(subagent).status

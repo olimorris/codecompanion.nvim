@@ -11,19 +11,19 @@ local CANCEL_KEY = "<C-c>"
 local M = {}
 
 ---@param chat CodeCompanion.Chat
----@param subagent CodeCompanion.Chat.ACPSubagent
+---@param opts { subagent: CodeCompanion.Chat.ACPSubagent }
 ---@return boolean
-local function can_cancel(chat, subagent)
+local function can_cancel(chat, opts)
   local connection = chat.acp_connection
-  return connection ~= nil and connection.subagents:can_cancel(subagent.info.id)
+  return connection ~= nil and connection.subagents:can_cancel(opts.subagent.info.id)
 end
 
 ---Check if the subagent reported its own, incoming view of a message the parent sent it
----@param subagent CodeCompanion.Chat.ACPSubagent
----@param message table
+---@param opts { subagent: CodeCompanion.Chat.ACPSubagent, message: table }
 ---@return boolean
-local function is_reported_by_subagent(subagent, message)
-  return vim.iter(subagent.transcript):any(function(entry)
+local function is_reported_by_subagent(opts)
+  local message = opts.message
+  return vim.iter(opts.subagent.transcript):any(function(entry)
     return entry.type == "session_message"
       and (entry.senderMessageId == message.message_id or entry.message_id == message.recipientMessageId)
   end)
@@ -83,7 +83,7 @@ local function format_entry(chat, opts)
   end
   if entry.type == "parent_message" then
     local message = chat.messages_to_subagents[entry.message_id]
-    if not message or is_reported_by_subagent(subagent, message) then
+    if not message or is_reported_by_subagent({ subagent = subagent, message = message }) then
       return {}
     end
     return format_quote({ header = "Sent by parent", text = message.text })
@@ -119,7 +119,7 @@ function M.format(chat, opts)
     local size = subagent.usage.size and fmt(" of %s", subagent.usage.size) or ""
     table.insert(lines, fmt("**Tokens** %s%s", subagent.usage.used, size))
   end
-  if can_cancel(chat, subagent) then
+  if can_cancel(chat, { subagent = subagent }) then
     table.insert(lines, fmt("_Press `%s` to cancel_", CANCEL_KEY))
   end
   if subagent.plan and #subagent.plan > 0 then
@@ -142,9 +142,10 @@ end
 
 ---Redraw an open float, coalescing the many updates a streaming subagent sends
 ---@param chat CodeCompanion.Chat
----@param subagent CodeCompanion.Chat.ACPSubagent
+---@param opts { subagent: CodeCompanion.Chat.ACPSubagent }
 ---@return nil
-function M.refresh(chat, subagent)
+function M.refresh(chat, opts)
+  local subagent = opts.subagent
   if not subagent.float or subagent._is_refresh_scheduled then
     return
   end
@@ -172,11 +173,12 @@ end
 
 ---Redraw the floats of a subagent and its ancestors, which list its state
 ---@param chat CodeCompanion.Chat
----@param subagent? CodeCompanion.Chat.ACPSubagent
+---@param opts { subagent: CodeCompanion.Chat.ACPSubagent }
 ---@return nil
-function M.refresh_with_ancestors(chat, subagent)
+function M.refresh_with_ancestors(chat, opts)
+  local subagent = opts.subagent
   while subagent do
-    M.refresh(chat, subagent)
+    M.refresh(chat, { subagent = subagent })
     subagent = chat.subagents[subagent.info.parent_id]
   end
 end

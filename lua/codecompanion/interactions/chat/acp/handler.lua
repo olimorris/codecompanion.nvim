@@ -232,7 +232,7 @@ function ACPHandler:create_and_send_prompt(payload)
       self:handle_error(error)
     end)
     :on_cancel(function()
-      self.chat.acp_permissions:cancel_turn()
+      self.chat.acp_permissions:cancel_turn_requests()
     end)
     :with_options({ bufnr = self.chat.bufnr, interaction = "chat" })
     :send()
@@ -377,7 +377,7 @@ end
 ---Handle the prompt response when it's complete
 ---@return nil
 function ACPHandler:handle_complete()
-  self.chat.acp_permissions:cancel_turn()
+  self.chat.acp_permissions:cancel_turn_requests()
 
   if not self.chat.status or self.chat.status == "" then
     self.chat.status = "success"
@@ -390,7 +390,7 @@ end
 ---@param error string
 ---@return nil
 function ACPHandler:handle_error(error)
-  self.chat.acp_permissions:cancel_turn()
+  self.chat.acp_permissions:cancel_turn_requests()
 
   self.chat.status = "error"
   log:error("[ACP::Handler] %s", error)

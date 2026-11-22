@@ -7,7 +7,7 @@ local utils = require("codecompanion.utils")
 ---@field queue CodeCompanion.Queue
 ---@field active boolean
 ---@field request? table The request the user is being asked about
----@field respond? function The active request's original respond, which answers the agent directly
+---@field respond_to_agent? function The active request's original respond, which answers the agent directly
 local Permissions = {}
 
 ---@param chat CodeCompanion.Chat
@@ -39,9 +39,10 @@ end
 
 ---Fill in a request's tool call from the one the agent announced, so the diff UI can activate
 ---@param chat CodeCompanion.Chat
----@param request table
+---@param opts { request: table }
 ---@return nil
-local function hydrate_tool_call(chat, request)
+local function merge_announced_tool_call(chat, opts)
+  local request = opts.request
   local merge_tool_call = require("codecompanion.interactions.chat.acp.handler").merge_tool_call
   local tool_call = request.tool_call
   if type(tool_call) ~= "table" or not tool_call.toolCallId then
@@ -75,8 +76,8 @@ function Permissions:_present_next()
   end
   self.active = true
   self.request = request
-  self.respond = request.respond
-  hydrate_tool_call(self.chat, request)
+  self.respond_to_agent = request.respond
+  merge_announced_tool_call(self.chat, { request = request })
 
   local send_response = request.respond
   request.respond = function(option_id, cancelled)
@@ -96,7 +97,7 @@ end
 function Permissions:_release()
   self.active = false
   self.request = nil
-  self.respond = nil
+  self.respond_to_agent = nil
 end
 
 ---Give the prompt back once the user has answered a subagent that asked after the turn ended
@@ -111,7 +112,7 @@ end
 
 ---Cancel the requests the turn left unanswered, keeping those of subagents that may still be working
 ---@return nil
-function Permissions:cancel_turn()
+function Permissions:cancel_turn_requests()
   self:_cancel(function(request)
     return self.chat.subagents[request.session_id] == nil
   end)
@@ -131,7 +132,7 @@ end
 function Permissions:_cancel(should_cancel)
   local cancelled = {}
   if self.request and should_cancel(self.request) then
-    table.insert(cancelled, { respond = self.respond })
+    table.insert(cancelled, { respond = self.respond_to_agent })
     self:_release()
   end
 

@@ -969,7 +969,7 @@ T["ACP Subagents"] = new_set({
           update = function(_, opts) table.insert(subagent_calls.updates, vim.deepcopy(opts.subagent)) end,
           handle_session_update = function(_, opts) table.insert(subagent_calls.session_updates, opts) end,
           invalidate = function(_, opts) table.insert(subagent_calls.invalidated, opts or {}) end,
-          cancel = function(_, opts) table.insert(subagent_calls.cancelled, opts.session_id) end,
+          mark_cancelled = function(_, opts) table.insert(subagent_calls.cancelled, opts.session_id) end,
         }
 
         function create_subagent_connection()

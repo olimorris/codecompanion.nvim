@@ -76,7 +76,7 @@ T["Permissions"]["KEEPS a subagent's request when the turn is cancelled"] = func
     add_request({ id = "parent_1", session_id = "sess_parent" })
     add_request({ id = "child_1", session_id = "sess_child" })
     add_request({ id = "parent_2", session_id = "sess_parent" })
-    permissions:cancel_turn()
+    permissions:cancel_turn_requests()
     return { cancelled = cancelled, confirmed = get_confirmed_ids(), active = permissions.active }
   ]])
   h.eq(result.cancelled, { "parent_1", "parent_2" })

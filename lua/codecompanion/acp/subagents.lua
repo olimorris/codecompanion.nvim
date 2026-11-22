@@ -26,19 +26,6 @@ function Subagents.new(opts)
   return self
 end
 
----Copy an update's fields onto a record, leaving an omitted field unchanged and clearing one sent as null
----@param opts { record: table, update: table, fields: string[] }
----@return nil
-function Subagents.patch(opts)
-  for _, field in ipairs(opts.fields) do
-    if opts.update[field] == vim.NIL then
-      opts.record[field] = nil
-    elseif opts.update[field] ~= nil then
-      opts.record[field] = opts.update[field]
-    end
-  end
-end
-
 ---@return table
 local function get_chat_ui()
   return require("codecompanion.interactions.chat.acp.subagents")
@@ -47,7 +34,7 @@ end
 ---Check if a session is the connection's session or a subagent descended from it
 ---@param session_id? string
 ---@return boolean
-function Subagents:is_known(session_id)
+function Subagents:is_known_session(session_id)
   if session_id == nil then
     return false
   end
@@ -55,17 +42,17 @@ function Subagents:is_known(session_id)
     return true
   end
   local subagent = self.sessions[session_id]
-  return subagent ~= nil and self:is_known(subagent.parent_id)
+  return subagent ~= nil and self:is_known_session(subagent.parent_id)
 end
 
 ---Handle a session update that concerns subagents, returning false for one the parent's turn should handle
----Ref: https://agentclientprotocol.com/rfds/subagents
 ---@param opts { session_id: string, update: table, is_replayed?: boolean }
 ---@return boolean
-function Subagents:handle(opts)
+function Subagents:handle_session_update(opts)
+  -- Ref: https://agentclientprotocol.com/rfds/subagents
   local update = opts.update
   if update.sessionUpdate == "subagent_update" then
-    local subagent = self:_upsert(opts)
+    local subagent = self:_apply_subagent_update(opts)
     if not subagent then
       return true
     end
@@ -114,14 +101,14 @@ function Subagents:show(chat, opts)
   end
 end
 
----Register or patch a subagent that a known session announced
+---Register or update a subagent that a known session announced
 ---@param opts { session_id: string, update: table, is_replayed?: boolean }
 ---@return CodeCompanion.ACP.Subagent|nil
-function Subagents:_upsert(opts)
+function Subagents:_apply_subagent_update(opts)
   local parent_id, update = opts.session_id, opts.update
   local child_id = update.sessionId
-  if type(child_id) ~= "string" or child_id == self.connection.session_id or not self:is_known(parent_id) then
-    return
+  if type(child_id) ~= "string" or child_id == self.connection.session_id or not self:is_known_session(parent_id) then
+    return nil
   end
 
   local subagent = self.sessions[child_id]
@@ -136,7 +123,7 @@ function Subagents:_upsert(opts)
   if not opts.is_replayed then
     vim.list_extend(fields, { "capabilities", "state" })
   end
-  Subagents.patch({ record = subagent, update = update, fields = fields })
+  require("codecompanion.acp").apply_upsert({ record = subagent, update = update, fields = fields })
   self.sessions[child_id] = subagent
   return subagent
 end
@@ -147,7 +134,7 @@ end
 function Subagents:_handle_cancelled(session_id)
   self.connection:cancel_permission_requests(session_id)
   if self.connection.chat then
-    get_chat_ui().cancel(self.connection.chat, { session_id = session_id })
+    get_chat_ui().mark_cancelled(self.connection.chat, { session_id = session_id })
   end
 end
 

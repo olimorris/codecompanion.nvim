@@ -268,10 +268,11 @@ end
 
 ---Find the first subagent a tool call references through its `session` content
 ---@param chat CodeCompanion.Chat
----@param call table
+---@param opts { call: table }
 ---@return CodeCompanion.Chat.ACPSubagent|nil
-local function find_referenced_subagent(chat, call)
-  for _, content in ipairs(type(call.content) == "table" and call.content or {}) do
+local function find_referenced_subagent(chat, opts)
+  local content_blocks = opts.call.content
+  for _, content in ipairs(type(content_blocks) == "table" and content_blocks or {}) do
     if content.type == "session" and chat.subagents[content.sessionId] then
       return chat.subagents[content.sessionId]
     end
@@ -286,7 +287,7 @@ function ToolCalls.open(chat, opts)
   local call_id = opts.call_id
   local details
   local acp_call = chat.tool_calls.acp[call_id]
-  local subagent = chat.subagents[call_id] or (acp_call and find_referenced_subagent(chat, acp_call))
+  local subagent = chat.subagents[call_id] or (acp_call and find_referenced_subagent(chat, { call = acp_call }))
   if subagent then
     return require("codecompanion.interactions.chat.acp.subagents.float").open(chat, { subagent = subagent })
   elseif acp_call then
