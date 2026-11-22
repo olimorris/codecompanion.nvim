@@ -54,8 +54,9 @@
 ## Checklist
 
 - [ ] I've read the [contributing](https://github.com/olimorris/codecompanion.nvim/blob/main/CONTRIBUTING.md) guidelines and the [style guide](https://github.com/olimorris/codecompanion.nvim/blob/main/STYLE.md), and this PR follows them
+- [ ] I've worked through the [reviewing-changes](https://github.com/olimorris/codecompanion.nvim/blob/main/.codecompanion/skills/reviewing-changes/SKILL.md) skill, or had my agent do it
 - [ ] I can explain the diff and respond to review feedback without relying on AI
 - [ ] I've tested this change by hand in Neovim
 - [ ] I've run `make all` to ensure docs are generated, tests pass and [StyLua](https://github.com/JohnnyMorganz/StyLua) has formatted the code
-- [ ] _(optional)_ I've added [test](https://github.com/olimorris/codecompanion.nvim/blob/main/CONTRIBUTING.md#testing) coverage for this fix/feature
-- [ ] _(optional)_ I've updated the README and/or relevant docs pages
+- [ ] _(if it changes behaviour)_ I've added [test](https://github.com/olimorris/codecompanion.nvim/blob/main/CONTRIBUTING.md#testing) coverage for this fix/feature
+- [ ] _(optional)_ I've updated the README and/or relevant docs pages, following the [writing-docs](https://github.com/olimorris/codecompanion.nvim/blob/main/.codecompanion/skills/writing-docs/SKILL.md) skill
