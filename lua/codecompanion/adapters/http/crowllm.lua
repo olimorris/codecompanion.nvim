@@ -14,7 +14,8 @@ return {
   opts = {
     stream = true,
     tools = true,
-    vision = false,
+    -- keep attachments enabled for the chat adapter; per-model capability is applied in setup
+    vision = true,
   },
   features = {
     text = true,
