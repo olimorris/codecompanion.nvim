@@ -54,7 +54,9 @@ doc/node_modules
 
 .codecompanion.lua
 .n8n
-.claude
+.claude/*
+!.claude/settings.json
+!.claude/skills/
 .direnv/
 .testenv/
 .repro/
