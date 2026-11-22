@@ -1964,6 +1964,47 @@ end
 
 T["validation"] = new_set()
 
+T["validation"]["views the whole file when view_range is null"] = function()
+  child.lua([[
+    vim.fn.writefile({ "First", "Second" }, vim.fs.joinpath(_G.MEMORY_DIR_ABSOLUTE, "note.txt"))
+    local builtin = require("codecompanion.interactions.chat.tools.builtin.memory")
+    _G.result = builtin.cmds[1](builtin, vim.json.decode(
+      '{"command":"view","path":"/memories/note.txt","view_range":null}'
+    ))
+  ]])
+
+  h.eq("success", child.lua_get("_G.result.status"))
+  h.expect_contains("First\nSecond", child.lua_get("_G.result.data"))
+end
+
+T["validation"]["rejects null file_text without creating a file"] = function()
+  child.lua([[
+    local builtin = require("codecompanion.interactions.chat.tools.builtin.memory")
+    _G.result = builtin.cmds[1](builtin, vim.json.decode(
+      '{"command":"create","path":"/memories/note.txt","file_text":null}'
+    ))
+  ]])
+
+  h.eq("error", child.lua_get("_G.result.status"))
+  h.expect_contains("requires a 'file_text' parameter", child.lua_get("_G.result.data"))
+  h.eq(false, child.lua_get("vim.uv.fs_stat(vim.fs.joinpath(_G.MEMORY_DIR_ABSOLUTE, 'note.txt')) ~= nil"))
+end
+
+T["validation"]["accepts null replacement text to remove a match"] = function()
+  child.lua([[
+    local path = vim.fs.joinpath(_G.MEMORY_DIR_ABSOLUTE, "note.txt")
+    vim.fn.writefile({ "Hello World" }, path)
+    local builtin = require("codecompanion.interactions.chat.tools.builtin.memory")
+    _G.result = builtin.cmds[1](builtin, vim.json.decode(
+      '{"command":"str_replace","path":"/memories/note.txt","old_str":" World","new_str":null}'
+    ))
+    _G.content = vim.fn.readfile(path)
+  ]])
+
+  h.eq("success", child.lua_get("_G.result.status"))
+  h.eq({ "Hello" }, child.lua_get("_G.content"))
+end
+
 T["validation"]["returns error for missing path on view"] = function()
   child.lua([[
     local builtin = require("codecompanion.interactions.chat.tools.builtin.memory")

@@ -54,6 +54,20 @@ T["outline scoped to a section lists its subsections"] = function()
   h.expect_contains("/SYMBOLS", output)
 end
 
+T["outline with a null section lists the chapters, not an empty section"] = function()
+  local output = execute({ command = "outline", section = vim.NIL })
+
+  h.expect_contains("Configuration", output)
+  h.expect_contains("codecompanion-usage-chat-buffer", output)
+end
+
+T["command null falls back to search"] = function()
+  local output = execute({ command = vim.NIL, query = "codecompanion-usage-chat-buffer" })
+
+  h.expect_contains("codecompanion-usage-chat-buffer", output)
+  h.eq(nil, string.match(output, "Unknown command"))
+end
+
 T["read returns a section verbatim when addressed by tag"] = function()
   local output = execute({ command = "read", section = "codecompanion-installation-help" })
 

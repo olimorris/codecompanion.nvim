@@ -157,6 +157,21 @@ T["can find basic text matches"] = function()
   h.expect_contains("tests/button.test.js:5", output) -- render(<Button>
 end
 
+T["searches literal parentheses when optional arguments are null"] = function()
+  child.lua([[
+    tools:execute(chat, { {
+      ["function"] = {
+        name = "grep_search",
+        arguments = '{"query":"formatDate(date)","is_regexp":null,"include_pattern":null}',
+      },
+    } })
+    assert(vim.wait(2000, function() return #chat.messages > 1 end))
+  ]])
+
+  local output = child.lua_get("chat.messages[#chat.messages].content")
+  h.expect_contains("src/utils/helpers.js:8", output)
+end
+
 T["can search for patterns starting with hyphen"] = function()
   child.lua([[
     local tool = {

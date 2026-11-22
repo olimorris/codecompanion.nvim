@@ -1,6 +1,7 @@
 local adapters = require("codecompanion.adapters")
 local client = require("codecompanion.http")
 local config = require("codecompanion.config")
+local helpers = require("codecompanion.interactions.chat.tools.builtin.helpers")
 local log = require("codecompanion.utils.log")
 
 local fmt = string.format
@@ -27,11 +28,14 @@ return {
         return cb({ status = "error", data = "No args for the web_search tool" })
       end
 
-      if not args.query or args.query == "" then
+      if type(args.query) ~= "string" or args.query == "" then
         log:error("[Web Search Tool] No query provided")
         return cb({ status = "error", data = "No query provided for the web_search tool" })
       end
 
+      -- Keep the recorded tool call unchanged when cleaning the query
+      args = vim.tbl_extend("force", {}, args)
+      args.domains = helpers.normalise_null(args.domains)
       args.query = string.gsub(args.query, "%f[%w_]web_search%f[^%w_]", "", 1)
 
       local tool_adapter = config.interactions.chat.tools.web_search.opts.adapter

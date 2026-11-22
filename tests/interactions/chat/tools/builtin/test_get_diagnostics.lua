@@ -152,6 +152,39 @@ T["filters diagnostics by severity"] = function()
   h.expect_contains("This is an error", output)
 end
 
+T["treats a null severity as no filter and returns every diagnostic"] = function()
+  child.lua([[
+    vim.uv.chdir(_G.TEST_CWD)
+
+    local ok = vim.fn.writefile({ "hello world", "another line" }, _G.TEST_TMPFILE_ABSOLUTE)
+    assert(ok == 0)
+
+    local bufnr = vim.fn.bufadd(_G.TEST_TMPFILE_ABSOLUTE)
+    vim.fn.bufload(bufnr)
+
+    local ns = vim.api.nvim_create_namespace("test_diagnostics_null_severity")
+    vim.diagnostic.set(ns, bufnr, {
+      { lnum = 0, end_lnum = 0, col = 0, end_col = 5, severity = vim.diagnostic.severity.ERROR, message = "This is an error" },
+      { lnum = 1, end_lnum = 1, col = 0, end_col = 5, severity = vim.diagnostic.severity.HINT, message = "This is a hint" },
+    })
+
+    local tool = {
+      {
+        ["function"] = {
+          name = "get_diagnostics",
+          arguments = string.format('{"filepath": "%s", "severity": null}', _G.TEST_TMPFILE_ABSOLUTE)
+        },
+      },
+    }
+    tools:execute(chat, tool)
+    vim.wait(200)
+  ]])
+
+  local output = child.lua_get("chat.messages[#chat.messages].content")
+  h.expect_contains("2 found", output)
+  h.expect_contains("This is a hint", output)
+end
+
 T["handles empty filepath"] = function()
   child.lua([[
     local tool = {
