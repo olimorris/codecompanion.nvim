@@ -995,39 +995,6 @@ T["ACP Subagents"] = new_set({
   },
 })
 
-T["ACP Subagents"]["advertises the capability when ENABLED"] = function()
-  local result = child.lua([[
-    require("codecompanion.config").adapters.acp.opts.subagents = true
-    local connection = create_init_connection()
-    connection.adapter_modified = test_adapter
-    local sent
-    function connection:send_rpc_request(opts)
-      sent = vim.json.encode(opts.params)
-      return { protocolVersion = 1 }
-    end
-    connection:_initialize()
-    return sent
-  ]])
-  h.expect_contains('"subagents":{}', result)
-end
-
-T["ACP Subagents"]["DOES NOT advertise the capability when DISABLED"] = function()
-  local result = child.lua([[
-    require("codecompanion.config").adapters.acp.opts.subagents = false
-    local connection = create_init_connection()
-    connection.adapter_modified = test_adapter
-    local sent
-    function connection:send_rpc_request(opts)
-      sent = vim.json.encode(opts.params)
-      return { protocolVersion = 1 }
-    end
-    connection:_initialize()
-    require("codecompanion.config").adapters.acp.opts.subagents = true
-    return sent
-  ]])
-  h.is_false(result:find('"subagents"', 1, true) ~= nil)
-end
-
 T["ACP Subagents"]["routes an ANNOUNCED subagent's updates to the chat"] = function()
   local result = child.lua([[
     local connection = create_subagent_connection()

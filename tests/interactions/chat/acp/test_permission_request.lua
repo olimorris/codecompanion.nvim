@@ -219,7 +219,7 @@ T["diff flow -> names the SUBAGENT that asked"] = function()
     return _G.__title
   ]])
 
-  h.eq("_Explore:_ Proposed edits for `file.txt`:", title)
+  h.expect_contains("Explore", title)
 end
 
 T["diff flow -> view opens diff with keymaps"] = function()

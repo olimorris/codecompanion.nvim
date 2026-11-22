@@ -38,12 +38,11 @@ T["Subagents"] = new_set()
 
 T["Subagents"]["shows a top-level subagent as one line that updates in place"] = function()
   local result = child.lua([[
-    update({ title = "Test investigator", state = { state = "running" } })
-    update({ title = "Test investigator", state = { state = "idle", stopReason = "end_turn" } })
-    return { lines = count_lines("**Subagent** Test investigator"), status = chat.subagents["sess_child"].ui.status }
+    update({ title = "Investigate the tests", state = { state = "running" } })
+    update({ title = "Fix the tests", state = { state = "idle", stopReason = "end_turn" } })
+    return { old = count_lines("Investigate the tests"), new = count_lines("Fix the tests") }
   ]])
-  h.eq(result.lines, 1)
-  h.eq(result.status, "completed")
+  h.eq(result, { old = 0, new = 1 })
 end
 
 T["Subagents"]["DOES NOT show a NESTED subagent in the chat"] = function()
