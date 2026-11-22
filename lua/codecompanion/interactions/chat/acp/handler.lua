@@ -1,5 +1,3 @@
-local Queue = require("codecompanion.utils.queue")
-
 local async = require("codecompanion.utils.async")
 local config = require("codecompanion.config")
 local formatter = require("codecompanion.interactions.chat.acp.formatters")
@@ -16,7 +14,6 @@ local watch = require("codecompanion.interactions.shared.watch")
 ---@field tools table<string, table> Cache of tool calls by their ID
 ---@field edits table<string, { path: string, line?: number }[]> Files each tool call has edited, by tool call ID
 ---@field ui_state table<string, table> Cache of tool call UI states (line_number, icon_id) by tool call ID
----@field _permission { queue: CodeCompanion.Queue, active: boolean, respond: function|nil } Internal state for managing permission requests
 local ACPHandler = {}
 
 ---@param chat CodeCompanion.Chat
@@ -29,28 +26,22 @@ function ACPHandler.new(chat)
     tools = {},
     edits = {},
     ui_state = {},
-    _permission = {
-      active = false,
-      queue = Queue.new(),
-      respond = nil,
-    },
   }, { __index = ACPHandler })
 
   return self --[[@type CodeCompanion.Chat.ACPHandler]]
 end
 
----Merge an incoming tool call/update into the cache
----@param existing table|nil
----@param incoming table|nil
+---Merge an incoming tool call or update into the cached tool call
+---@param opts { existing?: table, incoming?: table }
 ---@return table
-local function merge_tool_call(existing, incoming)
-  local out = vim.deepcopy(existing or {})
-  for k, v in pairs(incoming or {}) do
-    if v ~= vim.NIL then
-      out[k] = v
+function ACPHandler.merge_tool_call(opts)
+  local merged = vim.deepcopy(opts.existing or {})
+  for key, value in pairs(opts.incoming or {}) do
+    if value ~= vim.NIL then
+      merged[key] = value
     end
   end
-  return out
+  return merged
 end
 
 ---The files a tool call update edits, alongside locations and diffs
@@ -232,7 +223,7 @@ function ACPHandler:create_and_send_prompt(payload)
       self:process_tool_call(tool_call)
     end)
     :on_permission_request(function(request)
-      self:handle_permission_request(request)
+      self.chat.acp_permissions:push(request)
     end)
     :on_complete(function()
       self:handle_complete()
@@ -241,7 +232,7 @@ function ACPHandler:create_and_send_prompt(payload)
       self:handle_error(error)
     end)
     :on_cancel(function()
-      self:_clear_permission_queue()
+      self.chat.acp_permissions:cancel_turn_requests()
     end)
     :with_options({ bufnr = self.chat.bufnr, interaction = "chat" })
     :send()
@@ -272,13 +263,12 @@ function ACPHandler:handle_thought_chunk(content)
 end
 
 ---Remember the files a tool call names, as a later update can arrive without them
----@param id string
----@param tool_call table
+---@param opts { edits: table<string, table[]>, id: string, tool_call: table }
 ---@return nil
-function ACPHandler:track_edits(id, tool_call)
-  local edits = self.edits[id] or {}
+function ACPHandler.track_edits(opts)
+  local edits = opts.edits[opts.id] or {}
 
-  for _, file in ipairs(touched_files(tool_call)) do
+  for _, file in ipairs(touched_files(opts.tool_call)) do
     local existing = vim.iter(edits):find(function(edit)
       return edit.path == file.path
     end)
@@ -290,27 +280,27 @@ function ACPHandler:track_edits(id, tool_call)
     end
   end
 
-  self.edits[id] = edits
+  opts.edits[opts.id] = edits
 end
 
 ---Release a finished tool call's files, firing an event for each one it edited
----@param id string
----@param tool_call table
+---@param opts { edits: table<string, table[]>, id: string, tool_call: table, tool: string }
 ---@return nil
-function ACPHandler:flush_edits(id, tool_call)
+function ACPHandler.flush_edits(opts)
+  local tool_call = opts.tool_call
   if tool_call.status ~= "completed" and tool_call.status ~= "failed" then
     return
   end
 
-  local edits = self.edits[id]
-  self.edits[id] = nil
+  local edits = opts.edits[opts.id]
+  opts.edits[opts.id] = nil
 
   if tool_call.status == "failed" or tool_call.kind ~= "edit" then
     return
   end
 
   for _, file in ipairs(edits or {}) do
-    utils.fire("FileEdited", { path = file.path, tool = self.chat.adapter.name, line = file.line })
+    utils.fire("FileEdited", { path = file.path, tool = opts.tool, line = file.line })
   end
 end
 
@@ -349,10 +339,10 @@ end
 function ACPHandler:process_tool_call(tool_call)
   local id = tool_call.toolCallId
 
-  local merged = merge_tool_call(self.tools[id], tool_call)
+  local merged = ACPHandler.merge_tool_call({ existing = self.tools[id], incoming = tool_call })
   tool_call = merged
 
-  self:track_edits(id, tool_call)
+  ACPHandler.track_edits({ edits = self.edits, id = id, tool_call = tool_call })
   self.chat.tool_calls.acp[id] = merged
 
   -- Cache or cleanup
@@ -362,7 +352,7 @@ function ACPHandler:process_tool_call(tool_call)
     self.tools[id] = merged
   end
 
-  self:flush_edits(id, tool_call)
+  ACPHandler.flush_edits({ edits = self.edits, id = id, tool_call = tool_call, tool = self.chat.adapter.name })
 
   -- Pending tool calls are awaiting approval or streaming input, so hold them
   -- back from the buffer until the agent moves them out of the pending state
@@ -384,87 +374,10 @@ function ACPHandler:process_tool_call(tool_call)
   })
 end
 
----Queue a permission request and process when ready
----@param request table
----@return nil
-function ACPHandler:handle_permission_request(request)
-  self._permission.queue:push(request)
-  self:_process_next_permission()
-end
-
----Pop the next permission request from the queue and present it
----@return nil
-function ACPHandler:_process_next_permission()
-  if self._permission.active or self._permission.queue:is_empty() then
-    return
-  end
-
-  self._permission.active = true
-  local request = self._permission.queue:pop()
-
-  -- Merge cached tool call data so the diff UI can activate
-  local tool_call = request.tool_call
-  if
-    type(tool_call) == "table"
-    and tool_call.toolCallId
-    and (tool_call.content == nil or tool_call.content == vim.NIL)
-  then
-    local cached = self.tools[tool_call.toolCallId]
-    if cached then
-      request.tool_call = merge_tool_call(cached, tool_call)
-    end
-  end
-  -- The permission request can carry details the announcement lacked, such as the `rawInput` being approved
-  if type(tool_call) == "table" and tool_call.toolCallId then
-    local stored = self.chat.tool_calls.acp[tool_call.toolCallId]
-    self.chat.tool_calls.acp[tool_call.toolCallId] = merge_tool_call(stored, request.tool_call)
-  end
-
-  -- The original respond function is stored so that if the user cancels the request, we can respond as per the spec
-  self._permission.respond = request.respond
-
-  -- Ensure that the next item in the queue is processed after the user's response
-  local send_response = request.respond
-  request.respond = function(option_id, cancelled)
-    if not self._permission.respond then
-      return
-    end
-    send_response(option_id, cancelled)
-    self._permission.active = false
-    self._permission.respond = nil
-    self:_process_next_permission()
-  end
-
-  return require("codecompanion.interactions.chat.acp.request_permission").confirm(self.chat, request)
-end
-
----Clear any requests in the queue
----@return nil
-function ACPHandler:_clear_permission_queue()
-  local had_pending = self._permission.respond ~= nil or not self._permission.queue:is_empty()
-
-  -- Cancel the currently active permission request (if any)
-  if self._permission.respond then
-    pcall(self._permission.respond, nil, true)
-    self._permission.respond = nil
-  end
-
-  -- Cancel all queued permission requests
-  while not self._permission.queue:is_empty() do
-    local request = self._permission.queue:pop()
-    pcall(request.respond, nil, true)
-  end
-  self._permission.active = false
-
-  if had_pending then
-    utils.fire("ToolApprovalFinished", { bufnr = self.chat.bufnr, choice = "cancelled" })
-  end
-end
-
 ---Handle the prompt response when it's complete
 ---@return nil
 function ACPHandler:handle_complete()
-  self:_clear_permission_queue()
+  self.chat.acp_permissions:cancel_turn_requests()
 
   if not self.chat.status or self.chat.status == "" then
     self.chat.status = "success"
@@ -477,7 +390,7 @@ end
 ---@param error string
 ---@return nil
 function ACPHandler:handle_error(error)
-  self:_clear_permission_queue()
+  self.chat.acp_permissions:cancel_turn_requests()
 
   self.chat.status = "error"
   log:error("[ACP::Handler] %s", error)

@@ -73,8 +73,8 @@ end
 local function load_session(chat, selected)
   local updates = {}
   local ok = chat.acp_connection:load_session(selected.sessionId, {
-    on_session_update = function(update)
-      table.insert(updates, update)
+    on_session_update = function(update, opts)
+      table.insert(updates, { update = update, session_id = opts and opts.session_id })
     end,
   })
 

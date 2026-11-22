@@ -153,8 +153,8 @@ end
 T["Tool Calls"]["asks to approve a command on ONE line and views it in FULL"] = function()
   local result = child.lua([[
     local command = "bash -c '\n  ls\n  pwd\n'"
-    local handler = require("codecompanion.interactions.chat.acp.handler").new(_G.chat)
-    handler:handle_permission_request({
+    _G.chat.acp_permissions:push({
+      is_pending = function() return true end,
       tool_call = { toolCallId = "3", kind = "execute", title = command, rawInput = { command = command } },
       options = { { optionId = "allow", name = "Allow", kind = "allow_once" } },
       respond = function() end,
@@ -179,8 +179,8 @@ end
 local function get_acp_approval_lines(title)
   return child.lua(
     [[
-    local handler = require("codecompanion.interactions.chat.acp.handler").new(_G.chat)
-    handler:handle_permission_request({
+    _G.chat.acp_permissions:push({
+      is_pending = function() return true end,
       tool_call = { toolCallId = "4", kind = "execute", title = ... },
       options = { { optionId = "allow", name = "Allow", kind = "allow_once" } },
       respond = function() end,

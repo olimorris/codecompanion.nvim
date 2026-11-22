@@ -1,4 +1,4 @@
-*codecompanion.txt*        For NVIM v0.12        Last change: 2026 November 12
+*codecompanion.txt*        For NVIM v0.12        Last change: 2026 November 21
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -6660,6 +6660,34 @@ server over stdio:
       },
     })
 <
+
+
+SUBAGENTS ~
+
+Some agents hand work to `subagents`, which run alongside the main
+conversation. CodeCompanion shows each one in the chat buffer as a single line
+that updates as the subagent works. Press `K` on the line to follow the
+subagent's transcript in a floating window, then `<C-c>` to cancel it if the
+agent allows that. To list every subagent in the chat, including the ones other
+subagents started, run `:CodeCompanionActions` from the chat buffer and select
+`Subagents`.
+
+Subagents are enabled by default. To disable them:
+
+>lua
+    require("codecompanion").setup({
+      adapters = {
+        acp = {
+          opts = {
+            subagents = false,
+          },
+        },
+      },
+    })
+<
+
+CodeCompanion then doesn't tell the agent it supports subagents, so the agent
+reports their work through the main conversation.
 
 
 HIDING PRESET ADAPTERS ~

@@ -323,6 +323,26 @@ require("codecompanion").setup({
 })
 ```
 
+## Subagents
+
+Some agents hand work to _subagents_, which run alongside the main conversation. CodeCompanion shows each one in the chat buffer as a single line that updates as the subagent works. Press `K` on the line to follow the subagent's transcript in a floating window, then `<C-c>` to cancel it if the agent allows that. To list every subagent in the chat, including the ones other subagents started, run `:CodeCompanionActions` from the chat buffer and select _Subagents_.
+
+Subagents are enabled by default. To disable them:
+
+```lua
+require("codecompanion").setup({
+  adapters = {
+    acp = {
+      opts = {
+        subagents = false,
+      },
+    },
+  },
+})
+```
+
+CodeCompanion then doesn't tell the agent it supports subagents, so the agent reports their work through the main conversation.
+
 ## Hiding Preset Adapters
 
 To list only the adapters in your own config, leaving out the built-in ones:

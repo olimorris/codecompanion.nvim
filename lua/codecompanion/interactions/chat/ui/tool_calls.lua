@@ -26,7 +26,7 @@ local function format_kind(kind)
 end
 
 ---Build a one-line summary of a tool call. Unifies http and acp tool calls
----@param opts { kind: string, detail?: string }
+---@param opts { kind: string, detail?: string, tag?: string }
 ---@return { text: string, is_truncated: boolean }
 function ToolCalls.format_summary(opts)
   local detail = vim.trim(((opts.detail or ""):gsub("%s+", " ")))
@@ -40,11 +40,16 @@ function ToolCalls.format_summary(opts)
   -- Escaping after truncating, so the cut can't separate a backslash from the character it escapes
   detail = markdown.escape_formatting(detail)
 
-  if detail == "" then
-    return { text = fmt("**%s**", format_kind(opts.kind)), is_truncated = is_truncated }
+  local heading = fmt("**%s**", format_kind(opts.kind))
+  if opts.tag then
+    heading = fmt("%s _(%s)_", heading, markdown.escape_formatting(opts.tag))
   end
 
-  return { text = fmt("**%s** %s", format_kind(opts.kind), detail), is_truncated = is_truncated }
+  if detail == "" then
+    return { text = heading, is_truncated = is_truncated }
+  end
+
+  return { text = fmt("%s %s", heading, detail), is_truncated = is_truncated }
 end
 
 ---Build an approval prompt from a tool call's summary, adding the full detail when the summary cut it
@@ -261,6 +266,19 @@ local function format_acp_call(call)
   return { lines = lines, title = call.kind or "Tool Call" }
 end
 
+---Find the first subagent a tool call references through its `session` content
+---@param chat CodeCompanion.Chat
+---@param opts { call: table }
+---@return CodeCompanion.Chat.ACPSubagent|nil
+local function find_referenced_subagent(chat, opts)
+  local content_blocks = opts.call.content
+  for _, content in ipairs(type(content_blocks) == "table" and content_blocks or {}) do
+    if content.type == "session" and chat.subagents[content.sessionId] then
+      return chat.subagents[content.sessionId]
+    end
+  end
+end
+
 ---Open a float with the details of a tool call
 ---@param chat CodeCompanion.Chat
 ---@param opts { call_id: string }
@@ -269,7 +287,10 @@ function ToolCalls.open(chat, opts)
   local call_id = opts.call_id
   local details
   local acp_call = chat.tool_calls.acp[call_id]
-  if acp_call then
+  local subagent = chat.subagents[call_id] or (acp_call and find_referenced_subagent(chat, { call = acp_call }))
+  if subagent then
+    return require("codecompanion.interactions.chat.acp.subagents.float").open(chat, { subagent = subagent })
+  elseif acp_call then
     details = format_acp_call(acp_call)
   else
     local http_tool_call = chat.tool_calls.http[call_id]
