@@ -2,26 +2,17 @@ local files = require("codecompanion.utils.files")
 local log = require("codecompanion.utils.log")
 
 local api = vim.api
-local fmt = string.format
 
 local M = {}
 
 local MAX_WRAPPED_LINES = 2
 
 local editor_winnr = nil ---@type number|nil
-local selection = nil ---@type { path: string, start_line: number, end_line: number }|nil
 
 ---@param bufnr number
 ---@return boolean
 local function is_file_buffer(bufnr)
   return vim.bo[bufnr].buftype == "" and api.nvim_buf_get_name(bufnr) ~= ""
-end
-
----A path the agent can open, which is relative to the directory the agent started in, not Neovim's current one
----@param opts { path: string, cwd: string }
----@return string
-local function get_agent_path(opts)
-  return vim.fs.relpath(opts.cwd, opts.path) or opts.path
 end
 
 ---@return nil
@@ -31,23 +22,7 @@ local function record_window()
   end
 end
 
----@return nil
-local function record_selection()
-  local bufnr = api.nvim_get_current_buf()
-  if not is_file_buffer(bufnr) then
-    return
-  end
-
-  local start_line = vim.fn.line("'<")
-  local end_line = vim.fn.line("'>")
-  if start_line == 0 then
-    return
-  end
-
-  selection = { path = api.nvim_buf_get_name(bufnr), start_line = start_line, end_line = end_line }
-end
-
----Follow the window the user edits code in, and what they select there
+---Follow the window the user edits code in
 ---@return nil
 function M.track()
   record_window()
@@ -58,14 +33,6 @@ function M.track()
     callback = function()
       -- A new split shows the user's file until the agent's buffer replaces it, so wait for that
       vim.schedule(record_window)
-    end,
-  })
-  api.nvim_create_autocmd("ModeChanged", {
-    group = group,
-    pattern = "[vV\x16]*:*",
-    callback = function()
-      -- The `'<` and `'>` marks are only set once visual mode has ended
-      vim.schedule(record_selection)
     end,
   })
 end
@@ -83,34 +50,6 @@ local function get_code_window()
     end
   end
   return nil
-end
-
----Describe the user's editor for an agent, sharing a selection only with the first prompt after it was made
----@param opts { cwd: string }
----@return string
-function M.describe(opts)
-  local lines = {}
-
-  local winnr = get_code_window()
-  if winnr then
-    local bufnr = api.nvim_win_get_buf(winnr)
-    local cursor = api.nvim_win_get_cursor(winnr)
-    local path = get_agent_path({ path = api.nvim_buf_get_name(bufnr), cwd = opts.cwd })
-    table.insert(lines, fmt("- Current file: %s, cursor on line %d", path, cursor[1]))
-  end
-
-  if selection then
-    local path = get_agent_path({ path = selection.path, cwd = opts.cwd })
-    table.insert(lines, fmt("- Selected: %s, lines %d-%d", path, selection.start_line, selection.end_line))
-    selection = nil
-  end
-
-  if #lines == 0 then
-    return ""
-  end
-
-  table.insert(lines, 1, "The user's Neovim editor as they sent this prompt. Use it only if the prompt refers to it:")
-  return table.concat(lines, "\n")
 end
 
 -- Bytes from 128 up are the parts of non-ASCII characters, which are valid in a filename

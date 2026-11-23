@@ -19,7 +19,6 @@ _G.codecompanion_cli_metadata = {}
 ---@field agent_name string
 ---@field aug number
 ---@field bufnr number
----@field cwd string The directory the agent started in, which it keeps whatever Neovim's directory becomes
 ---@field id number
 ---@field provider CodeCompanion.CLI.Provider
 ---@field request_id string|nil
@@ -152,17 +151,6 @@ local hook_handlers = {
   end,
 }
 
----Context for a prompt the user typed into the agent, which the hook script hands back to it
----@param cli CodeCompanion.CLI
----@param opts { event: string }
----@return string
-local function build_reply(cli, opts)
-  if opts.event == "submitted" and config.interactions.cli.opts.share_editor_state then
-    return editor.describe({ cwd = cli.cwd })
-  end
-  return ""
-end
-
 ---Keymap callbacks for the CLI buffer
 local keymap_callbacks = {
   open_file = {
@@ -234,7 +222,6 @@ function CLI.create(args)
     agent = agent,
     agent_name = agent_name,
     bufnr = bufnr,
-    cwd = vim.fn.getcwd(),
     id = id,
     provider = provider,
     ui = ui,
@@ -440,7 +427,7 @@ function CLI.is_visible()
   return CLI.get_visible() ~= nil
 end
 
----Hook into a CLI agent, returning what the hook script should print back to it
+---Hook into a CLI agent
 ---@param opts { bufnr: number, event: "submitted"|"done"|"approval_requested"|"approval_finished", payload_path?: string }
 ---@return string
 function CLI.hook(opts)
@@ -451,7 +438,7 @@ function CLI.hook(opts)
 
   -- The script deletes the payload as soon as this call returns
   -- An unreadable payload loses its details, but the turn's events still have to reach statuslines and code review
-  local hook = { payload = read_payload(opts.payload_path) or {}, reply = build_reply(clis[opts.bufnr], opts) }
+  local hook = { payload = read_payload(opts.payload_path) or {} }
 
   -- The agent blocks on this call, so let it return before the listeners run
   vim.schedule(function()
@@ -461,7 +448,7 @@ function CLI.hook(opts)
     end
   end)
 
-  return hook.reply
+  return ""
 end
 
 ---Toggle the CLI terminal buffer

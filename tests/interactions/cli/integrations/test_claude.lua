@@ -16,8 +16,10 @@ local T = new_set({
         config.interactions.cli.agent = "claude_code"
         h.setup_plugin(config)
 
-        vim.cmd.edit("lua/codecompanion/init.lua")
-        vim.api.nvim_win_set_cursor(0, { 12, 0 })
+        _G.notifications = {}
+        require("codecompanion.utils").notify = function(message)
+          table.insert(_G.notifications, message)
+        end
         cli = require("codecompanion.interactions.cli").create()
       ]])
     end,
@@ -43,26 +45,16 @@ end
 
 T["Claude Code hooks"] = new_set()
 
-T["Claude Code hooks"]["includes editor state with typed prompts"] = function()
-  local stdout = start_hook({ action = "submitted", stdin = { prompt = "What does this do?" } }):wait(5000).stdout
-  h.expect_contains("- Current file: lua/codecompanion/init.lua, cursor on line 12", stdout)
-end
-
 T["Claude Code hooks"]["reaches Neovim when the temporary directory has an apostrophe in it"] = function()
   local tmpdir = vim.fs.joinpath(vim.fn.tempname(), "it's")
   vim.fn.mkdir(tmpdir, "p")
-  local stdout =
-    start_hook({ action = "submitted", stdin = { prompt = "What does this do?" }, tmpdir = tmpdir }):wait(5000).stdout
-  h.expect_contains("- Current file: lua/codecompanion/init.lua", stdout)
+  start_hook({ action = "done", stdin = {}, tmpdir = tmpdir }):wait(5000)
+
+  child.lua([[vim.wait(500, function() return #_G.notifications > 0 end)]])
+  h.eq({ "Claude Code finished" }, child.lua_get("_G.notifications"))
 end
 
 T["Claude Code hooks"]["notifies without answering permission requests"] = function()
-  child.lua([[
-    _G.notifications = {}
-    require("codecompanion.utils").notify = function(message)
-      table.insert(_G.notifications, message)
-    end
-  ]])
   start_hook({ action = "submitted", stdin = { prompt = "Run the tests" } }):wait(5000)
 
   local stdout = start_hook({

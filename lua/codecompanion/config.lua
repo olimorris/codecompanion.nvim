@@ -964,7 +964,6 @@ The user is working on a %s machine. Please respond with system specific command
       opts = {
         auto_insert = false, -- Enter insert mode when focusing the CLI terminal
         notify = true, -- Notify when an agent you're not watching finishes or is waiting for you
-        share_editor_state = true, -- Tell the agent your current file, cursor and selection with each prompt (requires hooks)
       },
       providers = {
         terminal = {

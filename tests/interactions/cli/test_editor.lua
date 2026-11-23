@@ -97,50 +97,6 @@ T["Editor"]["find_reference_at() DOES NOT join a path that fits on its line"] = 
   h.eq({ path = "lua/codecompanion/init.lua" }, reference)
 end
 
-T["Editor"]["describe() gives an absolute path for a file OUTSIDE the agent's directory"] = function()
-  local description = child.lua([[
-    vim.cmd.edit("lua/codecompanion/init.lua")
-    editor.track()
-    return editor.describe({ cwd = vim.fn.tempname() })
-  ]])
-  h.expect_contains("- Current file: " .. vim.fn.getcwd() .. "/lua/codecompanion/init.lua", description)
-end
-
-T["Editor"]["describe() shares the current file and cursor"] = function()
-  local description = child.lua([[
-    vim.cmd.edit("lua/codecompanion/init.lua")
-    vim.api.nvim_win_set_cursor(0, { 10, 0 })
-    editor.track()
-    return editor.describe({ cwd = vim.fn.getcwd() })
-  ]])
-  h.expect_contains("- Current file: lua/codecompanion/init.lua, cursor on line 10", description)
-end
-
-T["Editor"]["describe() falls back to another file window once the agent takes over the code window"] = function()
-  local description = child.lua([[
-    vim.cmd.edit("lua/codecompanion/init.lua")
-    vim.cmd.vsplit("README.md")
-    editor.track()
-    vim.api.nvim_win_set_buf(0, vim.api.nvim_create_buf(false, true))
-    return editor.describe({ cwd = vim.fn.getcwd() })
-  ]])
-  h.expect_contains("- Current file: lua/codecompanion/init.lua", description)
-end
-
-T["Editor"]["describe() shares a selection with the FIRST prompt only"] = function()
-  local descriptions = child.lua([[
-    vim.cmd.edit("lua/codecompanion/init.lua")
-    editor.track()
-    vim.api.nvim_win_set_cursor(0, { 3, 0 })
-    vim.cmd("normal! Vj")
-    vim.cmd("normal! \27")
-    vim.wait(100)
-    return { first = editor.describe({ cwd = vim.fn.getcwd() }), second = editor.describe({ cwd = vim.fn.getcwd() }) }
-  ]])
-  h.expect_contains("- Selected: lua/codecompanion/init.lua, lines 3-4", descriptions.first)
-  h.eq(nil, descriptions.second:find("Selected", 1, true))
-end
-
 T["Editor"]["open_file() uses the code window, NOT the agent's"] = function()
   local result = child.lua([[
     vim.cmd.edit("README.md")

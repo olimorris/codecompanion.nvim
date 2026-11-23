@@ -5551,20 +5551,9 @@ To send the output of the most recent terminal, such as a failing test run:
 
 WORKING ALONGSIDE THE AGENT ~
 
-With |codecompanion-configuration-cli-hooks| installed, CodeCompanion sends
-Claude Code your place in Neovim with each prompt and notifies you when it
-needs you, so you can leave it in the background and carry on coding.
-
-
-EDITOR STATE
-
-Every prompt you type into Claude Code tells it which file you're in, where
-your cursor is and the last lines you selected. Ask "why does this loop twice?"
-after selecting the loop, and Claude Code receives the file path and line range
-of your selection alongside the prompt.
-
-A selection is shared with the next prompt only, so an old selection doesn't
-follow you into later prompts.
+With |codecompanion-configuration-cli-hooks| installed, CodeCompanion notifies
+you when Claude Code needs you, so you can leave it in the background and carry
+on coding.
 
 
 NOTIFICATIONS
@@ -9413,21 +9402,6 @@ install its hooks into `~/.claude/settings.json`:
 
   [!NOTE] Hooks are matched on the agent's `cmd`, so it must be `claude`. Run
   Claude Code once before installing, so its settings file exists
-Hooks share your |codecompanion-usage-cli-editor-state| with Claude Code. To
-turn this off:
-
->lua
-    require("codecompanion").setup({
-      interactions = {
-        cli = {
-          opts = {
-            share_editor_state = false,
-          },
-        },
-      },
-    })
-<
-
 
 PROVIDERS ~
 

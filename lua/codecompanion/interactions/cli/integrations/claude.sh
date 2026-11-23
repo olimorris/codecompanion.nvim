@@ -42,8 +42,6 @@ escaped_payload="$(printf '%s' "$payload" | sed "s/'/''/g")"
 expression="v:lua.require'codecompanion'.cli_hook({'bufnr': $CODECOMPANION_CLI_BUFNR, 'event': '$action', 'payload_path': '$escaped_payload'})"
 
 # A closed Neovim must not fail the hook, because a non-zero UserPromptSubmit blocks the prompt
-reply="$(nvim --server "$NVIM" --remote-expr "$expression" 2>/dev/null)" || exit 0
+nvim --server "$NVIM" --remote-expr "$expression" >/dev/null 2>&1 || true
 
-# UserPromptSubmit adds this to the prompt's context
-printf '%s' "$reply"
 exit 0

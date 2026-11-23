@@ -59,19 +59,6 @@ Only [Claude Code](https://code.claude.com/docs/en/hooks) is supported. To insta
 > [!NOTE]
 > Hooks are matched on the agent's `cmd`, so it must be `claude`. Run Claude Code once before installing, so its settings file exists
 
-Hooks share your [editor state](/usage/cli#editor-state) with Claude Code. To turn this off:
-
-```lua
-require("codecompanion").setup({
-  interactions = {
-    cli = {
-      opts = {
-        share_editor_state = false,
-      },
-    },
-  },
-})
-```
 ## Providers
 
 A _provider_ decides how an agent is run. The built-in `terminal` provider starts it with `jobstart()` in a Neovim terminal buffer:
