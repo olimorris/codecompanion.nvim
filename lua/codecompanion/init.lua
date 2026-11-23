@@ -441,7 +441,7 @@ CodeCompanion.cli = function(prompt_or_opts, opts)
 end
 
 ---Report a turn event from a CLI agent's hook system
----@param opts { bufnr: number, event: "submitted"|"done" }
+---@param opts { bufnr: number, event: string, payload_path?: string }
 ---@return string
 CodeCompanion.cli_hook = function(opts)
   return require("codecompanion.interactions.cli").hook(opts)

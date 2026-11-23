@@ -963,6 +963,7 @@ The user is working on a %s machine. Please respond with system specific command
       agents = {},
       opts = {
         auto_insert = false, -- Enter insert mode when focusing the CLI terminal
+        notify = true, -- Notify when an agent you're not watching finishes or is waiting for you
       },
       providers = {
         terminal = {
@@ -975,6 +976,11 @@ The user is working on a %s machine. Please respond with system specific command
           modes = { n = "}" },
           callback = "keymaps.next_chat",
           description = "Open the next interaction",
+        },
+        open_file = {
+          modes = { n = "gf" },
+          callback = "keymaps.open_file",
+          description = "Open the file under the cursor in your code window",
         },
         previous_chat = {
           modes = { n = "{" },

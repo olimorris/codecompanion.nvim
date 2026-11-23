@@ -212,4 +212,61 @@ T["CLI"]["focus() switches to the CLI window"] = function()
   h.eq(true, result.in_terminal_mode)
 end
 
+T["CLI"]["notifies when a HIDDEN agent finishes"] = function()
+  local notifications = child.lua([[
+    local notifications = {}
+    require("codecompanion.utils").notify = function(message)
+      table.insert(notifications, message)
+    end
+
+    local cli = require("codecompanion.interactions.cli")
+    local instance = cli.create({ agent = "test_agent_a" })
+    cli.hook({ bufnr = instance.bufnr, event = "done" })
+    vim.wait(100, function() return #notifications > 0 end)
+    return notifications
+  ]])
+
+  h.eq({ "Agent A finished" }, notifications)
+end
+
+T["CLI"]["DOES NOT notify when the user watched the agent finish"] = function()
+  local notifications = child.lua([[
+    local notifications = {}
+    require("codecompanion.utils").notify = function(message)
+      table.insert(notifications, message)
+    end
+
+    local cli = require("codecompanion.interactions.cli")
+    local instance = cli.create({ agent = "test_agent_a" })
+    instance.ui:open()
+    vim.api.nvim_set_current_win(instance.ui.winnr)
+    cli.hook({ bufnr = instance.bufnr, event = "done" })
+    vim.wait(100)
+    return notifications
+  ]])
+
+  h.eq({}, notifications)
+end
+
+T["CLI"]["notifies with the agent's message when a HIDDEN agent waits for the user"] = function()
+  local notifications = child.lua([[
+    local notifications = {}
+    require("codecompanion.utils").notify = function(message)
+      table.insert(notifications, message)
+    end
+
+    local payload_path = vim.fn.tempname()
+    vim.fn.writefile({ vim.json.encode({ message = "Claude needs your permission to use Bash" }) }, payload_path)
+
+    local cli = require("codecompanion.interactions.cli")
+    local instance = cli.create({ agent = "test_agent_a" })
+    cli.hook({ bufnr = instance.bufnr, event = "submitted" })
+    cli.hook({ bufnr = instance.bufnr, event = "approval_requested", payload_path = payload_path })
+    vim.wait(100, function() return #notifications > 0 end)
+    return notifications
+  ]])
+
+  h.eq({ "Agent A: Claude needs your permission to use Bash" }, notifications)
+end
+
 return T
