@@ -78,6 +78,24 @@ vim.keymap.set("n", "<LocalLeader>ct", function()
 end, { desc = "Send terminal output to CLI agent" })
 ```
 
+## Working Alongside the Agent
+
+With [hooks](/configuration/cli#hooks) installed, Claude Code keeps track of what you're doing in Neovim, so you can leave it in the background and carry on coding.
+
+### Editor State
+
+Every prompt you type into Claude Code tells it which file you're in, where your cursor is and the last lines you selected. Ask "why does this loop twice?" after selecting the loop, and Claude Code knows which lines you mean.
+
+A selection is shared with the next prompt only, so an old selection doesn't follow you into later prompts.
+
+### Notifications
+
+When an agent you're not watching finishes its turn or waits for you, such as to approve a tool, CodeCompanion sends a notification. You answer the agent in its own window. `require("codecompanion").toggle()` takes you to it.
+
+### Opening Files
+
+Press `gf` on a path in the agent's output, such as `lua/codecompanion/init.lua:42` or `lua/codecompanion/init.lua#L42`, to open it at that line in your code window, leaving the agent where it is. A floating agent window is hidden first.
+
 ## Sending Context
 
 ### Visual Selection

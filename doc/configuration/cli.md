@@ -59,6 +59,19 @@ Only [Claude Code](https://code.claude.com/docs/en/hooks) is supported. To insta
 > [!NOTE]
 > Hooks are matched on the agent's `cmd`, so it must be `claude`. Run Claude Code once before installing, so its settings file exists
 
+Hooks share your [editor state](/usage/cli#editor-state) with Claude Code. To turn this off:
+
+```lua
+require("codecompanion").setup({
+  interactions = {
+    cli = {
+      opts = {
+        share_editor_state = false,
+      },
+    },
+  },
+})
+```
 ## Providers
 
 A _provider_ decides how an agent is run. The built-in `terminal` provider starts it with `jobstart()` in a Neovim terminal buffer:
@@ -106,9 +119,25 @@ require("codecompanion").setup({
 
 An agent whose `provider` isn't in the `providers` table falls back to `terminal`.
 
+## Notifications
+
+CodeCompanion sends a [notification](/usage/cli#notifications) when an agent you're not watching finishes or waits for you. To turn them off:
+
+```lua
+require("codecompanion").setup({
+  interactions = {
+    cli = {
+      opts = {
+        notify = false,
+      },
+    },
+  },
+})
+```
+
 ## Keymaps
 
-`{` and `}` move between interactions in the CLI buffer. The defaults are:
+`{` and `}` move between interactions in the CLI buffer, and `gf` [opens the file](/usage/cli#opening-files) under the cursor. The defaults are:
 
 ```lua
 require("codecompanion").setup({
@@ -119,6 +148,11 @@ require("codecompanion").setup({
           modes = { n = "}" },
           callback = "keymaps.next_chat",
           description = "Open the next interaction",
+        },
+        open_file = {
+          modes = { n = "gf" },
+          callback = "keymaps.open_file",
+          description = "Open the file under the cursor in your code window",
         },
         previous_chat = {
           modes = { n = "{" },
