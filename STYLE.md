@@ -69,6 +69,27 @@ local function spy_on_warnings()
 local function capture_warnings()
 ```
 
+**Explain every magic value.** A magic value is a literal whose meaning or order the code doesn't explain: a hand-written list of pairs, an index offset, a bare count, a sequence that only works in one order. Give each one its reason, taking the first option that fits: derive it in a loop, name it, or add a one-line comment saying what breaks if it changes. Prefer named fields to positional tables.
+
+```lua
+-- ❌ Is the order deliberate? What are the two numbers?
+local spans = { { 0, 0 }, { 0, 1 }, { 1, 0 }, { 1, 1 }, { 0, 2 }, { 2, 0 }, { 2, 1 }, { 1, 2 }, { 2, 2 } }
+
+-- ✅ The name carries the order, and the fields say what each number is
+local spans_smallest_first = {}
+for size = 0, 2 do
+  for rows = 0, size do
+    for cols = 0, size do
+      if math.max(rows, cols) == size then
+        table.insert(spans_smallest_first, { rows = rows, cols = cols })
+      end
+    end
+  end
+end
+```
+
+Awkward code is acceptable only when an API forces it, such as Neovim's 0-indexed rows against Lua's 1-indexed tables. Give it a one-line comment naming that API. Rewrite awkward code no API forced.
+
 **Don't add banner or section-divider comments** to new files, and don't add a prose header block explaining the bug a file was written for. The tests themselves are the record.
 
 **Commented-out code does not get merged.** Delete it.
@@ -148,7 +169,7 @@ Normalise an optional table on the first line with `opts = opts or {}`, or with 
 
 LuaCATS annotations are expected on public APIs.
 
-**A function description is exactly one line.** No multi-paragraph rationale, no usage examples, no "why we cache this" essays. If you can't summarise the function in one line, split the function.
+**A function description is exactly one line.** No multi-paragraph rationale, no usage examples, no "why we cache this" essays. If you can't summarise the function in one line, split the function. Every line of a doc block fits within 120 columns, counting the indent. StyLua doesn't wrap comments, so shorten the description rather than wrapping it.
 
 **Drop the description entirely when the name already says it,** and make sure the annotations match what the function does.
 

@@ -20,7 +20,7 @@ In Japanese cuisine, omakase means _"I'll leave it up to you"_ - the diner allow
 
 You're welcome to use coding agents such as CodeCompanion, Claude Code or Codex to contribute. [AGENTS.md](AGENTS.md) and [STYLE.md](STYLE.md) give your agent the architecture, commands and conventions it needs, so point it at them before it writes any code.
 
-Before you open a PR, have your agent work through the [reviewing-changes](.codecompanion/skills/reviewing-changes/SKILL.md) skill. It checks the branch's names, tests and code against the style guide, then runs the formatter and the tests. `AGENTS.md` already tells agents to use it. If you wrote the code yourself, use it as a checklist.
+Before you open a PR, have your agent work through the [codecompanion-reviewing-changes](.codecompanion/skills/codecompanion-reviewing-changes/SKILL.md) skill. It checks the branch's names, tests and code against the style guide, then runs the formatter and the tests. `AGENTS.md` already tells agents to use it. If you wrote the code yourself, use it as a checklist.
 
 Every PR is held to the same standard, however it was written:
 
@@ -37,7 +37,7 @@ PRs that don't meet this bar will be closed. The most common reasons are verbose
 1. Open a [discussion](https://github.com/olimorris/codecompanion.nvim/discussions) to propose your idea
 2. Fork the repository and create your branch from `main`
 3. Add your feature or fix, with tests
-4. Work through the [reviewing-changes](.codecompanion/skills/reviewing-changes/SKILL.md) skill
+4. Work through the [codecompanion-reviewing-changes](.codecompanion/skills/codecompanion-reviewing-changes/SKILL.md) skill
 5. Run `make all` to format the code, generate the docs and run the tests
 6. Open a PR with a clear title and description, filling in the PR template
 
@@ -160,4 +160,4 @@ nmake FILE=tests/adapters/test_openai.lua test_file
 
 ## Building Documentation
 
-Documentation is built with [panvimdoc](https://github.com/kdheepak/panvimdoc). Read the [writing-docs](.codecompanion/skills/writing-docs/SKILL.md) skill before changing any page in `doc/`, then run `make docs`.
+Documentation is built with [panvimdoc](https://github.com/kdheepak/panvimdoc). Read the [codecompanion-writing-docs](.codecompanion/skills/codecompanion-writing-docs/SKILL.md) skill before changing any page in `doc/`, then run `make docs`.
