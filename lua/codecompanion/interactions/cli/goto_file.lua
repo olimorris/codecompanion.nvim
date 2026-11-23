@@ -27,7 +27,7 @@ end
 function M.track()
   record_window()
 
-  local group = api.nvim_create_augroup("codecompanion.cli.editor", { clear = true })
+  local group = api.nvim_create_augroup("codecompanion.cli.goto_file", { clear = true })
   api.nvim_create_autocmd({ "BufEnter", "WinEnter" }, {
     group = group,
     callback = function()

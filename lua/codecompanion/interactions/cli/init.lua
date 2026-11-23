@@ -1,6 +1,6 @@
 local config = require("codecompanion.config")
-local editor = require("codecompanion.interactions.cli.editor")
 local files = require("codecompanion.utils.files")
+local goto_file = require("codecompanion.interactions.cli.goto_file")
 local keymaps = require("codecompanion.utils.keymaps")
 local log = require("codecompanion.utils.log")
 local markdown = require("codecompanion.utils.markdown")
@@ -156,7 +156,7 @@ local keymap_callbacks = {
   open_file = {
     callback = function(cli)
       local cursor = api.nvim_win_get_cursor(0)
-      local reference = editor.find_reference_at({ bufnr = cli.bufnr, row = cursor[1], col = cursor[2] + 1 })
+      local reference = goto_file.find_reference_at({ bufnr = cli.bufnr, row = cursor[1], col = cursor[2] + 1 })
       if not reference then
         return
       end
@@ -168,7 +168,7 @@ local keymap_callbacks = {
       if api.nvim_win_get_config(from_winnr).relative ~= "" then
         cli.ui:hide()
       end
-      editor.open_file(vim.tbl_extend("force", reference, { from_winnr = from_winnr }))
+      goto_file.open_file(vim.tbl_extend("force", reference, { from_winnr = from_winnr }))
     end,
   },
   next_chat = {
@@ -196,7 +196,7 @@ function CLI.create(args)
   end
 
   -- Before the CLI's window exists, so the user's code window is the one recorded
-  editor.track()
+  goto_file.track()
 
   local bufnr = api.nvim_create_buf(false, true)
   api.nvim_buf_set_name(bufnr, string.format("[CodeCompanion CLI] %d", bufnr))
