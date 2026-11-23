@@ -1,13 +1,13 @@
 # CodeCompanion.nvim
 
-This is a Neovim plugin written in Lua, which allows developers to code with LLMs and agents from within Neovim. Tests use Mini.Test with child processes. Before considering work complete, follow `.codecompanion/skills/reviewing-changes/SKILL.md`, which ends with the full test suite passing.
+This is a Neovim plugin written in Lua, which allows developers to code with LLMs and agents from within Neovim. Tests use Mini.Test with child processes. Before considering work complete, follow `.codecompanion/skills/codecompanion-reviewing-changes/SKILL.md`, which ends with the full test suite passing.
 
 ## Commands
 
 - `make format` - StyLua (120 cols, 2 spaces). Run before committing.
 - `make test` - full test suite (Mini.Test)
 - `make test_file FILE=path` - targeted tests
-- `make docs` - regenerate vimdoc. Run this after changing any docs pages. Read `.codecompanion/skills/writing-docs/SKILL.md` before editing anything in `doc/`
+- `make docs` - regenerate vimdoc. Run this after changing any docs pages. Read `.codecompanion/skills/codecompanion-writing-docs/SKILL.md` before editing anything in `doc/`
 
 ## Code conventions
 

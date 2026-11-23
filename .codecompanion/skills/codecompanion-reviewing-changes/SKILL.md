@@ -1,5 +1,5 @@
 ---
-name: reviewing-changes
+name: codecompanion-reviewing-changes
 description: Reviewing CodeCompanion.nvim changes against STYLE.md before reporting work as done. Use after changing anything in `lua/` or `tests/`
 ---
 
@@ -54,13 +54,19 @@ Aim for the smallest diff that does the job. Go through each hunk and delete:
 
 Done when deleting any remaining line would change what a user or caller sees.
 
-## 5. Apply the Patterns
+## 5. Explain Every Magic Value
+
+Read each hunk as someone seeing it for the first time and stop wherever you'd ask "why these values, in this order?". Each stop is a _magic_ value: derive it, name it or comment it, as STYLE.md §2 sets out. Awkward code earns a comment naming the API that forced it; awkward code no API forced gets rewritten.
+
+Done when every hand-written list of values and every bare number other than 0 and 1 is derived, named or commented, leaving out the expected values in test assertions, and every comment on awkward code names the API that forced it.
+
+## 6. Apply the Patterns
 
 Walk STYLE.md §2, §4 and §8 hunk by hunk: comments, opts tables, returned tables, one-line descriptions, function length and scope.
 
 Done when every rule has been applied to every hunk.
 
-## 6. Prove It
+## 7. Prove It
 
 Run `make format`, then `make test`.
 
