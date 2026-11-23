@@ -37,7 +37,9 @@ payload="$(mktemp "${TMPDIR:-/tmp}/codecompanion-hook.XXXXXX")" || exit 0
 trap 'rm -f "$payload"' EXIT
 cat >"$payload"
 
-expression="v:lua.require'codecompanion'.cli_hook({'bufnr': $CODECOMPANION_CLI_BUFNR, 'event': '$action', 'payload_path': '$payload'})"
+# Vim strings escape an apostrophe by doubling it, and TMPDIR could contain one
+escaped_payload="$(printf '%s' "$payload" | sed "s/'/''/g")"
+expression="v:lua.require'codecompanion'.cli_hook({'bufnr': $CODECOMPANION_CLI_BUFNR, 'event': '$action', 'payload_path': '$escaped_payload'})"
 
 # A closed Neovim must not fail the hook, because a non-zero UserPromptSubmit blocks the prompt
 reply="$(nvim --server "$NVIM" --remote-expr "$expression" 2>/dev/null)" || exit 0

@@ -80,11 +80,11 @@ end, { desc = "Send terminal output to CLI agent" })
 
 ## Working Alongside the Agent
 
-With [hooks](/configuration/cli#hooks) installed, Claude Code keeps track of what you're doing in Neovim, so you can leave it in the background and carry on coding.
+With [hooks](/configuration/cli#hooks) installed, CodeCompanion sends Claude Code your place in Neovim with each prompt and notifies you when it needs you, so you can leave it in the background and carry on coding.
 
 ### Editor State
 
-Every prompt you type into Claude Code tells it which file you're in, where your cursor is and the last lines you selected. Ask "why does this loop twice?" after selecting the loop, and Claude Code knows which lines you mean.
+Every prompt you type into Claude Code tells it which file you're in, where your cursor is and the last lines you selected. Ask "why does this loop twice?" after selecting the loop, and Claude Code receives the file path and line range of your selection alongside the prompt.
 
 A selection is shared with the next prompt only, so an old selection doesn't follow you into later prompts.
 

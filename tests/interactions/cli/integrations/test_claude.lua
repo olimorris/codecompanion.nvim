@@ -26,7 +26,7 @@ local T = new_set({
 })
 
 ---Start the hook script as Claude Code would, against the child Neovim
----@param opts { action: string, stdin: table }
+---@param opts { action: string, stdin: table, tmpdir?: string }
 ---@return vim.SystemObj
 local function start_hook(opts)
   return vim.system({ "sh", SCRIPT, opts.action }, {
@@ -34,7 +34,7 @@ local function start_hook(opts)
       CODECOMPANION_CLI_BUFNR = tostring(child.lua_get("cli.bufnr")),
       NVIM = child.lua_get("vim.v.servername"),
       PATH = vim.env.PATH,
-      TMPDIR = vim.env.TMPDIR,
+      TMPDIR = opts.tmpdir or vim.env.TMPDIR,
     },
     stdin = vim.json.encode(opts.stdin),
     text = true,
@@ -43,12 +43,20 @@ end
 
 T["Claude Code hooks"] = new_set()
 
-T["Claude Code hooks"]["a typed prompt carries the user's editor state"] = function()
+T["Claude Code hooks"]["includes editor state with typed prompts"] = function()
   local stdout = start_hook({ action = "submitted", stdin = { prompt = "What does this do?" } }):wait(5000).stdout
   h.expect_contains("- Current file: lua/codecompanion/init.lua, cursor on line 12", stdout)
 end
 
-T["Claude Code hooks"]["a permission request is left to the terminal, with a notification"] = function()
+T["Claude Code hooks"]["reaches Neovim when the temporary directory has an apostrophe in it"] = function()
+  local tmpdir = vim.fs.joinpath(vim.fn.tempname(), "it's")
+  vim.fn.mkdir(tmpdir, "p")
+  local stdout =
+    start_hook({ action = "submitted", stdin = { prompt = "What does this do?" }, tmpdir = tmpdir }):wait(5000).stdout
+  h.expect_contains("- Current file: lua/codecompanion/init.lua", stdout)
+end
+
+T["Claude Code hooks"]["notifies without answering permission requests"] = function()
   child.lua([[
     _G.notifications = {}
     require("codecompanion.utils").notify = function(message)

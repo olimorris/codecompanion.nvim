@@ -16,11 +16,11 @@ local function is_file_buffer(bufnr)
   return vim.bo[bufnr].buftype == "" and api.nvim_buf_get_name(bufnr) ~= ""
 end
 
----@param bufnr number
+---A path the agent can open, which is relative to the directory the agent started in, not Neovim's current one
+---@param opts { path: string, cwd: string }
 ---@return string
-local function get_relative_path(bufnr)
-  local path = api.nvim_buf_get_name(bufnr)
-  return vim.fs.relpath(vim.fn.getcwd(), path) or path
+local function get_agent_path(opts)
+  return vim.fs.relpath(opts.cwd, opts.path) or opts.path
 end
 
 ---@return nil
@@ -43,7 +43,7 @@ local function record_selection()
     return
   end
 
-  selection = { path = get_relative_path(bufnr), start_line = start_line, end_line = end_line }
+  selection = { path = api.nvim_buf_get_name(bufnr), start_line = start_line, end_line = end_line }
 end
 
 ---Follow the window the user edits code in, and what they select there
@@ -85,19 +85,22 @@ local function get_code_window()
 end
 
 ---Describe the user's editor for an agent, sharing a selection only with the first prompt after it was made
+---@param opts { cwd: string }
 ---@return string
-function M.describe()
+function M.describe(opts)
   local lines = {}
 
   local winnr = get_code_window()
   if winnr then
     local bufnr = api.nvim_win_get_buf(winnr)
     local cursor = api.nvim_win_get_cursor(winnr)
-    table.insert(lines, fmt("- Current file: %s, cursor on line %d", get_relative_path(bufnr), cursor[1]))
+    local path = get_agent_path({ path = api.nvim_buf_get_name(bufnr), cwd = opts.cwd })
+    table.insert(lines, fmt("- Current file: %s, cursor on line %d", path, cursor[1]))
   end
 
   if selection then
-    table.insert(lines, fmt("- Selected: %s, lines %d-%d", selection.path, selection.start_line, selection.end_line))
+    local path = get_agent_path({ path = selection.path, cwd = opts.cwd })
+    table.insert(lines, fmt("- Selected: %s, lines %d-%d", path, selection.start_line, selection.end_line))
     selection = nil
   end
 
@@ -109,27 +112,72 @@ function M.describe()
   return table.concat(lines, "\n")
 end
 
+-- Bytes from 128 up are the parts of non-ASCII characters, which are valid in a filename
+local PATH_CHARS = "[%w%._%-/\\~\128-\255]"
+
+---Split a line number such as `:42` or `#L42` from the end of a path
+---@param text string
+---@return { path: string, line_number?: number }
+local function split_line_number(text)
+  local path, line_number = text:match("^(.-):(%d+)$")
+  if not path then
+    path, line_number = text:match("^(.-)#L(%d+)$")
+  end
+  return { path = path or text, line_number = tonumber(line_number) }
+end
+
+---A path in backticks or double quotes, which may hold spaces that an unquoted path can't
+---@param opts { line: string, col: number }
+---@return { path: string, line_number?: number }|nil
+local function find_quoted_reference(opts)
+  for start_col, text, end_col in opts.line:gmatch('()[`"]([^`"]+)[`"]()') do
+    if opts.col >= start_col and opts.col < end_col and text:find("[/\\.]") then
+      return split_line_number(vim.trim(text))
+    end
+  end
+end
+
+---The span of the next unquoted path, including a Windows drive such as `C:\`
+---@param opts { line: string, init: number }
+---@return { start_col: number, end_col: number }|nil
+local function find_path_span(opts)
+  local start_col, end_col = opts.line:find(PATH_CHARS .. "+", opts.init)
+  if not start_col then
+    return nil
+  end
+
+  local drive_start, drive_end = opts.line:find("^%a:[\\/]" .. PATH_CHARS .. "*", start_col)
+  if drive_start then
+    return { start_col = drive_start, end_col = drive_end }
+  end
+  return { start_col = start_col, end_col = end_col }
+end
+
 ---Find a file reference, such as `lua/init.lua:42` or `lua/init.lua#L42`, around a column in a line of text
 ---@param opts { line: string, col: number }
 ---@return { path: string, line_number?: number }|nil
 function M.find_reference(opts)
-  local init = 1
+  local quoted = find_quoted_reference(opts)
+  if quoted then
+    return quoted
+  end
 
+  local init = 1
   while true do
-    local start_col, end_col = opts.line:find("[%w%._%-/~]+", init)
-    if not start_col then
+    local span = find_path_span({ line = opts.line, init = init })
+    if not span then
       return nil
     end
 
-    local rest = opts.line:sub(end_col + 1)
+    local rest = opts.line:sub(span.end_col + 1)
     local suffix = rest:match("^:%d+") or rest:match("^#L%d+") or ""
 
-    if opts.col >= start_col and opts.col <= end_col + #suffix then
-      local path = opts.line:sub(start_col, end_col):gsub("%.+$", "")
+    if opts.col >= span.start_col and opts.col <= span.end_col + #suffix then
+      local path = opts.line:sub(span.start_col, span.end_col):gsub("%.+$", "")
       return { path = path, line_number = tonumber(suffix:match("%d+")) }
     end
 
-    init = end_col + #suffix + 1
+    init = span.end_col + #suffix + 1
   end
 end
 
