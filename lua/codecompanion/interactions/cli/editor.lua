@@ -1,4 +1,5 @@
 local files = require("codecompanion.utils.files")
+local log = require("codecompanion.utils.log")
 
 local api = vim.api
 local fmt = string.format
@@ -153,15 +154,9 @@ local function find_path_span(opts)
   return { start_col = start_col, end_col = end_col }
 end
 
----Find a file reference, such as `lua/init.lua:42` or `lua/init.lua#L42`, around a column in a line of text
 ---@param opts { line: string, col: number }
 ---@return { path: string, line_number?: number }|nil
-function M.find_reference(opts)
-  local quoted = find_quoted_reference(opts)
-  if quoted then
-    return quoted
-  end
-
+local function find_unquoted_reference(opts)
   local init = 1
   while true do
     local span = find_path_span({ line = opts.line, init = init })
@@ -179,6 +174,29 @@ function M.find_reference(opts)
 
     init = span.end_col + #suffix + 1
   end
+end
+
+---@param reference? { path: string }
+---@return boolean
+local function is_existing_file(reference)
+  return reference ~= nil and files.exists(vim.fs.normalize(reference.path))
+end
+
+---Find a file reference, such as `lua/init.lua:42` or `lua/init.lua#L42`, around a column in a line of text
+---@param opts { line: string, col: number }
+---@return { path: string, line_number?: number }|nil
+function M.find_reference(opts)
+  local quoted = find_quoted_reference(opts)
+  if is_existing_file(quoted) then
+    return quoted
+  end
+
+  -- A quoted span can be a whole command, such as `git diff lua/init.lua`, so try the path under the cursor in it
+  local unquoted = find_unquoted_reference(opts)
+  if is_existing_file(unquoted) then
+    return unquoted
+  end
+  return quoted or unquoted
 end
 
 ---Join lines of the agent's output, without the indentation it adds when it wraps a long line
@@ -218,7 +236,7 @@ function M.find_reference_at(opts)
       if above <= MAX_WRAPPED_LINES and below <= MAX_WRAPPED_LINES and row - above >= 1 and row + below <= #lines then
         local joined = join_lines({ lines = lines, first = row - above, last = row + below, row = row, col = opts.col })
         local reference = M.find_reference({ line = joined.text, col = joined.col })
-        if reference and files.exists(vim.fs.normalize(reference.path)) then
+        if is_existing_file(reference) then
           return reference
         end
       end
@@ -229,14 +247,13 @@ function M.find_reference_at(opts)
 end
 
 ---Can a file open in this window without disturbing the agent or a sidebar such as a file tree?
----@param winnr number
----@param from_winnr number
+---@param opts { winnr: number, from_winnr: number }
 ---@return boolean
-local function is_editable_window(winnr, from_winnr)
-  if winnr == from_winnr or api.nvim_win_get_config(winnr).relative ~= "" then
+local function is_editable_window(opts)
+  if opts.winnr == opts.from_winnr or api.nvim_win_get_config(opts.winnr).relative ~= "" then
     return false
   end
-  local buftype = vim.bo[api.nvim_win_get_buf(winnr)].buftype
+  local buftype = vim.bo[api.nvim_win_get_buf(opts.winnr)].buftype
   return buftype == "" or buftype == "acwrite"
 end
 
@@ -249,18 +266,18 @@ local function get_target_window(opts)
   if
     code_winnr
     and api.nvim_win_get_tabpage(code_winnr) == tabpage
-    and is_editable_window(code_winnr, opts.from_winnr)
+    and is_editable_window({ winnr = code_winnr, from_winnr = opts.from_winnr })
   then
     return code_winnr
   end
 
   local previous_winnr = vim.fn.win_getid(vim.fn.winnr("#"))
-  if previous_winnr ~= 0 and is_editable_window(previous_winnr, opts.from_winnr) then
+  if previous_winnr ~= 0 and is_editable_window({ winnr = previous_winnr, from_winnr = opts.from_winnr }) then
     return previous_winnr
   end
 
   for _, winnr in ipairs(api.nvim_tabpage_list_wins(tabpage)) do
-    if is_editable_window(winnr, opts.from_winnr) then
+    if is_editable_window({ winnr = winnr, from_winnr = opts.from_winnr }) then
       return winnr
     end
   end
@@ -278,7 +295,11 @@ function M.open_file(opts)
   end
 
   api.nvim_set_current_win(winnr)
-  vim.cmd.edit(vim.fn.fnameescape(vim.fs.normalize(opts.path)))
+  local ok, err = pcall(vim.cmd.edit, vim.fn.fnameescape(vim.fs.normalize(opts.path)))
+  if not ok then
+    log:error("[CLI] Could not open %s: %s", opts.path, err)
+    return nil
+  end
 
   if opts.line_number then
     local last_line = api.nvim_buf_line_count(0)

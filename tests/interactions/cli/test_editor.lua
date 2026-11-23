@@ -47,6 +47,14 @@ T["Editor"]["find_reference() keeps the spaces in a path in backticks"] = functi
   h.eq({ path = "docs/my notes.md", line_number = 4 }, reference)
 end
 
+T["Editor"]["find_reference() takes the path under the cursor from a command in backticks"] = function()
+  local reference = child.lua([[
+    local line = "Run `git diff lua/codecompanion/init.lua` to see it"
+    return editor.find_reference({ line = line, col = line:find("init") })
+  ]])
+  h.eq({ path = "lua/codecompanion/init.lua" }, reference)
+end
+
 T["Editor"]["find_reference() keeps non-ASCII characters and a Windows drive"] = function()
   local references = child.lua([[
     return {
