@@ -1,7 +1,11 @@
+local files = require("codecompanion.utils.files")
+
 local api = vim.api
 local fmt = string.format
 
 local M = {}
+
+local MAX_WRAPPED_LINES = 2
 
 local editor_winnr = nil ---@type number|nil
 local selection = nil ---@type { path: string, start_line: number, end_line: number }|nil
@@ -129,13 +133,99 @@ function M.find_reference(opts)
   end
 end
 
----Open a file in the window the user edits code in, rather than in place of the agent
+---Join lines of the agent's output, without the indentation it adds when it wraps a long line
+---@param opts { lines: string[], first: number, last: number, row: number, col: number }
+---@return { text: string, col: number }
+local function join_lines(opts)
+  local parts = {}
+  local col = opts.col
+  local offset = 0
+
+  for row = opts.first, opts.last do
+    local line = opts.lines[row]
+    local indent = #line:match("^%s*")
+    local part = vim.trim(line)
+    if row == opts.row then
+      col = offset + opts.col - indent
+    end
+    table.insert(parts, part)
+    offset = offset + #part
+  end
+
+  return { text = table.concat(parts), col = col }
+end
+
+---Find the file reference under the cursor in a buffer, rejoining a path the agent wrapped across lines
+---@param opts { bufnr: number, row: number, col: number }
+---@return { path: string, line_number?: number }|nil
+function M.find_reference_at(opts)
+  local first = math.max(1, opts.row - MAX_WRAPPED_LINES)
+  local lines = api.nvim_buf_get_lines(opts.bufnr, first - 1, opts.row + MAX_WRAPPED_LINES, false)
+  local row = opts.row - first + 1
+
+  -- Claude Code wraps a long path with nothing marking a continued line, so trust the smallest join that names a real file
+  for extra_lines = 0, MAX_WRAPPED_LINES * 2 do
+    for above = 0, extra_lines do
+      local below = extra_lines - above
+      if above <= MAX_WRAPPED_LINES and below <= MAX_WRAPPED_LINES and row - above >= 1 and row + below <= #lines then
+        local joined = join_lines({ lines = lines, first = row - above, last = row + below, row = row, col = opts.col })
+        local reference = M.find_reference({ line = joined.text, col = joined.col })
+        if reference and files.exists(vim.fs.normalize(reference.path)) then
+          return reference
+        end
+      end
+    end
+  end
+
+  return M.find_reference({ line = lines[row], col = opts.col })
+end
+
+---Can a file open in this window without disturbing the agent or a sidebar such as a file tree?
+---@param winnr number
+---@param from_winnr number
+---@return boolean
+local function is_editable_window(winnr, from_winnr)
+  if winnr == from_winnr or api.nvim_win_get_config(winnr).relative ~= "" then
+    return false
+  end
+  local buftype = vim.bo[api.nvim_win_get_buf(winnr)].buftype
+  return buftype == "" or buftype == "acwrite"
+end
+
+---Pick one of the user's own windows to open a file in, preferring the one they were last coding in
+---@param opts { from_winnr: number }
+---@return number|nil
+local function get_target_window(opts)
+  local code_winnr = get_code_window()
+  local tabpage = api.nvim_get_current_tabpage()
+  if
+    code_winnr
+    and api.nvim_win_get_tabpage(code_winnr) == tabpage
+    and is_editable_window(code_winnr, opts.from_winnr)
+  then
+    return code_winnr
+  end
+
+  local previous_winnr = vim.fn.win_getid(vim.fn.winnr("#"))
+  if previous_winnr ~= 0 and is_editable_window(previous_winnr, opts.from_winnr) then
+    return previous_winnr
+  end
+
+  for _, winnr in ipairs(api.nvim_tabpage_list_wins(tabpage)) do
+    if is_editable_window(winnr, opts.from_winnr) then
+      return winnr
+    end
+  end
+end
+
+---Open a file in one of the user's own windows, rather than in place of the agent
 ---@param opts { path: string, line_number?: number, from_winnr: number }
 ---@return nil
 function M.open_file(opts)
-  local winnr = get_code_window()
-  if not winnr or winnr == opts.from_winnr then
-    vim.cmd.split()
+  local winnr = get_target_window(opts)
+  if not winnr then
+    -- Only the agent and sidebars are open, so make room beside the agent instead of beneath it
+    vim.cmd("leftabove vsplit")
     winnr = api.nvim_get_current_win()
   end
 

@@ -47,6 +47,30 @@ T["Editor"]["find_reference() takes the word under the cursor, not the first pat
   h.eq({ path = "lua/b.lua" }, reference)
 end
 
+T["Editor"]["find_reference_at() rejoins a path the agent wrapped onto the next line"] = function()
+  local reference = child.lua([[
+    local bufnr = vim.api.nvim_create_buf(false, true)
+    vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, {
+      "Updated lua/codecompanion/inter",
+      "  actions/cli/init.lua:5 to fix it",
+    })
+    return editor.find_reference_at({ bufnr = bufnr, row = 2, col = 6 })
+  ]])
+  h.eq({ path = "lua/codecompanion/interactions/cli/init.lua", line_number = 5 }, reference)
+end
+
+T["Editor"]["find_reference_at() DOES NOT join a path that fits on its line"] = function()
+  local reference = child.lua([[
+    local bufnr = vim.api.nvim_create_buf(false, true)
+    vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, {
+      "Read lua/codecompanion/init.lua",
+      "lua/codecompanion/config.lua",
+    })
+    return editor.find_reference_at({ bufnr = bufnr, row = 1, col = 10 })
+  ]])
+  h.eq({ path = "lua/codecompanion/init.lua" }, reference)
+end
+
 T["Editor"]["describe() shares the current file and cursor"] = function()
   local description = child.lua([[
     vim.cmd.edit("lua/codecompanion/init.lua")
@@ -101,6 +125,20 @@ T["Editor"]["open_file() uses the code window, NOT the agent's"] = function()
     }
   ]])
   h.eq({ in_code_window = true, file = "lua/codecompanion/init.lua", line = 5, agent_untouched = true }, result)
+end
+
+T["Editor"]["open_file() uses the user's split EVEN when it holds an unnamed buffer"] = function()
+  local result = child.lua([[
+    local user_winnr = vim.api.nvim_get_current_win()
+    vim.cmd.vsplit()
+    local agent_winnr = vim.api.nvim_get_current_win()
+    vim.api.nvim_win_set_buf(agent_winnr, vim.api.nvim_create_buf(false, true))
+    editor.track()
+
+    editor.open_file({ path = "lua/codecompanion/init.lua", from_winnr = agent_winnr })
+    return { in_user_window = vim.api.nvim_get_current_win() == user_winnr, windows = #vim.api.nvim_list_wins() }
+  ]])
+  h.eq({ in_user_window = true, windows = 2 }, result)
 end
 
 return T

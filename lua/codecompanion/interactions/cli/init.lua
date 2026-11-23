@@ -166,7 +166,7 @@ local keymap_callbacks = {
   open_file = {
     callback = function(cli)
       local cursor = api.nvim_win_get_cursor(0)
-      local reference = editor.find_reference({ line = api.nvim_get_current_line(), col = cursor[2] + 1 })
+      local reference = editor.find_reference_at({ bufnr = cli.bufnr, row = cursor[1], col = cursor[2] + 1 })
       if not reference then
         return
       end
