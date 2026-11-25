@@ -87,6 +87,7 @@ end
 ---@field chat_id number The unique ID of the chat
 ---@field cursor { moved_by_user: boolean, pos?: table, followed_to?: table, view?: vim.fn.winsaveview.ret } Cursor state tracking
 ---@field folds CodeCompanion.Chat.UI.Folds The folds for the chat
+---@field follow_move_pending boolean Is a coalesced cursor move already scheduled?
 ---@field header_ns number The namespace for the header
 ---@field input? CodeCompanion.Chat.UI.Input The split the user writes their prompt in, when the chat has one
 ---@field roles table The roles in the chat
@@ -121,6 +122,7 @@ function UI.new(args)
       moved_by_user = false,
       pos = nil,
     },
+    follow_move_pending = false,
     roles = args.roles,
     settings = args.settings,
     title = args.title,
@@ -899,7 +901,7 @@ function UI:add_line_break()
   self:move_cursor(was_following)
 end
 
----Update the cursor position in the chat buffer
+---Move the cursor to track the stream, coalescing requests into one move
 ---@param was_following boolean
 ---@return nil
 function UI:move_cursor(was_following)
@@ -907,14 +909,27 @@ function UI:move_cursor(was_following)
     return
   end
 
-  if was_following then
-    return self:resume_following()
+  if self.follow_move_pending then
+    return
   end
+  self.follow_move_pending = true
 
-  -- Whilst the user is in the chat buffer, assume the cursor is theirs as `CursorMoved` is debounced
-  if not self:is_active() then
-    self:follow()
-  end
+  -- Only move the cursor once per event-loop drain to improve performance
+  vim.schedule(function()
+    self.follow_move_pending = false
+    if not self:is_visible() then
+      return
+    end
+
+    if was_following then
+      return self:resume_following()
+    end
+
+    -- Whilst the user is in the chat buffer, assume the cursor is theirs as `CursorMoved` is debounced
+    if not self:is_active() then
+      self:follow()
+    end
+  end)
 end
 
 ---Set the cursor to follow the stream
