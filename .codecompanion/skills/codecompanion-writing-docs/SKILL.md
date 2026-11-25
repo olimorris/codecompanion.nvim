@@ -1,5 +1,5 @@
 ---
-name: writing-docs
+name: codecompanion-writing-docs
 description: Writing CodeCompanion.nvim docs. Use when creating or editing any page in `doc/`
 ---
 

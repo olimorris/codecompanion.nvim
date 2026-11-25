@@ -3,6 +3,7 @@ local log = require("codecompanion.utils.log")
 local approvals = require("codecompanion.interactions.chat.tools.approvals")
 local formatter = require("codecompanion.interactions.chat.acp.formatters")
 local labels = require("codecompanion.interactions.chat.tools.labels")
+local subagent_summary = require("codecompanion.interactions.chat.acp.subagents.summary")
 local tool_calls = require("codecompanion.interactions.chat.ui.tool_calls")
 
 local fmt = string.format
@@ -319,20 +320,31 @@ function M.confirm(chat, request)
   local permission = { chat = chat, request = request }
   local choices = build_choices({ permission = permission, has_diff = has_diff })
 
+  -- `K` on a subagent's prompt opens the subagent, as its tool call ID would clash with the parent's
+  local subagent = request.session_id and chat.subagents[request.session_id]
+  local requester = subagent and fmt("_%s:_ ", subagent_summary.get_label(subagent)) or ""
+  local call_id = subagent and subagent.info.id or (tool_call and tool_call.toolCallId)
+
   if not has_diff then
     if not tool_call then
-      return approve_in_chat({ permission = permission, choices = choices, prompt = "Agent requested permission" })
+      return approve_in_chat({
+        call_id = call_id,
+        permission = permission,
+        choices = choices,
+        prompt = requester .. "Agent requested permission",
+      })
     end
     return approve_in_chat({
-      call_id = tool_call.toolCallId,
+      call_id = call_id,
       choices = choices,
       permission = permission,
-      prompt = tool_calls.format_approval(formatter.tool_message({ tool_call = tool_call, adapter = chat.adapter })),
+      prompt = requester
+        .. tool_calls.format_approval(formatter.tool_message({ tool_call = tool_call, adapter = chat.adapter })),
     })
   end
 
   local d = get_diff(tool_call)
-  local title = fmt("Proposed edits for `%s`:", vim.fn.fnamemodify(d.path, ":."))
+  local title = fmt("%sProposed edits for `%s`:", requester, vim.fn.fnamemodify(d.path, ":."))
   local from_lines = vim.split(d.old or "", "\n", { plain = true })
   local to_lines = vim.split(d.new or "", "\n", { plain = true })
 

@@ -106,9 +106,25 @@ require("codecompanion").setup({
 
 An agent whose `provider` isn't in the `providers` table falls back to `terminal`.
 
+## Notifications
+
+CodeCompanion sends a [notification](/usage/cli#notifications) when an agent you're not watching finishes or waits for you. To turn them off:
+
+```lua
+require("codecompanion").setup({
+  interactions = {
+    cli = {
+      opts = {
+        notify = false,
+      },
+    },
+  },
+})
+```
+
 ## Keymaps
 
-`{` and `}` move between interactions in the CLI buffer. The defaults are:
+`{` and `}` move between interactions in the CLI buffer, and `gf` [opens the file](/usage/cli#opening-files) under the cursor. The defaults are:
 
 ```lua
 require("codecompanion").setup({
@@ -119,6 +135,11 @@ require("codecompanion").setup({
           modes = { n = "}" },
           callback = "keymaps.next_chat",
           description = "Open the next interaction",
+        },
+        open_file = {
+          modes = { n = "gf" },
+          callback = "keymaps.open_file",
+          description = "Open the file under the cursor in your code window",
         },
         previous_chat = {
           modes = { n = "{" },

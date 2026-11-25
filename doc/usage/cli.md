@@ -78,6 +78,18 @@ vim.keymap.set("n", "<LocalLeader>ct", function()
 end, { desc = "Send terminal output to CLI agent" })
 ```
 
+## Working Alongside the Agent
+
+With [hooks](/configuration/cli#hooks) installed, CodeCompanion notifies you when Claude Code needs you, so you can leave it in the background and carry on coding.
+
+### Notifications
+
+When an agent you're not watching finishes its turn or waits for you, such as to approve a tool, CodeCompanion sends a notification. You answer the agent in its own window. `require("codecompanion").toggle()` takes you to it.
+
+### Opening Files
+
+Press `gf` on a path in the agent's output, such as `lua/codecompanion/init.lua:42` or `lua/codecompanion/init.lua#L42`, to open it at that line in your code window, leaving the agent where it is. A floating agent window is hidden first.
+
 ## Sending Context
 
 ### Visual Selection

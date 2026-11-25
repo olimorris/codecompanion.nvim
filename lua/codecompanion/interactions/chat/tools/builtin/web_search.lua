@@ -79,7 +79,7 @@ return {
             items = {
               type = "string",
             },
-            description = "An array of domains to search from. You can leave this as an empty string and the search will be performed across all domains.",
+            description = "An array of domains to search from. You can leave this as an empty array and the search will be performed across all domains.",
           },
         },
         required = { "query", "domains" },

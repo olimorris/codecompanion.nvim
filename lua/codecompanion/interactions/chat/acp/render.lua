@@ -5,7 +5,7 @@ local M = {}
 
 ---Render the session in the chat buffer
 ---@param chat CodeCompanion.Chat
----@param updates table[] Collected session update params from session/load
+---@param updates { update: table, session_id?: string }[] The updates session/load replayed, with the session of those about subagents
 ---@return nil
 function M.restore_session(chat, updates)
   chat:clear()
@@ -32,10 +32,20 @@ function M.restore_session(chat, updates)
     end
   end
 
-  for _, update in ipairs(updates) do
+  for _, replayed in ipairs(updates) do
+    local update = replayed.update
     local kind = update.sessionUpdate
 
-    if kind == "user_message_chunk" then
+    if replayed.session_id then
+      if kind == "subagent_update" then
+        process_user_chunks()
+        process_llm_chunks()
+      end
+      chat.acp_connection.subagents:show(
+        chat,
+        { session_id = replayed.session_id, update = update, is_replayed = true }
+      )
+    elseif kind == "user_message_chunk" then
       process_llm_chunks()
       local text = extract_text(update.content)
       if text and text ~= "" then

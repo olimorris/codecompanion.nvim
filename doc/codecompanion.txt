@@ -1,4 +1,4 @@
-*codecompanion.txt*        For NVIM v0.12        Last change: 2026 November 12
+*codecompanion.txt*        For NVIM v0.12        Last change: 2026 November 23
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -5549,6 +5549,28 @@ To send the output of the most recent terminal, such as a failing test run:
 <
 
 
+WORKING ALONGSIDE THE AGENT ~
+
+With |codecompanion-configuration-cli-hooks| installed, CodeCompanion notifies
+you when Claude Code needs you, so you can leave it in the background and carry
+on coding.
+
+
+NOTIFICATIONS
+
+When an agent you're not watching finishes its turn or waits for you, such as
+to approve a tool, CodeCompanion sends a notification. You answer the agent in
+its own window. `require("codecompanion").toggle()` takes you to it.
+
+
+OPENING FILES
+
+Press `gf` on a path in the agent's output, such as
+`lua/codecompanion/init.lua:42` or `lua/codecompanion/init.lua#L42`, to open it
+at that line in your code window, leaving the agent where it is. A floating
+agent window is hidden first.
+
+
 SENDING CONTEXT ~
 
 
@@ -6660,6 +6682,34 @@ server over stdio:
       },
     })
 <
+
+
+SUBAGENTS ~
+
+Some agents hand work to `subagents`, which run alongside the main
+conversation. CodeCompanion shows each one in the chat buffer as a single line
+that updates as the subagent works. Press `K` on the line to follow the
+subagent's transcript in a floating window, then `<C-c>` to cancel it if the
+agent allows that. To list every subagent in the chat, including the ones other
+subagents started, run `:CodeCompanionActions` from the chat buffer and select
+`Subagents`.
+
+Subagents are enabled by default. To disable them:
+
+>lua
+    require("codecompanion").setup({
+      adapters = {
+        acp = {
+          opts = {
+            subagents = false,
+          },
+        },
+      },
+    })
+<
+
+CodeCompanion then doesn't tell the agent it supports subagents, so the agent
+reports their work through the main conversation.
 
 
 HIDING PRESET ADAPTERS ~
@@ -9405,9 +9455,28 @@ An agent whose `provider` isn't in the `providers` table falls back to
 `terminal`.
 
 
+NOTIFICATIONS ~
+
+CodeCompanion sends a |codecompanion-usage-cli-notifications| when an agent
+you're not watching finishes or waits for you. To turn them off:
+
+>lua
+    require("codecompanion").setup({
+      interactions = {
+        cli = {
+          opts = {
+            notify = false,
+          },
+        },
+      },
+    })
+<
+
+
 KEYMAPS ~
 
-`{` and `}` move between interactions in the CLI buffer. The defaults are:
+`{` and `}` move between interactions in the CLI buffer, and `gf`
+|codecompanion-usage-cli-opening-files| under the cursor. The defaults are:
 
 >lua
     require("codecompanion").setup({
@@ -9418,6 +9487,11 @@ KEYMAPS ~
               modes = { n = "}" },
               callback = "keymaps.next_chat",
               description = "Open the next interaction",
+            },
+            open_file = {
+              modes = { n = "gf" },
+              callback = "keymaps.open_file",
+              description = "Open the file under the cursor in your code window",
             },
             previous_chat = {
               modes = { n = "{" },

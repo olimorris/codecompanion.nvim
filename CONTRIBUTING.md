@@ -20,22 +20,26 @@ In Japanese cuisine, omakase means _"I'll leave it up to you"_ - the diner allow
 
 You're welcome to use coding agents such as CodeCompanion, Claude Code or Codex to contribute. [AGENTS.md](AGENTS.md) and [STYLE.md](STYLE.md) give your agent the architecture, commands and conventions it needs, so point it at them before it writes any code.
 
+Before you open a PR, have your agent work through the [codecompanion-reviewing-changes](.codecompanion/skills/codecompanion-reviewing-changes/SKILL.md) skill. It checks the branch's names, tests and code against the style guide, then runs the formatter and the tests. `AGENTS.md` already tells agents to use it. If you wrote the code yourself, use it as a checklist.
+
 Every PR is held to the same standard, however it was written:
 
 - **It follows the [style guide](STYLE.md)** - this is the contract for comments, naming, function signatures and tests, and it's what the automated reviewer checks against
 - **It fits the codebase** - it follows existing architectural patterns and reads like the code around it
-- **It tests the change** - the tests exercise the behaviour that changed, including the edge cases
+- **It's as small as it can be** - no guards for conditions that can't happen, no unused parameters and no leftovers from an earlier approach
+- **It tests the change** - the tests exercise the behaviour that changed, including the edge cases, and skip anything that only proves an `if` works
 - **You own it** - you can explain every line and respond to review feedback yourself
 
-PRs that don't meet this bar will be closed. The most common reasons are verbose comments, overly defensive code, invented naming schemes, changes outside the scope of the PR, and tests that look comprehensive but never hit the edge case.
+PRs that don't meet this bar will be closed. The most common reasons are verbose comments, overly defensive code, invented naming schemes, changes outside the scope of the PR, and tests that check basic conditionals but never hit the edge case.
 
 ## How to Contribute
 
 1. Open a [discussion](https://github.com/olimorris/codecompanion.nvim/discussions) to propose your idea
 2. Fork the repository and create your branch from `main`
 3. Add your feature or fix, with tests
-4. Run `make all` to format the code, generate the docs and run the tests
-5. Open a PR with a clear title and description, filling in the PR template
+4. Work through the [codecompanion-reviewing-changes](.codecompanion/skills/codecompanion-reviewing-changes/SKILL.md) skill
+5. Run `make all` to format the code, generate the docs and run the tests
+6. Open a PR with a clear title and description, filling in the PR template
 
 The [Architecture](AGENTS.md#architecture) section of `AGENTS.md` is the quickest way to find your way around `lua/codecompanion/`.
 
@@ -55,7 +59,6 @@ Clone your fork and point your plugin manager at it. With lazy.nvim:
 ```lua
 {
   dir = "/full/path/to/local/codecompanion.nvim",
-  dev = true,
   dependencies = {
     { "nvim-lua/plenary.nvim" },
   },
@@ -97,9 +100,11 @@ To inspect the requests and responses sent to an LLM provider, forward them thro
 ```lua
 require("codecompanion").setup({
   adapters = {
-    opts = {
-      allow_insecure = true,
-      proxy = "http://127.0.0.1:4141",
+    http = {
+      opts = {
+        allow_insecure = true,
+        proxy = "http://127.0.0.1:4141",
+      },
     },
   },
 })
@@ -112,7 +117,7 @@ require("codecompanion").setup({
 
 ## Testing
 
-CodeCompanion uses [Mini.Test](https://github.com/nvim-mini/mini.nvim/blob/main/TESTING.md). There are c. 800 tests and they act as a second source of documentation, so read the existing tests for the area you're changing before writing your own.
+CodeCompanion uses [Mini.Test](https://github.com/nvim-mini/mini.nvim/blob/main/TESTING.md). The tests act as a second source of documentation, so read the existing tests for the area you're changing before writing your own.
 
 ```bash
 make test
@@ -155,4 +160,4 @@ nmake FILE=tests/adapters/test_openai.lua test_file
 
 ## Building Documentation
 
-Documentation is built with [panvimdoc](https://github.com/kdheepak/panvimdoc). Run `make docs` after changing any page in `doc/`.
+Documentation is built with [panvimdoc](https://github.com/kdheepak/panvimdoc). Read the [codecompanion-writing-docs](.codecompanion/skills/codecompanion-writing-docs/SKILL.md) skill before changing any page in `doc/`, then run `make docs`.

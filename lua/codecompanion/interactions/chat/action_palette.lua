@@ -23,10 +23,11 @@ local function format_keys(modes)
   return table.concat(segments, "  ")
 end
 
----Build the static items shown in every chat command palette
+---Build the static items shown in the chat command palette
+---@param chat CodeCompanion.Chat
 ---@return table
-local function static_items()
-  return {
+local function static_items(chat)
+  local items = {
     {
       callback = function()
         require("codecompanion").actions()
@@ -36,6 +37,19 @@ local function static_items()
       type = "static",
     },
   }
+
+  if not vim.tbl_isempty(chat.subagents) then
+    table.insert(items, {
+      callback = function()
+        require("codecompanion.interactions.chat.acp.subagents").pick(chat)
+      end,
+      description = "Watch or cancel the agent's subagents",
+      name = "Subagents",
+      type = "static",
+    })
+  end
+
+  return items
 end
 
 ---Build items from the chat's keymaps
@@ -137,7 +151,7 @@ end
 function CommandPalette.launch(chat)
   local items = {}
 
-  vim.list_extend(items, static_items())
+  vim.list_extend(items, static_items(chat))
   vim.list_extend(items, keymap_items(chat))
   vim.list_extend(items, slash_command_items(chat))
 
