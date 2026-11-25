@@ -78,6 +78,18 @@ T["run_command tool times out a long running command"] = function()
   h.expect_contains("timed out", output)
 end
 
+T["does not attach a null flag to the command"] = function()
+  child.lua([[
+    local builtin = require("codecompanion.interactions.chat.tools.builtin.run_command")
+    local tool = { args = vim.json.decode('{"cmd":"echo hello","flag":null}'), cmds = {} }
+    builtin.handlers.setup(tool, {})
+    _G.command = tool.cmds[1]
+  ]])
+
+  h.eq({ "echo", "hello" }, child.lua_get("_G.command.cmd"))
+  h.eq(false, child.lua_get("_G.command.flag ~= nil"))
+end
+
 T["stopping the chat kills a running command"] = function()
   if vim.fn.has("win32") == 1 then
     MiniTest.skip("`sleep` isn't available on Windows")

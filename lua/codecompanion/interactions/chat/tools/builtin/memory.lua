@@ -321,6 +321,21 @@ return {
         return { status = status, data = msg }
       end
 
+      args = vim.tbl_extend("force", {}, args)
+      for _, key in ipairs({
+        "path",
+        "view_range",
+        "file_text",
+        "old_str",
+        "new_str",
+        "insert_line",
+        "insert_text",
+        "old_path",
+        "new_path",
+      }) do
+        args[key] = helpers.normalise_null(args[key])
+      end
+
       local command = args.command
       if not command then
         return output_msg("error", "No command specified")
@@ -346,6 +361,9 @@ return {
       if command == "create" then
         if not args.path then
           return output_msg("error", "The 'create' command requires a 'path' parameter")
+        end
+        if type(args.file_text) ~= "string" then
+          return output_msg("error", "The 'create' command requires a 'file_text' parameter")
         end
         local ok, output = pcall(create, { path = args.path, file_text = args.file_text, whitelist = whitelist })
         if not ok then
@@ -505,7 +523,7 @@ return {
       elseif command == "str_replace" then
         return fmt("replace text in %s", args.path)
       elseif command == "insert" then
-        return fmt("insert text at line %d in %s", args.insert_line or 0, args.path)
+        return fmt("insert text at line %d in %s", helpers.normalise_null(args.insert_line) or 0, args.path)
       elseif command == "delete" then
         return fmt("delete %s", args.path)
       elseif command == "rename" then

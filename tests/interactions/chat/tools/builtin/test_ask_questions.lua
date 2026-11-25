@@ -225,6 +225,37 @@ T["ask_questions"]["answers a multi select question"] = function()
   h.eq(nil, string.match(buffer, "Include '"))
 end
 
+T["ask_questions"]["accepts null option fields and treats them as unset"] = function()
+  child.lua([[
+    local tool = {
+      {
+        ["function"] = {
+          name = "ask_questions",
+          arguments = vim.json.encode({
+            questions = {
+              {
+                header = "Directory",
+                question = "Where should I create the files?",
+                multiSelect = vim.NIL,
+                options = {
+                  { label = "src/", description = vim.NIL, recommended = vim.NIL },
+                },
+              },
+            },
+          }),
+        },
+      },
+    }
+    tools:execute(chat, tool)
+
+    _G.press('gs')
+    _G.wait_for_tool_output()
+  ]])
+
+  local output = child.lua_get([[chat.messages[#chat.messages].content]])
+  h.expect_contains("No answer provided", output)
+end
+
 T["ask_questions"]["records a skipped question as no answer"] = function()
   child.lua([[
     local tool = {

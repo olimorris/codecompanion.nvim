@@ -40,11 +40,23 @@ local function get_git_diff(opts)
   return result, desc
 end
 
+---@param source_control_state? any
+---@return string[]
+local function get_states(source_control_state)
+  local states = helpers.normalise_null(source_control_state) or DEFAULT_STATES
+  return vim
+    .iter(states)
+    :filter(function(state)
+      return helpers.normalise_null(state) ~= nil
+    end)
+    :totable()
+end
+
 ---Get changed files in the current working directory based on the git state.
 ---@param opts { action: {source_control_state?: string[]}, max_lines: number }
 ---@return {status: "success"|"error", data: string}
 local function get_changed_files(opts)
-  local states = opts.action.source_control_state or DEFAULT_STATES
+  local states = get_states(opts.action.source_control_state)
   local output = {}
 
   for _, state in ipairs(states) do
@@ -136,7 +148,7 @@ return {
     ---@param opts { tools: CodeCompanion.Tools }
     ---@return string
     cmd_string = function(self, opts)
-      local states = self.args.source_control_state or DEFAULT_STATES
+      local states = get_states(self.args.source_control_state)
       return fmt("git changes (%s)", table.concat(states, ", "))
     end,
 

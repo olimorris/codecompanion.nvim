@@ -1,3 +1,4 @@
+local helpers = require("codecompanion.interactions.chat.tools.builtin.helpers")
 local question_prompt = require("codecompanion.interactions.chat.helpers.question_prompt")
 
 local log = require("codecompanion.utils.log")
@@ -58,9 +59,18 @@ return {
     ---@param args { questions: table[] }
     ---@param input { output_cb: fun(msg: { status: string, data: string }) }
     function(self, args, input)
-      local questions = args.questions
-      if not questions or #questions == 0 then
+      if type(args.questions) ~= "table" or #args.questions == 0 then
         return { status = "error", data = "No questions provided" }
+      end
+
+      local questions = vim.deepcopy(args.questions)
+      for _, question in ipairs(questions) do
+        question.multiSelect = helpers.normalise_null(question.multiSelect)
+        question.options = helpers.normalise_null(question.options)
+        for _, option in ipairs(question.options or {}) do
+          option.description = helpers.normalise_null(option.description)
+          option.recommended = helpers.normalise_null(option.recommended)
+        end
       end
 
       vim.schedule(function()
@@ -143,7 +153,8 @@ return {
     ---@param meta { tools: CodeCompanion.Tools }
     ---@return string
     prompt = function(self, meta)
-      local count = self.args and self.args.questions and #self.args.questions or 0
+      local questions = self.args and self.args.questions
+      local count = type(questions) == "table" and #questions or 0
       return fmt("Ask you %d question%s?", count, count == 1 and "" or "s")
     end,
 
