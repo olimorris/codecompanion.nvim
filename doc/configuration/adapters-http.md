@@ -626,6 +626,7 @@ require("codecompanion").setup({
 
 Adapters built by the community:
 
+- [CrowLLM](https://github.com/olimorris/codecompanion.nvim/discussions/3528)
 - [DashScope](https://github.com/olimorris/codecompanion.nvim/discussions/2239)
 - [Fireworks.ai](https://github.com/olimorris/codecompanion.nvim/discussions/693)
 - [InceptionLabs - Mercury 2](https://github.com/olimorris/codecompanion.nvim/discussions/2867)
