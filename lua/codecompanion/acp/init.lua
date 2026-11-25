@@ -661,7 +661,7 @@ function Connection:send_rpc_request(opts)
   end
 
   -- Async path: yield and let store_rpc_response resume us
-  if coroutine.running() then
+  if coroutine.isyieldable() then
     return async.wait(function(callback)
       self._pending_callbacks[id] = callback
       if opts.timeout then
