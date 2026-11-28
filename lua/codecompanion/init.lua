@@ -382,6 +382,7 @@ CodeCompanion.cli = function(prompt_or_opts, opts)
       agent = opts.agent,
       args = opts.args,
       initial_content = prompt,
+      resume = opts.resume,
     })
   end
 
@@ -392,7 +393,7 @@ CodeCompanion.cli = function(prompt_or_opts, opts)
 
   local cli = require("codecompanion.interactions.cli")
   local instance
-  if prompt then
+  if prompt and not opts.resume then
     if opts.agent then
       instance = cli.find_by_agent(opts.agent) or cli.create({ agent = opts.agent })
     else

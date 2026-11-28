@@ -116,6 +116,30 @@ T["cli()"]["with prompt and agent reuses matching agent instance"] = function()
   h.eq(true, result.same_instance)
 end
 
+T["cli()"]["with prompt and resume starts a NEW resumed instance"] = function()
+  local result = child.lua([[
+    local cc = require("codecompanion")
+    local cli = require("codecompanion.interactions.cli")
+    local config = require("codecompanion.config")
+    config.interactions.cli.agents.test_agent_a.resume_args = { "--continue" }
+
+    cc.cli()
+    local first_bufnr = cli.last_cli().bufnr
+
+    cc.cli("hello", { resume = true })
+    local resumed = cli.last_cli()
+
+    config.interactions.cli.agents.test_agent_a.resume_args = nil
+    return {
+      same_instance = first_bufnr == resumed.bufnr,
+      args = resumed.provider.agent.args,
+    }
+  ]])
+
+  h.eq(false, result.same_instance)
+  h.eq({ "--continue" }, result.args)
+end
+
 T["cli()"]["focus=false does not open the UI"] = function()
   local result = child.lua([[
     local cc = require("codecompanion")

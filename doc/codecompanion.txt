@@ -9386,23 +9386,27 @@ the default:
     })
 <
 
-  ------------------------------------------------------------------------------
+  -----------------------------------------------------------------------
   Option                  Type                    Description
-  ----------------------- ----------------------- ------------------------------
-  cmd                     string                  The command to run, such as
-                                                  "claude" or "codex"
+  ----------------------- ----------------------- -----------------------
+  cmd                     string                  The command to run,
+                                                  such as "claude" or
+                                                  "codex"
 
   args                    table                   Arguments passed to the
                                                   command
 
-  resume_args             table                   Arguments added after args to
-                                                  usage-cli-resuming-a-session
+  resume_args             table                   Arguments added after
+                                                  args to resume a
+                                                  session
 
-  description             string                  Shown in the Action Palette
+  description             string                  Shown in the Action
+                                                  Palette
 
-  provider                string                  The -providers that runs the
-                                                  agent. Defaults to "terminal"
-  ------------------------------------------------------------------------------
+  provider                string                  The -providers that
+                                                  runs the agent.
+                                                  Defaults to "terminal"
+  -----------------------------------------------------------------------
 To start an agent other than the default:
 
 >

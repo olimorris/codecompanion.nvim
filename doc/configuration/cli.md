@@ -39,7 +39,7 @@ require("codecompanion").setup({
 | --- | --- | --- |
 | `cmd` | `string` | The command to run, such as `"claude"` or `"codex"` |
 | `args` | `table` | Arguments passed to the command |
-| `resume_args` | `table` | Arguments added after `args` to [resume a session](/usage/cli#resuming-a-session) |
+| `resume_args` | `table` | Arguments added after `args` to resume a session |
 | `description` | `string` | Shown in the Action Palette |
 | `provider` | `string` | The [provider](#providers) that runs the agent. Defaults to `"terminal"` |
 
