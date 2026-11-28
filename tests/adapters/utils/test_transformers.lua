@@ -52,7 +52,7 @@ T["Transformers"]["can enforce strictness"] = function()
           },
           query = {
             description = "Search for files with names or paths matching this glob pattern.",
-            type = { "string", "null" },
+            type = "string",
           },
         },
         required = { "max_results", "query" },
@@ -80,7 +80,7 @@ T["Transformers"]["can enforce strictness with a partially strict schema"] = fun
           },
           query = {
             description = "Search for files with names or paths matching this glob pattern.",
-            type = { "string", "null" },
+            type = "string",
           },
         },
         required = { "max_results", "query" },
@@ -146,16 +146,14 @@ T["Transformers"]["can enforce strictness with nested objects in arrays"] = func
 
   local result = transform.enforce_strictness(vim.deepcopy(nested_schema))
 
-  -- Check that top-level properties have null types
-  h.eq({ "string", "null" }, result["function"].parameters.properties.filepath.type)
-  h.eq({ "array", "null" }, result["function"].parameters.properties.edits.type)
+  h.eq("string", result["function"].parameters.properties.filepath.type)
+  h.eq("array", result["function"].parameters.properties.edits.type)
 
   -- Check that nested items have all properties in required array (including previously optional ones)
   h.eq({ "newText", "oldText", "replaceAll" }, result["function"].parameters.properties.edits.items.required)
 
-  -- Check that nested properties have null types
-  h.eq({ "string", "null" }, result["function"].parameters.properties.edits.items.properties.oldText.type)
-  h.eq({ "string", "null" }, result["function"].parameters.properties.edits.items.properties.newText.type)
+  h.eq("string", result["function"].parameters.properties.edits.items.properties.oldText.type)
+  h.eq("string", result["function"].parameters.properties.edits.items.properties.newText.type)
   h.eq({ "boolean", "null" }, result["function"].parameters.properties.edits.items.properties.replaceAll.type)
 
   -- Check that strict mode is enabled
@@ -164,6 +162,85 @@ T["Transformers"]["can enforce strictness with nested objects in arrays"] = func
   -- Check that additionalProperties is set to false on all objects
   h.eq(false, result["function"].parameters.additionalProperties)
   h.eq(false, result["function"].parameters.properties.edits.items.additionalProperties)
+end
+
+T["Transformers"]["adds null to an OPTIONAL enum"] = function()
+  local tool = {
+    type = "function",
+    ["function"] = {
+      name = "test_tool",
+      parameters = {
+        type = "object",
+        properties = {
+          mode = { type = "string", enum = { "fast", "slow" } },
+        },
+      },
+    },
+  }
+
+  local result = transform.enforce_strictness(tool)
+
+  h.eq({ "fast", "slow", vim.NIL }, result["function"].parameters.properties.mode.enum)
+  h.eq({ "string", "null" }, result["function"].parameters.properties.mode.type)
+end
+
+T["Transformers"]["DOES NOT add null to a REQUIRED enum"] = function()
+  local tool = {
+    type = "function",
+    ["function"] = {
+      name = "test_tool",
+      parameters = {
+        type = "object",
+        properties = {
+          mode = { type = "string", enum = { "fast", "slow" } },
+        },
+        required = { "mode" },
+      },
+    },
+  }
+
+  local result = transform.enforce_strictness(tool)
+
+  h.eq({ "fast", "slow" }, result["function"].parameters.properties.mode.enum)
+  h.eq("string", result["function"].parameters.properties.mode.type)
+end
+
+T["Transformers"]["adds a null branch to an OPTIONAL anyOf that does not allow null"] = function()
+  local tool = {
+    type = "function",
+    ["function"] = {
+      name = "test_tool",
+      parameters = {
+        type = "object",
+        properties = {
+          value = { anyOf = { { type = "string" }, { type = "number" } } },
+        },
+      },
+    },
+  }
+
+  local result = transform.enforce_strictness(tool)
+
+  h.eq({ type = "null" }, result["function"].parameters.properties.value.anyOf[3])
+end
+
+T["Transformers"]["DOES NOT add a second null branch to an OPTIONAL anyOf that already allows null"] = function()
+  local tool = {
+    type = "function",
+    ["function"] = {
+      name = "test_tool",
+      parameters = {
+        type = "object",
+        properties = {
+          value = { anyOf = { { type = "string" }, { type = "null" } } },
+        },
+      },
+    },
+  }
+
+  local result = transform.enforce_strictness(tool)
+
+  h.eq(2, #result["function"].parameters.properties.value.anyOf)
 end
 
 T["Transformers"]["transform_schema_if_needed uses strict_mode when schema has no strict field"] = function()
@@ -195,7 +272,7 @@ T["Transformers"]["transform_schema_if_needed uses strict_mode when schema has n
   -- With strict_mode = true, strict should be true and strictness enforced
   local result2 = transform.transform_schema_if_needed(vim.deepcopy(schema_without_strict), { strict_mode = true })
   h.eq(true, result2.strict)
-  h.eq({ "string", "null" }, result2.parameters.properties.query.type) -- Has null type
+  h.eq("string", result2.parameters.properties.query.type)
   h.eq({ "query" }, result2.parameters.required) -- All properties required
 end
 
@@ -268,10 +345,9 @@ T["Transformers"]["enforces additionalProperties false on deeply nested MCP sche
   -- Nested items object must have additionalProperties = false
   h.eq(false, result["function"].parameters.properties.entities.items.additionalProperties)
 
-  -- Nested items properties should have null types
-  h.eq({ "string", "null" }, result["function"].parameters.properties.entities.items.properties.name.type)
-  h.eq({ "string", "null" }, result["function"].parameters.properties.entities.items.properties.entityType.type)
-  h.eq({ "array", "null" }, result["function"].parameters.properties.entities.items.properties.observations.type)
+  h.eq("string", result["function"].parameters.properties.entities.items.properties.name.type)
+  h.eq("string", result["function"].parameters.properties.entities.items.properties.entityType.type)
+  h.eq("array", result["function"].parameters.properties.entities.items.properties.observations.type)
 
   -- All nested properties should be required
   h.eq({ "entityType", "name", "observations" }, result["function"].parameters.properties.entities.items.required)
