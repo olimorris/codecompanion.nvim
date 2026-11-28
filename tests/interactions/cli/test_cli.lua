@@ -269,4 +269,28 @@ T["CLI"]["notifies with the agent's message when a HIDDEN agent waits for the us
   h.eq({ "Agent A: Claude needs your permission to use Bash" }, notifications)
 end
 
+T["CLI"]["a prompt sent mid-turn reuses the open request"] = function()
+  local events = child.lua([[
+    local events = {}
+    vim.api.nvim_create_autocmd("User", {
+      pattern = { "CodeCompanionRequestStarted", "CodeCompanionRequestFinished" },
+      callback = function(args)
+        table.insert(events, { name = args.match, id = args.data.id })
+      end,
+    })
+
+    local cli = require("codecompanion.interactions.cli")
+    local instance = cli.create({ agent = "test_agent_a" })
+    cli.hook({ bufnr = instance.bufnr, event = "submitted" })
+    cli.hook({ bufnr = instance.bufnr, event = "submitted" })
+    cli.hook({ bufnr = instance.bufnr, event = "done" })
+    vim.wait(100, function() return #events >= 2 end)
+    return events
+  ]])
+
+  h.eq({ "CodeCompanionRequestStarted", "CodeCompanionRequestFinished" }, { events[1].name, events[2].name })
+  h.eq(2, #events)
+  h.eq(events[1].id, events[2].id)
+end
+
 return T
