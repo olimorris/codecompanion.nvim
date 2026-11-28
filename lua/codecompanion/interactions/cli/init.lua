@@ -47,6 +47,11 @@ end
 ---@param cli CodeCompanion.CLI
 ---@return nil
 local function start_request(cli)
+  -- A prompt sent mid-turn prevents the first request from finishing, so don't start a second request
+  if cli.request_id then
+    return
+  end
+
   cli.request_id = tostring(math.random(10000000))
   utils.fire("RequestStarted", build_request_payload(cli))
 end
