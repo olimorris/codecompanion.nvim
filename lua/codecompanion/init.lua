@@ -364,7 +364,7 @@ end
 
 ---Open, send to, or interact with a CLI agent
 ---@param prompt_or_opts? string|table A prompt string, or an opts table when no prompt is needed
----@param opts? { agent?: string, focus?: boolean, submit?: boolean, prompt?: boolean, width?: number, height?: number, args?: table }
+---@param opts? { agent?: string, focus?: boolean, submit?: boolean, prompt?: boolean, resume?: boolean, width?: number, height?: number, args?: table }
 ---@return nil
 CodeCompanion.cli = function(prompt_or_opts, opts)
   local prompt
@@ -399,7 +399,7 @@ CodeCompanion.cli = function(prompt_or_opts, opts)
       instance = cli.last_cli() or cli.create()
     end
   else
-    instance = cli.create({ agent = opts.agent })
+    instance = cli.create({ agent = opts.agent, resume = opts.resume })
   end
 
   if not instance then
