@@ -7,7 +7,7 @@ local api = vim.api
 local M = {}
 
 ---Open the CLI input buffer
----@param opts? { agent?: string, args?: table, initial_content?: string, title?: string }
+---@param opts? { agent?: string, args?: table, initial_content?: string, resume?: boolean, title?: string }
 ---@return nil
 function M.open(opts)
   opts = opts or {}
@@ -22,7 +22,8 @@ function M.open(opts)
       local cli_module = require("codecompanion.interactions.cli")
       local formatted = cli_module.resolve_editor_context(text, buffer_context)
 
-      local instance = cli_module.last_cli() or cli_module.create({ agent = opts.agent })
+      local instance = (not opts.resume and cli_module.last_cli())
+        or cli_module.create({ agent = opts.agent, resume = opts.resume })
       if not instance then
         return log:error("Could not create CLI instance")
       end
@@ -41,7 +42,7 @@ function M.open(opts)
 end
 
 ---Toggle the input buffer
----@param opts? { agent?: string, args?: table, initial_content?: string, title?: string }
+---@param opts? { agent?: string, args?: table, initial_content?: string, resume?: boolean, title?: string }
 ---@return nil
 function M.toggle(opts)
   if input.is_visible() then

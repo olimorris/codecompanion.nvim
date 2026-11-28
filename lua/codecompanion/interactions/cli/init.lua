@@ -189,7 +189,7 @@ local keymap_callbacks = {
 }
 
 ---Create a new CLI instance
----@param args? { agent?: string }
+---@param args? { agent?: string, resume?: boolean }
 ---@return CodeCompanion.CLI|nil
 function CLI.create(args)
   args = args or {}
@@ -198,6 +198,14 @@ function CLI.create(args)
   local agent = config.interactions.cli.agents[agent_name]
   if not agent then
     return log:error("CLI agent `%s` not found in config", agent_name or "nil")
+  end
+
+  local agent_args = vim.deepcopy(agent.args or {})
+  if args.resume then
+    if not agent.resume_args then
+      return log:error("CLI agent `%s` has no `resume_args` to resume a session with", agent_name)
+    end
+    vim.list_extend(agent_args, agent.resume_args)
   end
 
   -- Before the CLI's window exists, so the user's code window is the one recorded
@@ -211,7 +219,7 @@ function CLI.create(args)
 
   local provider = require("codecompanion.interactions.cli.providers").new({
     bufnr = bufnr,
-    agent = agent,
+    agent = vim.tbl_extend("force", agent, { args = agent_args }),
   })
 
   if not provider:start() then

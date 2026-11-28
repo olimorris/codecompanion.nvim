@@ -1,4 +1,4 @@
-*codecompanion.txt*        For NVIM v0.12        Last change: 2026 November 23
+*codecompanion.txt*        For NVIM v0.12        Last change: 2026 November 28
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -5494,6 +5494,24 @@ To start a different one:
 buffer, and `{` and `}` cycle through every chat and CLI agent.
 
 
+RESUMING A SESSION
+
+An agent's session ends when you close Neovim. To pick it up again:
+
+>
+    :CodeCompanionCLI Resume
+<
+
+Or for a different agent:
+
+>
+    :CodeCompanionCLI Resume agent=codex
+<
+
+This starts the agent with its |codecompanion-configuration-cli-agents| added
+after its `args`, such as `claude --continue` or `codex resume --last`.
+
+
 WORKFLOW ~
 
 These keymaps cover the most common ways of working with an agent.
@@ -5727,6 +5745,10 @@ OPTIONS
   prompt                  false                    Open the prompt input,
                                                    filled with the prompt
                                                    if one is given
+
+  resume                  false                    Start a new agent that
+                                                   resumes a session,
+                                                   using its resume_args
 
   width                   From your config         The window's width
 
@@ -9348,12 +9370,14 @@ the default:
             claude_code = {
               cmd = "claude",
               args = {},
+              resume_args = { "--continue" },
               description = "Claude Code CLI",
               provider = "terminal",
             },
             codex = {
               cmd = "codex",
               args = {},
+              resume_args = { "resume", "--last" },
               description = "OpenAI Codex CLI",
             },
           },
@@ -9371,6 +9395,10 @@ the default:
 
   args                    table                   Arguments passed to the
                                                   command
+
+  resume_args             table                   Arguments added after
+                                                  args to resume a
+                                                  session
 
   description             string                  Shown in the Action
                                                   Palette

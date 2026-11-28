@@ -293,4 +293,21 @@ T["CLI"]["a prompt sent mid-turn reuses the open request"] = function()
   h.eq(events[1].id, events[2].id)
 end
 
+T["CLI"]["create() resumes with the agent's resume_args after its args"] = function()
+  local args = child.lua([[
+    local config = require("codecompanion.config")
+    config.interactions.cli.agents.test_agent_a.args = { "--model", "opus" }
+    config.interactions.cli.agents.test_agent_a.resume_args = { "--continue" }
+
+    local instance = require("codecompanion.interactions.cli").create({ agent = "test_agent_a", resume = true })
+    local resumed = instance.provider.agent.args
+
+    config.interactions.cli.agents.test_agent_a.args = {}
+    config.interactions.cli.agents.test_agent_a.resume_args = nil
+    return resumed
+  ]])
+
+  h.eq({ "--model", "opus", "--continue" }, args)
+end
+
 return T

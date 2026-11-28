@@ -30,6 +30,22 @@ To start a different one:
 
 `require("codecompanion").toggle()` shows or hides it, as it does a chat buffer, and `{` and `}` cycle through every chat and CLI agent.
 
+### Resuming a Session
+
+An agent's session ends when you close Neovim. To pick it up again:
+
+```
+:CodeCompanionCLI Resume
+```
+
+Or for a different agent:
+
+```
+:CodeCompanionCLI Resume agent=codex
+```
+
+This starts the agent with its [resume_args](/configuration/cli#agents) added after its `args`, such as `claude --continue` or `codex resume --last`.
+
 ## Workflow
 
 These keymaps cover the most common ways of working with an agent.
@@ -216,5 +232,6 @@ require("codecompanion").cli("Fix #{diagnostics}", { submit = true, focus = fals
 | `focus` | `true` | Open the agent's window and move the cursor to it |
 | `submit` | `false` | Submit the prompt so the agent starts working |
 | `prompt` | `false` | Open the prompt input, filled with the prompt if one is given |
+| `resume` | `false` | Start a new agent that resumes a session, using its `resume_args` |
 | `width` | From your config | The window's width |
 | `height` | From your config | The window's height |

@@ -19,12 +19,14 @@ require("codecompanion").setup({
         claude_code = {
           cmd = "claude",
           args = {},
+          resume_args = { "--continue" },
           description = "Claude Code CLI",
           provider = "terminal",
         },
         codex = {
           cmd = "codex",
           args = {},
+          resume_args = { "resume", "--last" },
           description = "OpenAI Codex CLI",
         },
       },
@@ -37,6 +39,7 @@ require("codecompanion").setup({
 | --- | --- | --- |
 | `cmd` | `string` | The command to run, such as `"claude"` or `"codex"` |
 | `args` | `table` | Arguments passed to the command |
+| `resume_args` | `table` | Arguments added after `args` to resume a session |
 | `description` | `string` | Shown in the Action Palette |
 | `provider` | `string` | The [provider](#providers) that runs the agent. Defaults to `"terminal"` |
 

@@ -322,6 +322,12 @@ return {
         return require("codecompanion.interactions.cli.hooks").install()
       end
 
+      if prompt == "Resume" then
+        cli_opts.resume = true
+        codecompanion.cli(cli_opts)
+        return
+      end
+
       -- :CodeCompanionCLI Ask — open prompt input buffer
       if prompt == "Ask" then
         cli_opts.prompt = true
@@ -360,7 +366,7 @@ return {
         end
 
         if cmdline:match("^['<,'>]*CodeCompanionCLI[!]*%s+$") or arg_lead == "" then
-          local completions = { "Ask", "Install", "agent=" }
+          local completions = { "Ask", "Install", "Resume", "agent=" }
           return vim
             .iter(completions)
             :filter(function(key)
