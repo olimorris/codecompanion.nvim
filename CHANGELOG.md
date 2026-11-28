@@ -1,5 +1,19 @@
 # Changelog
 
+## [20.4.0](https://github.com/olimorris/codecompanion.nvim/compare/v20.3.0...v20.4.0) (2026-11-28)
+
+
+### Features
+
+* **cli:** add `:CodeCompanionCLI Resume` ([#3536](https://github.com/olimorris/codecompanion.nvim/issues/3536)) ([1f0e1d0](https://github.com/olimorris/codecompanion.nvim/commit/1f0e1d0703c543c00f4d25d654dc325dbd675854))
+* **cli:** improve Claude Code interactions ([#3530](https://github.com/olimorris/codecompanion.nvim/issues/3530)) ([f52f9ca](https://github.com/olimorris/codecompanion.nvim/commit/f52f9cadc668620e6e95e5d5b59240535bf5474d))
+
+
+### Bug Fixes
+
+* **cli:** reuse existing requests ([#3535](https://github.com/olimorris/codecompanion.nvim/issues/3535)) ([5a62a30](https://github.com/olimorris/codecompanion.nvim/commit/5a62a309d702aadac2144c808f8e66769db0ae21))
+* **tools:** `web_search` domains listed as empty array ([#3533](https://github.com/olimorris/codecompanion.nvim/issues/3533)) ([e262a7b](https://github.com/olimorris/codecompanion.nvim/commit/e262a7b7777cfdd09b271326198ff5bdf1a4d754))
+
 ## [20.3.0](https://github.com/olimorris/codecompanion.nvim/compare/v20.2.0...v20.3.0) (2026-11-22)
 
 
